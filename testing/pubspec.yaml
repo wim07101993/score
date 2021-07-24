@@ -1,0 +1,19 @@
+name: testing
+description: A new Flutter project.
+version: 0.0.1
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  core:
+    path: ../core
+  faker:
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  mocktail:
+
+flutter:
