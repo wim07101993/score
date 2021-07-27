@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   freezed_annotation: ^0.14.2 # latest version uses incompatible meta package version
+  hive: ^2.0.4
   logger: ^1.0.0
 
 dev_dependencies:

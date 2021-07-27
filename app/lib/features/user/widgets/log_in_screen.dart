@@ -12,7 +12,7 @@ class LogInScreen extends StatelessWidget {
         child: ElevatedButton(
           onPressed: () => BlocProvider.of<LogInBloc>(context)
               .add(const LogInEvent.logInWithGoogle()),
-          child: Text('Log in with google'),
+          child: const Text('Log in with google'),
         ),
       ),
     );

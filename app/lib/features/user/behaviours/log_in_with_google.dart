@@ -11,16 +11,7 @@ class LogInWithGoogle extends BehaviourWithoutInput<void> {
   final GoogleSignIn _googleSignIn;
 
   @override
-  Future<void> action() async {
-    final googleAccount = await _googleSignIn.signIn();
-    if (googleAccount != null) {
-      print(googleAccount);
-      print(googleAccount.email);
-      print(googleAccount.id);
-    } else {
-      print('not signed in');
-    }
-  }
+  Future<void> action() => _googleSignIn.signIn();
 
   @override
   Future<Failure> onFailed(dynamic e, StackTrace stacktrace) {

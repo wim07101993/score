@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:score/features/user/behaviours/log_in_with_google.dart';
 import 'package:score/features/user/bloc/log_in_bloc.dart';
 
+import 'app_state/user_box.dart';
+
 export 'package:get_it/get_it.dart';
 
 class ScoreAppProvider extends StatelessWidget {
@@ -45,6 +47,7 @@ extension ScoreGetItExtensions on GetIt {
   GoogleSignIn get googleSignIn => call();
   Logger get logger => call();
   Logger get prettyLogger => call(instanceName: 'prettyLogger');
+  UserBox get userBox => call();
 
   Future<void> init() async {
     registerSingleton(this);
@@ -59,5 +62,6 @@ extension ScoreGetItExtensions on GetIt {
     registerLazySingleton(() => Logger(printer: SimplePrinter()));
     registerLazySingleton(() => Logger(printer: PrettyPrinter()),
         instanceName: 'prettyLogger');
+    registerLazySingleton(() => UserBox(googleSignIn: googleSignIn));
   }
 }

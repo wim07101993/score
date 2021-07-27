@@ -30,6 +30,20 @@
             </list>
           </value>
         </entry>
+        <entry key="auto_route">
+          <value>
+            <list>
+              <option value="$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/auto_route-2.2.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="auto_route_generator">
+          <value>
+            <list>
+              <option value="$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/auto_route_generator-2.1.0/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="bloc">
           <value>
             <list>
@@ -653,6 +667,8 @@
       <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/analyzer-1.7.1/lib" />
       <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/args-2.2.0/lib" />
       <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/async-2.6.1/lib" />
+      <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/auto_route-2.2.0/lib" />
+      <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/auto_route_generator-2.1.0/lib" />
       <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/bloc-7.0.0/lib" />
       <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/boolean_selector-2.1.0/lib" />
       <root url="file://$PROJECT_DIR$/../../../../../tools/flutter/.pub-cache/hosted/pub.dartlang.org/build-2.0.3/lib" />

@@ -1,24 +1,36 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/dc.dart';
 
-import 'features/user/widgets/log_in_screen.dart';
+import 'app_router.gr.dart';
 
 class App extends StatelessWidget {
-  const App({
+  App({
     required this.getIt,
-  });
+    required this.isLoggedIn,
+  }) : _appRouter = AppRouter();
 
+  final AppRouter _appRouter;
   final GetIt getIt;
+  final bool isLoggedIn;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Score',
-      theme: ThemeData(),
-      home: ScoreAppProvider(
-        getIt: getIt,
-        child: const LogInScreen(),
+    return ScoreAppProvider(
+      getIt: getIt,
+      child: MaterialApp.router(
+        title: 'Score',
+        theme: ThemeData(),
+        routerDelegate: AutoRouterDelegate.declarative(
+          _appRouter,
+          routes: (_) => [
+            const LogInRoute(),
+          ],
+        ),
+        routeInformationParser: _appRouter.defaultRouteParser(
+          includePrefixMatches: true,
+        ),
       ),
     );
   }
