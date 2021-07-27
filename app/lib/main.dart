@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'dc.dart';
 
-void main() {
-  runApp(MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final getIt = GetIt.instance..init();
+
+  runApp(App(getIt: getIt));
 }

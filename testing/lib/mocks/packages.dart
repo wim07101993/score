@@ -2,3 +2,5 @@ import 'package:core/core.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockLogger extends Mock implements Logger {}
+
+class MockBox<T> extends Mock implements Box<T> {}

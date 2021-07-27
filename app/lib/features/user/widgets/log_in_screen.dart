@@ -1,4 +1,6 @@
 import 'package:core/core.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:score/features/user/bloc/log_in_bloc.dart';
 
 class LogInScreen extends StatelessWidget {
   const LogInScreen({Key? key}) : super(key: key);
@@ -8,7 +10,8 @@ class LogInScreen extends StatelessWidget {
     return Scaffold(
       body: Center(
         child: ElevatedButton(
-          onPressed: () {},
+          onPressed: () => BlocProvider.of<LogInBloc>(context)
+              .add(const LogInEvent.logInWithGoogle()),
           child: Text('Log in with google'),
         ),
       ),

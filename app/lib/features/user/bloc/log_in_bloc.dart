@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:core/core.dart';
+import 'package:score/features/user/behaviours/log_in_with_google.dart';
 
 part 'log_in_bloc.freezed.dart';
 
@@ -16,14 +17,20 @@ class LogInState with _$LogInState {
 }
 
 class LogInBloc extends Bloc<LogInEvent, LogInState> {
-  LogInBloc() : super(const LogInState());
+  LogInBloc({
+    required this.logInWithGoogle,
+  }) : super(const LogInState());
+
+  final LogInWithGoogle logInWithGoogle;
 
   @override
   Stream<LogInState> mapEventToState(LogInEvent event) {
     return event.when(
-      logInWithGoogle: logInWithGoogle,
+      logInWithGoogle: _logInWithGoogle,
     );
   }
 
-  Stream<LogInState> logInWithGoogle() async* {}
+  Stream<LogInState> _logInWithGoogle() async* {
+    logInWithGoogle();
+  }
 }
