@@ -31,9 +31,7 @@ class AppRouter extends _i1.RootStackRouter {
   @override
   List<_i1.RouteConfig> get routes => [
         _i1.RouteConfig(LogInRoute.name, path: '/'),
-        _i1.RouteConfig(HomeRoute.name, path: '/'),
-        _i1.RouteConfig('*#redirect',
-            path: '*', redirectTo: 'HomeRoute', fullMatch: true)
+        _i1.RouteConfig(HomeRoute.name, path: '/')
       ];
 }
 

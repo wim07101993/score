@@ -19,6 +19,10 @@ class _$LogInEventTearOff {
   _LogInWithGoogle logInWithGoogle() {
     return const _LogInWithGoogle();
   }
+
+  _LogInWithFacebook logInWithFacebook() {
+    return const _LogInWithFacebook();
+  }
 }
 
 /// @nodoc
@@ -29,22 +33,26 @@ mixin _$LogInEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() logInWithGoogle,
+    required TResult Function() logInWithFacebook,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? logInWithGoogle,
+    TResult Function()? logInWithFacebook,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(_LogInWithGoogle value) logInWithGoogle,
+    required TResult Function(_LogInWithFacebook value) logInWithFacebook,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_LogInWithFacebook value)? logInWithFacebook,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -107,6 +115,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() logInWithGoogle,
+    required TResult Function() logInWithFacebook,
   }) {
     return logInWithGoogle();
   }
@@ -115,6 +124,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? logInWithGoogle,
+    TResult Function()? logInWithFacebook,
     required TResult orElse(),
   }) {
     if (logInWithGoogle != null) {
@@ -127,6 +137,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(_LogInWithGoogle value) logInWithGoogle,
+    required TResult Function(_LogInWithFacebook value) logInWithFacebook,
   }) {
     return logInWithGoogle(this);
   }
@@ -135,6 +146,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_LogInWithFacebook value)? logInWithFacebook,
     required TResult orElse(),
   }) {
     if (logInWithGoogle != null) {
@@ -146,6 +158,92 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
 
 abstract class _LogInWithGoogle implements LogInEvent {
   const factory _LogInWithGoogle() = _$_LogInWithGoogle;
+}
+
+/// @nodoc
+abstract class _$LogInWithFacebookCopyWith<$Res> {
+  factory _$LogInWithFacebookCopyWith(
+          _LogInWithFacebook value, $Res Function(_LogInWithFacebook) then) =
+      __$LogInWithFacebookCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$LogInWithFacebookCopyWithImpl<$Res>
+    extends _$LogInEventCopyWithImpl<$Res>
+    implements _$LogInWithFacebookCopyWith<$Res> {
+  __$LogInWithFacebookCopyWithImpl(
+      _LogInWithFacebook _value, $Res Function(_LogInWithFacebook) _then)
+      : super(_value, (v) => _then(v as _LogInWithFacebook));
+
+  @override
+  _LogInWithFacebook get _value => super._value as _LogInWithFacebook;
+}
+
+/// @nodoc
+
+class _$_LogInWithFacebook implements _LogInWithFacebook {
+  const _$_LogInWithFacebook();
+
+  @override
+  String toString() {
+    return 'LogInEvent.logInWithFacebook()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other is _LogInWithFacebook);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() logInWithGoogle,
+    required TResult Function() logInWithFacebook,
+  }) {
+    return logInWithFacebook();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? logInWithGoogle,
+    TResult Function()? logInWithFacebook,
+    required TResult orElse(),
+  }) {
+    if (logInWithFacebook != null) {
+      return logInWithFacebook();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_LogInWithGoogle value) logInWithGoogle,
+    required TResult Function(_LogInWithFacebook value) logInWithFacebook,
+  }) {
+    return logInWithFacebook(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_LogInWithFacebook value)? logInWithFacebook,
+    required TResult orElse(),
+  }) {
+    if (logInWithFacebook != null) {
+      return logInWithFacebook(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _LogInWithFacebook implements LogInEvent {
+  const factory _LogInWithFacebook() = _$_LogInWithFacebook;
 }
 
 /// @nodoc

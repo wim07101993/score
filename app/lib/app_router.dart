@@ -7,6 +7,6 @@ import 'features/user/widgets/log_in_screen.dart';
 @MaterialAutoRouter(replaceInRouteName: 'Screen,Route', routes: [
   AutoRoute(page: LogInScreen, initial: true),
   AutoRoute(page: HomeScreen, initial: true),
-  RedirectRoute(path: '*', redirectTo: HomeRoute.name),
+  // RedirectRoute(path: '*', redirectTo: HomeRoute.name),
 ])
 class $AppRouter {}

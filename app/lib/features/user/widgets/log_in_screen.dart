@@ -9,10 +9,21 @@ class LogInScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: ElevatedButton(
-          onPressed: () => BlocProvider.of<LogInBloc>(context)
-              .add(const LogInEvent.logInWithGoogle()),
-          child: const Text('Log in with google'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () => BlocProvider.of<LogInBloc>(context)
+                  .add(const LogInEvent.logInWithGoogle()),
+              child: const Text('Log in with google'),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => BlocProvider.of<LogInBloc>(context)
+                  .add(const LogInEvent.logInWithFacebook()),
+              child: const Text('Log in with facebook'),
+            ),
+          ],
         ),
       ),
     );

@@ -1,3 +1,6 @@
+# firebase config
+web/google-services.js
+
 # Miscellaneous
 *.class
 *.log
