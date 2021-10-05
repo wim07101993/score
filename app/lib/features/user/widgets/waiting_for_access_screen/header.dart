@@ -15,8 +15,8 @@ class Header extends StatelessWidget {
           padding: const EdgeInsets.all(32),
           child: TextButton(
             onPressed: () => context.read<FirebaseAuth>().signOut(),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+            child: const Padding(
+              padding: EdgeInsets.all(16),
               child: Text('Log out'),
             ),
           ),

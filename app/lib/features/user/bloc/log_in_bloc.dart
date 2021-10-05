@@ -2,14 +2,12 @@ import 'package:bloc/bloc.dart';
 import 'package:core/core.dart';
 import 'package:score/data/firebase/user/user.dart';
 import 'package:score/features/user/behaviours/log_in_with_google.dart';
-import 'package:score/features/user/behaviours/login_with_facebook.dart';
 
 part 'log_in_bloc.freezed.dart';
 
 @freezed
 class LogInEvent with _$LogInEvent {
   const factory LogInEvent.logInWithGoogle() = _LogInWithGoogle;
-  const factory LogInEvent.logInWithFacebook() = _LogInWithFacebook;
   const factory LogInEvent.userChanged() = _UserChanged;
 }
 
@@ -24,7 +22,6 @@ class LogInState with _$LogInState {
 class LogInBloc extends Bloc<LogInEvent, LogInState> {
   LogInBloc({
     required this.logInWithGoogle,
-    required this.logInWithFacebook,
     required this.userChanges,
     required this.logger,
   }) : super(const LogInState()) {
@@ -33,27 +30,18 @@ class LogInBloc extends Bloc<LogInEvent, LogInState> {
 
   final Logger logger;
   final LogInWithGoogle logInWithGoogle;
-  final LogInWithFacebook logInWithFacebook;
   final UserChanges userChanges;
 
   @override
   Stream<LogInState> mapEventToState(LogInEvent event) {
     return event.when(
       logInWithGoogle: _logInWithGoogle,
-      logInWithFacebook: _logInWithFacebook,
       userChanged: _userChanged,
     );
   }
 
   Stream<LogInState> _logInWithGoogle() async* {
     final either = await logInWithGoogle();
-    if (either is Failed<void>) {
-      yield state.copyWith(failure: either.failure);
-    }
-  }
-
-  Stream<LogInState> _logInWithFacebook() async* {
-    final either = await logInWithFacebook();
     if (either is Failed<void>) {
       yield state.copyWith(failure: either.failure);
     }

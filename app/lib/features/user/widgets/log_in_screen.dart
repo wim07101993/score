@@ -37,11 +37,6 @@ class _LogInScreenState extends State<LogInScreen> {
                     .add(const LogInEvent.logInWithGoogle()),
               ),
               const SizedBox(height: 16),
-              SignInButton(
-                Buttons.FacebookNew,
-                onPressed: () => BlocProvider.of<LogInBloc>(context)
-                    .add(const LogInEvent.logInWithFacebook()),
-              ),
               Text('', style: theme.textTheme.headline1),
             ],
           ),

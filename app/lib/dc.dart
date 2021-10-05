@@ -5,13 +5,11 @@ import 'package:core/core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:score/features/user/behaviours/credential_converter.dart';
 import 'package:score/features/user/behaviours/log_in_with_google.dart';
-import 'package:score/features/user/behaviours/login_with_facebook.dart';
 import 'package:score/features/user/bloc/log_in_bloc.dart' show LogInBloc;
 
 import 'data/firebase/auth/auth_changes.dart';
@@ -57,10 +55,8 @@ extension ScoreGetItExtensions on GetIt {
   AuthChanges get authChanges => call();
   CredentialConverter get credentialConverter => call();
   LogInWithGoogle get logInWithGoogle => call();
-  LogInWithFacebook get logInWithFacebook => call();
   UserChanges get userChanges => call();
 
-  FacebookAuth get facebookAuth => call();
   FirebaseAuth get firebaseAuth => call();
   FirebaseFirestore get firestore => call();
   GoogleSignIn get googleSignIn => call();
@@ -79,7 +75,6 @@ extension ScoreGetItExtensions on GetIt {
     registerFactory(
       () => LogInBloc(
         logInWithGoogle: logInWithGoogle,
-        logInWithFacebook: logInWithFacebook,
         userChanges: userChanges,
         logger: logger,
       ),
@@ -98,14 +93,6 @@ extension ScoreGetItExtensions on GetIt {
     );
     registerLazySingleton(() => const CredentialConverter());
     registerLazySingleton(
-      () => LogInWithFacebook(
-        errorLogger: prettyLogger,
-        facebookAuth: facebookAuth,
-        firebaseAuth: firebaseAuth,
-        credentialConverter: credentialConverter,
-      ),
-    );
-    registerLazySingleton(
       () => LogInWithGoogle(
         errorLogger: prettyLogger,
         googleSignIn: googleSignIn,
@@ -116,7 +103,6 @@ extension ScoreGetItExtensions on GetIt {
   }
 
   Future<void> registerData() async {
-    registerSingleton(FacebookAuth.i);
     registerSingleton(FirebaseAuth.instance);
     registerSingleton(FirebaseFirestore.instance);
     registerLazySingleton(() => GoogleSignIn());

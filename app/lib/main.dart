@@ -3,8 +3,6 @@ import 'dart:developer';
 
 import 'package:core/core.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 import 'app.dart';
 import 'dc.dart';
@@ -16,7 +14,6 @@ Future<void> main() async {
   await getIt.init();
   runZonedGuarded(() async {
     // await getIt.firestore.enablePersistence();
-    await initAuth();
     final user = await getIt.userRepository.user();
     if (user == null) {
       getIt.logger.i('user is not logged in');
@@ -34,15 +31,4 @@ Future<void> main() async {
       log('App crash + log crash: $error at \r\n$stackTrace');
     }
   });
-}
-
-Future<void> initAuth() async {
-  if (kIsWeb) {
-    FacebookAuth.i.webInitialize(
-      appId: '189190539900591',
-      cookie: true,
-      xfbml: true,
-      version: 'v9.0',
-    );
-  }
 }
