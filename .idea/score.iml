@@ -5,9 +5,10 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/app" />
       <excludeFolder url="file://$MODULE_DIR$/core" />
+      <excludeFolder url="file://$MODULE_DIR$/testing" />
       <excludeFolder url="file://$MODULE_DIR$/testing/.dart_tool" />
-      <excludeFolder url="file://$MODULE_DIR$/testing/build" />
       <excludeFolder url="file://$MODULE_DIR$/testing/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/testing/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

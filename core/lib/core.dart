@@ -13,3 +13,4 @@ export 'src/app_state/read_only_state_entry_proxy.dart';
 export 'src/app_state/state_entry.dart';
 export 'src/behaviour.dart';
 export 'src/failure.dart';
+export 'src/failure_or.dart';

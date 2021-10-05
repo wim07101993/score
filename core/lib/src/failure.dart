@@ -1,3 +1,4 @@
+import 'package:core/core.dart';
 import 'package:flutter/widgets.dart';
 
 abstract class Failure {
@@ -37,4 +38,13 @@ class CombinedFailure implements Failure {
   String getMessage(BuildContext context) {
     return failures.map((f) => f.getMessage(context)).join('\r\n');
   }
+}
+
+ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showFailure(
+  BuildContext context,
+  Failure failure,
+) {
+  return ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(failure.getMessage(context)),
+  ));
 }

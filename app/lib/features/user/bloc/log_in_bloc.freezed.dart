@@ -23,6 +23,10 @@ class _$LogInEventTearOff {
   _LogInWithFacebook logInWithFacebook() {
     return const _LogInWithFacebook();
   }
+
+  _UserChanged userChanged() {
+    return const _UserChanged();
+  }
 }
 
 /// @nodoc
@@ -34,12 +38,14 @@ mixin _$LogInEvent {
   TResult when<TResult extends Object?>({
     required TResult Function() logInWithGoogle,
     required TResult Function() logInWithFacebook,
+    required TResult Function() userChanged,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? logInWithGoogle,
     TResult Function()? logInWithFacebook,
+    TResult Function()? userChanged,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -47,12 +53,14 @@ mixin _$LogInEvent {
   TResult map<TResult extends Object?>({
     required TResult Function(_LogInWithGoogle value) logInWithGoogle,
     required TResult Function(_LogInWithFacebook value) logInWithFacebook,
+    required TResult Function(_UserChanged value) userChanged,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_LogInWithGoogle value)? logInWithGoogle,
     TResult Function(_LogInWithFacebook value)? logInWithFacebook,
+    TResult Function(_UserChanged value)? userChanged,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -116,6 +124,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   TResult when<TResult extends Object?>({
     required TResult Function() logInWithGoogle,
     required TResult Function() logInWithFacebook,
+    required TResult Function() userChanged,
   }) {
     return logInWithGoogle();
   }
@@ -125,6 +134,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? logInWithGoogle,
     TResult Function()? logInWithFacebook,
+    TResult Function()? userChanged,
     required TResult orElse(),
   }) {
     if (logInWithGoogle != null) {
@@ -138,6 +148,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   TResult map<TResult extends Object?>({
     required TResult Function(_LogInWithGoogle value) logInWithGoogle,
     required TResult Function(_LogInWithFacebook value) logInWithFacebook,
+    required TResult Function(_UserChanged value) userChanged,
   }) {
     return logInWithGoogle(this);
   }
@@ -147,6 +158,7 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_LogInWithGoogle value)? logInWithGoogle,
     TResult Function(_LogInWithFacebook value)? logInWithFacebook,
+    TResult Function(_UserChanged value)? userChanged,
     required TResult orElse(),
   }) {
     if (logInWithGoogle != null) {
@@ -202,6 +214,7 @@ class _$_LogInWithFacebook implements _LogInWithFacebook {
   TResult when<TResult extends Object?>({
     required TResult Function() logInWithGoogle,
     required TResult Function() logInWithFacebook,
+    required TResult Function() userChanged,
   }) {
     return logInWithFacebook();
   }
@@ -211,6 +224,7 @@ class _$_LogInWithFacebook implements _LogInWithFacebook {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? logInWithGoogle,
     TResult Function()? logInWithFacebook,
+    TResult Function()? userChanged,
     required TResult orElse(),
   }) {
     if (logInWithFacebook != null) {
@@ -224,6 +238,7 @@ class _$_LogInWithFacebook implements _LogInWithFacebook {
   TResult map<TResult extends Object?>({
     required TResult Function(_LogInWithGoogle value) logInWithGoogle,
     required TResult Function(_LogInWithFacebook value) logInWithFacebook,
+    required TResult Function(_UserChanged value) userChanged,
   }) {
     return logInWithFacebook(this);
   }
@@ -233,6 +248,7 @@ class _$_LogInWithFacebook implements _LogInWithFacebook {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(_LogInWithGoogle value)? logInWithGoogle,
     TResult Function(_LogInWithFacebook value)? logInWithFacebook,
+    TResult Function(_UserChanged value)? userChanged,
     required TResult orElse(),
   }) {
     if (logInWithFacebook != null) {
@@ -247,11 +263,101 @@ abstract class _LogInWithFacebook implements LogInEvent {
 }
 
 /// @nodoc
+abstract class _$UserChangedCopyWith<$Res> {
+  factory _$UserChangedCopyWith(
+          _UserChanged value, $Res Function(_UserChanged) then) =
+      __$UserChangedCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$UserChangedCopyWithImpl<$Res> extends _$LogInEventCopyWithImpl<$Res>
+    implements _$UserChangedCopyWith<$Res> {
+  __$UserChangedCopyWithImpl(
+      _UserChanged _value, $Res Function(_UserChanged) _then)
+      : super(_value, (v) => _then(v as _UserChanged));
+
+  @override
+  _UserChanged get _value => super._value as _UserChanged;
+}
+
+/// @nodoc
+
+class _$_UserChanged implements _UserChanged {
+  const _$_UserChanged();
+
+  @override
+  String toString() {
+    return 'LogInEvent.userChanged()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) || (other is _UserChanged);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() logInWithGoogle,
+    required TResult Function() logInWithFacebook,
+    required TResult Function() userChanged,
+  }) {
+    return userChanged();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? logInWithGoogle,
+    TResult Function()? logInWithFacebook,
+    TResult Function()? userChanged,
+    required TResult orElse(),
+  }) {
+    if (userChanged != null) {
+      return userChanged();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_LogInWithGoogle value) logInWithGoogle,
+    required TResult Function(_LogInWithFacebook value) logInWithFacebook,
+    required TResult Function(_UserChanged value) userChanged,
+  }) {
+    return userChanged(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_LogInWithFacebook value)? logInWithFacebook,
+    TResult Function(_UserChanged value)? userChanged,
+    required TResult orElse(),
+  }) {
+    if (userChanged != null) {
+      return userChanged(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _UserChanged implements LogInEvent {
+  const factory _UserChanged() = _$_UserChanged;
+}
+
+/// @nodoc
 class _$LogInStateTearOff {
   const _$LogInStateTearOff();
 
-  _Failure call({Failure? failure}) {
-    return _Failure(
+  _LogInState call({User? user, Failure? failure}) {
+    return _LogInState(
+      user: user,
       failure: failure,
     );
   }
@@ -262,6 +368,7 @@ const $LogInState = _$LogInStateTearOff();
 
 /// @nodoc
 mixin _$LogInState {
+  User? get user => throw _privateConstructorUsedError;
   Failure? get failure => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
@@ -274,7 +381,9 @@ abstract class $LogInStateCopyWith<$Res> {
   factory $LogInStateCopyWith(
           LogInState value, $Res Function(LogInState) then) =
       _$LogInStateCopyWithImpl<$Res>;
-  $Res call({Failure? failure});
+  $Res call({User? user, Failure? failure});
+
+  $UserCopyWith<$Res>? get user;
 }
 
 /// @nodoc
@@ -287,39 +396,65 @@ class _$LogInStateCopyWithImpl<$Res> implements $LogInStateCopyWith<$Res> {
 
   @override
   $Res call({
+    Object? user = freezed,
     Object? failure = freezed,
   }) {
     return _then(_value.copyWith(
+      user: user == freezed
+          ? _value.user
+          : user // ignore: cast_nullable_to_non_nullable
+              as User?,
       failure: failure == freezed
           ? _value.failure
           : failure // ignore: cast_nullable_to_non_nullable
               as Failure?,
     ));
   }
+
+  @override
+  $UserCopyWith<$Res>? get user {
+    if (_value.user == null) {
+      return null;
+    }
+
+    return $UserCopyWith<$Res>(_value.user!, (value) {
+      return _then(_value.copyWith(user: value));
+    });
+  }
 }
 
 /// @nodoc
-abstract class _$FailureCopyWith<$Res> implements $LogInStateCopyWith<$Res> {
-  factory _$FailureCopyWith(_Failure value, $Res Function(_Failure) then) =
-      __$FailureCopyWithImpl<$Res>;
+abstract class _$LogInStateCopyWith<$Res> implements $LogInStateCopyWith<$Res> {
+  factory _$LogInStateCopyWith(
+          _LogInState value, $Res Function(_LogInState) then) =
+      __$LogInStateCopyWithImpl<$Res>;
   @override
-  $Res call({Failure? failure});
+  $Res call({User? user, Failure? failure});
+
+  @override
+  $UserCopyWith<$Res>? get user;
 }
 
 /// @nodoc
-class __$FailureCopyWithImpl<$Res> extends _$LogInStateCopyWithImpl<$Res>
-    implements _$FailureCopyWith<$Res> {
-  __$FailureCopyWithImpl(_Failure _value, $Res Function(_Failure) _then)
-      : super(_value, (v) => _then(v as _Failure));
+class __$LogInStateCopyWithImpl<$Res> extends _$LogInStateCopyWithImpl<$Res>
+    implements _$LogInStateCopyWith<$Res> {
+  __$LogInStateCopyWithImpl(
+      _LogInState _value, $Res Function(_LogInState) _then)
+      : super(_value, (v) => _then(v as _LogInState));
 
   @override
-  _Failure get _value => super._value as _Failure;
+  _LogInState get _value => super._value as _LogInState;
 
   @override
   $Res call({
+    Object? user = freezed,
     Object? failure = freezed,
   }) {
-    return _then(_Failure(
+    return _then(_LogInState(
+      user: user == freezed
+          ? _value.user
+          : user // ignore: cast_nullable_to_non_nullable
+              as User?,
       failure: failure == freezed
           ? _value.failure
           : failure // ignore: cast_nullable_to_non_nullable
@@ -330,42 +465,50 @@ class __$FailureCopyWithImpl<$Res> extends _$LogInStateCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_Failure implements _Failure {
-  const _$_Failure({this.failure});
+class _$_LogInState implements _LogInState {
+  const _$_LogInState({this.user, this.failure});
 
+  @override
+  final User? user;
   @override
   final Failure? failure;
 
   @override
   String toString() {
-    return 'LogInState(failure: $failure)';
+    return 'LogInState(user: $user, failure: $failure)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other is _Failure &&
+        (other is _LogInState &&
+            (identical(other.user, user) ||
+                const DeepCollectionEquality().equals(other.user, user)) &&
             (identical(other.failure, failure) ||
                 const DeepCollectionEquality().equals(other.failure, failure)));
   }
 
   @override
   int get hashCode =>
-      runtimeType.hashCode ^ const DeepCollectionEquality().hash(failure);
+      runtimeType.hashCode ^
+      const DeepCollectionEquality().hash(user) ^
+      const DeepCollectionEquality().hash(failure);
 
   @JsonKey(ignore: true)
   @override
-  _$FailureCopyWith<_Failure> get copyWith =>
-      __$FailureCopyWithImpl<_Failure>(this, _$identity);
+  _$LogInStateCopyWith<_LogInState> get copyWith =>
+      __$LogInStateCopyWithImpl<_LogInState>(this, _$identity);
 }
 
-abstract class _Failure implements LogInState {
-  const factory _Failure({Failure? failure}) = _$_Failure;
+abstract class _LogInState implements LogInState {
+  const factory _LogInState({User? user, Failure? failure}) = _$_LogInState;
 
+  @override
+  User? get user => throw _privateConstructorUsedError;
   @override
   Failure? get failure => throw _privateConstructorUsedError;
   @override
   @JsonKey(ignore: true)
-  _$FailureCopyWith<_Failure> get copyWith =>
+  _$LogInStateCopyWith<_LogInState> get copyWith =>
       throw _privateConstructorUsedError;
 }

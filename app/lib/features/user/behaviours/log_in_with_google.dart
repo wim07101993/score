@@ -1,5 +1,6 @@
 import 'package:core/core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:score/features/user/behaviours/credential_converter.dart';
 
@@ -20,17 +21,22 @@ class LogInWithGoogle extends BehaviourWithoutInput<void> {
 
   @override
   Future<void> action() async {
-    final account = await _googleSignIn.signIn();
-    if (account != null) {
-      final auth = await account.authentication;
-      final credential = _credentialConverter.google(auth);
-      await _firebaseAuth.signInWithCredential(credential);
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account != null) {
+        final auth = await account.authentication;
+        final credential = _credentialConverter.google(auth);
+        await _firebaseAuth.signInWithCredential(credential);
+      }
+    } on PlatformException catch (e) {
+      if (e.code != 'popup_closed_by_user') {
+        rethrow;
+      }
     }
   }
 
   @override
   Future<Failure> onFailed(dynamic e, StackTrace stacktrace) {
-    errorLogger.wtf('Unknown error', e, stacktrace);
     return Future.value(const UnknownFailure());
   }
 }

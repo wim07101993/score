@@ -7,21 +7,22 @@ environment:
   sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
-  async: # flutter_test depends on async
-  auto_route: ^2.2.0
-  bloc: ^7.0.0
+  async:
+  auto_route:
+  bloc:
+  cloud_firestore:
   core:
     path: ../core
-  firebase_auth: ^3.0.1
-  firebase_core: ^1.4.0
+  firebase_auth:
+  firebase_core:
   flutter:
     sdk: flutter
-  flutter_bloc: ^7.0.1
-  flutter_facebook_auth: ^3.5.0
-  get_it: ^7.2.0
-  google_sign_in: ^5.0.5
-  hive: ^2.0.4
-  provider: ^5.0.0
+  flutter_bloc:
+  flutter_signin_button:
+  get_it:
+  google_sign_in:
+  hive:
+  provider:
 
 dev_dependencies:
   auto_route_generator:
@@ -30,6 +31,7 @@ dev_dependencies:
     sdk: flutter
   freezed:
   hive_generator:
+  json_serializable:
   lint:
 
 flutter:

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:core/core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -13,7 +14,9 @@ import 'package:score/features/user/behaviours/log_in_with_google.dart';
 import 'package:score/features/user/behaviours/login_with_facebook.dart';
 import 'package:score/features/user/bloc/log_in_bloc.dart' show LogInBloc;
 
-import 'app_state/user_box.dart';
+import 'data/firebase/auth/auth_changes.dart';
+import 'data/firebase/user/access_levels.dart';
+import 'data/firebase/user/user.dart';
 
 export 'package:get_it/get_it.dart';
 
@@ -33,6 +36,9 @@ class ScoreAppProvider extends StatelessWidget {
       providers: [
         Provider(create: (_) => getIt),
         Provider(create: (_) => getIt.logger),
+        Provider(create: (_) => getIt.firebaseAuth),
+        ListenableProvider(create: (_) => getIt.accessLevelsChanges),
+        ListenableProvider(create: (_) => getIt.userChanges),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -47,24 +53,26 @@ class ScoreAppProvider extends StatelessWidget {
 extension ScoreGetItExtensions on GetIt {
   LogInBloc get logInBloc => call();
 
+  AccessLevelsChanges get accessLevelsChanges => call();
+  AuthChanges get authChanges => call();
+  CredentialConverter get credentialConverter => call();
   LogInWithGoogle get logInWithGoogle => call();
   LogInWithFacebook get logInWithFacebook => call();
-  CredentialConverter get credentialConverter => call();
+  UserChanges get userChanges => call();
 
   FacebookAuth get facebookAuth => call();
-  GoogleSignIn get googleSignIn => call();
   FirebaseAuth get firebaseAuth => call();
+  FirebaseFirestore get firestore => call();
+  GoogleSignIn get googleSignIn => call();
   Logger get logger => call();
   Logger get prettyLogger => call(instanceName: 'prettyLogger');
-  UserBox get userBox => call();
+  UserRepository get userRepository => call();
 
   Future<void> init() async {
     registerSingleton(this);
-    await Future.wait([
-      registerBloc(),
-      registerBehaviours(),
-      registerData(),
-    ]);
+    await registerData();
+    await registerBehaviours();
+    await registerBloc();
   }
 
   Future<void> registerBloc() async {
@@ -72,11 +80,23 @@ extension ScoreGetItExtensions on GetIt {
       () => LogInBloc(
         logInWithGoogle: logInWithGoogle,
         logInWithFacebook: logInWithFacebook,
+        userChanges: userChanges,
+        logger: logger,
       ),
     );
   }
 
   Future<void> registerBehaviours() async {
+    registerFactory(
+      () => AuthChanges(firebaseAuth: firebaseAuth, logger: logger),
+    );
+    registerFactory(
+      () => AccessLevelsChanges(userRepository: userRepository),
+    );
+    registerFactory(
+      () => UserChanges(userRepository: userRepository),
+    );
+    registerLazySingleton(() => const CredentialConverter());
     registerLazySingleton(
       () => LogInWithFacebook(
         errorLogger: prettyLogger,
@@ -93,18 +113,20 @@ extension ScoreGetItExtensions on GetIt {
         credentialConverter: credentialConverter,
       ),
     );
-    registerLazySingleton(() => const CredentialConverter());
   }
 
   Future<void> registerData() async {
-    registerSingleton(FirebaseAuth.instance);
     registerSingleton(FacebookAuth.i);
+    registerSingleton(FirebaseAuth.instance);
+    registerSingleton(FirebaseFirestore.instance);
     registerLazySingleton(() => GoogleSignIn());
     registerLazySingleton(() => Logger(printer: SimplePrinter()));
     registerLazySingleton(
       () => Logger(printer: PrettyPrinter()),
       instanceName: 'prettyLogger',
     );
-    registerLazySingleton(() => UserBox(googleSignIn: googleSignIn));
+    registerLazySingleton(
+      () => UserRepository(authChanges: authChanges, firestore: firestore),
+    );
   }
 }

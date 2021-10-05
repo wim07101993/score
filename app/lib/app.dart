@@ -4,28 +4,35 @@ import 'package:get_it/get_it.dart';
 import 'package:score/dc.dart';
 
 import 'app_router.gr.dart';
+import 'data/firebase/user/user.dart';
 
 class App extends StatelessWidget {
   App({
     required this.getIt,
-    required this.isLoggedIn,
+    required this.user,
   }) : _appRouter = AppRouter();
 
   final AppRouter _appRouter;
   final GetIt getIt;
-  final bool isLoggedIn;
+  final User? user;
 
   @override
   Widget build(BuildContext context) {
+    final user = this.user;
     return ScoreAppProvider(
       getIt: getIt,
       child: MaterialApp.router(
         title: 'Score',
         theme: ThemeData(),
-        routerDelegate: AutoRouterDelegate.declarative(
+        routerDelegate: AutoRouterDelegate(
           _appRouter,
-          routes: (_) => [
-            const LogInRoute(),
+          initialRoutes: [
+            if (user == null)
+              const LogInRoute()
+            else if (!user.accessLevels.application)
+              const WaitingForAccessRoute()
+            else
+              const HomeRoute(),
           ],
         ),
         routeInformationParser: _appRouter.defaultRouteParser(

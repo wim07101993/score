@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "769630625320",
+    "firebase_url": "https://score-e5588-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "score-e5588",
+    "storage_bucket": "score-e5588.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:769630625320:android:81782087171da6c50e5f1d",
+        "android_client_info": {
+          "package_name": "com.wimvanlaer.score"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "769630625320-guovbq2dj4frq5631ohfcpomrs2pt1nv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApMkXUA2t-WQryz36YvsCGdlInQUcxta4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "769630625320-guovbq2dj4frq5631ohfcpomrs2pt1nv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
