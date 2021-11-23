@@ -1,5 +1,6 @@
+// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target
 
 part of 'user.dart';
 
@@ -28,7 +29,7 @@ class _$UserTearOff {
     );
   }
 
-  User fromJson(Map<String, Object> json) {
+  User fromJson(Map<String, Object?> json) {
     return User.fromJson(json);
   }
 }
@@ -131,8 +132,7 @@ class __$UserCopyWithImpl<$Res> extends _$UserCopyWithImpl<$Res>
 class _$_User implements _User {
   const _$_User({required this.displayName, required this.accessLevels});
 
-  factory _$_User.fromJson(Map<String, dynamic> json) =>
-      _$_$_UserFromJson(json);
+  factory _$_User.fromJson(Map<String, dynamic> json) => _$$_UserFromJson(json);
 
   @override
   final String displayName;
@@ -147,20 +147,16 @@ class _$_User implements _User {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other is _User &&
+        (other.runtimeType == runtimeType &&
+            other is _User &&
             (identical(other.displayName, displayName) ||
-                const DeepCollectionEquality()
-                    .equals(other.displayName, displayName)) &&
+                other.displayName == displayName) &&
             (identical(other.accessLevels, accessLevels) ||
-                const DeepCollectionEquality()
-                    .equals(other.accessLevels, accessLevels)));
+                other.accessLevels == accessLevels));
   }
 
   @override
-  int get hashCode =>
-      runtimeType.hashCode ^
-      const DeepCollectionEquality().hash(displayName) ^
-      const DeepCollectionEquality().hash(accessLevels);
+  int get hashCode => Object.hash(runtimeType, displayName, accessLevels);
 
   @JsonKey(ignore: true)
   @override
@@ -169,7 +165,7 @@ class _$_User implements _User {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$_$_UserToJson(this);
+    return _$$_UserToJson(this);
   }
 }
 
@@ -181,9 +177,9 @@ abstract class _User implements User {
   factory _User.fromJson(Map<String, dynamic> json) = _$_User.fromJson;
 
   @override
-  String get displayName => throw _privateConstructorUsedError;
+  String get displayName;
   @override
-  AccessLevels get accessLevels => throw _privateConstructorUsedError;
+  AccessLevels get accessLevels;
   @override
   @JsonKey(ignore: true)
   _$UserCopyWith<_User> get copyWith => throw _privateConstructorUsedError;

@@ -125,7 +125,6 @@ class UserChanges extends ValueNotifier<User?> {
     required UserRepository userRepository,
   }) : super(null) {
     _userChangeSubscription = userRepository.changes.listen((u) {
-      print(u);
       value = u;
     });
   }

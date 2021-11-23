@@ -1,6 +1,5 @@
 library core;
 
-export 'package:flutter/material.dart';
 export 'package:freezed_annotation/freezed_annotation.dart';
 export 'package:hive/hive.dart';
 export 'package:logger/logger.dart';
@@ -11,6 +10,7 @@ export 'src/app_state/hive/hive_state_entry.dart';
 export 'src/app_state/hive/read_only_hive_state_entry.dart';
 export 'src/app_state/read_only_state_entry_proxy.dart';
 export 'src/app_state/state_entry.dart';
-export 'src/behaviour.dart';
-export 'src/failure.dart';
-export 'src/failure_or.dart';
+export 'src/behaviour/behaviour.dart';
+export 'src/behaviour/behaviour_mixin.dart';
+export 'src/behaviour/behaviour_without_input.dart';
+export 'src/behaviour/exception_or.dart';

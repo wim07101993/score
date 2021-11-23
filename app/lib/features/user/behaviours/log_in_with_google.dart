@@ -36,7 +36,7 @@ class LogInWithGoogle extends BehaviourWithoutInput<void> {
   }
 
   @override
-  Future<Failure> onFailed(dynamic e, StackTrace stacktrace) {
+  Future<Failure> onException(dynamic e, StackTrace stacktrace) {
     return Future.value(const UnknownFailure());
   }
 }

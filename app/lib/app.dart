@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/dc.dart';
 
-import 'app_router.gr.dart';
+import 'app_router.dart';
 import 'data/firebase/user/user.dart';
 
 class App extends StatelessWidget {

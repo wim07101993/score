@@ -1,5 +1,5 @@
 import 'package:core/core.dart';
-import 'package:core/src/failure_or.dart';
+import 'package:core/src/behaviour/exception_or.dart';
 import 'package:testing/testing.dart';
 
 abstract class _IfFailure<TResult> {

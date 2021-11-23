@@ -1,61 +1,59 @@
+// **************************************************************************
+// AutoRouteGenerator
+// **************************************************************************
+
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // **************************************************************************
 // AutoRouteGenerator
 // **************************************************************************
 
-import 'package:auto_route/auto_route.dart' as _i1;
-import 'package:flutter/material.dart' as _i2;
+part of 'app_router.dart';
 
-import 'features/home/widget/home_screen.dart' as _i4;
-import 'features/user/widgets/log_in_screen.dart' as _i3;
-import 'features/user/widgets/waiting_for_access_screen.dart' as _i5;
-
-class AppRouter extends _i1.RootStackRouter {
-  AppRouter([_i2.GlobalKey<_i2.NavigatorState>? navigatorKey])
-      : super(navigatorKey);
+class _$AppRouter extends RootStackRouter {
+  _$AppRouter([GlobalKey<NavigatorState>? navigatorKey]) : super(navigatorKey);
 
   @override
-  final Map<String, _i1.PageFactory> pagesMap = {
-    LogInRoute.name: (routeData) => _i1.MaterialPageX<dynamic>(
-        routeData: routeData,
-        builder: (_) {
-          return const _i3.LogInScreen();
-        }),
-    HomeRoute.name: (routeData) => _i1.MaterialPageX<dynamic>(
-        routeData: routeData,
-        builder: (_) {
-          return const _i4.HomeScreen();
-        }),
-    WaitingForAccessRoute.name: (routeData) => _i1.MaterialPageX<dynamic>(
-        routeData: routeData,
-        builder: (_) {
-          return const _i5.WaitingForAccessScreen();
-        })
+  final Map<String, PageFactory> pagesMap = {
+    LogInRoute.name: (routeData) {
+      return MaterialPageX<dynamic>(
+          routeData: routeData, child: const LogInScreen());
+    },
+    HomeRoute.name: (routeData) {
+      return MaterialPageX<dynamic>(
+          routeData: routeData, child: const HomeScreen());
+    },
+    WaitingForAccessRoute.name: (routeData) {
+      return MaterialPageX<dynamic>(
+          routeData: routeData, child: const WaitingForAccessScreen());
+    }
   };
 
   @override
-  List<_i1.RouteConfig> get routes => [
-        _i1.RouteConfig(LogInRoute.name, path: '/log-in-screen'),
-        _i1.RouteConfig(HomeRoute.name, path: '/home-screen'),
-        _i1.RouteConfig(WaitingForAccessRoute.name,
+  List<RouteConfig> get routes => [
+        RouteConfig(LogInRoute.name, path: '/log-in-screen'),
+        RouteConfig(HomeRoute.name, path: '/home-screen'),
+        RouteConfig(WaitingForAccessRoute.name,
             path: '/waiting-for-access-screen')
       ];
 }
 
-class LogInRoute extends _i1.PageRouteInfo {
+/// generated route for [LogInScreen]
+class LogInRoute extends PageRouteInfo<void> {
   const LogInRoute() : super(name, path: '/log-in-screen');
 
   static const String name = 'LogInRoute';
 }
 
-class HomeRoute extends _i1.PageRouteInfo {
+/// generated route for [HomeScreen]
+class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute() : super(name, path: '/home-screen');
 
   static const String name = 'HomeRoute';
 }
 
-class WaitingForAccessRoute extends _i1.PageRouteInfo {
+/// generated route for [WaitingForAccessScreen]
+class WaitingForAccessRoute extends PageRouteInfo<void> {
   const WaitingForAccessRoute()
       : super(name, path: '/waiting-for-access-screen');
 

@@ -1,5 +1,6 @@
+// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target
 
 part of 'access_levels.dart';
 
@@ -27,7 +28,7 @@ class _$AccessLevelsTearOff {
     );
   }
 
-  AccessLevels fromJson(Map<String, Object> json) {
+  AccessLevels fromJson(Map<String, Object?> json) {
     return AccessLevels.fromJson(json);
   }
 }
@@ -124,7 +125,7 @@ class _$_AccessLevels implements _AccessLevels {
   const _$_AccessLevels({this.application = false, this.admin = false});
 
   factory _$_AccessLevels.fromJson(Map<String, dynamic> json) =>
-      _$_$_AccessLevelsFromJson(json);
+      _$$_AccessLevelsFromJson(json);
 
   @JsonKey(defaultValue: false)
   @override
@@ -141,19 +142,15 @@ class _$_AccessLevels implements _AccessLevels {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other is _AccessLevels &&
+        (other.runtimeType == runtimeType &&
+            other is _AccessLevels &&
             (identical(other.application, application) ||
-                const DeepCollectionEquality()
-                    .equals(other.application, application)) &&
-            (identical(other.admin, admin) ||
-                const DeepCollectionEquality().equals(other.admin, admin)));
+                other.application == application) &&
+            (identical(other.admin, admin) || other.admin == admin));
   }
 
   @override
-  int get hashCode =>
-      runtimeType.hashCode ^
-      const DeepCollectionEquality().hash(application) ^
-      const DeepCollectionEquality().hash(admin);
+  int get hashCode => Object.hash(runtimeType, application, admin);
 
   @JsonKey(ignore: true)
   @override
@@ -162,7 +159,7 @@ class _$_AccessLevels implements _AccessLevels {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$_$_AccessLevelsToJson(this);
+    return _$$_AccessLevelsToJson(this);
   }
 }
 
@@ -173,9 +170,9 @@ abstract class _AccessLevels implements AccessLevels {
       _$_AccessLevels.fromJson;
 
   @override
-  bool get application => throw _privateConstructorUsedError;
+  bool get application;
   @override
-  bool get admin => throw _privateConstructorUsedError;
+  bool get admin;
   @override
   @JsonKey(ignore: true)
   _$AccessLevelsCopyWith<_AccessLevels> get copyWith =>

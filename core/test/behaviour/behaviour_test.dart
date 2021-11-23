@@ -1,5 +1,4 @@
 import 'package:core/core.dart';
-import 'package:core/src/failure_or.dart';
 import 'package:testing/mocks/packages.dart';
 import 'package:testing/testing.dart';
 

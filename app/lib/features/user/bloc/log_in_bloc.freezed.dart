@@ -1,5 +1,6 @@
+// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target
 
 part of 'log_in_bloc.dart';
 
@@ -37,6 +38,12 @@ mixin _$LogInEvent {
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? logInWithGoogle,
+    TResult Function()? userChanged,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? logInWithGoogle,
     TResult Function()? userChanged,
@@ -47,6 +54,12 @@ mixin _$LogInEvent {
   TResult map<TResult extends Object?>({
     required TResult Function(_LogInWithGoogle value) logInWithGoogle,
     required TResult Function(_UserChanged value) userChanged,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_UserChanged value)? userChanged,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -105,7 +118,8 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other is _LogInWithGoogle);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _LogInWithGoogle);
   }
 
   @override
@@ -118,6 +132,15 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
     required TResult Function() userChanged,
   }) {
     return logInWithGoogle();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? logInWithGoogle,
+    TResult Function()? userChanged,
+  }) {
+    return logInWithGoogle?.call();
   }
 
   @override
@@ -140,6 +163,15 @@ class _$_LogInWithGoogle implements _LogInWithGoogle {
     required TResult Function(_UserChanged value) userChanged,
   }) {
     return logInWithGoogle(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_UserChanged value)? userChanged,
+  }) {
+    return logInWithGoogle?.call(this);
   }
 
   @override
@@ -190,7 +222,8 @@ class _$_UserChanged implements _UserChanged {
 
   @override
   bool operator ==(dynamic other) {
-    return identical(this, other) || (other is _UserChanged);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _UserChanged);
   }
 
   @override
@@ -203,6 +236,15 @@ class _$_UserChanged implements _UserChanged {
     required TResult Function() userChanged,
   }) {
     return userChanged();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? logInWithGoogle,
+    TResult Function()? userChanged,
+  }) {
+    return userChanged?.call();
   }
 
   @override
@@ -225,6 +267,15 @@ class _$_UserChanged implements _UserChanged {
     required TResult Function(_UserChanged value) userChanged,
   }) {
     return userChanged(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_LogInWithGoogle value)? logInWithGoogle,
+    TResult Function(_UserChanged value)? userChanged,
+  }) {
+    return userChanged?.call(this);
   }
 
   @override
@@ -375,18 +426,14 @@ class _$_LogInState implements _LogInState {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other is _LogInState &&
-            (identical(other.user, user) ||
-                const DeepCollectionEquality().equals(other.user, user)) &&
-            (identical(other.failure, failure) ||
-                const DeepCollectionEquality().equals(other.failure, failure)));
+        (other.runtimeType == runtimeType &&
+            other is _LogInState &&
+            (identical(other.user, user) || other.user == user) &&
+            (identical(other.failure, failure) || other.failure == failure));
   }
 
   @override
-  int get hashCode =>
-      runtimeType.hashCode ^
-      const DeepCollectionEquality().hash(user) ^
-      const DeepCollectionEquality().hash(failure);
+  int get hashCode => Object.hash(runtimeType, user, failure);
 
   @JsonKey(ignore: true)
   @override
@@ -398,9 +445,9 @@ abstract class _LogInState implements LogInState {
   const factory _LogInState({User? user, Failure? failure}) = _$_LogInState;
 
   @override
-  User? get user => throw _privateConstructorUsedError;
+  User? get user;
   @override
-  Failure? get failure => throw _privateConstructorUsedError;
+  Failure? get failure;
   @override
   @JsonKey(ignore: true)
   _$LogInStateCopyWith<_LogInState> get copyWith =>

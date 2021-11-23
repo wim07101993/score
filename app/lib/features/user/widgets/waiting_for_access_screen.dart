@@ -1,7 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:core/core.dart';
 import 'package:provider/provider.dart';
-import 'package:score/app_router.gr.dart';
+import 'package:score/app_router.dart';
 import 'package:score/data/firebase/user/access_levels.dart';
 
 import 'waiting_for_access_screen/header.dart';

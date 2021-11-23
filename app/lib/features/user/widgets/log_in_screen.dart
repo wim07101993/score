@@ -2,7 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:core/core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_signin_button/flutter_signin_button.dart';
-import 'package:score/app_router.gr.dart';
+import 'package:score/app_router.dart';
 import 'package:score/features/user/bloc/log_in_bloc.dart';
 
 class LogInScreen extends StatefulWidget {

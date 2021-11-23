@@ -33,7 +33,7 @@ class _WithBehaviourMixin with BehaviourMixin {
   final Future<Failure> Function(dynamic, StackTrace) failureGenerator;
 
   @override
-  Future<Failure> onFailed(dynamic e, StackTrace stacktrace) {
+  Future<Failure> onException(dynamic e, StackTrace stacktrace) {
     return failureGenerator(e, stacktrace);
   }
 }
@@ -55,7 +55,7 @@ class _Behaviour<TIn, TOut> extends Behaviour<TIn, TOut> {
   Future<TOut> action(TIn input) => onAction(input);
 
   @override
-  Future<Failure> onFailed(dynamic e, StackTrace stacktrace) {
+  Future<Failure> onException(dynamic e, StackTrace stacktrace) {
     return failureGenerator(e, stacktrace);
   }
 }
@@ -77,7 +77,7 @@ class _BehaviourWithoutInput<T> extends BehaviourWithoutInput<T> {
   Future<T> action() => onAction();
 
   @override
-  Future<Failure> onFailed(dynamic e, StackTrace stacktrace) {
+  Future<Failure> onException(dynamic e, StackTrace stacktrace) {
     return failureGenerator(e, stacktrace);
   }
 }
