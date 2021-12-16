@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="85b79413-37dd-4854-bee8-710fdd45e9ee" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../../.idea/libraries/Dart_Packages.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/libraries/Dart_SDK.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/libraries/Flutter_Plugins.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/runConfigurations.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/score.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.metadata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../analysis_options.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/facebook-services.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/google-services.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/debug/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/kotlin/com/example/app/MainActivity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/drawable-v21/launch_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/drawable/launch_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/values-night/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/res/values/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/profile/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Flutter/AppFrameworkInfo.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Flutter/Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Flutter/Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcodeproj/project.pbxproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/AppDelegate.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Base.lproj/Main.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ios/Runner/Runner-Bridging-Header.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/app.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/app_router.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/app_router.gr.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/auth/auth_changes.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/user/access_levels.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/user/access_levels.freezed.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/user/access_levels.g.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/user/user.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/user/user.freezed.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/data/firebase/user/user.g.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/dc.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/home/widget/home_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/behaviours/credential_converter.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/behaviours/is_logged_in.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/behaviours/log_in_with_google.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/bloc/log_in_bloc.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/bloc/log_in_bloc.freezed.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/routing/auth_guard.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/widgets/log_in_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/widgets/waiting_for_access_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/features/user/widgets/waiting_for_access_screen/header.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../lib/main.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../pubspec.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../pubspec.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../test/features/user/behaviours/log_in_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../web/favicon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../web/icons/Icon-192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../web/icons/Icon-512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../web/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../web/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/.metadata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/analysis_options.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/analysis_options.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/core.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/app_state/converting_state_entry.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/app_state/future_read_only_state_entry_proxy.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/app_state/hive/hive_state_entry.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/app_state/hive/read_only_hive_state_entry.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/app_state/read_only_state_entry_proxy.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/app_state/state_entry.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/behaviour/behaviour.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/behaviour/behaviour_base.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/behaviour/behaviour_mixin.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/behaviour/behaviour_without_input.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/behaviour/exception_or.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/localization_service/localization_service_base.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/monitor/behaviour_track.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/lib/src/monitor/monitor.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/pubspec.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/pubspec.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/app_state/converting_state_entry_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/app_state/future_read_only_state_entry_proxy_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/app_state/hive/hive_state_entry_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/app_state/hive/read_only_hive_state_entry_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/app_state/read_only_state_entry_proxy_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/behaviour/behaviour_mixin_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/behaviour/behaviour_mixin_test.types.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/behaviour/behaviour_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/behaviour/behaviour_test.types.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../core/test/behaviour/failure_or_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/.metadata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/analysis_options.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/lib/mocks/core.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/lib/mocks/packages.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/lib/src/faker/fake_failure.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/lib/src/faker/faker.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/lib/testing.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/pubspec.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../testing/pubspec.yaml" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[0B211JEC200481]" />
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectId" id="22Niab2810B2EmmtZNW7Oq9XGOb" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="dart.analysis.tool.window.visible" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="memory.settings.postsync.last.time.stamp" value="1639685686729" />
+    <property name="project.structure.last.edited" value="Build Variants" />
+    <property name="project.structure.proportion" value="0.17" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="show.migrate.to.gradle.popup" value="false" />
+  </component>
+  <component name="PsdUISettings">
+    <option name="MODULE_TAB" value="Default Config" />
+    <option name="LAST_EDITED_SIGNING_CONFIG" value="debug" />
+    <option name="LAST_EDITED_BUILD_TYPE" value="release" />
+  </component>
+  <component name="RunManager">
+    <configuration name="app" type="AndroidRunConfigurationType" factoryName="Android App">
+      <module name="android.app" />
+      <option name="DEPLOY" value="true" />
+      <option name="DEPLOY_APK_FROM_BUNDLE" value="false" />
+      <option name="DEPLOY_AS_INSTANT" value="false" />
+      <option name="ARTIFACT_NAME" value="" />
+      <option name="PM_INSTALL_OPTIONS" value="" />
+      <option name="ALL_USERS" value="false" />
+      <option name="ALWAYS_INSTALL_WITH_PM" value="false" />
+      <option name="DYNAMIC_FEATURES_DISABLED_LIST" value="" />
+      <option name="ACTIVITY_EXTRA_FLAGS" value="" />
+      <option name="MODE" value="default_activity" />
+      <option name="CLEAR_LOGCAT" value="false" />
+      <option name="SHOW_LOGCAT_AUTOMATICALLY" value="false" />
+      <option name="SKIP_NOOP_APK_INSTALLATIONS" value="true" />
+      <option name="FORCE_STOP_RUNNING_APP" value="true" />
+      <option name="TARGET_SELECTION_MODE" value="DEVICE_AND_SNAPSHOT_COMBO_BOX" />
+      <option name="SELECTED_CLOUD_MATRIX_CONFIGURATION_ID" value="-1" />
+      <option name="SELECTED_CLOUD_MATRIX_PROJECT_ID" value="" />
+      <option name="DEBUGGER_TYPE" value="Auto" />
+      <Auto>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+      </Auto>
+      <Hybrid>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+      </Hybrid>
+      <Java />
+      <Native>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+      </Native>
+      <Profilers>
+        <option name="ADVANCED_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_CONFIGURATION_NAME" value="Sample Java Methods" />
+        <option name="STARTUP_NATIVE_MEMORY_PROFILING_ENABLED" value="false" />
+        <option name="NATIVE_MEMORY_SAMPLE_RATE_BYTES" value="2048" />
+      </Profilers>
+      <option name="DEEP_LINK" value="" />
+      <option name="ACTIVITY_CLASS" value="" />
+      <option name="SEARCH_ACTIVITY_IN_GLOBAL_SCOPE" value="false" />
+      <option name="SKIP_ACTIVITY_VALIDATION" value="false" />
+      <method v="2">
+        <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="85b79413-37dd-4854-bee8-710fdd45e9ee" name="Default Changelist" comment="" />
+      <created>1639684510272</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1639684510272</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+</project>
