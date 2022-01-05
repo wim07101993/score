@@ -3,3 +3,7 @@ include: package:lint/analysis_options.yaml
 analyzer:
   exclude:
     - '**.freezed.dart'
+
+linter:
+  rules:
+    require_trailing_commas: false

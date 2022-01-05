@@ -1,4 +1,4 @@
-name: app
+name: score
 description: The score app
 publish_to: 'none'
 version: 1.0.0+1
@@ -16,13 +16,24 @@ dependencies:
   flutter_bloc: ^8.0.1
   flutter_localizations:
     sdk: flutter
+  flutter_logging_extensions:
+    git:
+      url: https://github.com/wim07101993/flutter_logging_extensions.git
+  flutterfire_ui: ^0.3.0
   get_it: ^7.2.0
+  hive: ^2.0.5
+  hive_flutter: ^1.1.0
   intl: ^0.17.0
+  path_provider: ^2.0.8
   provider: ^6.0.2
+  uuid: ^3.0.5
 
 dev_dependencies:
+  auto_route_generator:
+  build_runner:
   flutter_test:
     sdk: flutter
+  hive_generator:
   lint:
 
 flutter:

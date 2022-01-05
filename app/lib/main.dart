@@ -1,36 +1,54 @@
-import 'package:app/globals.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:developer';
 
-void main() {
-  runApp(const ScoreApp());
+import 'package:flutter/material.dart';
+import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/app.dart';
+import 'package:score/app_get_it_extensions.dart';
+import 'package:score/app_provider.dart';
+
+late Logger rootLogger;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final getIt = GetIt.asNewInstance();
+  await getIt.initializeScore();
+  rootLogger = getIt<Logger>(param1: 'root');
+  runZonedGuarded(
+    () => run(getIt),
+    onError,
+  );
 }
 
-class ScoreApp extends StatelessWidget {
-  const ScoreApp({Key? key}) : super(key: key);
+void run(GetIt getIt) {
+  runApp(AppProvider(
+    getIt: getIt,
+    child: const ScoreApp(),
+  ));
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      localizationsDelegates: const [
-        S.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: S.supportedLocales,
-      home: Builder(
-        builder: (context) => Provider<S>(
-          create: (_) => S.of(context) ?? SEn(),
-          child: Builder(
-            builder: (context) => Scaffold(
-              body: Text(context.read<S>().helloWorld),
-            ),
-          ),
-        ),
-      ),
+void onError(Object error, StackTrace stackTrace) {
+  try {
+    rootLogger.shout('Error on main', error, stackTrace);
+  } catch (nestedError, nestedStackTrace) {
+    log(
+      'Error on main',
+      time: DateTime.now(),
+      level: Level.SHOUT.value,
+      error: error,
+      stackTrace: stackTrace,
+      zone: Zone.current,
+      name: 'main',
+    );
+    log(
+      'Error while trying to log exception',
+      time: DateTime.now(),
+      level: Level.SHOUT.value,
+      error: nestedError,
+      stackTrace: nestedStackTrace,
+      zone: Zone.current,
+      name: 'main',
     );
   }
 }
