@@ -3,7 +3,6 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
-import 'package:get_it/get_it.dart';
 import 'package:score/app.dart';
 import 'package:score/app_get_it_extensions.dart';
 import 'package:score/app_provider.dart';

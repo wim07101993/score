@@ -26,7 +26,7 @@ class _ScoreAppState extends State<ScoreApp> {
       ],
       supportedLocales: S.supportedLocales,
       routerDelegate: _router.delegate(initialRoutes: [
-        const LoginRoute(),
+        const LogRoute(),
       ]),
       routeInformationParser: _router.defaultRouteParser(),
     );

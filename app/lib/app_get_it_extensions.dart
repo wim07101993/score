@@ -1,6 +1,8 @@
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:score/data/firebase/provider_configurations.dart';
 import 'package:score/data/guid_generator.dart';
 import 'package:score/data/logging/hive_log_sink.dart';
@@ -10,6 +12,7 @@ export 'package:get_it/get_it.dart';
 
 extension AppGetItExtensions on GetIt {
   Future<void> initializeScore() async {
+    registerSingleton(await PackageInfo.fromPlatform());
     registerSingleton(const GuidGenerator());
     await _initializeHive();
     await _initializeLogging();
@@ -20,7 +23,8 @@ extension AppGetItExtensions on GetIt {
     Hive
       ..registerAdapter(LogRecordAdapter())
       ..registerAdapter(LevelAdapter());
-    Hive.initFlutter();
+    Hive.initFlutter(call<PackageInfo>().appName);
+    await getApplicationDocumentsDirectory().then((value) => print(value));
     registerSingleton(Hive);
   }
 
@@ -29,16 +33,18 @@ extension AppGetItExtensions on GetIt {
     hierarchicalLoggingEnabled = true;
     final simpleFormatter = SimpleFormatter();
     final prettyFormatter = PrettyFormatter();
+    registerLazySingleton(
+      () => HiveLogSink(guidGenerator: call(), hive: call()),
+    );
     registerLazySingleton<LogSink>(
       () => MultiLogSink([
-        MemoryLogSink.fixedBuffer(),
         PrintSink(LevelDependentFormatter(
           defaultFormatter: simpleFormatter,
           severe: prettyFormatter,
           shout: prettyFormatter,
         )),
-        DevLogSink(),
-        HiveLogSink(hive: call(), guidGenerator: call()),
+        // DevLogSink(),
+        call<HiveLogSink>(),
       ]),
     );
     registerFactoryParam((String loggerName, p2) {

@@ -28,8 +28,18 @@ class HiveLogSink extends LogSink {
   Future<void> write(LogRecord logRecord) {
     return _box().then((box) {
       return box.put(
-          logRecord.time.microsecondsSinceEpoch.toString(), logRecord);
+        logRecord.time.microsecondsSinceEpoch.toString(),
+        logRecord,
+      );
     });
+  }
+
+  Stream<LogRecord> additions() async* {
+    final box = await _box();
+    yield* box
+        .watch()
+        .where((e) => !e.deleted && e.value is LogRecord)
+        .map((event) => event.value as LogRecord);
   }
 
   Future<Iterable<LogRecord>> getAll() {
