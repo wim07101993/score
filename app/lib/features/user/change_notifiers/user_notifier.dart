@@ -8,10 +8,10 @@ class UserNotifier extends ValueNotifier<User?> {
   UserNotifier({
     required FirebaseAuth firebaseAuth,
   }) : super(
-    firebaseAuth.currentUser == null
-        ? null
-        : User.fromFirebase(firebaseAuth.currentUser!),
-  ) {
+          firebaseAuth.currentUser == null
+              ? null
+              : User.fromFirebase(firebaseAuth.currentUser!),
+        ) {
     _firebaseUserSubscription = firebaseAuth.userChanges().listen((newUser) {
       user = newUser == null ? null : User.fromFirebase(newUser);
     });
@@ -23,7 +23,7 @@ class UserNotifier extends ValueNotifier<User?> {
 
   set user(User? user) => value = user;
 
-  bool get isLoggedIn => value != null;
+  bool get isSignedIn => value != null;
 
   @override
   void dispose() {

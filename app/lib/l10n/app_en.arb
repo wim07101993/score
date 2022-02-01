@@ -1,6 +1,13 @@
 {
-  "helloWorld": "Hello flutter!",
-  "@helloWorld": {
-    "description": "The conventional newborn programmer greeting"
+  "welcomeTitle": "Welcome {name}",
+  "@welcomeTitle": {
+    "description": "The welcome message on the home screen (scores list page)",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Hint text for the search input field"
   }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutterfire_ui/i10n.dart';
-import 'package:score/features/developer_options/widgets/logs_page.dart';
-import 'package:score/features/user/widgets/logged_in.dart';
+import 'package:score/features/scores/widgets/scores_list_page.dart';
+import 'package:score/features/user/widgets/signed_in.dart';
 import 'package:score/globals.dart';
+import 'package:score/theme.dart';
 
 class ScoreApp extends StatelessWidget {
   const ScoreApp({Key? key}) : super(key: key);
@@ -11,6 +12,7 @@ class ScoreApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Score',
+      theme: lightTheme,
       localizationsDelegates: [
         S.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -19,11 +21,9 @@ class ScoreApp extends StatelessWidget {
         FlutterFireUILocalizations.delegate,
       ],
       supportedLocales: S.supportedLocales,
-      home: LoggedIn(
+      home: SignedIn(
         builder: (context, user) => Navigator(
-          pages: const [
-            LogsPage(),
-          ],
+          pages: const [ScoresListPage()],
           onPopPage: (route, result) => route.didPop(result),
         ),
       ),
