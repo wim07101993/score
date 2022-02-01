@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutterfire_ui/i10n.dart';
-import 'package:score/app_router.dart';
+import 'package:score/features/developer_options/widgets/logs_page.dart';
+import 'package:score/features/user/widgets/logged_in.dart';
 import 'package:score/globals.dart';
 
-class ScoreApp extends StatefulWidget {
+class ScoreApp extends StatelessWidget {
   const ScoreApp({Key? key}) : super(key: key);
 
   @override
-  State<ScoreApp> createState() => _ScoreAppState();
-}
-
-class _ScoreAppState extends State<ScoreApp> {
-  final _router = AppRouter();
-
-  @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Flutter Demo',
+    return MaterialApp(
+      title: 'Score',
       localizationsDelegates: [
         S.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -25,10 +19,14 @@ class _ScoreAppState extends State<ScoreApp> {
         FlutterFireUILocalizations.delegate,
       ],
       supportedLocales: S.supportedLocales,
-      routerDelegate: _router.delegate(initialRoutes: [
-        const LogRoute(),
-      ]),
-      routeInformationParser: _router.defaultRouteParser(),
+      home: LoggedIn(
+        builder: (context, user) => Navigator(
+          pages: const [
+            LogsPage(),
+          ],
+          onPopPage: (route, result) => route.didPop(result),
+        ),
+      ),
     );
   }
 }

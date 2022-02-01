@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutterfire_ui/auth.dart';
 import 'package:score/data/firebase/firebase_options.dart';
 
@@ -15,7 +16,7 @@ class ProviderConfigurations {
   List<ProviderConfiguration> call() {
     return [
       if (email) const EmailProviderConfiguration(),
-      if (Platform.isAndroid && google)
+      if (!kIsWeb && Platform.isAndroid && google)
         GoogleProviderConfiguration(
           clientId: DefaultFirebaseOptions.currentPlatform.appId,
         ),

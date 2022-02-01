@@ -3,13 +3,18 @@ import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:provider/provider.dart';
 import 'package:score/data/logging/hive_log_sink.dart';
 
-class LogScreen extends StatelessWidget {
-  const LogScreen({Key? key}) : super(key: key);
+class LogsPage extends Page {
+  const LogsPage({
+    LocalKey? key,
+  }) : super(key: key, name: 'developer-options/logs');
 
   @override
-  Widget build(BuildContext context) {
-    return LogsScreen.stream(
-      stream: getLogRecordStream(context),
+  Route createRoute(BuildContext context) {
+    return MaterialPageRoute(
+      settings: this,
+      builder: (context) => LogsScreen.stream(
+        stream: getLogRecordStream(context),
+      ),
     );
   }
 
