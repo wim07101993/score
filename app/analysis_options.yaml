@@ -7,3 +7,4 @@ analyzer:
 linter:
   rules:
     require_trailing_commas: false
+    sort_unnamed_constructors_first: false

@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutterfire_ui/auth.dart' as firebase;
 import 'package:flutterfire_ui/auth.dart';
 import 'package:provider/provider.dart';
 import 'package:score/data/firebase/provider_configurations.dart';
-import 'package:score/features/user/change_notifiers/user_notifier.dart';
+import 'package:score/features/user/change_notifiers/user/user_notifier.dart';
 
-class SignInPage extends Page {
-  const SignInPage({
-    LocalKey? key,
-  }) : super(key: key, name: 'login');
+class SignInScreen extends StatelessWidget {
+  const SignInScreen({
+    Key? key,
+  }) : super(key: key);
 
   @override
-  Route createRoute(BuildContext context) {
-    return MaterialPageRoute(
-      settings: this,
-      builder: (context) => SignInScreen(
-        providerConfigs: context.read<ProviderConfigurations>()(),
-        actions: [AuthStateChangeAction(onAuthStateChanged)],
-      ),
+  Widget build(BuildContext context) {
+    return firebase.SignInScreen(
+      providerConfigs: context.read<ProviderConfigurations>()(),
+      actions: [AuthStateChangeAction(onAuthStateChanged)],
     );
   }
 
@@ -30,9 +28,7 @@ class SignInPage extends Page {
         );
       }
     } else if (state is SignedIn) {
-      final user = state.user;
-      context.read<UserNotifier>().user =
-          user == null ? null : User.fromFirebase(user);
+      context.read<UserNotifier>().refreshUser();
     }
   }
 }

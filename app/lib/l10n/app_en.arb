@@ -1,13 +1,33 @@
 {
+  "admin": "Admin",
+  "@admin": {
+    "description": "Translation of the admin user-type"
+  },
+  "contributor": "Contributor",
+  "@contributor": {
+    "description": "Translation of the contributor user-type"
+  },
+  "guest": "Guest",
+  "@guest": {
+    "description": "Translation of the guest user-type"
+  },
+  "notLoggedIn": "Please log in before looking at your profile data.",
+  "@notLoggedIn": {
+    "description": "Error message shown when the user is looking at it's profile data while not logged in."
+  },
+  "profile": "Profile",
+  "@profile": {
+    "description": "Title of the profile page"
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Hint text for the search input field"
+  },
   "welcomeTitle": "Welcome {name}",
   "@welcomeTitle": {
     "description": "The welcome message on the home screen (scores list page)",
     "placeholders": {
       "name": {}
     }
-  },
-  "search": "Search",
-  "@search": {
-    "description": "Hint text for the search input field"
   }
 }

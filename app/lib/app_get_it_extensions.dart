@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
@@ -11,44 +12,37 @@ import 'package:score/data/firebase/provider_configurations.dart';
 import 'package:score/data/guid_generator.dart';
 import 'package:score/data/logging/hive_log_sink.dart';
 import 'package:score/data/logging/log_record_adapter.dart';
-import 'package:score/features/user/change_notifiers/user_notifier.dart';
+import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
+import 'package:score/features/user/change_notifiers/user/user_notifier.dart';
 
 export 'package:get_it/get_it.dart';
 
 Logger? _logger;
 
 extension AppGetItExtensions on GetIt {
-  Future<void> initializeScore() async {
-    registerSingleton(await PackageInfo.fromPlatform());
-    registerSingleton(const GuidGenerator());
-
-    await _initializeHive();
-    _initializeLogging();
-    await _initializeFirebase();
-
-    _initializeUser();
+  void registerScore() {
+    registerLazySingletonAsync(() => PackageInfo.fromPlatform());
+    registerLazySingleton(() => const GuidGenerator());
+    registerHive();
+    registerLogging();
+    registerFirebase();
+    registerUser();
   }
 
-  Future<void> _initializeHive() async {
+  void registerHive() {
     Hive
       ..registerAdapter(LogRecordAdapter())
       ..registerAdapter(LevelAdapter());
-    await Hive.initFlutter(call<PackageInfo>().appName);
     registerSingleton(Hive);
-    // use log here because logger needs hive...
-    log('getIt: initialized hive');
   }
 
-  void _initializeLogging() {
-    Logger.root.level = Level.ALL;
-    hierarchicalLoggingEnabled = true;
-    final simpleFormatter = SimpleFormatter();
-    final prettyFormatter = PrettyFormatter();
+  void registerLogging() {
     registerLazySingleton(
-      () => HiveLogSink(guidGenerator: call(), hive: call()),
-    );
-    registerLazySingleton<LogSink>(
-      () => MultiLogSink([
+        () => HiveLogSink(guidGenerator: call(), hive: call()));
+    registerLazySingleton<LogSink>(() {
+      final simpleFormatter = SimpleFormatter();
+      final prettyFormatter = PrettyFormatter();
+      return MultiLogSink([
         PrintSink(LevelDependentFormatter(
           defaultFormatter: simpleFormatter,
           severe: prettyFormatter,
@@ -56,27 +50,57 @@ extension AppGetItExtensions on GetIt {
         )),
         // DevLogSink(),
         call<HiveLogSink>(),
-      ]),
-    );
+      ]);
+    });
     registerFactoryParam((String loggerName, p2) {
       final logger = Logger(loggerName);
       call<LogSink>().listenTo(logger.onRecord);
       return logger;
     });
+  }
+
+  void registerFirebase() {
+    registerLazySingleton(() => const ProviderConfigurations());
+    registerLazySingleton(() => FirebaseAuth.instance);
+    registerLazySingleton(() => FirebaseFirestore.instance);
+  }
+
+  void registerUser() {
+    registerLazySingleton(() =>
+        UserNotifier(auth: call(), firestore: call(), logger: logger('user')));
+    registerFactory(() => IsSignedInNotifier(userNotifier: call()));
+  }
+
+  Future<void> initializeScore() async {
+    await _initializeHive();
+    _initializeLogging();
+    await _initializeFirebase();
+    await _initializeUser();
+  }
+
+  Future<void> _initializeHive() async {
+    final hive = call<HiveInterface>();
+    final packageInfo = await getAsync<PackageInfo>();
+    await hive.initFlutter(packageInfo.appName);
+    // use log here because logger needs hive...
+    log('getIt: initialized hive');
+  }
+
+  void _initializeLogging() {
+    Logger.root.level = Level.ALL;
+    hierarchicalLoggingEnabled = true;
     _logger = logger('getIt')..i('initialized logging');
   }
 
   Future<void> _initializeFirebase() async {
-    registerLazySingleton(() => const ProviderConfigurations());
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    registerLazySingleton(() => FirebaseAuth.instance);
     _logger?.i('initialized firebase');
   }
 
-  void _initializeUser() {
-    registerSingleton(UserNotifier(firebaseAuth: call()));
+  Future<void> _initializeUser() async {
+    await call<UserNotifier>().initialized;
   }
 
   Logger logger(String loggerName) {

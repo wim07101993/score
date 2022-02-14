@@ -62,7 +62,7 @@ class LogRecordAdapter extends TypeAdapter<LogRecord> {
       sequenceNumber: fields[5] as int,
       error: fields[6] as String?,
       stackTrace:
-          fields[7] == null ? null : StackTrace.fromString(fields[8] as String),
+          fields[7] == null ? null : StackTrace.fromString(fields[7] as String),
     );
   }
 
