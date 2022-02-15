@@ -1,22 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:score/features/user/data/user_properties.dart';
+import 'package:score/features/user/data/security_properties.dart';
 
 const _securityCollection = 'security';
 
 extension UserFireStoreExtensions on FirebaseFirestore {
-  Future<UserProperties> userProperties(String userId) async {
-    final doc = collection(_securityCollection).doc(userId);
-    doc.set({'type': 'admin'});
+  Future<SecurityProperties> userProperties(String userId) async {
     return collection(_securityCollection)
         .doc(userId)
         .get()
-        .then((doc) => UserProperties.fromDocument(doc));
+        .then((doc) => SecurityProperties.fromDocument(doc));
   }
 
-  Stream<UserProperties> userPropertyChanges(String userId) {
+  Stream<SecurityProperties> userPropertyChanges(String userId) {
     return collection(_securityCollection)
         .doc(userId)
         .snapshots()
-        .map((doc) => UserProperties.fromDocument(doc));
+        .map((doc) => SecurityProperties.fromDocument(doc));
   }
 }

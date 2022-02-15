@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:score/features/user/data/firestore_extensions.dart';
-import 'package:score/features/user/data/user_properties.dart';
+import 'package:score/features/user/data/security_properties.dart';
 import 'package:score/features/user/models/user.dart';
 
 class UserNotifier extends ValueNotifier<User?> {
@@ -61,12 +61,12 @@ class UserNotifier extends ValueNotifier<User?> {
       User.fromFirebase(
         id: firebaseUser.uid,
         displayName: firebaseUser.displayName,
-        userProperties: userProperties,
+        securityProperties: userProperties,
       ),
     );
   }
 
-  Future<void> _userPropertiesChanged(UserProperties userProperties) async {
+  Future<void> _userPropertiesChanged(SecurityProperties userProperties) async {
     final user = this.user;
     if (user == null) {
       logger.w('UserProperties changed while user is null. The subscription '
@@ -78,7 +78,7 @@ class UserNotifier extends ValueNotifier<User?> {
       User.fromFirebase(
         id: user.id,
         displayName: user.displayName,
-        userProperties: userProperties,
+        securityProperties: userProperties,
       ),
     );
   }

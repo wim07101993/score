@@ -1,4 +1,4 @@
-import 'package:score/features/user/data/user_properties.dart';
+import 'package:score/features/user/data/security_properties.dart';
 
 abstract class User {
   const User._({
@@ -9,9 +9,9 @@ abstract class User {
   factory User.fromFirebase({
     required String id,
     required String? displayName,
-    required UserProperties userProperties,
+    required SecurityProperties securityProperties,
   }) {
-    switch (userProperties.type) {
+    switch (securityProperties.type) {
       case UserType.guest:
         return Guest._(
           id: id,

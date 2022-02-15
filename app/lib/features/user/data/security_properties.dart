@@ -20,21 +20,18 @@ UserType parseUserType(String? value) {
   }
 }
 
-class UserProperties {
-  const UserProperties({
+class SecurityProperties {
+  const SecurityProperties({
     required this.type,
   });
 
-  const UserProperties.empty()
-      : this(
-          type: UserType.guest,
-        );
+  const SecurityProperties.empty() : this(type: UserType.guest);
 
-  factory UserProperties.fromDocument(DocumentSnapshot doc) {
+  factory SecurityProperties.fromDocument(DocumentSnapshot doc) {
     if (!doc.exists) {
-      return const UserProperties.empty();
+      return const SecurityProperties.empty();
     }
-    return UserProperties(
+    return SecurityProperties(
       type: parseUserType(doc['type'] as String?),
     );
   }
