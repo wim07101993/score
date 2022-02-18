@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:score/features/user/change_notifiers/user/user_notifier.dart';
+import 'package:score/features/user/change_notifiers/user_notifier.dart';
 
 class IsSignedInNotifier extends ValueNotifier<bool> {
   IsSignedInNotifier({

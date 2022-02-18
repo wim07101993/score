@@ -11,14 +11,15 @@
 // ignore_for_file: type=lint
 
 import 'package:auto_route/auto_route.dart' as _i2;
-import 'package:flutter/material.dart' as _i5;
+import 'package:flutter/material.dart' as _i6;
 
+import '../features/scores/widgets/add_score_screen.dart' as _i5;
 import '../features/scores/widgets/scores_list_screen.dart' as _i4;
 import '../features/user/widgets/profile_screen.dart' as _i3;
 import '../features/user/widgets/sign_in_screen.dart' as _i1;
 
 class AppRouter extends _i2.RootStackRouter {
-  AppRouter([_i5.GlobalKey<_i5.NavigatorState>? navigatorKey])
+  AppRouter([_i6.GlobalKey<_i6.NavigatorState>? navigatorKey])
       : super(navigatorKey);
 
   @override
@@ -38,6 +39,10 @@ class AppRouter extends _i2.RootStackRouter {
     ScoresListRoute.name: (routeData) {
       return _i2.MaterialPageX<dynamic>(
           routeData: routeData, child: const _i4.ScoresListScreen());
+    },
+    AddScoreRoute.name: (routeData) {
+      return _i2.MaterialPageX<dynamic>(
+          routeData: routeData, child: const _i5.AddScoreScreen());
     }
   };
 
@@ -48,7 +53,9 @@ class AppRouter extends _i2.RootStackRouter {
           _i2.RouteConfig(ProfileRoute.name,
               path: 'profile-screen', parent: AuthorizedRouter.name),
           _i2.RouteConfig(ScoresListRoute.name,
-              path: 'scores-list-screen', parent: AuthorizedRouter.name)
+              path: 'scores-list-screen', parent: AuthorizedRouter.name),
+          _i2.RouteConfig(AddScoreRoute.name,
+              path: 'add-score-screen', parent: AuthorizedRouter.name)
         ])
       ];
 }
@@ -86,4 +93,12 @@ class ScoresListRoute extends _i2.PageRouteInfo<void> {
       : super(ScoresListRoute.name, path: 'scores-list-screen');
 
   static const String name = 'ScoresListRoute';
+}
+
+/// generated route for
+/// [_i5.AddScoreScreen]
+class AddScoreRoute extends _i2.PageRouteInfo<void> {
+  const AddScoreRoute() : super(AddScoreRoute.name, path: 'add-score-screen');
+
+  static const String name = 'AddScoreRoute';
 }

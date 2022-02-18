@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:score/app.dart';
@@ -11,6 +12,7 @@ late Logger rootLogger;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  EquatableConfig.stringify = true;
   final getIt = GetIt.asNewInstance()..registerScore();
   await getIt.initializeScore();
   rootLogger = getIt<Logger>(param1: 'root');

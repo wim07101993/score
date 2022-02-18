@@ -49,10 +49,10 @@ final textTheme = TextTheme(
 final lightTheme = ThemeData(
   colorScheme: lightColorScheme,
   appBarTheme: AppBarTheme(
-    toolbarHeight: 100,
+    toolbarHeight: 96,
     foregroundColor: lightColorScheme.onPrimary,
     backgroundColor: lightColorScheme.primary,
-    titleTextStyle: textTheme.headline3,
+    titleTextStyle: textTheme.headline4,
     actionsIconTheme: IconThemeData(
       color: lightColorScheme.onPrimary,
       size: 32,

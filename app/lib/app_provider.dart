@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:score/data/firebase/provider_configurations.dart';
 import 'package:score/data/logging/hive_log_sink.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
-import 'package:score/features/user/change_notifiers/user/user_notifier.dart';
+import 'package:score/features/user/change_notifiers/roles_notifier.dart';
+import 'package:score/features/user/change_notifiers/user_notifier.dart';
 import 'package:score/globals.dart';
 
 class AppProvider extends StatelessWidget {
@@ -29,6 +30,7 @@ class AppProvider extends StatelessWidget {
         Provider.value(value: getIt<FirebaseAuth>()),
         ChangeNotifierProvider.value(value: getIt<UserNotifier>()),
         ChangeNotifierProvider(create: (_) => getIt<IsSignedInNotifier>()),
+        ChangeNotifierProvider(create: (_) => getIt<RolesNotifier>()),
       ],
       child: child,
     );

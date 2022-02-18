@@ -49,14 +49,14 @@ packages:
       name: auto_route
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.2.2"
+    version: "3.2.3+1"
   auto_route_generator:
     dependency: "direct dev"
     description:
       name: auto_route_generator
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.2.1"
+    version: "3.2.3"
   bloc:
     dependency: transitive
     description:
@@ -231,7 +231,7 @@ packages:
       name: desktop_webview_auth
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.0.2"
+    version: "0.0.3"
   email_validator:
     dependency: transitive
     description:
@@ -239,6 +239,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.0.1"
+  equatable:
+    dependency: "direct main"
+    description:
+      name: equatable
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.0.3"
   fake_async:
     dependency: transitive
     description:
@@ -273,14 +280,14 @@ packages:
       name: firebase_auth_dart
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.1.1-dev.2"
+    version: "0.1.1-dev.4"
   firebase_auth_desktop:
     dependency: "direct main"
     description:
       name: firebase_auth_desktop
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.1.1-dev.3"
+    version: "0.1.1-dev.5"
   firebase_auth_platform_interface:
     dependency: transitive
     description:
@@ -358,6 +365,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.2.0+5"
+  firebaseapis:
+    dependency: transitive
+    description:
+      name: firebaseapis
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.1.1"
   fixnum:
     dependency: transitive
     description:
@@ -534,13 +548,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.10.0+4"
-  googleapis:
-    dependency: transitive
-    description:
-      name: googleapis
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "5.0.1"
   googleapis_auth:
     dependency: transitive
     description:
@@ -596,7 +603,7 @@ packages:
       name: http_multi_server
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.0.1"
+    version: "3.2.0"
   http_parser:
     dependency: transitive
     description:
@@ -703,7 +710,7 @@ packages:
       name: package_info_plus
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.3.0"
+    version: "1.3.1"
   package_info_plus_linux:
     dependency: transitive
     description:
@@ -1051,7 +1058,7 @@ packages:
       name: win32
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.3.10"
+    version: "2.4.0"
   xdg_directories:
     dependency: transitive
     description:

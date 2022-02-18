@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:score/features/user/data/firestore_extensions.dart';
-import 'package:score/features/user/data/security_properties.dart';
+import 'package:score/features/user/models/roles.dart';
 import 'package:score/features/user/models/user.dart';
 
 class UserNotifier extends ValueNotifier<User?> {
@@ -56,17 +56,21 @@ class UserNotifier extends ValueNotifier<User?> {
     if (firebaseUser == null) {
       return _setUser(null);
     }
-    final userProperties = await firestore.userProperties(firebaseUser.uid);
-    return _setUser(
-      User.fromFirebase(
-        id: firebaseUser.uid,
-        displayName: firebaseUser.displayName,
-        securityProperties: userProperties,
-      ),
-    );
+    final email = firebaseUser.email;
+    if (email == null) {
+      logger.w('Firebase user without email: ${firebaseUser.uid}');
+      return _setUser(null);
+    }
+    final userProperties = await firestore.securityProperties(firebaseUser.uid);
+    return _setUser(User(
+      id: firebaseUser.uid,
+      email: email,
+      displayName: firebaseUser.displayName,
+      roles: userProperties,
+    ));
   }
 
-  Future<void> _userPropertiesChanged(SecurityProperties userProperties) async {
+  Future<void> _userPropertiesChanged(Roles userProperties) async {
     final user = this.user;
     if (user == null) {
       logger.w('UserProperties changed while user is null. The subscription '
@@ -74,12 +78,11 @@ class UserNotifier extends ValueNotifier<User?> {
       return;
     }
 
-    return _setUser(
-      User.fromFirebase(
-        id: user.id,
-        displayName: user.displayName,
-        securityProperties: userProperties,
-      ),
-    );
+    return _setUser(User(
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      roles: userProperties,
+    ));
   }
 }

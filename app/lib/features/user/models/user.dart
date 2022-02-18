@@ -1,127 +1,21 @@
-import 'package:score/features/user/data/security_properties.dart';
+import 'package:equatable/equatable.dart';
+import 'package:score/features/user/models/roles.dart';
 
-abstract class User {
-  const User._({
+class User extends Equatable {
+  const User({
     required this.id,
+    required this.email,
     required this.displayName,
+    required this.roles,
   });
-
-  factory User.fromFirebase({
-    required String id,
-    required String? displayName,
-    required SecurityProperties securityProperties,
-  }) {
-    switch (securityProperties.type) {
-      case UserType.guest:
-        return Guest._(
-          id: id,
-          displayName: displayName,
-        );
-      case UserType.standard:
-        return StandardUser._(
-          id: id,
-          displayName: displayName,
-        );
-      case UserType.contributor:
-        return Contributor._(
-          id: id,
-          displayName: displayName,
-        );
-      case UserType.admin:
-        return Admin._(
-          id: id,
-          displayName: displayName,
-        );
-    }
-  }
 
   final String id;
+  final String email;
   final String? displayName;
-
-  T when<T>({
-    required T Function(Guest user) guest,
-    required T Function(StandardUser user) standardUser,
-    required T Function(Contributor user) contributor,
-    required T Function(Admin user) admin,
-  });
-}
-
-class Guest extends User {
-  Guest._({
-    required String id,
-    required String? displayName,
-  }) : super._(
-          id: id,
-          displayName: displayName,
-        );
+  final Roles roles;
 
   @override
-  T when<T>({
-    required T Function(Guest user) guest,
-    required T Function(StandardUser user) standardUser,
-    required T Function(Contributor user) contributor,
-    required T Function(Admin user) admin,
-  }) {
-    return guest(this);
-  }
-}
+  List<Object?> get props => [id, email, displayName, roles];
 
-class StandardUser extends User {
-  StandardUser._({
-    required String id,
-    required String? displayName,
-  }) : super._(
-          id: id,
-          displayName: displayName,
-        );
-
-  @override
-  T when<T>({
-    required T Function(Guest user) guest,
-    required T Function(StandardUser user) standardUser,
-    required T Function(Contributor user) contributor,
-    required T Function(Admin user) admin,
-  }) {
-    return standardUser(this);
-  }
-}
-
-class Contributor extends User {
-  Contributor._({
-    required String id,
-    required String? displayName,
-  }) : super._(
-          id: id,
-          displayName: displayName,
-        );
-
-  @override
-  T when<T>({
-    required T Function(Guest user) guest,
-    required T Function(StandardUser user) standardUser,
-    required T Function(Contributor user) contributor,
-    required T Function(Admin user) admin,
-  }) {
-    return contributor(this);
-  }
-}
-
-class Admin extends User {
-  Admin._({
-    required String id,
-    required String? displayName,
-  }) : super._(
-          id: id,
-          displayName: displayName,
-        );
-
-  @override
-  T when<T>({
-    required T Function(Guest user) guest,
-    required T Function(StandardUser user) standardUser,
-    required T Function(Contributor user) contributor,
-    required T Function(Admin user) admin,
-  }) {
-    return admin(this);
-  }
+  bool get hasReadAccess => roles.hasReadAccess;
 }

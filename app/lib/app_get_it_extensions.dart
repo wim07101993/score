@@ -13,7 +13,8 @@ import 'package:score/data/guid_generator.dart';
 import 'package:score/data/logging/hive_log_sink.dart';
 import 'package:score/data/logging/log_record_adapter.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
-import 'package:score/features/user/change_notifiers/user/user_notifier.dart';
+import 'package:score/features/user/change_notifiers/roles_notifier.dart';
+import 'package:score/features/user/change_notifiers/user_notifier.dart';
 
 export 'package:get_it/get_it.dart';
 
@@ -69,6 +70,7 @@ extension AppGetItExtensions on GetIt {
     registerLazySingleton(() =>
         UserNotifier(auth: call(), firestore: call(), logger: logger('user')));
     registerFactory(() => IsSignedInNotifier(userNotifier: call()));
+    registerFactory(() => RolesNotifier(userNotifier: call()));
   }
 
   Future<void> initializeScore() async {

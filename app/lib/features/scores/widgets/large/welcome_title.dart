@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:score/features/user/change_notifiers/user/user_notifier.dart';
+import 'package:score/features/user/change_notifiers/user_notifier.dart';
 import 'package:score/globals.dart';
 
 class WelcomeTitle extends StatelessWidget {
