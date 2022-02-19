@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:score/features/scores/widgets/large/add_score_button.dart';
+import 'package:score/features/scores/widgets/large/create_new_score_button.dart';
 import 'package:score/features/scores/widgets/large/profile_button.dart';
 import 'package:score/features/scores/widgets/large/welcome_title.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
@@ -30,7 +30,7 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
               const Spacer(),
               Consumer<RolesNotifier>(
                 builder: (context, value, child) => value.hasContributorAccess
-                    ? const AddScoreButton()
+                    ? const CreateNewScoreButton()
                     : const SizedBox(),
               ),
               const SizedBox(width: 32),

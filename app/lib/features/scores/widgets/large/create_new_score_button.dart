@@ -2,8 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:score/router/app_router.gr.dart';
 
-class AddScoreButton extends StatelessWidget {
-  const AddScoreButton({Key? key}) : super(key: key);
+class CreateNewScoreButton extends StatelessWidget {
+  const CreateNewScoreButton({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +17,6 @@ class AddScoreButton extends StatelessWidget {
   }
 
   void onPressed(BuildContext context) {
-    context.pushRoute(const AddScoreRoute());
+    context.pushRoute(const CreateNewScoreRoute());
   }
 }

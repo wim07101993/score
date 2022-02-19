@@ -7,6 +7,10 @@
   "@contributor": {
     "description": "Translation of the contributor user-type"
   },
+  "createNewScore": "Create new score",
+  "@createNewScore": {
+    "description": "Title for the create-new-score-screen"
+  },
   "guest": "Guest",
   "@guest": {
     "description": "Translation of the guest user-type"

@@ -13,7 +13,7 @@
 import 'package:auto_route/auto_route.dart' as _i2;
 import 'package:flutter/material.dart' as _i6;
 
-import '../features/scores/widgets/add_score_screen.dart' as _i5;
+import '../features/new_score/widgets/create_new_score_screen.dart' as _i5;
 import '../features/scores/widgets/scores_list_screen.dart' as _i4;
 import '../features/user/widgets/profile_screen.dart' as _i3;
 import '../features/user/widgets/sign_in_screen.dart' as _i1;
@@ -40,9 +40,9 @@ class AppRouter extends _i2.RootStackRouter {
       return _i2.MaterialPageX<dynamic>(
           routeData: routeData, child: const _i4.ScoresListScreen());
     },
-    AddScoreRoute.name: (routeData) {
+    CreateNewScoreRoute.name: (routeData) {
       return _i2.MaterialPageX<dynamic>(
-          routeData: routeData, child: const _i5.AddScoreScreen());
+          routeData: routeData, child: const _i5.CreateNewScoreScreen());
     }
   };
 
@@ -54,8 +54,8 @@ class AppRouter extends _i2.RootStackRouter {
               path: 'profile-screen', parent: AuthorizedRouter.name),
           _i2.RouteConfig(ScoresListRoute.name,
               path: 'scores-list-screen', parent: AuthorizedRouter.name),
-          _i2.RouteConfig(AddScoreRoute.name,
-              path: 'add-score-screen', parent: AuthorizedRouter.name)
+          _i2.RouteConfig(CreateNewScoreRoute.name,
+              path: 'create-new-score-screen', parent: AuthorizedRouter.name)
         ])
       ];
 }
@@ -96,9 +96,10 @@ class ScoresListRoute extends _i2.PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [_i5.AddScoreScreen]
-class AddScoreRoute extends _i2.PageRouteInfo<void> {
-  const AddScoreRoute() : super(AddScoreRoute.name, path: 'add-score-screen');
+/// [_i5.CreateNewScoreScreen]
+class CreateNewScoreRoute extends _i2.PageRouteInfo<void> {
+  const CreateNewScoreRoute()
+      : super(CreateNewScoreRoute.name, path: 'create-new-score-screen');
 
-  static const String name = 'AddScoreRoute';
+  static const String name = 'CreateNewScoreRoute';
 }
