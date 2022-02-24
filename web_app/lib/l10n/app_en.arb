@@ -1,0 +1,38 @@
+{
+  "accountSettings": "Account settings",
+  "@accountSettings": {
+    "description": "Text on menu item which navigates to the account-settings"
+  },
+  "admin": "Admin",
+  "@admin": {
+    "description": "Translation of the admin user-type"
+  },
+  "contributor": "Contributor",
+  "@contributor": {
+    "description": "Translation of the contributor user-type"
+  },
+  "createNewScore": "Create new score",
+  "@createNewScore": {
+    "description": "Title for the create-new-score-screen"
+  },
+  "genericErrorMessage": "An error occurred",
+  "@genericErrorMessage": {
+    "description": "Error message which is shown when an unknown/unhandled error happens."
+  },
+  "guest": "Guest",
+  "@guest": {
+    "description": "Translation of the guest user-type"
+  },
+  "logout": "Logout",
+  "@logout": {
+    "description": "Text on the menu item which logs the user out."
+  },
+  "notLoggedIn": "Please log in before looking at your profile data.",
+  "@notLoggedIn": {
+    "description": "Error message shown when the user is looking at it's profile data while not logged in."
+  },
+  "search": "Search",
+  "@search": {
+    "description": "Hint text for the search input field"
+  }
+}
