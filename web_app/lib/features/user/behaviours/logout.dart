@@ -6,8 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 class Logout extends BehaviourWithoutInput<void> {
   Logout({
     required this.auth,
-    BehaviourMonitor? monitor,
-  }) : super(monitor: monitor);
+    super.monitor,
+  });
 
   final FirebaseAuth auth;
 

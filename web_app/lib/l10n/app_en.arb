@@ -34,5 +34,25 @@
   "search": "Search",
   "@search": {
     "description": "Hint text for the search input field"
+  },
+  "newScoreTitle": "New score",
+  "@newScoreTitle": {
+    "description": "Title for the new-score page"
+  },
+  "titleFieldLabel": "Title",
+  "@titleFieldLabel": {
+    "description": "Label for the title field when editing an score"
+  },
+  "subtitleFieldLabel": "Subtitle",
+  "@subtitleFieldLabel": {
+    "description": "Label for the subtitle title field when editing an score"
+  },
+  "dedicationFieldLabel": "Dedication",
+  "@subtitleFieldLabel": {
+    "description": "Label for the dedication field when editing an score"
+  },
+  "save": "Save",
+  "@save": {
+    "description": "Text on a save-button"
   }
 }

@@ -7,42 +7,41 @@ import 'package:score/globals.dart';
 
 class ProfileFields extends StatelessWidget {
   const ProfileFields({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     final auth = context.read<FirebaseAuth>();
 
     return Consumer<UserNotifier>(
-      builder: (context, userNotifier, child) =>
-          FutureBuilder(
-            future: userNotifier.initialized,
-            builder: (context, snapShot) {
-              if (!snapShot.hasData) {
-                return const CircularProgressIndicator();
-              }
-              final user = userNotifier.user;
-              if (user == null) {
-                return Text(S.of(context)!.notLoggedIn);
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  UserAvatar(auth: auth),
-                  const SizedBox(height: 16),
-                  Align(child: Text(user.email)),
-                  const SizedBox(height: 16),
-                  Align(child: EditableUserDisplayName(auth: auth)),
-                  const SizedBox(height: 16),
-                  DeleteAccountButton(
-                    auth: auth,
-                    onSignInRequired: () => _reauthenticate(context),
-                  ),
-                ],
-              );
-            },
-          ),
+      builder: (context, userNotifier, child) => FutureBuilder(
+        future: userNotifier.initialized,
+        builder: (context, snapShot) {
+          if (!snapShot.hasData) {
+            return const CircularProgressIndicator();
+          }
+          final user = userNotifier.user;
+          if (user == null) {
+            return Text(S.of(context)!.notLoggedIn);
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              UserAvatar(auth: auth),
+              const SizedBox(height: 16),
+              Align(child: Text(user.email)),
+              const SizedBox(height: 16),
+              Align(child: EditableUserDisplayName(auth: auth)),
+              const SizedBox(height: 16),
+              DeleteAccountButton(
+                auth: auth,
+                onSignInRequired: () => _reauthenticate(context),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 

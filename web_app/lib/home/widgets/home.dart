@@ -5,8 +5,8 @@ import 'package:score/router/app_router.gr.dart';
 
 class Home extends StatefulWidget {
   const Home({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<Home> createState() => _HomeState();

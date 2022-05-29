@@ -8,9 +8,9 @@ import 'package:score/router/app_router.gr.dart';
 
 class ProfileButton extends StatelessWidget {
   const ProfileButton({
-    Key? key,
+    super.key,
     required this.router,
-  }) : super(key: key);
+  });
 
   final AppRouter router;
 

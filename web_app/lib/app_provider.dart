@@ -12,10 +12,10 @@ import 'package:score/globals.dart';
 
 class AppProvider extends StatelessWidget {
   const AppProvider({
-    Key? key,
+    super.key,
     required this.getIt,
     required this.child,
-  }) : super(key: key);
+  });
 
   final GetIt getIt;
   final Widget child;

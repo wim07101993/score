@@ -3,8 +3,9 @@ import 'package:score/features/user/change_notifiers/user_notifier.dart';
 import 'package:score/features/user/models/roles.dart';
 
 class RolesNotifier extends ValueNotifier<Roles?> {
-  RolesNotifier({required this.userNotifier})
-      : super(userNotifier.user?.roles) {
+  RolesNotifier({
+    required this.userNotifier,
+  }) : super(userNotifier.user?.roles) {
     userNotifier.addListener(onUserChanged);
   }
 

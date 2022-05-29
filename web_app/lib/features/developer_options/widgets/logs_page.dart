@@ -5,8 +5,8 @@ import 'package:score/data/logging/hive_log_sink.dart';
 
 class LogsPage extends Page {
   const LogsPage({
-    LocalKey? key,
-  }) : super(key: key, name: 'developer-options/logs');
+    super.key,
+  }) : super(name: 'developer-options/logs');
 
   @override
   Route createRoute(BuildContext context) {

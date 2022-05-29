@@ -3,8 +3,8 @@ import 'package:score/features/user/widgets/profile_fields.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

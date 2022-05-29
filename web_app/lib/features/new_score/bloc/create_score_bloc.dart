@@ -7,7 +7,12 @@ part 'create_score_bloc.freezed.dart';
 
 @freezed
 class CreateScoreEvent with _$CreateScoreEvent {
-  const factory CreateScoreEvent.save() = _CreateScoreEvent;
+  const factory CreateScoreEvent.save({
+    required String title,
+    String? subtitle,
+    String? dedication,
+    required List<String> composers,
+  }) = _CreateScoreEvent;
 }
 
 @freezed
@@ -25,5 +30,7 @@ class CreateScoreBloc extends Bloc<CreateScoreEvent, CreateScoreState> {
   FutureOr<void> onCreateScoreEvent(
     _CreateScoreEvent event,
     Emitter<CreateScoreState> emit,
-  ) {}
+  ) {
+    print(event);
+  }
 }

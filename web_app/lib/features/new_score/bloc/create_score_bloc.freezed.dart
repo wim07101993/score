@@ -12,35 +12,33 @@ part of 'create_score_bloc.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more informations: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
-
-/// @nodoc
-class _$CreateScoreEventTearOff {
-  const _$CreateScoreEventTearOff();
-
-  _CreateScoreEvent save() {
-    return const _CreateScoreEvent();
-  }
-}
-
-/// @nodoc
-const $CreateScoreEvent = _$CreateScoreEventTearOff();
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
 mixin _$CreateScoreEvent {
+  String get title => throw _privateConstructorUsedError;
+  String? get subtitle => throw _privateConstructorUsedError;
+  String? get dedication => throw _privateConstructorUsedError;
+  List<String> get composers => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function() save,
+    required TResult Function(String title, String? subtitle,
+            String? dedication, List<String> composers)
+        save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function()? save,
+    TResult Function(String title, String? subtitle, String? dedication,
+            List<String> composers)?
+        save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? save,
+    TResult Function(String title, String? subtitle, String? dedication,
+            List<String> composers)?
+        save,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -60,6 +58,10 @@ mixin _$CreateScoreEvent {
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
+
+  @JsonKey(ignore: true)
+  $CreateScoreEventCopyWith<CreateScoreEvent> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -67,6 +69,11 @@ abstract class $CreateScoreEventCopyWith<$Res> {
   factory $CreateScoreEventCopyWith(
           CreateScoreEvent value, $Res Function(CreateScoreEvent) then) =
       _$CreateScoreEventCopyWithImpl<$Res>;
+  $Res call(
+      {String title,
+      String? subtitle,
+      String? dedication,
+      List<String> composers});
 }
 
 /// @nodoc
@@ -77,13 +84,47 @@ class _$CreateScoreEventCopyWithImpl<$Res>
   final CreateScoreEvent _value;
   // ignore: unused_field
   final $Res Function(CreateScoreEvent) _then;
+
+  @override
+  $Res call({
+    Object? title = freezed,
+    Object? subtitle = freezed,
+    Object? dedication = freezed,
+    Object? composers = freezed,
+  }) {
+    return _then(_value.copyWith(
+      title: title == freezed
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      subtitle: subtitle == freezed
+          ? _value.subtitle
+          : subtitle // ignore: cast_nullable_to_non_nullable
+              as String?,
+      dedication: dedication == freezed
+          ? _value.dedication
+          : dedication // ignore: cast_nullable_to_non_nullable
+              as String?,
+      composers: composers == freezed
+          ? _value.composers
+          : composers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
 }
 
 /// @nodoc
-abstract class _$CreateScoreEventCopyWith<$Res> {
+abstract class _$CreateScoreEventCopyWith<$Res>
+    implements $CreateScoreEventCopyWith<$Res> {
   factory _$CreateScoreEventCopyWith(
           _CreateScoreEvent value, $Res Function(_CreateScoreEvent) then) =
       __$CreateScoreEventCopyWithImpl<$Res>;
+  @override
+  $Res call(
+      {String title,
+      String? subtitle,
+      String? dedication,
+      List<String> composers});
 }
 
 /// @nodoc
@@ -96,51 +137,118 @@ class __$CreateScoreEventCopyWithImpl<$Res>
 
   @override
   _CreateScoreEvent get _value => super._value as _CreateScoreEvent;
+
+  @override
+  $Res call({
+    Object? title = freezed,
+    Object? subtitle = freezed,
+    Object? dedication = freezed,
+    Object? composers = freezed,
+  }) {
+    return _then(_CreateScoreEvent(
+      title: title == freezed
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String,
+      subtitle: subtitle == freezed
+          ? _value.subtitle
+          : subtitle // ignore: cast_nullable_to_non_nullable
+              as String?,
+      dedication: dedication == freezed
+          ? _value.dedication
+          : dedication // ignore: cast_nullable_to_non_nullable
+              as String?,
+      composers: composers == freezed
+          ? _value.composers
+          : composers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+    ));
+  }
 }
 
 /// @nodoc
 
 class _$_CreateScoreEvent implements _CreateScoreEvent {
-  const _$_CreateScoreEvent();
+  const _$_CreateScoreEvent(
+      {required this.title,
+      this.subtitle,
+      this.dedication,
+      required final List<String> composers})
+      : _composers = composers;
+
+  @override
+  final String title;
+  @override
+  final String? subtitle;
+  @override
+  final String? dedication;
+  final List<String> _composers;
+  @override
+  List<String> get composers {
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_composers);
+  }
 
   @override
   String toString() {
-    return 'CreateScoreEvent.save()';
+    return 'CreateScoreEvent.save(title: $title, subtitle: $subtitle, dedication: $dedication, composers: $composers)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _CreateScoreEvent);
+        (other.runtimeType == runtimeType &&
+            other is _CreateScoreEvent &&
+            const DeepCollectionEquality().equals(other.title, title) &&
+            const DeepCollectionEquality().equals(other.subtitle, subtitle) &&
+            const DeepCollectionEquality()
+                .equals(other.dedication, dedication) &&
+            const DeepCollectionEquality().equals(other.composers, composers));
   }
 
   @override
-  int get hashCode => runtimeType.hashCode;
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(title),
+      const DeepCollectionEquality().hash(subtitle),
+      const DeepCollectionEquality().hash(dedication),
+      const DeepCollectionEquality().hash(composers));
+
+  @JsonKey(ignore: true)
+  @override
+  _$CreateScoreEventCopyWith<_CreateScoreEvent> get copyWith =>
+      __$CreateScoreEventCopyWithImpl<_CreateScoreEvent>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function() save,
+    required TResult Function(String title, String? subtitle,
+            String? dedication, List<String> composers)
+        save,
   }) {
-    return save();
+    return save(title, subtitle, dedication, composers);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function()? save,
+    TResult Function(String title, String? subtitle, String? dedication,
+            List<String> composers)?
+        save,
   }) {
-    return save?.call();
+    return save?.call(title, subtitle, dedication, composers);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? save,
+    TResult Function(String title, String? subtitle, String? dedication,
+            List<String> composers)?
+        save,
     required TResult orElse(),
   }) {
     if (save != null) {
-      return save();
+      return save(title, subtitle, dedication, composers);
     }
     return orElse();
   }
@@ -175,22 +283,25 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
 }
 
 abstract class _CreateScoreEvent implements CreateScoreEvent {
-  const factory _CreateScoreEvent() = _$_CreateScoreEvent;
+  const factory _CreateScoreEvent(
+      {required final String title,
+      final String? subtitle,
+      final String? dedication,
+      required final List<String> composers}) = _$_CreateScoreEvent;
+
+  @override
+  String get title => throw _privateConstructorUsedError;
+  @override
+  String? get subtitle => throw _privateConstructorUsedError;
+  @override
+  String? get dedication => throw _privateConstructorUsedError;
+  @override
+  List<String> get composers => throw _privateConstructorUsedError;
+  @override
+  @JsonKey(ignore: true)
+  _$CreateScoreEventCopyWith<_CreateScoreEvent> get copyWith =>
+      throw _privateConstructorUsedError;
 }
-
-/// @nodoc
-class _$CreateScoreStateTearOff {
-  const _$CreateScoreStateTearOff();
-
-  _CreateScoreState call({Object? error}) {
-    return _CreateScoreState(
-      error: error,
-    );
-  }
-}
-
-/// @nodoc
-const $CreateScoreState = _$CreateScoreStateTearOff();
 
 /// @nodoc
 mixin _$CreateScoreState {
@@ -291,10 +402,10 @@ class _$_CreateScoreState implements _CreateScoreState {
 }
 
 abstract class _CreateScoreState implements CreateScoreState {
-  const factory _CreateScoreState({Object? error}) = _$_CreateScoreState;
+  const factory _CreateScoreState({final Object? error}) = _$_CreateScoreState;
 
   @override
-  Object? get error;
+  Object? get error => throw _privateConstructorUsedError;
   @override
   @JsonKey(ignore: true)
   _$CreateScoreStateCopyWith<_CreateScoreState> get copyWith =>

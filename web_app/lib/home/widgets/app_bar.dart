@@ -9,9 +9,9 @@ import 'package:score/router/app_router.gr.dart';
 
 class AppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppBar({
-    Key? key,
+    super.key,
     required this.router,
-  }) : super(key: key);
+  });
 
   final AppRouter router;
 

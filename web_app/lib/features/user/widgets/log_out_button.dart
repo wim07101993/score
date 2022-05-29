@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 
 class LogOutButton extends StatelessWidget {
   const LogOutButton({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

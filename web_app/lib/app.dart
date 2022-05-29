@@ -6,7 +6,7 @@ import 'package:score/home/widgets/home.dart';
 import 'package:score/theme.dart';
 
 class ScoreApp extends StatelessWidget {
-  const ScoreApp({Key? key}) : super(key: key);
+  const ScoreApp({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -5,9 +5,9 @@ import 'package:score/features/user/widgets/sign_in_screen.dart';
 
 class SignedIn extends StatelessWidget {
   const SignedIn({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
 
   final Widget child;
 

@@ -3,9 +3,9 @@ import 'package:score/router/app_router.gr.dart';
 
 class CreateNewScoreButton extends StatelessWidget {
   const CreateNewScoreButton({
-    Key? key,
+    super.key,
     required this.router,
-  }) : super(key: key);
+  });
 
   final AppRouter router;
 

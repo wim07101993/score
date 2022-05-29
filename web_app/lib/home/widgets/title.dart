@@ -4,8 +4,8 @@ import 'package:score/features/user/change_notifiers/user_notifier.dart';
 
 class Title extends StatelessWidget {
   const Title({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

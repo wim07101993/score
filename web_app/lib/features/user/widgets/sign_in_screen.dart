@@ -8,8 +8,8 @@ import 'package:score/features/user/change_notifiers/user_notifier.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
