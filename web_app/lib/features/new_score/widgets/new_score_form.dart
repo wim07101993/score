@@ -29,10 +29,19 @@ class _NewScoreFormState extends State<NewScoreForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ScoreTitleField(value: _scoreTitle),
+          const SizedBox(height: 8),
           SubtitleField(value: _subtitle),
+          const SizedBox(height: 8),
           DedicationField(value: _dedication),
+          const SizedBox(height: 8),
           _composersField(),
-          SaveButton(onPressed: _save),
+          Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SaveButton(onPressed: _save),
+            ),
+          ),
         ],
       ),
     );

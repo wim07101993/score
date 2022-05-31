@@ -12,6 +12,7 @@ import 'package:score/data/firebase/provider_configurations.dart';
 import 'package:score/data/guid_generator.dart';
 import 'package:score/data/logging/hive_log_sink.dart';
 import 'package:score/data/logging/log_record_adapter.dart';
+import 'package:score/features/new_score/bloc/create_score_bloc.dart';
 import 'package:score/features/user/behaviours/logout.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
@@ -29,6 +30,11 @@ extension AppGetItExtensions on GetIt {
     registerLogging();
     registerFirebase();
     registerUser();
+    registerNewScore();
+  }
+
+  void registerNewScore() {
+    registerFactory(() => CreateScoreBloc());
   }
 
   void registerHive() {

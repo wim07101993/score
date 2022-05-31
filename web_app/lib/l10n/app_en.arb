@@ -48,11 +48,77 @@
     "description": "Label for the subtitle title field when editing an score"
   },
   "dedicationFieldLabel": "Dedication",
-  "@subtitleFieldLabel": {
+  "@dedicationFieldLabel": {
     "description": "Label for the dedication field when editing an score"
   },
   "save": "Save",
   "@save": {
     "description": "Text on a save-button"
+  },
+  "composerFieldLabel": "Composer",
+  "@composerFieldLabel": {
+    "description": "Label for the composer field when editing a score"
+  },
+  "addComposer": "Add composer",
+  "@addComposer": {
+    "description": "Text on the button to add a composer"
+  },
+  "titleIsRequiredErrorMessage": "Please enter a title",
+  "@titleIsRequiredErrorMessage" : {
+    "description": "Error message when entering no title for a score"
+  },
+  "titleTooLongErrorMessage": "The title can only be {maxLength} characters.",
+  "@titleTooLongErrorMessage" : {
+    "description": "Error message when entering a title which is too long",
+    "placeholders": {
+      "maxLength": {
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "subtitleTooLongErrorMessage": "The subtitle can only be {maxLength} characters.",
+  "@subtitleTooLongErrorMessage" : {
+    "description": "Error message when entering a subtitle which is too long",
+    "placeholders": {
+      "maxLength": {
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "dedicationTooLongErrorMessage": "The dedication can only be {maxLength} characters.",
+  "@dedicationTooLongErrorMessage" : {
+    "description": "Error message when entering a dedication which is too long",
+    "placeholders": {
+      "maxLength": {
+        "type": "int",
+        "example": "100"
+      }
+    }
+  },
+  "tooManyComposersErrorMessage": "A score can only contain {maxNumber} composers.",
+  "@tooManyComposersErrorMessage" : {
+    "description": "Error message when entering too many composers on a score",
+    "placeholders": {
+      "maxNumber": {
+        "type": "int",
+        "example": "10"
+      }
+    }
+  },
+  "composerMustHaveANameErrorMessage": "Please enter a name for the composer.",
+  "@composerMustHaveANameErrorMessage" : {
+    "description": "Error message when not entering a composer name"
+  },
+  "composerNameTooLongErrorMessage": "The composer name can only be {maxLength} characters.",
+  "@composerNameTooLongErrorMessage" : {
+    "description": "Error message when entering a composer name which is too long",
+    "placeholders": {
+      "maxLength": {
+        "type": "int",
+        "example": "100"
+      }
+    }
   }
 }

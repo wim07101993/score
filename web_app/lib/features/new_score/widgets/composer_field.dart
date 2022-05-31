@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/globals.dart';
 
-class SubtitleField extends StatelessWidget {
-  const SubtitleField({
+class ComposerField extends StatelessWidget {
+  const ComposerField({
     super.key,
     required this.value,
   });
@@ -17,14 +17,14 @@ class SubtitleField extends StatelessWidget {
       controller: value,
       validator: (value) => _validate(s, value),
       decoration: InputDecoration(
-        labelText: s.subtitleFieldLabel,
+        labelText: s.composerFieldLabel,
       ),
       textInputAction: TextInputAction.next,
     );
   }
 
   String? _validate(S s, String? value) {
-    final errors = DraftScore.validateSubtitle(value).toList(growable: false);
+    final errors = DraftScore.validateComposer(value).toList(growable: false);
     if (errors.isEmpty) {
       return null;
     }
