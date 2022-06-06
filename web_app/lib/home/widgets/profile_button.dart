@@ -21,7 +21,7 @@ class ProfileButton extends StatelessWidget {
     return PopupMenuButton(
       iconSize: theme.appBarTheme.actionsIconTheme?.size,
       icon: FaIcon(
-        FontAwesomeIcons.userAlt,
+        FontAwesomeIcons.userLarge,
         color: theme.appBarTheme.foregroundColor,
       ),
       itemBuilder: (context) => [
