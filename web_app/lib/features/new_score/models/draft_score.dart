@@ -32,6 +32,15 @@ class DraftScore {
   final String dedication;
   final List<String> composers;
 
+  Map<String, dynamic> toDocument() {
+    return {
+      'title': title,
+      'subtitle': subtitle,
+      'dedication': dedication,
+      'composers': composers,
+    };
+  }
+
   static Iterable<DraftScoreError> validateTitle(String? title) sync* {
     if (title == null || title.isEmpty) {
       yield const DraftScoreError.titleIsRequired();
