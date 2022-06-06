@@ -28,15 +28,15 @@ class DraftScore {
   static const int maxComposerLength = 100;
 
   final String title;
-  final String subtitle;
-  final String dedication;
+  final String? subtitle;
+  final String? dedication;
   final List<String> composers;
 
   Map<String, dynamic> toDocument() {
     return {
       'title': title,
-      'subtitle': subtitle,
-      'dedication': dedication,
+      if (subtitle?.isNotEmpty == false) 'subtitle': subtitle,
+      if (dedication?.isNotEmpty == false) 'dedication': dedication,
       'composers': composers,
     };
   }

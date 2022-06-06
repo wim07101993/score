@@ -16,29 +16,20 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$CreateScoreEvent {
-  String get title => throw _privateConstructorUsedError;
-  String? get subtitle => throw _privateConstructorUsedError;
-  String? get dedication => throw _privateConstructorUsedError;
-  List<String> get composers => throw _privateConstructorUsedError;
+  DraftScore get score => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String title, String? subtitle,
-            String? dedication, List<String> composers)
-        save,
+    required TResult Function(DraftScore score) save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String title, String? subtitle, String? dedication,
-            List<String> composers)?
-        save,
+    TResult Function(DraftScore score)? save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String title, String? subtitle, String? dedication,
-            List<String> composers)?
-        save,
+    TResult Function(DraftScore score)? save,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -69,11 +60,7 @@ abstract class $CreateScoreEventCopyWith<$Res> {
   factory $CreateScoreEventCopyWith(
           CreateScoreEvent value, $Res Function(CreateScoreEvent) then) =
       _$CreateScoreEventCopyWithImpl<$Res>;
-  $Res call(
-      {String title,
-      String? subtitle,
-      String? dedication,
-      List<String> composers});
+  $Res call({DraftScore score});
 }
 
 /// @nodoc
@@ -87,28 +74,13 @@ class _$CreateScoreEventCopyWithImpl<$Res>
 
   @override
   $Res call({
-    Object? title = freezed,
-    Object? subtitle = freezed,
-    Object? dedication = freezed,
-    Object? composers = freezed,
+    Object? score = freezed,
   }) {
     return _then(_value.copyWith(
-      title: title == freezed
-          ? _value.title
-          : title // ignore: cast_nullable_to_non_nullable
-              as String,
-      subtitle: subtitle == freezed
-          ? _value.subtitle
-          : subtitle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      dedication: dedication == freezed
-          ? _value.dedication
-          : dedication // ignore: cast_nullable_to_non_nullable
-              as String?,
-      composers: composers == freezed
-          ? _value.composers
-          : composers // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+      score: score == freezed
+          ? _value.score
+          : score // ignore: cast_nullable_to_non_nullable
+              as DraftScore,
     ));
   }
 }
@@ -120,11 +92,7 @@ abstract class _$CreateScoreEventCopyWith<$Res>
           _CreateScoreEvent value, $Res Function(_CreateScoreEvent) then) =
       __$CreateScoreEventCopyWithImpl<$Res>;
   @override
-  $Res call(
-      {String title,
-      String? subtitle,
-      String? dedication,
-      List<String> composers});
+  $Res call({DraftScore score});
 }
 
 /// @nodoc
@@ -140,28 +108,13 @@ class __$CreateScoreEventCopyWithImpl<$Res>
 
   @override
   $Res call({
-    Object? title = freezed,
-    Object? subtitle = freezed,
-    Object? dedication = freezed,
-    Object? composers = freezed,
+    Object? score = freezed,
   }) {
     return _then(_CreateScoreEvent(
-      title: title == freezed
-          ? _value.title
-          : title // ignore: cast_nullable_to_non_nullable
-              as String,
-      subtitle: subtitle == freezed
-          ? _value.subtitle
-          : subtitle // ignore: cast_nullable_to_non_nullable
-              as String?,
-      dedication: dedication == freezed
-          ? _value.dedication
-          : dedication // ignore: cast_nullable_to_non_nullable
-              as String?,
-      composers: composers == freezed
-          ? _value.composers
-          : composers // ignore: cast_nullable_to_non_nullable
-              as List<String>,
+      score == freezed
+          ? _value.score
+          : score // ignore: cast_nullable_to_non_nullable
+              as DraftScore,
     ));
   }
 }
@@ -169,29 +122,14 @@ class __$CreateScoreEventCopyWithImpl<$Res>
 /// @nodoc
 
 class _$_CreateScoreEvent implements _CreateScoreEvent {
-  const _$_CreateScoreEvent(
-      {required this.title,
-      this.subtitle,
-      this.dedication,
-      required final List<String> composers})
-      : _composers = composers;
+  const _$_CreateScoreEvent(this.score);
 
   @override
-  final String title;
-  @override
-  final String? subtitle;
-  @override
-  final String? dedication;
-  final List<String> _composers;
-  @override
-  List<String> get composers {
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_composers);
-  }
+  final DraftScore score;
 
   @override
   String toString() {
-    return 'CreateScoreEvent.save(title: $title, subtitle: $subtitle, dedication: $dedication, composers: $composers)';
+    return 'CreateScoreEvent.save(score: $score)';
   }
 
   @override
@@ -199,20 +137,12 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _CreateScoreEvent &&
-            const DeepCollectionEquality().equals(other.title, title) &&
-            const DeepCollectionEquality().equals(other.subtitle, subtitle) &&
-            const DeepCollectionEquality()
-                .equals(other.dedication, dedication) &&
-            const DeepCollectionEquality().equals(other.composers, composers));
+            const DeepCollectionEquality().equals(other.score, score));
   }
 
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      const DeepCollectionEquality().hash(title),
-      const DeepCollectionEquality().hash(subtitle),
-      const DeepCollectionEquality().hash(dedication),
-      const DeepCollectionEquality().hash(composers));
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(score));
 
   @JsonKey(ignore: true)
   @override
@@ -222,33 +152,27 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String title, String? subtitle,
-            String? dedication, List<String> composers)
-        save,
+    required TResult Function(DraftScore score) save,
   }) {
-    return save(title, subtitle, dedication, composers);
+    return save(score);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(String title, String? subtitle, String? dedication,
-            List<String> composers)?
-        save,
+    TResult Function(DraftScore score)? save,
   }) {
-    return save?.call(title, subtitle, dedication, composers);
+    return save?.call(score);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String title, String? subtitle, String? dedication,
-            List<String> composers)?
-        save,
+    TResult Function(DraftScore score)? save,
     required TResult orElse(),
   }) {
     if (save != null) {
-      return save(title, subtitle, dedication, composers);
+      return save(score);
     }
     return orElse();
   }
@@ -283,20 +207,10 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
 }
 
 abstract class _CreateScoreEvent implements CreateScoreEvent {
-  const factory _CreateScoreEvent(
-      {required final String title,
-      final String? subtitle,
-      final String? dedication,
-      required final List<String> composers}) = _$_CreateScoreEvent;
+  const factory _CreateScoreEvent(final DraftScore score) = _$_CreateScoreEvent;
 
   @override
-  String get title => throw _privateConstructorUsedError;
-  @override
-  String? get subtitle => throw _privateConstructorUsedError;
-  @override
-  String? get dedication => throw _privateConstructorUsedError;
-  @override
-  List<String> get composers => throw _privateConstructorUsedError;
+  DraftScore get score => throw _privateConstructorUsedError;
   @override
   @JsonKey(ignore: true)
   _$CreateScoreEventCopyWith<_CreateScoreEvent> get copyWith =>

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:score/features/new_score/bloc/create_score_bloc.dart';
+import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/features/new_score/widgets/composers_field.dart';
 import 'package:score/features/new_score/widgets/dedication_field.dart';
 import 'package:score/features/new_score/widgets/save_button.dart';
@@ -63,11 +64,13 @@ class _NewScoreFormState extends State<NewScoreForm> {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
-    BlocProvider.of<CreateScoreBloc>(context).add(CreateScoreEvent.save(
-      title: _scoreTitle.text,
-      dedication: _dedication.text,
-      subtitle: _subtitle.text,
-      composers: _composers.map((c) => c.text).toList(growable: false),
-    ));
+    BlocProvider.of<CreateScoreBloc>(context).add(
+      CreateScoreEvent.save(DraftScore(
+        title: _scoreTitle.text,
+        dedication: _dedication.text,
+        subtitle: _subtitle.text,
+        composers: _composers.map((c) => c.text).toList(growable: false),
+      )),
+    );
   }
 }
