@@ -120,5 +120,9 @@
         "example": "100"
       }
     }
+  },
+  "permissionsDeniedErrorMessage": "You do not have the permissions to do that...",
+  "@permissionsDeniedErrorMessage": {
+    "description": "Error message which is shown when a user does an action for which he/she does not have the correct permissions."
   }
 }

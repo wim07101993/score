@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide CloseButton;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:score/data/firebase/exceptions/permission_denied_exception.dart';
 import 'package:score/features/new_score/bloc/create_score_bloc.dart';
 import 'package:score/features/new_score/widgets/close_button.dart';
 import 'package:score/features/new_score/widgets/new_score_form.dart';
@@ -39,9 +40,16 @@ class CreateNewScorePage extends StatelessWidget {
   }
 
   void onStateChange(BuildContext context, CreateScoreState state) {
-    if (state.error != null) {
+    final error = state.error;
+    if (error != null) {
+      late final String errorMessage;
+      if (error is PermissionDeniedException) {
+        errorMessage = error.errorMessage(context);
+      } else if (state.error != null) {
+        errorMessage = S.of(context)!.genericErrorMessage;
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(S.of(context)!.genericErrorMessage),
+        content: Text(errorMessage),
       ));
     }
   }

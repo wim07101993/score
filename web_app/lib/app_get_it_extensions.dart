@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:behaviour/behaviour.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:score/behaviours/standard_behaviour_monitor.dart';
 import 'package:score/data/firebase/firebase_options.dart';
 import 'package:score/data/firebase/provider_configurations.dart';
 import 'package:score/data/guid_generator.dart';
@@ -30,13 +32,28 @@ extension AppGetItExtensions on GetIt {
     registerHive();
     registerLogging();
     registerFirebase();
+    registerBehaviourMonitoring();
     registerUser();
     registerNewScore();
   }
 
   void registerNewScore() {
     registerFactory(() => CreateScoreBloc(saveNewScore: call()));
-    registerFactory(() => SaveNewScore(firestore: call()));
+    registerFactory(() => SaveNewScore(
+          monitor: call(),
+          firestore: call(),
+        ));
+  }
+
+  void registerBehaviourMonitoring() {
+    registerFactory<BehaviourMonitor>(
+        () => BehaviourMonitorImpl<StandardBehaviourTrack>(getIt: this));
+    registerFactoryParam((BehaviourMixin behaviour, p2) {
+      return StandardBehaviourTrack(
+        behaviour: behaviour,
+        logger: call(param1: behaviour.runtimeType.toString()),
+      );
+    });
   }
 
   void registerHive() {

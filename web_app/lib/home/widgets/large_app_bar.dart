@@ -7,8 +7,8 @@ import 'package:score/home/widgets/profile_button.dart';
 import 'package:score/home/widgets/title.dart';
 import 'package:score/router/app_router.gr.dart';
 
-class AppBar extends StatelessWidget implements PreferredSizeWidget {
-  const AppBar({
+class LargeAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const LargeAppBar({
     super.key,
     required this.router,
   });
