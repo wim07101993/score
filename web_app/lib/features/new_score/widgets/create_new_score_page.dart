@@ -52,5 +52,9 @@ class CreateNewScorePage extends StatelessWidget {
         content: Text(errorMessage),
       ));
     }
+
+    if (state.created) {
+      Navigator.of(context).pop();
+    }
   }
 }

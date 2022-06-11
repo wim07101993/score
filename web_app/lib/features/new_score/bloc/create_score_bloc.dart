@@ -17,6 +17,7 @@ class CreateScoreEvent with _$CreateScoreEvent {
 class CreateScoreState with _$CreateScoreState {
   const factory CreateScoreState({
     Object? error,
+    @Default(false) bool created,
   }) = _CreateScoreState;
 }
 
@@ -36,7 +37,7 @@ class CreateScoreBloc extends Bloc<CreateScoreEvent, CreateScoreState> {
     emit(state.copyWith(error: null));
     return saveNewScore(event.score).thenWhen(
       (exception) => emit(state.copyWith(error: exception)),
-      (_) {},
+      (_) => emit(state.copyWith(created: true)),
     );
   }
 }
