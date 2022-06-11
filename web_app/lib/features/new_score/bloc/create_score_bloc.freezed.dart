@@ -220,6 +220,7 @@ abstract class _CreateScoreEvent implements CreateScoreEvent {
 /// @nodoc
 mixin _$CreateScoreState {
   Object? get error => throw _privateConstructorUsedError;
+  bool get created => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $CreateScoreStateCopyWith<CreateScoreState> get copyWith =>
@@ -231,7 +232,7 @@ abstract class $CreateScoreStateCopyWith<$Res> {
   factory $CreateScoreStateCopyWith(
           CreateScoreState value, $Res Function(CreateScoreState) then) =
       _$CreateScoreStateCopyWithImpl<$Res>;
-  $Res call({Object? error});
+  $Res call({Object? error, bool created});
 }
 
 /// @nodoc
@@ -246,9 +247,14 @@ class _$CreateScoreStateCopyWithImpl<$Res>
   @override
   $Res call({
     Object? error = freezed,
+    Object? created = freezed,
   }) {
     return _then(_value.copyWith(
       error: error == freezed ? _value.error : error,
+      created: created == freezed
+          ? _value.created
+          : created // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -260,7 +266,7 @@ abstract class _$CreateScoreStateCopyWith<$Res>
           _CreateScoreState value, $Res Function(_CreateScoreState) then) =
       __$CreateScoreStateCopyWithImpl<$Res>;
   @override
-  $Res call({Object? error});
+  $Res call({Object? error, bool created});
 }
 
 /// @nodoc
@@ -277,9 +283,14 @@ class __$CreateScoreStateCopyWithImpl<$Res>
   @override
   $Res call({
     Object? error = freezed,
+    Object? created = freezed,
   }) {
     return _then(_CreateScoreState(
       error: error == freezed ? _value.error : error,
+      created: created == freezed
+          ? _value.created
+          : created // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -287,14 +298,17 @@ class __$CreateScoreStateCopyWithImpl<$Res>
 /// @nodoc
 
 class _$_CreateScoreState implements _CreateScoreState {
-  const _$_CreateScoreState({this.error});
+  const _$_CreateScoreState({this.error, this.created = false});
 
   @override
   final Object? error;
+  @override
+  @JsonKey()
+  final bool created;
 
   @override
   String toString() {
-    return 'CreateScoreState(error: $error)';
+    return 'CreateScoreState(error: $error, created: $created)';
   }
 
   @override
@@ -302,12 +316,15 @@ class _$_CreateScoreState implements _CreateScoreState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _CreateScoreState &&
-            const DeepCollectionEquality().equals(other.error, error));
+            const DeepCollectionEquality().equals(other.error, error) &&
+            const DeepCollectionEquality().equals(other.created, created));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, const DeepCollectionEquality().hash(error));
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(error),
+      const DeepCollectionEquality().hash(created));
 
   @JsonKey(ignore: true)
   @override
@@ -316,10 +333,13 @@ class _$_CreateScoreState implements _CreateScoreState {
 }
 
 abstract class _CreateScoreState implements CreateScoreState {
-  const factory _CreateScoreState({final Object? error}) = _$_CreateScoreState;
+  const factory _CreateScoreState({final Object? error, final bool created}) =
+      _$_CreateScoreState;
 
   @override
   Object? get error => throw _privateConstructorUsedError;
+  @override
+  bool get created => throw _privateConstructorUsedError;
   @override
   @JsonKey(ignore: true)
   _$CreateScoreStateCopyWith<_CreateScoreState> get copyWith =>
