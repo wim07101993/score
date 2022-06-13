@@ -4,6 +4,6 @@ import 'package:score/features/new_score/models/draft_score.dart';
 
 extension NewScoreFirestoreExtensions on FirebaseFirestore {
   Future<void> saveDraftScore(DraftScore draftScore) {
-    return scoreCollection().add(draftScore.toDocument());
+    return scoreCollection.add(draftScore.toDocument());
   }
 }
