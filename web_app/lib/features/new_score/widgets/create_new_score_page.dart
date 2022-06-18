@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart' hide CloseButton;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/data/firebase/exceptions/permission_denied_exception.dart';
 import 'package:score/features/new_score/bloc/create_score_bloc.dart';
 import 'package:score/features/new_score/widgets/close_button.dart';
 import 'package:score/features/new_score/widgets/new_score_form.dart';
 import 'package:score/features/new_score/widgets/page_title.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/data/firebase/exceptions/permission_denied_exception.dart';
 
 class CreateNewScorePage extends StatelessWidget {
   const CreateNewScorePage({super.key});

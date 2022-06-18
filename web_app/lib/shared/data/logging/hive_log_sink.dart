@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:hive/hive.dart';
-import 'package:score/data/guid_generator.dart';
+import 'package:score/shared/data/guid_generator.dart';
 
 class HiveLogSink extends LogSink {
   HiveLogSink({

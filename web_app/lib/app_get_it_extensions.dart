@@ -8,18 +8,18 @@ import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:score/behaviours/standard_behaviour_monitor.dart';
-import 'package:score/data/firebase/firebase_options.dart';
-import 'package:score/data/firebase/provider_configurations.dart';
-import 'package:score/data/guid_generator.dart';
-import 'package:score/data/logging/hive_log_sink.dart';
-import 'package:score/data/logging/log_record_adapter.dart';
 import 'package:score/features/new_score/behaviours/save_new_score.dart';
 import 'package:score/features/new_score/bloc/create_score_bloc.dart';
 import 'package:score/features/user/behaviours/logout.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
+import 'package:score/shared/behaviours/standard_behaviour_monitor.dart';
+import 'package:score/shared/data/firebase/firebase_options.dart';
+import 'package:score/shared/data/firebase/provider_configurations.dart';
+import 'package:score/shared/data/guid_generator.dart';
+import 'package:score/shared/data/logging/hive_log_sink.dart';
+import 'package:score/shared/data/logging/log_record_adapter.dart';
 
 export 'package:get_it/get_it.dart';
 

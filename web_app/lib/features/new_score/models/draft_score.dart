@@ -1,9 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/models/score.dart';
 
 part 'draft_score.freezed.dart';
 
-class DraftScore {
+class DraftScore implements Score {
   DraftScore({
     required this.title,
     required this.subtitle,
@@ -27,19 +28,18 @@ class DraftScore {
   static const int maxNumberOfComposers = 10;
   static const int maxComposerLength = 100;
 
+  @override
   final String title;
+  @override
   final String? subtitle;
+  @override
   final String? dedication;
+  @override
   final List<String> composers;
-
-  Map<String, dynamic> toDocument() {
-    return {
-      'title': title,
-      if (subtitle?.isNotEmpty == false) 'subtitle': subtitle,
-      if (dedication?.isNotEmpty == false) 'dedication': dedication,
-      'composers': composers,
-    };
-  }
+  @override
+  final DateTime createdAt = DateTime.now().toUtc();
+  @override
+  DateTime get modifiedAt => createdAt;
 
   static Iterable<DraftScoreError> validateTitle(String? title) sync* {
     if (title == null || title.isEmpty) {

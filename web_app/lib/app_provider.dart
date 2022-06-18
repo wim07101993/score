@@ -2,13 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
-import 'package:score/data/firebase/provider_configurations.dart';
-import 'package:score/data/logging/hive_log_sink.dart';
 import 'package:score/features/user/behaviours/logout.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/data/firebase/provider_configurations.dart';
+import 'package:score/shared/data/logging/hive_log_sink.dart';
 
 class AppProvider extends StatelessWidget {
   const AppProvider({

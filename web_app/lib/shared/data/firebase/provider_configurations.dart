@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutterfire_ui/auth.dart';
-import 'package:score/data/firebase/firebase_options.dart';
+import 'package:score/shared/data/firebase/firebase_options.dart';
 
 class ProviderConfigurations {
   const ProviderConfigurations({

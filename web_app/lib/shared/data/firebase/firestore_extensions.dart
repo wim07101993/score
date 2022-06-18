@@ -5,3 +5,8 @@ extension FirestoreExtensions on FirebaseFirestore {
     return collection('scores');
   }
 }
+
+extension QuerySnapshotExtensions
+    on QueryDocumentSnapshot<Map<String, dynamic>> {
+  T field<T>(String name) => this[name] as T;
+}

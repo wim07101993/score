@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:provider/provider.dart';
-import 'package:score/data/logging/hive_log_sink.dart';
+import 'package:score/shared/data/logging/hive_log_sink.dart';
 
 class LogsPage extends Page {
   const LogsPage({
