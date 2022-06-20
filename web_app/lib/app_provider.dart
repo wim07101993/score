@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
@@ -29,6 +30,7 @@ class AppProvider extends StatelessWidget {
         Provider.value(value: getIt<HiveLogSink>()),
         Provider.value(value: getIt<ProviderConfigurations>()),
         Provider.value(value: getIt<FirebaseAuth>()),
+        Provider.value(value: getIt<FirebaseFirestore>()),
         Provider(create: (_) => getIt<Logout>()),
         ChangeNotifierProvider.value(value: getIt<UserNotifier>()),
         ChangeNotifierProvider(create: (_) => getIt<IsSignedInNotifier>()),

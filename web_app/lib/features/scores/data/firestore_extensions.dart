@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/shared/data/firebase/firestore_extensions.dart';
-import 'package:score/shared/models/score.dart';
 
 extension ScoresFirestoreExtensions
     on CollectionReference<Map<String, dynamic>> {
@@ -9,19 +9,17 @@ extension ScoresFirestoreExtensions
     final endIndex = startIndex + pageSize;
     final snapshot = await orderBy('modifiedAt')
         .startAt([startIndex]).endAt([endIndex]).get();
-    return snapshot.docs.map((s) => s.toScore());
+    return snapshot.docs.map((document) => _FirestoreScore._(document));
   }
 }
 
-extension _QuerySnapshotExtensions
-    on QueryDocumentSnapshot<Map<String, dynamic>> {
-  Score toScore() => FirestoreScore._(this);
-}
-
-class FirestoreScore implements Score {
-  FirestoreScore._(this.document);
+class _FirestoreScore implements Score {
+  _FirestoreScore._(this.document);
 
   final QueryDocumentSnapshot<Map<String, dynamic>> document;
+
+  @override
+  String get id => document.id;
 
   @override
   String get title => document.field<String>('title');

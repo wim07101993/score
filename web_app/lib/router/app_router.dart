@@ -6,8 +6,8 @@ import 'package:score/features/user/widgets/profile_page.dart';
 @MaterialAutoRouter(
   replaceInRouteName: 'Page,Route',
   routes: [
+    AutoRoute(page: ScoresListPage, initial: true),
     AutoRoute(page: ProfilePage),
-    AutoRoute(page: ScoresListPage),
     AutoRoute(page: CreateNewScorePage),
   ],
 )

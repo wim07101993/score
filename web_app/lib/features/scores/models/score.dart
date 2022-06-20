@@ -1,4 +1,5 @@
 abstract class Score {
+  String get id;
   String get title;
   String? get subtitle;
   String? get dedication;

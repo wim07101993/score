@@ -1,10 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:score/globals.dart';
-import 'package:score/shared/models/score.dart';
 
 part 'draft_score.freezed.dart';
 
-class DraftScore implements Score {
+class DraftScore {
   DraftScore({
     required this.title,
     required this.subtitle,

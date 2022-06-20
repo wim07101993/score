@@ -17,6 +17,9 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _router.push(const ScoresListRoute()),
+    );
     return Scaffold(
       appBar: LargeAppBar(router: _router),
       body: Router(
@@ -24,12 +27,7 @@ class _HomeState extends State<Home> {
         routeInformationParser: _router.defaultRouteParser(
           includePrefixMatches: true,
         ),
-        routerDelegate: AutoRouterDelegate(
-          _router,
-          initialRoutes: [
-            const ScoresListRoute(),
-          ],
-        ),
+        routerDelegate: AutoRouterDelegate(_router),
       ),
     );
   }
