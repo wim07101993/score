@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:provider/provider.dart';
-import 'package:score/features/scores/data/firestore_extensions.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
+import 'package:score/shared/data/firebase/firestore/collection_reference_extensions.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
 import 'package:score/shared/data/models/score.dart';
 

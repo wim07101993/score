@@ -6,18 +6,18 @@ extension FirestoreExtensions on FirebaseFirestore {
   static const String _subtitleName = 'subtitle';
   static const String _dedicationName = 'dedication';
   static const String _createdAtName = 'createdAt';
-  static const String _modifiedAtName = 'modifiedAtName';
+  static const String _modifiedAtName = 'modifiedAt';
   static const String _composersName = 'composers';
 
   CollectionReference<Score> get scoreCollection {
     return collection('scores').withConverter<Score>(
       fromFirestore: (doc, options) => Score(
-        title: doc.field<String>(_titleName),
-        subtitle: doc.field<String?>(_subtitleName),
-        dedication: doc.field<String?>(_dedicationName),
-        createdAt: doc.field<DateTime>(_createdAtName),
-        modifiedAt: doc.field<DateTime>(_modifiedAtName),
-        composers: doc.field<List<String>>(_composersName),
+        title: doc.getString(_titleName),
+        subtitle: doc.getNullableString(_subtitleName),
+        dedication: doc.getNullableString(_dedicationName),
+        createdAt: doc.getDateTime(_createdAtName),
+        modifiedAt: doc.getDateTime(_modifiedAtName),
+        composers: doc.getListOfString(_composersName),
       ),
       toFirestore: (score, options) => {
         _titleName: score.title,
@@ -31,6 +31,18 @@ extension FirestoreExtensions on FirebaseFirestore {
   }
 }
 
-extension DocumentSnapshotExtensions on DocumentSnapshot<Map<String, dynamic>> {
-  T field<T>(String name) => this[name] as T;
+extension _DocumentSnapshotExtensions
+    on DocumentSnapshot<Map<String, dynamic>> {
+  String getString(Object field) => get(field) as String;
+  String? getNullableString(Object field) => get(field) as String?;
+
+  DateTime getDateTime(Object field) {
+    final timestamp = get(field) as Timestamp;
+    return DateTime.fromMicrosecondsSinceEpoch(
+        timestamp.microsecondsSinceEpoch);
+  }
+
+  List<String> getListOfString(Object field) {
+    return (get(field) as List).cast<String>();
+  }
 }
