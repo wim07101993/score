@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/data/models/score.dart';
 
 part 'draft_score.freezed.dart';
 
@@ -27,18 +28,22 @@ class DraftScore {
   static const int maxNumberOfComposers = 10;
   static const int maxComposerLength = 100;
 
-  @override
   final String title;
-  @override
   final String? subtitle;
-  @override
   final String? dedication;
-  @override
   final List<String> composers;
-  @override
   final DateTime createdAt = DateTime.now().toUtc();
-  @override
-  DateTime get modifiedAt => createdAt;
+
+  Score toScore() {
+    return Score(
+      title: title,
+      subtitle: subtitle,
+      dedication: dedication,
+      composers: composers,
+      createdAt: createdAt,
+      modifiedAt: createdAt,
+    );
+  }
 
   static Iterable<DraftScoreError> validateTitle(String? title) sync* {
     if (title == null || title.isEmpty) {
