@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:provider/provider.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
-import 'package:score/shared/data/firebase/firestore/collection_reference_extensions.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
+import 'package:score/shared/data/firebase/firestore/query_extensions.dart';
 import 'package:score/shared/data/models/score.dart';
 
 class ScoresListPage extends StatefulWidget {
@@ -19,16 +19,15 @@ class ScoresListPage extends StatefulWidget {
 class _ScoresListPageState extends State<ScoresListPage> {
   static const int _pageSize = 25;
 
-  late final CollectionReference<Score> _scoreCollection;
+  late final FirebaseFirestore _firestore;
   final _controller = PagingController<int, Score>(firstPageKey: 0);
 
   @override
   void initState() {
     super.initState();
-    _scoreCollection =
-        Provider.of<FirebaseFirestore>(context, listen: false).scoreCollection;
+    _firestore = Provider.of<FirebaseFirestore>(context, listen: false);
     _controller.addPageRequestListener((pageIndex) async {
-      final page = (await _scoreCollection.page(pageIndex, _pageSize)).toList();
+      final page = await _firestore.scores(pageIndex, _pageSize).items;
       if (page.length != _pageSize) {
         _controller.appendLastPage(page);
       } else {

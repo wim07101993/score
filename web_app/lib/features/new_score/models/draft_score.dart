@@ -35,7 +35,7 @@ class DraftScore {
   final DateTime createdAt = DateTime.now().toUtc();
 
   Score toScore() {
-    return Score(
+    return Score.withoutId(
       title: title,
       subtitle: subtitle,
       dedication: dedication,
