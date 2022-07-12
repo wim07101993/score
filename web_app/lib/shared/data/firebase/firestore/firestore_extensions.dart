@@ -42,10 +42,10 @@ extension FirestoreExtensions on FirebaseFirestore {
     );
   }
 
-  Query<Score> scores(int pageSize, int pageIndex) {
+  Query<Score> scores({required int pageSize, required int pageIndex}) {
     return scoresCollection
         .orderBy(ScoreFields.modifiedAt)
-        .page(pageSize, pageIndex);
+        .page(pageSize: pageSize, pageIndex: pageIndex);
   }
 
   Future<String> addScore(Score score) {

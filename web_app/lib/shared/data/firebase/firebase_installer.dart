@@ -14,7 +14,7 @@ class FirebaseInstaller implements Installer {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    getIt.logger('getIt').i('initialized firebase');
+    getIt.logger<GetIt>().i('initialized firebase');
   }
 
   @override

@@ -12,8 +12,6 @@ import 'package:score/shared/data/logging/logging_installer.dart';
 
 export 'package:get_it/get_it.dart';
 
-Logger? _logger;
-
 abstract class Installer {
   void registerDependencies(GetIt getIt);
   Future<void> initialize(GetIt getIt);
@@ -45,13 +43,13 @@ extension AppGetItExtensions on GetIt {
         ));
   }
 
-  Future<void> initializeScore() {
-    return Future.wait(_installers.map((installer) {
-      return installer.initialize(this);
-    }));
+  Future<void> initializeScore() async {
+    for (final installer in _installers) {
+      await installer.initialize(this);
+    }
   }
 
-  Logger logger(String loggerName) {
-    return call<Logger>(param1: loggerName);
+  Logger logger<T>([String? loggerName]) {
+    return call<Logger>(param1: loggerName ?? T.runtimeType.toString());
   }
 }

@@ -9,7 +9,7 @@ class LoggingInstaller implements Installer {
   Future<void> initialize(GetIt getIt) {
     Logger.root.level = Level.ALL;
     hierarchicalLoggingEnabled = true;
-    getIt.logger('getIt').i('initialized logging');
+    getIt.logger<GetIt>().i('initialized logging');
     return Future.value();
   }
 

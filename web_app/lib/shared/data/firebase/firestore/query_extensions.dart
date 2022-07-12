@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 extension QueryExtensions<T> on Query<T> {
-  Query<T> page(int pageSize, int pageIndex) {
+  Query<T> page({required int pageSize, required int pageIndex}) {
     final startIndex = pageIndex * pageSize;
     return startAt([startIndex]).limit(pageSize);
   }

@@ -27,7 +27,9 @@ class _ScoresListPageState extends State<ScoresListPage> {
     super.initState();
     _firestore = Provider.of<FirebaseFirestore>(context, listen: false);
     _controller.addPageRequestListener((pageIndex) async {
-      final page = await _firestore.scores(pageIndex, _pageSize).items;
+      final page = await _firestore
+          .scores(pageIndex: pageIndex, pageSize: _pageSize)
+          .items;
       if (page.length != _pageSize) {
         _controller.appendLastPage(page);
       } else {

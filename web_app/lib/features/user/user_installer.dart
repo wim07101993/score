@@ -19,8 +19,10 @@ class UserInstaller implements Installer {
 
   @override
   void registerDependencies(GetIt getIt) {
-    getIt.registerLazySingleton(
-        () => UserNotifier(auth: getIt(), firestore: getIt(), logger: getIt()));
+    getIt.registerLazySingleton(() => UserNotifier(
+        auth: getIt(),
+        firestore: getIt(),
+        logger: getIt.logger<UserNotifier>()));
     getIt.registerFactory(() => IsSignedInNotifier(userNotifier: getIt()));
     getIt.registerFactory(() => RolesNotifier(userNotifier: getIt()));
   }
