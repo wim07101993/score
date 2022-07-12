@@ -17,7 +17,6 @@ extension FirestoreExtensions on FirebaseFirestore {
         composers: doc.getListOfString(ScoreFields.composers),
       ),
       toFirestore: (score, options) => {
-        ScoreFields.title: score.title,
         if (score.subtitle != null) ScoreFields.subtitle: score.subtitle,
         if (score.dedication != null) ScoreFields.dedication: score.dedication,
         ScoreFields.createdAt: score.createdAt,
@@ -27,7 +26,7 @@ extension FirestoreExtensions on FirebaseFirestore {
     );
   }
 
-  CollectionReference<ScoreAccessHistoryItem> _scoreAccessHistoryCollection(
+  CollectionReference<ScoreAccessHistoryItem> scoreAccessHistoryCollection(
     String userId,
   ) {
     return collection('score-access-history').withConverter(
@@ -49,11 +48,14 @@ extension FirestoreExtensions on FirebaseFirestore {
         .page(pageSize, pageIndex);
   }
 
-  Future<void> addScore(Score score) => scoresCollection.add(score);
+  Future<String> addScore(Score score) {
+    return scoresCollection.add(score).then((ref) => ref.id);
+  }
 
   Query<ScoreAccessHistoryItem> scoreAccessHistory(String userId) {
-    return _scoreAccessHistoryCollection(userId)
-        .where(ScoreAccessHistoryItemFields.userId, isEqualTo: userId);
+    return scoreAccessHistoryCollection(userId)
+        .where(ScoreAccessHistoryItemFields.userId, isEqualTo: userId)
+        .orderBy(ScoreAccessHistoryItemFields.accessDate);
   }
 }
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:hawk/hawk.dart';
 import 'package:provider/provider.dart';
 import 'package:score/features/user/behaviours/logout.dart';
 import 'package:score/globals.dart';
-import 'package:score/l10n/extensions.dart';
 import 'package:score/router/app_router.gr.dart';
 
 class ProfileButton extends StatelessWidget {
@@ -31,7 +31,7 @@ class ProfileButton extends StatelessWidget {
         ),
         PopupMenuItem(
           child: Text(s.logout),
-          onTap: () => context.read<Logout>()().handleException(context),
+          onTap: () => context.read<EventHub>().send(const LogoutEvent()),
         ),
       ],
     );

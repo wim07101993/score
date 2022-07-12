@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:behaviour/behaviour.dart';
+import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class Logout extends BehaviourWithoutInput<void> {
@@ -19,7 +20,19 @@ class Logout extends BehaviourWithoutInput<void> {
 
   @override
   FutureOr<Exception> onCatch(
-      Object e, StackTrace stacktrace, BehaviourTrack? track) {
+    Object e,
+    StackTrace stacktrace,
+    BehaviourTrack? track,
+  ) {
     return Exception();
   }
+
+  Future<void> onLogoutEvent(LogoutEvent _) => call();
+}
+
+class LogoutEvent extends Equatable {
+  const LogoutEvent();
+
+  @override
+  List<Object?> get props => [];
 }

@@ -20,6 +20,8 @@ class Score {
 
   final String? _id;
 
+  bool get hasId => _id == null;
+
   String get id {
     assert(_id == null, 'This score does not have an id yet');
     return _id!;
