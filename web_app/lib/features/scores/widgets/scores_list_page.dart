@@ -43,6 +43,7 @@ class _ScoresListPageState extends State<ScoresListPage> {
 
   @override
   Widget build(BuildContext context) {
+    return TextField();
     return Consumer<UserNotifier>(builder: (context, notifier, child) {
       return PagedListView(
         pagingController: _controller,

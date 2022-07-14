@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Title;
 import 'package:provider/provider.dart';
+import 'package:score/features/scores/widgets/search_field.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
 import 'package:score/home/widgets/create_new_score_button.dart';
@@ -11,9 +12,11 @@ class LargeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LargeAppBar({
     super.key,
     required this.router,
+    required this.searchTextController,
   });
 
   final AppRouter router;
+  final TextEditingController searchTextController;
 
   @override
   Size get preferredSize => const Size(double.infinity, 100);
@@ -31,12 +34,8 @@ class LargeAppBar extends StatelessWidget implements PreferredSizeWidget {
             builder: (context, userNotifier, child) => Row(children: [
               const SizedBox(width: 32),
               const Title(),
-              const Spacer(),
-              Consumer<RolesNotifier>(
-                builder: (context, value, child) => value.hasContributorAccess
-                    ? CreateNewScoreButton(router: router)
-                    : const SizedBox(),
-              ),
+              const SizedBox(width: 32),
+              accessControlledButtons(),
               const SizedBox(width: 32),
               ProfileButton(router: router),
               const SizedBox(width: 32),
@@ -45,5 +44,25 @@ class LargeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
     );
+  }
+
+  Widget accessControlledButtons() {
+    Iterable<Widget> buildItems(RolesNotifier roles) sync* {
+      if (roles.hasReadAccess) {
+        yield Expanded(child: SearchField(controller: searchTextController));
+        yield const SizedBox(width: 32);
+      }
+      if (roles.hasContributorAccess) {
+        yield CreateNewScoreButton(router: router);
+      }
+    }
+
+    return Consumer<RolesNotifier>(builder: (context, value, child) {
+      return Expanded(
+        child: Row(
+          children: buildItems(value).toList(growable: false),
+        ),
+      );
+    });
   }
 }

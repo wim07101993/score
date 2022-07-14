@@ -14,6 +14,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final _router = AppRouter();
+  final _searchTextController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +22,9 @@ class _HomeState extends State<Home> {
       (_) => _router.push(const ScoresListRoute()),
     );
     return Scaffold(
-      appBar: LargeAppBar(router: _router),
+      appBar: LargeAppBar(
+        router: _router,
+      ),
       body: Router(
         restorationScopeId: 'router',
         routeInformationParser: _router.defaultRouteParser(
