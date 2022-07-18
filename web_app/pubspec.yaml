@@ -7,13 +7,14 @@ environment:
   sdk: ">=2.17.0 <3.0.0"
 
 dependencies:
+  algolia: ^1.1.1
   auto_route: ^4.2.1
   behaviour: ^0.0.3
   bloc: ^8.0.3
-  cloud_firestore: ^3.2.1
+  cloud_firestore: ^3.3.0
   equatable: ^2.0.3
-  firebase_auth: ^3.4.1
-  firebase_core: ^1.19.1
+  firebase_auth: ^3.4.2
+  firebase_core: ^1.19.2
   flutter:
     sdk: flutter
   flutter_bloc: ^8.0.1
@@ -23,9 +24,9 @@ dependencies:
     git:
       url: https://github.com/wim07101993/flutter_logging_extensions.git
   flutter_secure_storage: ^5.0.2
-  flutterfire_ui: ^0.4.2+2
+  flutterfire_ui: ^0.4.2+3
   font_awesome_flutter: ^10.1.0
-  freezed_annotation: ^2.0.3
+  freezed_annotation: ^2.1.0
   get_it: ^7.2.0
   google_fonts: ^3.0.1
   hawk:

@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:score/globals.dart';
-import 'package:score/shared/data/models/score.dart';
+import 'package:score/shared/models/score.dart';
 
 part 'draft_score.freezed.dart';
 

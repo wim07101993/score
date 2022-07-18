@@ -86,31 +86,31 @@ class _$CreateScoreEventCopyWithImpl<$Res>
 }
 
 /// @nodoc
-abstract class _$CreateScoreEventCopyWith<$Res>
+abstract class _$$_CreateScoreEventCopyWith<$Res>
     implements $CreateScoreEventCopyWith<$Res> {
-  factory _$CreateScoreEventCopyWith(
-          _CreateScoreEvent value, $Res Function(_CreateScoreEvent) then) =
-      __$CreateScoreEventCopyWithImpl<$Res>;
+  factory _$$_CreateScoreEventCopyWith(
+          _$_CreateScoreEvent value, $Res Function(_$_CreateScoreEvent) then) =
+      __$$_CreateScoreEventCopyWithImpl<$Res>;
   @override
   $Res call({DraftScore score});
 }
 
 /// @nodoc
-class __$CreateScoreEventCopyWithImpl<$Res>
+class __$$_CreateScoreEventCopyWithImpl<$Res>
     extends _$CreateScoreEventCopyWithImpl<$Res>
-    implements _$CreateScoreEventCopyWith<$Res> {
-  __$CreateScoreEventCopyWithImpl(
-      _CreateScoreEvent _value, $Res Function(_CreateScoreEvent) _then)
-      : super(_value, (v) => _then(v as _CreateScoreEvent));
+    implements _$$_CreateScoreEventCopyWith<$Res> {
+  __$$_CreateScoreEventCopyWithImpl(
+      _$_CreateScoreEvent _value, $Res Function(_$_CreateScoreEvent) _then)
+      : super(_value, (v) => _then(v as _$_CreateScoreEvent));
 
   @override
-  _CreateScoreEvent get _value => super._value as _CreateScoreEvent;
+  _$_CreateScoreEvent get _value => super._value as _$_CreateScoreEvent;
 
   @override
   $Res call({
     Object? score = freezed,
   }) {
-    return _then(_CreateScoreEvent(
+    return _then(_$_CreateScoreEvent(
       score == freezed
           ? _value.score
           : score // ignore: cast_nullable_to_non_nullable
@@ -136,7 +136,7 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _CreateScoreEvent &&
+            other is _$_CreateScoreEvent &&
             const DeepCollectionEquality().equals(other.score, score));
   }
 
@@ -146,8 +146,8 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
 
   @JsonKey(ignore: true)
   @override
-  _$CreateScoreEventCopyWith<_CreateScoreEvent> get copyWith =>
-      __$CreateScoreEventCopyWithImpl<_CreateScoreEvent>(this, _$identity);
+  _$$_CreateScoreEventCopyWith<_$_CreateScoreEvent> get copyWith =>
+      __$$_CreateScoreEventCopyWithImpl<_$_CreateScoreEvent>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -210,10 +210,10 @@ abstract class _CreateScoreEvent implements CreateScoreEvent {
   const factory _CreateScoreEvent(final DraftScore score) = _$_CreateScoreEvent;
 
   @override
-  DraftScore get score => throw _privateConstructorUsedError;
+  DraftScore get score;
   @override
   @JsonKey(ignore: true)
-  _$CreateScoreEventCopyWith<_CreateScoreEvent> get copyWith =>
+  _$$_CreateScoreEventCopyWith<_$_CreateScoreEvent> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -260,32 +260,32 @@ class _$CreateScoreStateCopyWithImpl<$Res>
 }
 
 /// @nodoc
-abstract class _$CreateScoreStateCopyWith<$Res>
+abstract class _$$_CreateScoreStateCopyWith<$Res>
     implements $CreateScoreStateCopyWith<$Res> {
-  factory _$CreateScoreStateCopyWith(
-          _CreateScoreState value, $Res Function(_CreateScoreState) then) =
-      __$CreateScoreStateCopyWithImpl<$Res>;
+  factory _$$_CreateScoreStateCopyWith(
+          _$_CreateScoreState value, $Res Function(_$_CreateScoreState) then) =
+      __$$_CreateScoreStateCopyWithImpl<$Res>;
   @override
   $Res call({Object? error, bool created});
 }
 
 /// @nodoc
-class __$CreateScoreStateCopyWithImpl<$Res>
+class __$$_CreateScoreStateCopyWithImpl<$Res>
     extends _$CreateScoreStateCopyWithImpl<$Res>
-    implements _$CreateScoreStateCopyWith<$Res> {
-  __$CreateScoreStateCopyWithImpl(
-      _CreateScoreState _value, $Res Function(_CreateScoreState) _then)
-      : super(_value, (v) => _then(v as _CreateScoreState));
+    implements _$$_CreateScoreStateCopyWith<$Res> {
+  __$$_CreateScoreStateCopyWithImpl(
+      _$_CreateScoreState _value, $Res Function(_$_CreateScoreState) _then)
+      : super(_value, (v) => _then(v as _$_CreateScoreState));
 
   @override
-  _CreateScoreState get _value => super._value as _CreateScoreState;
+  _$_CreateScoreState get _value => super._value as _$_CreateScoreState;
 
   @override
   $Res call({
     Object? error = freezed,
     Object? created = freezed,
   }) {
-    return _then(_CreateScoreState(
+    return _then(_$_CreateScoreState(
       error: error == freezed ? _value.error : error,
       created: created == freezed
           ? _value.created
@@ -315,7 +315,7 @@ class _$_CreateScoreState implements _CreateScoreState {
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _CreateScoreState &&
+            other is _$_CreateScoreState &&
             const DeepCollectionEquality().equals(other.error, error) &&
             const DeepCollectionEquality().equals(other.created, created));
   }
@@ -328,8 +328,8 @@ class _$_CreateScoreState implements _CreateScoreState {
 
   @JsonKey(ignore: true)
   @override
-  _$CreateScoreStateCopyWith<_CreateScoreState> get copyWith =>
-      __$CreateScoreStateCopyWithImpl<_CreateScoreState>(this, _$identity);
+  _$$_CreateScoreStateCopyWith<_$_CreateScoreState> get copyWith =>
+      __$$_CreateScoreStateCopyWithImpl<_$_CreateScoreState>(this, _$identity);
 }
 
 abstract class _CreateScoreState implements CreateScoreState {
@@ -337,11 +337,11 @@ abstract class _CreateScoreState implements CreateScoreState {
       _$_CreateScoreState;
 
   @override
-  Object? get error => throw _privateConstructorUsedError;
+  Object? get error;
   @override
-  bool get created => throw _privateConstructorUsedError;
+  bool get created;
   @override
   @JsonKey(ignore: true)
-  _$CreateScoreStateCopyWith<_CreateScoreState> get copyWith =>
+  _$$_CreateScoreStateCopyWith<_$_CreateScoreState> get copyWith =>
       throw _privateConstructorUsedError;
 }

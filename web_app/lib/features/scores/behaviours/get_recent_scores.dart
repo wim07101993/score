@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_model_field_names.dart';
 import 'package:score/shared/data/firebase/firestore/query_extensions.dart';
-import 'package:score/shared/data/models/score.dart';
+import 'package:score/shared/models/score.dart';
 
 class GetRecentScores extends BehaviourWithoutInput<List<Score>> {
   GetRecentScores({

@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_model_field_names.dart';
 import 'package:score/shared/data/firebase/firestore/query_extensions.dart';
-import 'package:score/shared/data/models/score.dart';
-import 'package:score/shared/data/models/score_access_history_item.dart';
+import 'package:score/shared/models/score.dart';
+import 'package:score/shared/models/score_access_history_item.dart';
 
 extension FirestoreExtensions on FirebaseFirestore {
   CollectionReference<Score> get scoresCollection {

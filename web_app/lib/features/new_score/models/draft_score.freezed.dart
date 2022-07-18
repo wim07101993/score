@@ -105,22 +105,22 @@ class _$DraftScoreErrorCopyWithImpl<$Res>
 }
 
 /// @nodoc
-abstract class _$TitleIsRequiredCopyWith<$Res> {
-  factory _$TitleIsRequiredCopyWith(
-          _TitleIsRequired value, $Res Function(_TitleIsRequired) then) =
-      __$TitleIsRequiredCopyWithImpl<$Res>;
+abstract class _$$_TitleIsRequiredCopyWith<$Res> {
+  factory _$$_TitleIsRequiredCopyWith(
+          _$_TitleIsRequired value, $Res Function(_$_TitleIsRequired) then) =
+      __$$_TitleIsRequiredCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$TitleIsRequiredCopyWithImpl<$Res>
+class __$$_TitleIsRequiredCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$TitleIsRequiredCopyWith<$Res> {
-  __$TitleIsRequiredCopyWithImpl(
-      _TitleIsRequired _value, $Res Function(_TitleIsRequired) _then)
-      : super(_value, (v) => _then(v as _TitleIsRequired));
+    implements _$$_TitleIsRequiredCopyWith<$Res> {
+  __$$_TitleIsRequiredCopyWithImpl(
+      _$_TitleIsRequired _value, $Res Function(_$_TitleIsRequired) _then)
+      : super(_value, (v) => _then(v as _$_TitleIsRequired));
 
   @override
-  _TitleIsRequired get _value => super._value as _TitleIsRequired;
+  _$_TitleIsRequired get _value => super._value as _$_TitleIsRequired;
 }
 
 /// @nodoc
@@ -136,7 +136,7 @@ class _$_TitleIsRequired extends _TitleIsRequired {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _TitleIsRequired);
+        (other.runtimeType == runtimeType && other is _$_TitleIsRequired);
   }
 
   @override
@@ -242,22 +242,22 @@ abstract class _TitleIsRequired extends DraftScoreError {
 }
 
 /// @nodoc
-abstract class _$TitleTooLongCopyWith<$Res> {
-  factory _$TitleTooLongCopyWith(
-          _TitleTooLong value, $Res Function(_TitleTooLong) then) =
-      __$TitleTooLongCopyWithImpl<$Res>;
+abstract class _$$_TitleTooLongCopyWith<$Res> {
+  factory _$$_TitleTooLongCopyWith(
+          _$_TitleTooLong value, $Res Function(_$_TitleTooLong) then) =
+      __$$_TitleTooLongCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$TitleTooLongCopyWithImpl<$Res>
+class __$$_TitleTooLongCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$TitleTooLongCopyWith<$Res> {
-  __$TitleTooLongCopyWithImpl(
-      _TitleTooLong _value, $Res Function(_TitleTooLong) _then)
-      : super(_value, (v) => _then(v as _TitleTooLong));
+    implements _$$_TitleTooLongCopyWith<$Res> {
+  __$$_TitleTooLongCopyWithImpl(
+      _$_TitleTooLong _value, $Res Function(_$_TitleTooLong) _then)
+      : super(_value, (v) => _then(v as _$_TitleTooLong));
 
   @override
-  _TitleTooLong get _value => super._value as _TitleTooLong;
+  _$_TitleTooLong get _value => super._value as _$_TitleTooLong;
 }
 
 /// @nodoc
@@ -273,7 +273,7 @@ class _$_TitleTooLong extends _TitleTooLong {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _TitleTooLong);
+        (other.runtimeType == runtimeType && other is _$_TitleTooLong);
   }
 
   @override
@@ -379,22 +379,22 @@ abstract class _TitleTooLong extends DraftScoreError {
 }
 
 /// @nodoc
-abstract class _$SubtitleTooLongCopyWith<$Res> {
-  factory _$SubtitleTooLongCopyWith(
-          _SubtitleTooLong value, $Res Function(_SubtitleTooLong) then) =
-      __$SubtitleTooLongCopyWithImpl<$Res>;
+abstract class _$$_SubtitleTooLongCopyWith<$Res> {
+  factory _$$_SubtitleTooLongCopyWith(
+          _$_SubtitleTooLong value, $Res Function(_$_SubtitleTooLong) then) =
+      __$$_SubtitleTooLongCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$SubtitleTooLongCopyWithImpl<$Res>
+class __$$_SubtitleTooLongCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$SubtitleTooLongCopyWith<$Res> {
-  __$SubtitleTooLongCopyWithImpl(
-      _SubtitleTooLong _value, $Res Function(_SubtitleTooLong) _then)
-      : super(_value, (v) => _then(v as _SubtitleTooLong));
+    implements _$$_SubtitleTooLongCopyWith<$Res> {
+  __$$_SubtitleTooLongCopyWithImpl(
+      _$_SubtitleTooLong _value, $Res Function(_$_SubtitleTooLong) _then)
+      : super(_value, (v) => _then(v as _$_SubtitleTooLong));
 
   @override
-  _SubtitleTooLong get _value => super._value as _SubtitleTooLong;
+  _$_SubtitleTooLong get _value => super._value as _$_SubtitleTooLong;
 }
 
 /// @nodoc
@@ -410,7 +410,7 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _SubtitleTooLong);
+        (other.runtimeType == runtimeType && other is _$_SubtitleTooLong);
   }
 
   @override
@@ -516,22 +516,22 @@ abstract class _SubtitleTooLong extends DraftScoreError {
 }
 
 /// @nodoc
-abstract class _$DedicationTooLongCopyWith<$Res> {
-  factory _$DedicationTooLongCopyWith(
-          _DedicationTooLong value, $Res Function(_DedicationTooLong) then) =
-      __$DedicationTooLongCopyWithImpl<$Res>;
+abstract class _$$_DedicationTooLongCopyWith<$Res> {
+  factory _$$_DedicationTooLongCopyWith(_$_DedicationTooLong value,
+          $Res Function(_$_DedicationTooLong) then) =
+      __$$_DedicationTooLongCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$DedicationTooLongCopyWithImpl<$Res>
+class __$$_DedicationTooLongCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$DedicationTooLongCopyWith<$Res> {
-  __$DedicationTooLongCopyWithImpl(
-      _DedicationTooLong _value, $Res Function(_DedicationTooLong) _then)
-      : super(_value, (v) => _then(v as _DedicationTooLong));
+    implements _$$_DedicationTooLongCopyWith<$Res> {
+  __$$_DedicationTooLongCopyWithImpl(
+      _$_DedicationTooLong _value, $Res Function(_$_DedicationTooLong) _then)
+      : super(_value, (v) => _then(v as _$_DedicationTooLong));
 
   @override
-  _DedicationTooLong get _value => super._value as _DedicationTooLong;
+  _$_DedicationTooLong get _value => super._value as _$_DedicationTooLong;
 }
 
 /// @nodoc
@@ -547,7 +547,7 @@ class _$_DedicationTooLong extends _DedicationTooLong {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _DedicationTooLong);
+        (other.runtimeType == runtimeType && other is _$_DedicationTooLong);
   }
 
   @override
@@ -653,22 +653,22 @@ abstract class _DedicationTooLong extends DraftScoreError {
 }
 
 /// @nodoc
-abstract class _$TooManyComposersCopyWith<$Res> {
-  factory _$TooManyComposersCopyWith(
-          _TooManyComposers value, $Res Function(_TooManyComposers) then) =
-      __$TooManyComposersCopyWithImpl<$Res>;
+abstract class _$$_TooManyComposersCopyWith<$Res> {
+  factory _$$_TooManyComposersCopyWith(
+          _$_TooManyComposers value, $Res Function(_$_TooManyComposers) then) =
+      __$$_TooManyComposersCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$TooManyComposersCopyWithImpl<$Res>
+class __$$_TooManyComposersCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$TooManyComposersCopyWith<$Res> {
-  __$TooManyComposersCopyWithImpl(
-      _TooManyComposers _value, $Res Function(_TooManyComposers) _then)
-      : super(_value, (v) => _then(v as _TooManyComposers));
+    implements _$$_TooManyComposersCopyWith<$Res> {
+  __$$_TooManyComposersCopyWithImpl(
+      _$_TooManyComposers _value, $Res Function(_$_TooManyComposers) _then)
+      : super(_value, (v) => _then(v as _$_TooManyComposers));
 
   @override
-  _TooManyComposers get _value => super._value as _TooManyComposers;
+  _$_TooManyComposers get _value => super._value as _$_TooManyComposers;
 }
 
 /// @nodoc
@@ -684,7 +684,7 @@ class _$_TooManyComposers extends _TooManyComposers {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _TooManyComposers);
+        (other.runtimeType == runtimeType && other is _$_TooManyComposers);
   }
 
   @override
@@ -790,22 +790,23 @@ abstract class _TooManyComposers extends DraftScoreError {
 }
 
 /// @nodoc
-abstract class _$ComposerMustHaveANameCopyWith<$Res> {
-  factory _$ComposerMustHaveANameCopyWith(_ComposerMustHaveAName value,
-          $Res Function(_ComposerMustHaveAName) then) =
-      __$ComposerMustHaveANameCopyWithImpl<$Res>;
+abstract class _$$_ComposerMustHaveANameCopyWith<$Res> {
+  factory _$$_ComposerMustHaveANameCopyWith(_$_ComposerMustHaveAName value,
+          $Res Function(_$_ComposerMustHaveAName) then) =
+      __$$_ComposerMustHaveANameCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$ComposerMustHaveANameCopyWithImpl<$Res>
+class __$$_ComposerMustHaveANameCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$ComposerMustHaveANameCopyWith<$Res> {
-  __$ComposerMustHaveANameCopyWithImpl(_ComposerMustHaveAName _value,
-      $Res Function(_ComposerMustHaveAName) _then)
-      : super(_value, (v) => _then(v as _ComposerMustHaveAName));
+    implements _$$_ComposerMustHaveANameCopyWith<$Res> {
+  __$$_ComposerMustHaveANameCopyWithImpl(_$_ComposerMustHaveAName _value,
+      $Res Function(_$_ComposerMustHaveAName) _then)
+      : super(_value, (v) => _then(v as _$_ComposerMustHaveAName));
 
   @override
-  _ComposerMustHaveAName get _value => super._value as _ComposerMustHaveAName;
+  _$_ComposerMustHaveAName get _value =>
+      super._value as _$_ComposerMustHaveAName;
 }
 
 /// @nodoc
@@ -821,7 +822,7 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _ComposerMustHaveAName);
+        (other.runtimeType == runtimeType && other is _$_ComposerMustHaveAName);
   }
 
   @override
@@ -927,22 +928,22 @@ abstract class _ComposerMustHaveAName extends DraftScoreError {
 }
 
 /// @nodoc
-abstract class _$ComposerNameTooLongCopyWith<$Res> {
-  factory _$ComposerNameTooLongCopyWith(_ComposerNameTooLong value,
-          $Res Function(_ComposerNameTooLong) then) =
-      __$ComposerNameTooLongCopyWithImpl<$Res>;
+abstract class _$$_ComposerNameTooLongCopyWith<$Res> {
+  factory _$$_ComposerNameTooLongCopyWith(_$_ComposerNameTooLong value,
+          $Res Function(_$_ComposerNameTooLong) then) =
+      __$$_ComposerNameTooLongCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$ComposerNameTooLongCopyWithImpl<$Res>
+class __$$_ComposerNameTooLongCopyWithImpl<$Res>
     extends _$DraftScoreErrorCopyWithImpl<$Res>
-    implements _$ComposerNameTooLongCopyWith<$Res> {
-  __$ComposerNameTooLongCopyWithImpl(
-      _ComposerNameTooLong _value, $Res Function(_ComposerNameTooLong) _then)
-      : super(_value, (v) => _then(v as _ComposerNameTooLong));
+    implements _$$_ComposerNameTooLongCopyWith<$Res> {
+  __$$_ComposerNameTooLongCopyWithImpl(_$_ComposerNameTooLong _value,
+      $Res Function(_$_ComposerNameTooLong) _then)
+      : super(_value, (v) => _then(v as _$_ComposerNameTooLong));
 
   @override
-  _ComposerNameTooLong get _value => super._value as _ComposerNameTooLong;
+  _$_ComposerNameTooLong get _value => super._value as _$_ComposerNameTooLong;
 }
 
 /// @nodoc
@@ -958,7 +959,7 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _ComposerNameTooLong);
+        (other.runtimeType == runtimeType && other is _$_ComposerNameTooLong);
   }
 
   @override

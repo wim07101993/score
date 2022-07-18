@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
 import 'package:score/shared/data/firebase/firestore/query_extensions.dart';
-import 'package:score/shared/data/models/score.dart';
+import 'package:score/shared/models/score.dart';
 
 class ScoresListPage extends StatefulWidget {
   const ScoresListPage({
