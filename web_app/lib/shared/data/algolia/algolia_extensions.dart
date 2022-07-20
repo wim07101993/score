@@ -1,5 +1,6 @@
 import 'package:algolia/algolia.dart';
 import 'package:score/shared/data/algolia/algolia_model_field_names.dart';
+import 'package:score/shared/data/map_helpers.dart';
 import 'package:score/shared/models/pagination_page.dart';
 import 'package:score/shared/models/score.dart';
 
@@ -32,9 +33,9 @@ extension AlgoliaExtensions on Algolia {
     final title = data[ScoreFields.title] as String?;
     final subtitle = data[ScoreFields.subtitle] as String?;
     final dedication = data[ScoreFields.dedication] as String?;
-    final composers = data[ScoreFields.composers] as List<String>?;
-    final createdAt = data[ScoreFields.createdAt] as DateTime?;
-    final modifiedAt = data[ScoreFields.modifiedAt] as DateTime?;
+    final composers = data.getList<String>(ScoreFields.composers);
+    final createdAt = data.getDateTime(ScoreFields.createdAt);
+    final modifiedAt = data.getDateTime(ScoreFields.modifiedAt);
     if (id == null ||
         title == null ||
         composers == null ||

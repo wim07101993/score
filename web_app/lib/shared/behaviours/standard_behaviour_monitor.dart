@@ -2,9 +2,9 @@ import 'package:behaviour/behaviour.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
 import 'package:get_it/get_it.dart';
 
-class BehaviourMonitorImpl<T extends BehaviourTrack>
+class GetItBehaviourMonitor<T extends BehaviourTrack>
     implements BehaviourMonitor {
-  const BehaviourMonitorImpl({
+  const GetItBehaviourMonitor({
     required this.getIt,
   });
 

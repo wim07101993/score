@@ -23,7 +23,7 @@ class _HomeState extends State<Home> {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _router.push(const ScoresListRoute()),
     );
-    return Provider(
+    return ChangeNotifierProvider(
       create: (_) => context.read<GetIt>().call<SearchStringNotifier>(),
       child: Scaffold(
         appBar: LargeAppBar(router: _router),

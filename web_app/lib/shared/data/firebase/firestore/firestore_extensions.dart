@@ -17,6 +17,7 @@ extension FirestoreExtensions on FirebaseFirestore {
         composers: doc.getListOfString(ScoreFields.composers),
       ),
       toFirestore: (score, options) => {
+        ScoreFields.title: score.title,
         if (score.subtitle != null) ScoreFields.subtitle: score.subtitle,
         if (score.dedication != null) ScoreFields.dedication: score.dedication,
         ScoreFields.createdAt: score.createdAt,

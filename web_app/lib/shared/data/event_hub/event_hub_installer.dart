@@ -14,8 +14,8 @@ class EventHubInstaller implements Installer {
     getIt.registerLazySingleton(() => EventHub.instance);
     getIt.registerLazySingleton(() => getIt<EventHub>().handlers);
     getIt.registerFactory<BehaviourMonitor>(
-        () => BehaviourMonitorImpl<StandardBehaviourTrack>(getIt: getIt));
-    getIt.registerFactoryParam((BehaviourMixin behaviour, p2) {
+        () => GetItBehaviourMonitor<StandardBehaviourTrack>(getIt: getIt));
+    getIt.registerFactoryParam((BehaviourMixin behaviour, _) {
       return StandardBehaviourTrack(
         behaviour: behaviour,
         logger: getIt.logger(behaviour.runtimeType.toString()),

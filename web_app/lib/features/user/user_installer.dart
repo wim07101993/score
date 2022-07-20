@@ -4,6 +4,7 @@ import 'package:score/features/user/behaviours/logout.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
 import 'package:score/features/user/change_notifiers/user_notifier.dart';
+import 'package:score/shared/behaviours/standard_behaviour_monitor.dart';
 
 class UserInstaller implements Installer {
   const UserInstaller();
@@ -25,5 +26,8 @@ class UserInstaller implements Installer {
         logger: getIt.logger<UserNotifier>()));
     getIt.registerFactory(() => IsSignedInNotifier(userNotifier: getIt()));
     getIt.registerFactory(() => RolesNotifier(userNotifier: getIt()));
+
+    getIt.registerFactory(() => Logout(
+        auth: getIt(), monitor: getIt.monitor<StandardBehaviourTrack>()));
   }
 }

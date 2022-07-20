@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
+import 'package:score/features/scores/behaviours/search_scores.dart';
 import 'package:score/features/user/behaviours/logout.dart';
 import 'package:score/features/user/change_notifiers/is_signed_in_notifier.dart';
 import 'package:score/features/user/change_notifiers/roles_notifier.dart';
@@ -31,6 +32,7 @@ class AppProvider extends StatelessWidget {
         Provider.value(value: getIt<ProviderConfigurations>()),
         Provider.value(value: getIt<FirebaseAuth>()),
         Provider.value(value: getIt<FirebaseFirestore>()),
+        Provider.value(value: getIt<SearchScores>()),
         Provider(create: (_) => getIt<Logout>()),
         ChangeNotifierProvider.value(value: getIt<UserNotifier>()),
         ChangeNotifierProvider(create: (_) => getIt<IsSignedInNotifier>()),
