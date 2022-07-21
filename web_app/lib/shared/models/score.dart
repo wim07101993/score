@@ -1,3 +1,5 @@
+import 'package:score/shared/models/arrangement.dart';
+
 class Score {
   const Score({
     required String id,
@@ -7,6 +9,8 @@ class Score {
     required this.composers,
     required this.createdAt,
     required this.modifiedAt,
+    required this.arrangements,
+    required this.tags,
   }) : _id = id;
 
   const Score.withoutId({
@@ -16,6 +20,8 @@ class Score {
     required this.composers,
     required this.createdAt,
     required this.modifiedAt,
+    required this.arrangements,
+    required this.tags,
   }) : _id = null;
 
   final String? _id;
@@ -35,4 +41,6 @@ class Score {
   final DateTime modifiedAt;
 
   final List<String> composers;
+  final List<Arrangement> arrangements;
+  final List<String> tags;
 }

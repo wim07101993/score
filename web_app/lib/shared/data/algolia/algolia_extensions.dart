@@ -33,9 +33,9 @@ extension AlgoliaExtensions on Algolia {
     final title = data[ScoreFields.title] as String?;
     final subtitle = data[ScoreFields.subtitle] as String?;
     final dedication = data[ScoreFields.dedication] as String?;
-    final composers = data.getList<String>(ScoreFields.composers);
-    final createdAt = data.getDateTime(ScoreFields.createdAt);
-    final modifiedAt = data.getDateTime(ScoreFields.modifiedAt);
+    final composers = data.maybeGetList<String>(ScoreFields.composers);
+    final createdAt = data.maybeGetDateTime(ScoreFields.createdAt);
+    final modifiedAt = data.maybeGetDateTime(ScoreFields.modifiedAt);
     if (id == null ||
         title == null ||
         composers == null ||

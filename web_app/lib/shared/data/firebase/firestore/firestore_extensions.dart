@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_model_field_names.dart';
 import 'package:score/shared/data/firebase/firestore/query_extensions.dart';
+import 'package:score/shared/data/map_helpers.dart';
+import 'package:score/shared/models/arrangement.dart';
+import 'package:score/shared/models/arrangement_part.dart';
 import 'package:score/shared/models/score.dart';
 import 'package:score/shared/models/score_access_history_item.dart';
 
@@ -8,14 +11,18 @@ extension FirestoreExtensions on FirebaseFirestore {
   CollectionReference<Score> get scoresCollection {
     return collection('scores').withConverter<Score>(
       fromFirestore: (doc, options) => Score(
-        id: doc.id,
-        title: doc.getString(ScoreFields.title),
-        subtitle: doc.getNullableString(ScoreFields.subtitle),
-        dedication: doc.getNullableString(ScoreFields.dedication),
-        createdAt: doc.getDateTime(ScoreFields.createdAt),
-        modifiedAt: doc.getDateTime(ScoreFields.modifiedAt),
-        composers: doc.getListOfString(ScoreFields.composers),
-      ),
+          id: doc.id,
+          title: doc.getString(ScoreFields.title),
+          subtitle: doc.getNullableString(ScoreFields.subtitle),
+          dedication: doc.getNullableString(ScoreFields.dedication),
+          createdAt: doc.getDateTime(ScoreFields.createdAt),
+          modifiedAt: doc.getDateTime(ScoreFields.modifiedAt),
+          composers: doc.getListOfString(ScoreFields.composers),
+          arrangements: doc
+              .getListOfJson(ScoreFields.arrangements)
+              .map((json) => json.toArrangement())
+              .toList(growable: false),
+          tags: doc.getListOfString(ScoreFields.tags)),
       toFirestore: (score, options) => {
         ScoreFields.title: score.title,
         if (score.subtitle != null) ScoreFields.subtitle: score.subtitle,
@@ -74,5 +81,26 @@ extension _DocumentSnapshotExtensions
 
   List<String> getListOfString(Object field) {
     return (get(field) as List).cast<String>();
+  }
+
+  List<Map<String, dynamic>> getListOfJson(Object field) {
+    return (get(field) as List).cast<Map<String, dynamic>>();
+  }
+}
+
+extension _JsonExtensions on Map<String, dynamic> {
+  Arrangement toArrangement() {
+    return Arrangement(
+      name: get(ArrangementFields.name),
+      arrangers: getList(ArrangementFields.arrangers),
+      parts: getList<Map<String, dynamic>>(ArrangementFields.parts)
+          .map((json) => json.toArrangementPart())
+          .toList(growable: false),
+    );
+  }
+
+  ArrangementPart toArrangementPart() {
+    final targetInstrument =
+        get<String>(ArrangementPartFields.targetInstrument);
   }
 }
