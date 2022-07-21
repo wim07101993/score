@@ -47,7 +47,7 @@ class LargeAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget accessControlledButtons() {
     Iterable<Widget> buildItems(RolesNotifier roles) sync* {
       if (roles.hasReadAccess) {
-        yield Expanded(child: SearchField());
+        yield const Expanded(child: SearchField());
         yield const SizedBox(width: 32);
       }
       if (roles.hasContributorAccess) {

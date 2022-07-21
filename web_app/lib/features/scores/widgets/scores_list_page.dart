@@ -19,8 +19,6 @@ class ScoresListPage extends StatefulWidget {
 }
 
 class _ScoresListPageState extends State<ScoresListPage> {
-  static const int _pageSize = 25;
-
   late final SearchScores _searchScores;
   late final SearchStringNotifier _searchString;
   final _pagingController = PagingController<int, Score>(firstPageKey: 0);
@@ -31,12 +29,7 @@ class _ScoresListPageState extends State<ScoresListPage> {
     _searchScores = context.read();
     _searchString = context.read();
     _searchString.addListener(_onSearchStringChanged);
-    _pagingController.addPageRequestListener((pageIndex) {
-      _searchScores(SearchScoresParams(
-        searchString: _searchString.text,
-        pageIndex: pageIndex,
-      )).thenWhen(_onSearchError, _onSearchResult);
-    });
+    _pagingController.addPageRequestListener(_fetchPage);
     if (mounted) {
       setState(() {});
     }
@@ -46,6 +39,7 @@ class _ScoresListPageState extends State<ScoresListPage> {
   void dispose() {
     super.dispose();
     _searchString.removeListener(_onSearchStringChanged);
+    _pagingController.removePageRequestListener(_fetchPage);
   }
 
   @override
@@ -63,6 +57,17 @@ class _ScoresListPageState extends State<ScoresListPage> {
   }
 
   void _onSearchStringChanged() => _pagingController.refresh();
+
+  void _fetchPage(int pageIndex) {
+    if (_searchString.text.isEmpty) {
+      _pagingController.appendLastPage(const []);
+      return;
+    }
+    _searchScores(SearchScoresParams(
+      searchString: _searchString.text,
+      pageIndex: pageIndex,
+    )).thenWhen(_onSearchError, _onSearchResult);
+  }
 
   void _onSearchError(Exception e) {}
 

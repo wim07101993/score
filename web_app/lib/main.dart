@@ -13,8 +13,8 @@ late Logger rootLogger;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   EquatableConfig.stringify = true;
-  final getIt = GetIt.asNewInstance()..registerScore();
-  await getIt.initializeScore();
+  final getIt = GetIt.asNewInstance()..registerApp();
+  await getIt.initializeApp();
   rootLogger = getIt<Logger>(param1: 'root');
   rootLogger.i('initialized dependency injection');
   runZonedGuarded(

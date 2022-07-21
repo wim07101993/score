@@ -16,7 +16,7 @@ class SaveNewScore extends Behaviour<DraftScore, void> {
 
   @override
   Future<void> action(DraftScore input, BehaviourTrack? track) async {
-    final id = await firestore.addScore(input.toScore());
+    await firestore.addScore(input.toScore());
   }
 
   @override

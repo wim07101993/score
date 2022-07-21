@@ -32,7 +32,7 @@ final _installers = [
 ];
 
 extension AppGetItExtensions on GetIt {
-  void registerScore() {
+  void registerApp() {
     registerLazySingletonAsync(() => PackageInfo.fromPlatform());
     registerLazySingleton(() => const GuidGenerator());
     for (final installer in _installers) {
@@ -40,7 +40,7 @@ extension AppGetItExtensions on GetIt {
     }
   }
 
-  Future<void> initializeScore() async {
+  Future<void> initializeApp() async {
     for (final installer in _installers) {
       await installer.initialize(this);
     }
