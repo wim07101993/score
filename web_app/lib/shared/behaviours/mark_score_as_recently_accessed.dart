@@ -4,7 +4,7 @@ import 'package:behaviour/behaviour.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
-import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
+import 'package:score/shared/data/firebase/firestore/score_access_history_item_collection.dart';
 import 'package:score/shared/models/score_access_history_item.dart';
 
 class MarkScoreAssRecentlyAccessed extends Behaviour<String, void> {

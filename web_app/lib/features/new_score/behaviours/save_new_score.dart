@@ -4,7 +4,7 @@ import 'package:behaviour/behaviour.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/shared/data/firebase/exceptions/permission_denied_exception.dart';
-import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
+import 'package:score/shared/data/firebase/firestore/scores_collection.dart';
 
 class SaveNewScore extends Behaviour<DraftScore, void> {
   SaveNewScore({

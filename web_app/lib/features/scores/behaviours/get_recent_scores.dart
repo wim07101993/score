@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:behaviour/behaviour.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
-import 'package:score/shared/data/firebase/firestore/firestore_model_field_names.dart';
 import 'package:score/shared/data/firebase/firestore/query_extensions.dart';
+import 'package:score/shared/data/firebase/firestore/score_access_history_item_collection.dart';
+import 'package:score/shared/data/firebase/firestore/scores_collection.dart';
 import 'package:score/shared/models/score.dart';
 
 class GetRecentScores extends BehaviourWithoutInput<List<Score>> {

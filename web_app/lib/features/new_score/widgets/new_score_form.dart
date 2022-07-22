@@ -7,6 +7,7 @@ import 'package:score/features/new_score/widgets/dedication_field.dart';
 import 'package:score/features/new_score/widgets/save_button.dart';
 import 'package:score/features/new_score/widgets/score_title_field.dart';
 import 'package:score/features/new_score/widgets/subtitle_field.dart';
+import 'package:score/features/new_score/widgets/tags_field.dart';
 
 class NewScoreForm extends StatefulWidget {
   const NewScoreForm({super.key});
@@ -21,6 +22,7 @@ class _NewScoreFormState extends State<NewScoreForm> {
   final TextEditingController _subtitle = TextEditingController();
   final TextEditingController _dedication = TextEditingController();
   final List<TextEditingController> _composers = List.empty(growable: true);
+  final List<TextEditingController> _tags = List.empty(growable: true);
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class _NewScoreFormState extends State<NewScoreForm> {
           DedicationField(value: _dedication),
           const SizedBox(height: 8),
           _composersField(),
+          _tagsField(),
           Align(
             alignment: Alignment.topRight,
             child: Padding(
@@ -51,12 +54,16 @@ class _NewScoreFormState extends State<NewScoreForm> {
   Widget _composersField() {
     return ComposersField(
       values: _composers,
-      addComposer: () {
-        setState(() => _composers.add(TextEditingController()));
-      },
-      removeComposer: (index) {
-        setState(() => _composers.removeAt(index));
-      },
+      addComposer: () => setState(() => _tags.add(TextEditingController())),
+      removeComposer: (index) => setState(() => _tags.removeAt(index)),
+    );
+  }
+
+  Widget _tagsField() {
+    return TagsField(
+      values: _composers,
+      addTag: () => setState(() => _composers.add(TextEditingController())),
+      removeTag: (index) => setState(() => _composers.removeAt(index)),
     );
   }
 

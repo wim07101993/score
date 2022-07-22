@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:score/features/new_score/models/draft_arrangement.dart';
 import 'package:score/globals.dart';
 import 'package:score/shared/models/score.dart';
 
@@ -10,12 +11,16 @@ class DraftScore {
     required this.subtitle,
     required this.dedication,
     required this.composers,
+    required this.tags,
+    required this.arrangements,
   }) {
     final errors = [
       ...validateTitle(title),
       ...validateSubtitle(subtitle),
       ...validateDedication(dedication),
       ...validateComposers(composers),
+      ...validateTags(tags),
+      ...validateArrangements(arrangements),
     ];
     if (errors.isNotEmpty) {
       throw Exception("Data for draft score is not valid: $errors");
@@ -27,12 +32,17 @@ class DraftScore {
   static const int maxDedicationLength = 200;
   static const int maxNumberOfComposers = 10;
   static const int maxComposerLength = 100;
+  static const int maxNumberOfTags = 200;
+  static const int maxTagLength = 100;
+  static const int maxNumberOfArrangements = 100;
 
   final String title;
   final String? subtitle;
   final String? dedication;
-  final List<String> composers;
   final DateTime createdAt = DateTime.now().toUtc();
+  final List<String> composers;
+  final List<String> tags;
+  final List<DraftArrangement> arrangements;
 
   Score toScore() {
     return Score.withoutId(
@@ -42,6 +52,10 @@ class DraftScore {
       composers: composers,
       createdAt: createdAt,
       modifiedAt: createdAt,
+      tags: tags,
+      arrangements: arrangements
+          .map((draft) => draft.toArrangement())
+          .toList(growable: false),
     );
   }
 
@@ -68,7 +82,7 @@ class DraftScore {
   }
 
   static Iterable<DraftScoreError> validateComposers(
-    List<String?> composers,
+    List<String> composers,
   ) sync* {
     if (composers.length > maxNumberOfComposers) {
       yield const DraftScoreError.tooManyComposers();
@@ -82,9 +96,38 @@ class DraftScore {
     String? composer,
   ) sync* {
     if (composer == null || composer.isEmpty) {
-      yield const DraftScoreError.composerMutHaveAName();
+      yield const DraftScoreError.composerMustHaveAName();
     } else if (composer.length > maxComposerLength) {
       yield const DraftScoreError.composerNameTooLong();
+    }
+  }
+
+  static Iterable<DraftScoreError> validateTags(
+    List<String?> tags,
+  ) sync* {
+    if (tags.length > maxNumberOfTags) {
+      yield const DraftScoreError.tooManyTags();
+    }
+    for (final tag in tags) {
+      yield* validateTag(tag);
+    }
+  }
+
+  static Iterable<DraftScoreError> validateTag(
+    String? tag,
+  ) sync* {
+    if (tag == null || tag.isEmpty) {
+      yield const DraftScoreError.tagMustHaveAValue();
+    } else if (tag.length > maxTagLength) {
+      yield const DraftScoreError.tagTooLong();
+    }
+  }
+
+  static Iterable<DraftScoreError> validateArrangements(
+    List<DraftArrangement> arrangements,
+  ) sync* {
+    if (arrangements.length > maxNumberOfTags) {
+      yield const DraftScoreError.tooManyArrangements();
     }
   }
 }
@@ -97,26 +140,33 @@ class DraftScoreError with _$DraftScoreError {
   const factory DraftScoreError.subtitleTooLong() = _SubtitleTooLong;
   const factory DraftScoreError.dedicationTooLong() = _DedicationTooLong;
   const factory DraftScoreError.tooManyComposers() = _TooManyComposers;
-  const factory DraftScoreError.composerMutHaveAName() = _ComposerMustHaveAName;
+  const factory DraftScoreError.composerMustHaveAName() =
+      _ComposerMustHaveAName;
   const factory DraftScoreError.composerNameTooLong() = _ComposerNameTooLong;
+  const factory DraftScoreError.tooManyTags() = _TooManyTags;
+  const factory DraftScoreError.tagMustHaveAValue() = _TagMustHaveAValue;
+  const factory DraftScoreError.tagTooLong() = _TagTooLong;
+  const factory DraftScoreError.tooManyArrangements() = _TooManyArrangements;
 
   String getMessage(S s) {
-    return when(
-      titleIsRequired: () => s.titleIsRequiredErrorMessage,
-      titleTooLong: () => s.titleTooLongErrorMessage(DraftScore.maxTitleLength),
-      subtitleTooLong: () {
-        return s.subtitleTooLongErrorMessage(DraftScore.maxSubtitleLength);
-      },
-      dedicationTooLong: () {
-        return s.dedicationTooLongErrorMessage(DraftScore.maxDedicationLength);
-      },
-      tooManyComposers: () {
-        return s.tooManyComposersErrorMessage(DraftScore.maxNumberOfComposers);
-      },
-      composerMutHaveAName: () => s.composerMustHaveANameErrorMessage,
-      composerNameTooLong: () {
-        return s.composerNameTooLongErrorMessage(DraftScore.maxComposerLength);
-      },
-    );
+    return 'Validation error';
+    // TODO
+    // return when(
+    //   titleIsRequired: () => s.titleIsRequiredErrorMessage,
+    //   titleTooLong: () => s.titleTooLongErrorMessage(DraftScore.maxTitleLength),
+    //   subtitleTooLong: () {
+    //     return s.subtitleTooLongErrorMessage(DraftScore.maxSubtitleLength);
+    //   },
+    //   dedicationTooLong: () {
+    //     return s.dedicationTooLongErrorMessage(DraftScore.maxDedicationLength);
+    //   },
+    //   tooManyComposers: () {
+    //     return s.tooManyComposersErrorMessage(DraftScore.maxNumberOfComposers);
+    //   },
+    //   composerMustHaveAName: () => s.composerMustHaveANameErrorMessage,
+    //   composerNameTooLong: () {
+    //     return s.composerNameTooLongErrorMessage(DraftScore.maxComposerLength);
+    //   },
+    // );
   }
 }

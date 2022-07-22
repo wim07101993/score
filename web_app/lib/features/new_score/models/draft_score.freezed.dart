@@ -23,8 +23,12 @@ mixin _$DraftScoreError {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -34,8 +38,12 @@ mixin _$DraftScoreError {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -45,8 +53,12 @@ mixin _$DraftScoreError {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -58,8 +70,12 @@ mixin _$DraftScoreError {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -69,8 +85,12 @@ mixin _$DraftScoreError {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -80,8 +100,12 @@ mixin _$DraftScoreError {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -150,8 +174,12 @@ class _$_TitleIsRequired extends _TitleIsRequired {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
     return titleIsRequired();
   }
@@ -164,8 +192,12 @@ class _$_TitleIsRequired extends _TitleIsRequired {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
     return titleIsRequired?.call();
   }
@@ -178,8 +210,12 @@ class _$_TitleIsRequired extends _TitleIsRequired {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (titleIsRequired != null) {
@@ -197,8 +233,12 @@ class _$_TitleIsRequired extends _TitleIsRequired {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
     return titleIsRequired(this);
   }
@@ -211,8 +251,12 @@ class _$_TitleIsRequired extends _TitleIsRequired {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
     return titleIsRequired?.call(this);
   }
@@ -225,8 +269,12 @@ class _$_TitleIsRequired extends _TitleIsRequired {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (titleIsRequired != null) {
@@ -287,8 +335,12 @@ class _$_TitleTooLong extends _TitleTooLong {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
     return titleTooLong();
   }
@@ -301,8 +353,12 @@ class _$_TitleTooLong extends _TitleTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
     return titleTooLong?.call();
   }
@@ -315,8 +371,12 @@ class _$_TitleTooLong extends _TitleTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (titleTooLong != null) {
@@ -334,8 +394,12 @@ class _$_TitleTooLong extends _TitleTooLong {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
     return titleTooLong(this);
   }
@@ -348,8 +412,12 @@ class _$_TitleTooLong extends _TitleTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
     return titleTooLong?.call(this);
   }
@@ -362,8 +430,12 @@ class _$_TitleTooLong extends _TitleTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (titleTooLong != null) {
@@ -424,8 +496,12 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
     return subtitleTooLong();
   }
@@ -438,8 +514,12 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
     return subtitleTooLong?.call();
   }
@@ -452,8 +532,12 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (subtitleTooLong != null) {
@@ -471,8 +555,12 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
     return subtitleTooLong(this);
   }
@@ -485,8 +573,12 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
     return subtitleTooLong?.call(this);
   }
@@ -499,8 +591,12 @@ class _$_SubtitleTooLong extends _SubtitleTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (subtitleTooLong != null) {
@@ -561,8 +657,12 @@ class _$_DedicationTooLong extends _DedicationTooLong {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
     return dedicationTooLong();
   }
@@ -575,8 +675,12 @@ class _$_DedicationTooLong extends _DedicationTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
     return dedicationTooLong?.call();
   }
@@ -589,8 +693,12 @@ class _$_DedicationTooLong extends _DedicationTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (dedicationTooLong != null) {
@@ -608,8 +716,12 @@ class _$_DedicationTooLong extends _DedicationTooLong {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
     return dedicationTooLong(this);
   }
@@ -622,8 +734,12 @@ class _$_DedicationTooLong extends _DedicationTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
     return dedicationTooLong?.call(this);
   }
@@ -636,8 +752,12 @@ class _$_DedicationTooLong extends _DedicationTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (dedicationTooLong != null) {
@@ -698,8 +818,12 @@ class _$_TooManyComposers extends _TooManyComposers {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
     return tooManyComposers();
   }
@@ -712,8 +836,12 @@ class _$_TooManyComposers extends _TooManyComposers {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
     return tooManyComposers?.call();
   }
@@ -726,8 +854,12 @@ class _$_TooManyComposers extends _TooManyComposers {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (tooManyComposers != null) {
@@ -745,8 +877,12 @@ class _$_TooManyComposers extends _TooManyComposers {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
     return tooManyComposers(this);
   }
@@ -759,8 +895,12 @@ class _$_TooManyComposers extends _TooManyComposers {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
     return tooManyComposers?.call(this);
   }
@@ -773,8 +913,12 @@ class _$_TooManyComposers extends _TooManyComposers {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (tooManyComposers != null) {
@@ -816,7 +960,7 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
 
   @override
   String toString() {
-    return 'DraftScoreError.composerMutHaveAName()';
+    return 'DraftScoreError.composerMustHaveAName()';
   }
 
   @override
@@ -836,10 +980,14 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
-    return composerMutHaveAName();
+    return composerMustHaveAName();
   }
 
   @override
@@ -850,10 +998,14 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
-    return composerMutHaveAName?.call();
+    return composerMustHaveAName?.call();
   }
 
   @override
@@ -864,12 +1016,16 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
-    if (composerMutHaveAName != null) {
-      return composerMutHaveAName();
+    if (composerMustHaveAName != null) {
+      return composerMustHaveAName();
     }
     return orElse();
   }
@@ -883,10 +1039,14 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
-    return composerMutHaveAName(this);
+    return composerMustHaveAName(this);
   }
 
   @override
@@ -897,10 +1057,14 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
-    return composerMutHaveAName?.call(this);
+    return composerMustHaveAName?.call(this);
   }
 
   @override
@@ -911,12 +1075,16 @@ class _$_ComposerMustHaveAName extends _ComposerMustHaveAName {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
-    if (composerMutHaveAName != null) {
-      return composerMutHaveAName(this);
+    if (composerMustHaveAName != null) {
+      return composerMustHaveAName(this);
     }
     return orElse();
   }
@@ -973,8 +1141,12 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
     required TResult Function() subtitleTooLong,
     required TResult Function() dedicationTooLong,
     required TResult Function() tooManyComposers,
-    required TResult Function() composerMutHaveAName,
+    required TResult Function() composerMustHaveAName,
     required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
   }) {
     return composerNameTooLong();
   }
@@ -987,8 +1159,12 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
   }) {
     return composerNameTooLong?.call();
   }
@@ -1001,8 +1177,12 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
     TResult Function()? subtitleTooLong,
     TResult Function()? dedicationTooLong,
     TResult Function()? tooManyComposers,
-    TResult Function()? composerMutHaveAName,
+    TResult Function()? composerMustHaveAName,
     TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (composerNameTooLong != null) {
@@ -1020,8 +1200,12 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
     required TResult Function(_DedicationTooLong value) dedicationTooLong,
     required TResult Function(_TooManyComposers value) tooManyComposers,
     required TResult Function(_ComposerMustHaveAName value)
-        composerMutHaveAName,
+        composerMustHaveAName,
     required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
   }) {
     return composerNameTooLong(this);
   }
@@ -1034,8 +1218,12 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
   }) {
     return composerNameTooLong?.call(this);
   }
@@ -1048,8 +1236,12 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
     TResult Function(_SubtitleTooLong value)? subtitleTooLong,
     TResult Function(_DedicationTooLong value)? dedicationTooLong,
     TResult Function(_TooManyComposers value)? tooManyComposers,
-    TResult Function(_ComposerMustHaveAName value)? composerMutHaveAName,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
     TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
     required TResult orElse(),
   }) {
     if (composerNameTooLong != null) {
@@ -1062,4 +1254,648 @@ class _$_ComposerNameTooLong extends _ComposerNameTooLong {
 abstract class _ComposerNameTooLong extends DraftScoreError {
   const factory _ComposerNameTooLong() = _$_ComposerNameTooLong;
   const _ComposerNameTooLong._() : super._();
+}
+
+/// @nodoc
+abstract class _$$_TooManyTagsCopyWith<$Res> {
+  factory _$$_TooManyTagsCopyWith(
+          _$_TooManyTags value, $Res Function(_$_TooManyTags) then) =
+      __$$_TooManyTagsCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$_TooManyTagsCopyWithImpl<$Res>
+    extends _$DraftScoreErrorCopyWithImpl<$Res>
+    implements _$$_TooManyTagsCopyWith<$Res> {
+  __$$_TooManyTagsCopyWithImpl(
+      _$_TooManyTags _value, $Res Function(_$_TooManyTags) _then)
+      : super(_value, (v) => _then(v as _$_TooManyTags));
+
+  @override
+  _$_TooManyTags get _value => super._value as _$_TooManyTags;
+}
+
+/// @nodoc
+
+class _$_TooManyTags extends _TooManyTags {
+  const _$_TooManyTags() : super._();
+
+  @override
+  String toString() {
+    return 'DraftScoreError.tooManyTags()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$_TooManyTags);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() titleIsRequired,
+    required TResult Function() titleTooLong,
+    required TResult Function() subtitleTooLong,
+    required TResult Function() dedicationTooLong,
+    required TResult Function() tooManyComposers,
+    required TResult Function() composerMustHaveAName,
+    required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
+  }) {
+    return tooManyTags();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+  }) {
+    return tooManyTags?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tooManyTags != null) {
+      return tooManyTags();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_TitleIsRequired value) titleIsRequired,
+    required TResult Function(_TitleTooLong value) titleTooLong,
+    required TResult Function(_SubtitleTooLong value) subtitleTooLong,
+    required TResult Function(_DedicationTooLong value) dedicationTooLong,
+    required TResult Function(_TooManyComposers value) tooManyComposers,
+    required TResult Function(_ComposerMustHaveAName value)
+        composerMustHaveAName,
+    required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
+  }) {
+    return tooManyTags(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+  }) {
+    return tooManyTags?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tooManyTags != null) {
+      return tooManyTags(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _TooManyTags extends DraftScoreError {
+  const factory _TooManyTags() = _$_TooManyTags;
+  const _TooManyTags._() : super._();
+}
+
+/// @nodoc
+abstract class _$$_TagMustHaveAValueCopyWith<$Res> {
+  factory _$$_TagMustHaveAValueCopyWith(_$_TagMustHaveAValue value,
+          $Res Function(_$_TagMustHaveAValue) then) =
+      __$$_TagMustHaveAValueCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$_TagMustHaveAValueCopyWithImpl<$Res>
+    extends _$DraftScoreErrorCopyWithImpl<$Res>
+    implements _$$_TagMustHaveAValueCopyWith<$Res> {
+  __$$_TagMustHaveAValueCopyWithImpl(
+      _$_TagMustHaveAValue _value, $Res Function(_$_TagMustHaveAValue) _then)
+      : super(_value, (v) => _then(v as _$_TagMustHaveAValue));
+
+  @override
+  _$_TagMustHaveAValue get _value => super._value as _$_TagMustHaveAValue;
+}
+
+/// @nodoc
+
+class _$_TagMustHaveAValue extends _TagMustHaveAValue {
+  const _$_TagMustHaveAValue() : super._();
+
+  @override
+  String toString() {
+    return 'DraftScoreError.tagMustHaveAValue()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$_TagMustHaveAValue);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() titleIsRequired,
+    required TResult Function() titleTooLong,
+    required TResult Function() subtitleTooLong,
+    required TResult Function() dedicationTooLong,
+    required TResult Function() tooManyComposers,
+    required TResult Function() composerMustHaveAName,
+    required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
+  }) {
+    return tagMustHaveAValue();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+  }) {
+    return tagMustHaveAValue?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tagMustHaveAValue != null) {
+      return tagMustHaveAValue();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_TitleIsRequired value) titleIsRequired,
+    required TResult Function(_TitleTooLong value) titleTooLong,
+    required TResult Function(_SubtitleTooLong value) subtitleTooLong,
+    required TResult Function(_DedicationTooLong value) dedicationTooLong,
+    required TResult Function(_TooManyComposers value) tooManyComposers,
+    required TResult Function(_ComposerMustHaveAName value)
+        composerMustHaveAName,
+    required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
+  }) {
+    return tagMustHaveAValue(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+  }) {
+    return tagMustHaveAValue?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tagMustHaveAValue != null) {
+      return tagMustHaveAValue(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _TagMustHaveAValue extends DraftScoreError {
+  const factory _TagMustHaveAValue() = _$_TagMustHaveAValue;
+  const _TagMustHaveAValue._() : super._();
+}
+
+/// @nodoc
+abstract class _$$_TagTooLongCopyWith<$Res> {
+  factory _$$_TagTooLongCopyWith(
+          _$_TagTooLong value, $Res Function(_$_TagTooLong) then) =
+      __$$_TagTooLongCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$_TagTooLongCopyWithImpl<$Res>
+    extends _$DraftScoreErrorCopyWithImpl<$Res>
+    implements _$$_TagTooLongCopyWith<$Res> {
+  __$$_TagTooLongCopyWithImpl(
+      _$_TagTooLong _value, $Res Function(_$_TagTooLong) _then)
+      : super(_value, (v) => _then(v as _$_TagTooLong));
+
+  @override
+  _$_TagTooLong get _value => super._value as _$_TagTooLong;
+}
+
+/// @nodoc
+
+class _$_TagTooLong extends _TagTooLong {
+  const _$_TagTooLong() : super._();
+
+  @override
+  String toString() {
+    return 'DraftScoreError.tagTooLong()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$_TagTooLong);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() titleIsRequired,
+    required TResult Function() titleTooLong,
+    required TResult Function() subtitleTooLong,
+    required TResult Function() dedicationTooLong,
+    required TResult Function() tooManyComposers,
+    required TResult Function() composerMustHaveAName,
+    required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
+  }) {
+    return tagTooLong();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+  }) {
+    return tagTooLong?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tagTooLong != null) {
+      return tagTooLong();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_TitleIsRequired value) titleIsRequired,
+    required TResult Function(_TitleTooLong value) titleTooLong,
+    required TResult Function(_SubtitleTooLong value) subtitleTooLong,
+    required TResult Function(_DedicationTooLong value) dedicationTooLong,
+    required TResult Function(_TooManyComposers value) tooManyComposers,
+    required TResult Function(_ComposerMustHaveAName value)
+        composerMustHaveAName,
+    required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
+  }) {
+    return tagTooLong(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+  }) {
+    return tagTooLong?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tagTooLong != null) {
+      return tagTooLong(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _TagTooLong extends DraftScoreError {
+  const factory _TagTooLong() = _$_TagTooLong;
+  const _TagTooLong._() : super._();
+}
+
+/// @nodoc
+abstract class _$$_TooManyArrangementsCopyWith<$Res> {
+  factory _$$_TooManyArrangementsCopyWith(_$_TooManyArrangements value,
+          $Res Function(_$_TooManyArrangements) then) =
+      __$$_TooManyArrangementsCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$_TooManyArrangementsCopyWithImpl<$Res>
+    extends _$DraftScoreErrorCopyWithImpl<$Res>
+    implements _$$_TooManyArrangementsCopyWith<$Res> {
+  __$$_TooManyArrangementsCopyWithImpl(_$_TooManyArrangements _value,
+      $Res Function(_$_TooManyArrangements) _then)
+      : super(_value, (v) => _then(v as _$_TooManyArrangements));
+
+  @override
+  _$_TooManyArrangements get _value => super._value as _$_TooManyArrangements;
+}
+
+/// @nodoc
+
+class _$_TooManyArrangements extends _TooManyArrangements {
+  const _$_TooManyArrangements() : super._();
+
+  @override
+  String toString() {
+    return 'DraftScoreError.tooManyArrangements()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$_TooManyArrangements);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() titleIsRequired,
+    required TResult Function() titleTooLong,
+    required TResult Function() subtitleTooLong,
+    required TResult Function() dedicationTooLong,
+    required TResult Function() tooManyComposers,
+    required TResult Function() composerMustHaveAName,
+    required TResult Function() composerNameTooLong,
+    required TResult Function() tooManyTags,
+    required TResult Function() tagMustHaveAValue,
+    required TResult Function() tagTooLong,
+    required TResult Function() tooManyArrangements,
+  }) {
+    return tooManyArrangements();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+  }) {
+    return tooManyArrangements?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? titleIsRequired,
+    TResult Function()? titleTooLong,
+    TResult Function()? subtitleTooLong,
+    TResult Function()? dedicationTooLong,
+    TResult Function()? tooManyComposers,
+    TResult Function()? composerMustHaveAName,
+    TResult Function()? composerNameTooLong,
+    TResult Function()? tooManyTags,
+    TResult Function()? tagMustHaveAValue,
+    TResult Function()? tagTooLong,
+    TResult Function()? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tooManyArrangements != null) {
+      return tooManyArrangements();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_TitleIsRequired value) titleIsRequired,
+    required TResult Function(_TitleTooLong value) titleTooLong,
+    required TResult Function(_SubtitleTooLong value) subtitleTooLong,
+    required TResult Function(_DedicationTooLong value) dedicationTooLong,
+    required TResult Function(_TooManyComposers value) tooManyComposers,
+    required TResult Function(_ComposerMustHaveAName value)
+        composerMustHaveAName,
+    required TResult Function(_ComposerNameTooLong value) composerNameTooLong,
+    required TResult Function(_TooManyTags value) tooManyTags,
+    required TResult Function(_TagMustHaveAValue value) tagMustHaveAValue,
+    required TResult Function(_TagTooLong value) tagTooLong,
+    required TResult Function(_TooManyArrangements value) tooManyArrangements,
+  }) {
+    return tooManyArrangements(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+  }) {
+    return tooManyArrangements?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_TitleIsRequired value)? titleIsRequired,
+    TResult Function(_TitleTooLong value)? titleTooLong,
+    TResult Function(_SubtitleTooLong value)? subtitleTooLong,
+    TResult Function(_DedicationTooLong value)? dedicationTooLong,
+    TResult Function(_TooManyComposers value)? tooManyComposers,
+    TResult Function(_ComposerMustHaveAName value)? composerMustHaveAName,
+    TResult Function(_ComposerNameTooLong value)? composerNameTooLong,
+    TResult Function(_TooManyTags value)? tooManyTags,
+    TResult Function(_TagMustHaveAValue value)? tagMustHaveAValue,
+    TResult Function(_TagTooLong value)? tagTooLong,
+    TResult Function(_TooManyArrangements value)? tooManyArrangements,
+    required TResult orElse(),
+  }) {
+    if (tooManyArrangements != null) {
+      return tooManyArrangements(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _TooManyArrangements extends DraftScoreError {
+  const factory _TooManyArrangements() = _$_TooManyArrangements;
+  const _TooManyArrangements._() : super._();
 }
