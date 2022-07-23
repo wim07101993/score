@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:score/shared/data/firebase/firestore/firestore_extensions.dart';
 import 'package:score/shared/data/map_helpers.dart';
 import 'package:score/shared/models/arrangement.dart';
+import 'package:score/shared/models/arrangement_part.dart';
+import 'package:score/shared/models/instrument.dart';
 import 'package:score/shared/models/score.dart';
 
 class ScoreFields {
@@ -71,7 +73,7 @@ extension ScoresCollectionExtensions on FirebaseFirestore {
       reportCorruptData(doc.data());
     }
 
-    return Score(
+    return SavedScore(
       id: doc.id,
       title: title ?? 'unknown',
       subtitle: doc.maybeGet(ScoreFields.subtitle),
@@ -102,7 +104,7 @@ extension ScoresCollectionExtensions on FirebaseFirestore {
         ?.toList(growable: false);
     final description = json.maybeGet<String>(ArrangementFields.description);
 
-    return Arrangement(
+    return SavedArrangement(
       name: name,
       arrangers: arrangers ?? const [],
       parts: parts ?? const [],
@@ -123,7 +125,7 @@ extension ScoresCollectionExtensions on FirebaseFirestore {
     final description =
         json.maybeGet<String>(ArrangementPartFields.description);
 
-    return ArrangementPart(
+    return SavedArrangementPart(
       links: links ?? const [],
       instruments: instruments ?? const [],
       description: description,
@@ -142,6 +144,10 @@ extension ScoresCollectionExtensions on FirebaseFirestore {
   }
 
   Future<String> addScore(Score score) {
+    final errors = score.validate().toList(growable: false);
+    if (errors.isNotEmpty) {
+      throw Exception('Score not valid: $errors');
+    }
     return scoresCollection.add(score).then((ref) => ref.id);
   }
 }

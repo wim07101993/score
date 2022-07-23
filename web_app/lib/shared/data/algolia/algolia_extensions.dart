@@ -2,6 +2,8 @@ import 'package:algolia/algolia.dart';
 import 'package:score/shared/data/algolia/algolia_model_field_names.dart';
 import 'package:score/shared/data/map_helpers.dart';
 import 'package:score/shared/models/arrangement.dart';
+import 'package:score/shared/models/arrangement_part.dart';
+import 'package:score/shared/models/instrument.dart';
 import 'package:score/shared/models/pagination_page.dart';
 import 'package:score/shared/models/score.dart';
 
@@ -54,7 +56,7 @@ extension AlgoliaExtensions on Algolia {
         modifiedAt == null) {
       return null;
     }
-    return Score(
+    return SavedScore(
       id: id,
       title: title,
       subtitle: subtitle,
@@ -72,7 +74,7 @@ extension AlgoliaExtensions on Algolia {
     if (name == null) {
       return null;
     }
-    return Arrangement(
+    return SavedArrangement(
       name: name,
       arrangers: json
               .maybeGetList<String>(ArrangementFields.arrangers)
@@ -93,7 +95,7 @@ extension AlgoliaExtensions on Algolia {
   }
 
   ArrangementPart? _mapToArrangementPart(Map<String, dynamic> json) {
-    return ArrangementPart(
+    return SavedArrangementPart(
       links: json
               .maybeGetList<String>(ArrangementPartFields.links)
               ?.map(Uri.parse)

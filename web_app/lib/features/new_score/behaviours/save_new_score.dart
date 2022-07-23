@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:behaviour/behaviour.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/shared/data/firebase/exceptions/permission_denied_exception.dart';
 import 'package:score/shared/data/firebase/firestore/scores_collection.dart';
+import 'package:score/shared/models/score.dart';
 
-class SaveNewScore extends Behaviour<DraftScore, void> {
+class SaveNewScore extends Behaviour<Score, void> {
   SaveNewScore({
     required this.firestore,
     super.monitor,
@@ -15,8 +15,8 @@ class SaveNewScore extends Behaviour<DraftScore, void> {
   final FirebaseFirestore firestore;
 
   @override
-  Future<void> action(DraftScore input, BehaviourTrack? track) async {
-    await firestore.addScore(input.toScore());
+  Future<void> action(Score input, BehaviourTrack? track) async {
+    await firestore.addScore(input);
   }
 
   @override

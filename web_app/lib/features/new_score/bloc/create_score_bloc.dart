@@ -4,13 +4,13 @@ import 'package:behaviour/behaviour.dart';
 import 'package:bloc/bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:score/features/new_score/behaviours/save_new_score.dart';
-import 'package:score/features/new_score/models/draft_score.dart';
+import 'package:score/shared/models/score.dart';
 
 part 'create_score_bloc.freezed.dart';
 
 @freezed
 class CreateScoreEvent with _$CreateScoreEvent {
-  const factory CreateScoreEvent.save(DraftScore score) = _CreateScoreEvent;
+  const factory CreateScoreEvent.save(Score score) = _CreateScoreEvent;
 }
 
 @freezed

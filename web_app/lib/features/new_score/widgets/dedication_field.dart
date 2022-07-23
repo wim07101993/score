@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/models/score.dart';
 
 class DedicationField extends StatelessWidget {
   const DedicationField({
@@ -23,12 +23,12 @@ class DedicationField extends StatelessWidget {
     );
   }
 
-  String? _validate(S s, String? value) {
-    final errors = DraftScore.validateDedication(value).toList(growable: false);
+  static String? _validate(S s, String? value) {
+    final errors = Score.validateDedication(value).toList(growable: false);
     if (errors.isEmpty) {
       return null;
     }
 
-    return errors.map((e) => e.getMessage(s)).join("\r\n");
+    return errors.map(s.getErrorMessage).join("\r\n");
   }
 }

@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/features/new_score/widgets/add_tag_button.dart';
 import 'package:score/features/new_score/widgets/tag_field.dart';
+import 'package:score/shared/models/score.dart';
 
-class TagsField extends StatelessWidget {
+class TagsField extends StatefulWidget {
   const TagsField({
     super.key,
     required this.values,
-    required this.addTag,
-    required this.removeTag,
   });
 
   final List<TextEditingController> values;
-  final VoidCallback addTag;
-  final void Function(int index) removeTag;
 
+  @override
+  State<TagsField> createState() => _TagsFieldState();
+}
+
+class _TagsFieldState extends State<TagsField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < values.length; i++) ...[
+        for (var i = 0; i < widget.values.length; i++) ...[
           _composerField(theme, i),
           const SizedBox(height: 8),
         ],
@@ -30,8 +31,10 @@ class TagsField extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(8.0),
             child: AddTagButton(
-              canAddTags: values.length < DraftScore.maxNumberOfTags,
-              addTag: addTag,
+              canAddTags: widget.values.length < Score.maxNumberOfTags,
+              addTag: () {
+                setState(() => widget.values.add(TextEditingController()));
+              },
             ),
           ),
         ),
@@ -41,9 +44,9 @@ class TagsField extends StatelessWidget {
 
   Widget _composerField(ThemeData theme, int index) {
     return Row(children: [
-      Expanded(child: TagField(value: values[index])),
+      Expanded(child: TagField(value: widget.values[index])),
       IconButton(
-        onPressed: () => removeTag(index),
+        onPressed: () => setState(() => widget.values.removeAt(index)),
         icon: Icon(
           Icons.remove_circle,
           color: theme.colorScheme.secondary,

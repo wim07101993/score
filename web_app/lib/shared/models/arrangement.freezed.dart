@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target
 
-part of 'draft_arrangement.dart';
+part of 'arrangement.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -15,7 +15,7 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
-mixin _$DraftArrangementError {
+mixin _$ArrangementValidationError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() nameIsRequired,
@@ -28,6 +28,7 @@ mixin _$DraftArrangementError {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -42,6 +43,7 @@ mixin _$DraftArrangementError {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -56,6 +58,7 @@ mixin _$DraftArrangementError {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -69,9 +72,11 @@ mixin _$DraftArrangementError {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -83,9 +88,10 @@ mixin _$DraftArrangementError {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -97,29 +103,30 @@ mixin _$DraftArrangementError {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $DraftArrangementErrorCopyWith<$Res> {
-  factory $DraftArrangementErrorCopyWith(DraftArrangementError value,
-          $Res Function(DraftArrangementError) then) =
-      _$DraftArrangementErrorCopyWithImpl<$Res>;
+abstract class $ArrangementValidationErrorCopyWith<$Res> {
+  factory $ArrangementValidationErrorCopyWith(ArrangementValidationError value,
+          $Res Function(ArrangementValidationError) then) =
+      _$ArrangementValidationErrorCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class _$DraftArrangementErrorCopyWithImpl<$Res>
-    implements $DraftArrangementErrorCopyWith<$Res> {
-  _$DraftArrangementErrorCopyWithImpl(this._value, this._then);
+class _$ArrangementValidationErrorCopyWithImpl<$Res>
+    implements $ArrangementValidationErrorCopyWith<$Res> {
+  _$ArrangementValidationErrorCopyWithImpl(this._value, this._then);
 
-  final DraftArrangementError _value;
+  final ArrangementValidationError _value;
   // ignore: unused_field
-  final $Res Function(DraftArrangementError) _then;
+  final $Res Function(ArrangementValidationError) _then;
 }
 
 /// @nodoc
@@ -131,7 +138,7 @@ abstract class _$$_NameIsRequiredCopyWith<$Res> {
 
 /// @nodoc
 class __$$_NameIsRequiredCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_NameIsRequiredCopyWith<$Res> {
   __$$_NameIsRequiredCopyWithImpl(
       _$_NameIsRequired _value, $Res Function(_$_NameIsRequired) _then)
@@ -143,12 +150,19 @@ class __$$_NameIsRequiredCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_NameIsRequired extends _NameIsRequired {
+class _$_NameIsRequired extends _NameIsRequired with DiagnosticableTreeMixin {
   const _$_NameIsRequired() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.nameIsRequired()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.nameIsRequired()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.nameIsRequired'));
   }
 
   @override
@@ -173,6 +187,7 @@ class _$_NameIsRequired extends _NameIsRequired {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return nameIsRequired();
   }
@@ -190,6 +205,7 @@ class _$_NameIsRequired extends _NameIsRequired {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return nameIsRequired?.call();
   }
@@ -207,6 +223,7 @@ class _$_NameIsRequired extends _NameIsRequired {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (nameIsRequired != null) {
@@ -226,9 +243,11 @@ class _$_NameIsRequired extends _NameIsRequired {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return nameIsRequired(this);
   }
@@ -243,9 +262,10 @@ class _$_NameIsRequired extends _NameIsRequired {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return nameIsRequired?.call(this);
   }
@@ -260,9 +280,10 @@ class _$_NameIsRequired extends _NameIsRequired {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (nameIsRequired != null) {
@@ -272,7 +293,7 @@ class _$_NameIsRequired extends _NameIsRequired {
   }
 }
 
-abstract class _NameIsRequired extends DraftArrangementError {
+abstract class _NameIsRequired extends ArrangementValidationError {
   const factory _NameIsRequired() = _$_NameIsRequired;
   const _NameIsRequired._() : super._();
 }
@@ -286,7 +307,7 @@ abstract class _$$_NameTooLongCopyWith<$Res> {
 
 /// @nodoc
 class __$$_NameTooLongCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_NameTooLongCopyWith<$Res> {
   __$$_NameTooLongCopyWithImpl(
       _$_NameTooLong _value, $Res Function(_$_NameTooLong) _then)
@@ -298,12 +319,19 @@ class __$$_NameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_NameTooLong extends _NameTooLong {
+class _$_NameTooLong extends _NameTooLong with DiagnosticableTreeMixin {
   const _$_NameTooLong() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.nameTooLong()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.nameTooLong()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+        DiagnosticsProperty('type', 'ArrangementValidationError.nameTooLong'));
   }
 
   @override
@@ -328,6 +356,7 @@ class _$_NameTooLong extends _NameTooLong {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return nameTooLong();
   }
@@ -345,6 +374,7 @@ class _$_NameTooLong extends _NameTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return nameTooLong?.call();
   }
@@ -362,6 +392,7 @@ class _$_NameTooLong extends _NameTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (nameTooLong != null) {
@@ -381,9 +412,11 @@ class _$_NameTooLong extends _NameTooLong {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return nameTooLong(this);
   }
@@ -398,9 +431,10 @@ class _$_NameTooLong extends _NameTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return nameTooLong?.call(this);
   }
@@ -415,9 +449,10 @@ class _$_NameTooLong extends _NameTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (nameTooLong != null) {
@@ -427,7 +462,7 @@ class _$_NameTooLong extends _NameTooLong {
   }
 }
 
-abstract class _NameTooLong extends DraftArrangementError {
+abstract class _NameTooLong extends ArrangementValidationError {
   const factory _NameTooLong() = _$_NameTooLong;
   const _NameTooLong._() : super._();
 }
@@ -441,7 +476,7 @@ abstract class _$$_TooManyArrangersCopyWith<$Res> {
 
 /// @nodoc
 class __$$_TooManyArrangersCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_TooManyArrangersCopyWith<$Res> {
   __$$_TooManyArrangersCopyWithImpl(
       _$_TooManyArrangers _value, $Res Function(_$_TooManyArrangers) _then)
@@ -453,12 +488,20 @@ class __$$_TooManyArrangersCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyArrangers extends _TooManyArrangers {
+class _$_TooManyArrangers extends _TooManyArrangers
+    with DiagnosticableTreeMixin {
   const _$_TooManyArrangers() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.tooManyArrangers()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.tooManyArrangers()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.tooManyArrangers'));
   }
 
   @override
@@ -483,6 +526,7 @@ class _$_TooManyArrangers extends _TooManyArrangers {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return tooManyArrangers();
   }
@@ -500,6 +544,7 @@ class _$_TooManyArrangers extends _TooManyArrangers {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return tooManyArrangers?.call();
   }
@@ -517,6 +562,7 @@ class _$_TooManyArrangers extends _TooManyArrangers {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (tooManyArrangers != null) {
@@ -536,9 +582,11 @@ class _$_TooManyArrangers extends _TooManyArrangers {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return tooManyArrangers(this);
   }
@@ -553,9 +601,10 @@ class _$_TooManyArrangers extends _TooManyArrangers {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return tooManyArrangers?.call(this);
   }
@@ -570,9 +619,10 @@ class _$_TooManyArrangers extends _TooManyArrangers {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (tooManyArrangers != null) {
@@ -582,7 +632,7 @@ class _$_TooManyArrangers extends _TooManyArrangers {
   }
 }
 
-abstract class _TooManyArrangers extends DraftArrangementError {
+abstract class _TooManyArrangers extends ArrangementValidationError {
   const factory _TooManyArrangers() = _$_TooManyArrangers;
   const _TooManyArrangers._() : super._();
 }
@@ -596,7 +646,7 @@ abstract class _$$_ArrangerMustHaveANameCopyWith<$Res> {
 
 /// @nodoc
 class __$$_ArrangerMustHaveANameCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_ArrangerMustHaveANameCopyWith<$Res> {
   __$$_ArrangerMustHaveANameCopyWithImpl(_$_ArrangerMustHaveAName _value,
       $Res Function(_$_ArrangerMustHaveAName) _then)
@@ -609,12 +659,20 @@ class __$$_ArrangerMustHaveANameCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
+class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName
+    with DiagnosticableTreeMixin {
   const _$_ArrangerMustHaveAName() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.arrangerMustHaveAName()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.arrangerMustHaveAName()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.arrangerMustHaveAName'));
   }
 
   @override
@@ -639,6 +697,7 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return arrangerMustHaveAName();
   }
@@ -656,6 +715,7 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return arrangerMustHaveAName?.call();
   }
@@ -673,6 +733,7 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (arrangerMustHaveAName != null) {
@@ -692,9 +753,11 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return arrangerMustHaveAName(this);
   }
@@ -709,9 +772,10 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return arrangerMustHaveAName?.call(this);
   }
@@ -726,9 +790,10 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (arrangerMustHaveAName != null) {
@@ -738,7 +803,7 @@ class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
   }
 }
 
-abstract class _ArrangerMustHaveAName extends DraftArrangementError {
+abstract class _ArrangerMustHaveAName extends ArrangementValidationError {
   const factory _ArrangerMustHaveAName() = _$_ArrangerMustHaveAName;
   const _ArrangerMustHaveAName._() : super._();
 }
@@ -752,7 +817,7 @@ abstract class _$$_ArrangerNameTooLongCopyWith<$Res> {
 
 /// @nodoc
 class __$$_ArrangerNameTooLongCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_ArrangerNameTooLongCopyWith<$Res> {
   __$$_ArrangerNameTooLongCopyWithImpl(_$_ArrangerNameTooLong _value,
       $Res Function(_$_ArrangerNameTooLong) _then)
@@ -764,12 +829,20 @@ class __$$_ArrangerNameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
+class _$_ArrangerNameTooLong extends _ArrangerNameTooLong
+    with DiagnosticableTreeMixin {
   const _$_ArrangerNameTooLong() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.arrangerNameTooLong()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.arrangerNameTooLong()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.arrangerNameTooLong'));
   }
 
   @override
@@ -794,6 +867,7 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return arrangerNameTooLong();
   }
@@ -811,6 +885,7 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return arrangerNameTooLong?.call();
   }
@@ -828,6 +903,7 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (arrangerNameTooLong != null) {
@@ -847,9 +923,11 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return arrangerNameTooLong(this);
   }
@@ -864,9 +942,10 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return arrangerNameTooLong?.call(this);
   }
@@ -881,9 +960,10 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (arrangerNameTooLong != null) {
@@ -893,7 +973,7 @@ class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
   }
 }
 
-abstract class _ArrangerNameTooLong extends DraftArrangementError {
+abstract class _ArrangerNameTooLong extends ArrangementValidationError {
   const factory _ArrangerNameTooLong() = _$_ArrangerNameTooLong;
   const _ArrangerNameTooLong._() : super._();
 }
@@ -907,7 +987,7 @@ abstract class _$$_TooManyPartsCopyWith<$Res> {
 
 /// @nodoc
 class __$$_TooManyPartsCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_TooManyPartsCopyWith<$Res> {
   __$$_TooManyPartsCopyWithImpl(
       _$_TooManyParts _value, $Res Function(_$_TooManyParts) _then)
@@ -919,12 +999,19 @@ class __$$_TooManyPartsCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyParts extends _TooManyParts {
+class _$_TooManyParts extends _TooManyParts with DiagnosticableTreeMixin {
   const _$_TooManyParts() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.tooManyParts()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.tooManyParts()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+        DiagnosticsProperty('type', 'ArrangementValidationError.tooManyParts'));
   }
 
   @override
@@ -949,6 +1036,7 @@ class _$_TooManyParts extends _TooManyParts {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return tooManyParts();
   }
@@ -966,6 +1054,7 @@ class _$_TooManyParts extends _TooManyParts {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return tooManyParts?.call();
   }
@@ -983,6 +1072,7 @@ class _$_TooManyParts extends _TooManyParts {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (tooManyParts != null) {
@@ -1002,9 +1092,11 @@ class _$_TooManyParts extends _TooManyParts {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return tooManyParts(this);
   }
@@ -1019,9 +1111,10 @@ class _$_TooManyParts extends _TooManyParts {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return tooManyParts?.call(this);
   }
@@ -1036,9 +1129,10 @@ class _$_TooManyParts extends _TooManyParts {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (tooManyParts != null) {
@@ -1048,7 +1142,7 @@ class _$_TooManyParts extends _TooManyParts {
   }
 }
 
-abstract class _TooManyParts extends DraftArrangementError {
+abstract class _TooManyParts extends ArrangementValidationError {
   const factory _TooManyParts() = _$_TooManyParts;
   const _TooManyParts._() : super._();
 }
@@ -1062,7 +1156,7 @@ abstract class _$$_TooManyLyricistsCopyWith<$Res> {
 
 /// @nodoc
 class __$$_TooManyLyricistsCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_TooManyLyricistsCopyWith<$Res> {
   __$$_TooManyLyricistsCopyWithImpl(
       _$_TooManyLyricists _value, $Res Function(_$_TooManyLyricists) _then)
@@ -1074,12 +1168,20 @@ class __$$_TooManyLyricistsCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyLyricists extends _TooManyLyricists {
+class _$_TooManyLyricists extends _TooManyLyricists
+    with DiagnosticableTreeMixin {
   const _$_TooManyLyricists() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.tooManyLyricists()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.tooManyLyricists()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.tooManyLyricists'));
   }
 
   @override
@@ -1104,6 +1206,7 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return tooManyLyricists();
   }
@@ -1121,6 +1224,7 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return tooManyLyricists?.call();
   }
@@ -1138,6 +1242,7 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (tooManyLyricists != null) {
@@ -1157,9 +1262,11 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return tooManyLyricists(this);
   }
@@ -1174,9 +1281,10 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return tooManyLyricists?.call(this);
   }
@@ -1191,9 +1299,10 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (tooManyLyricists != null) {
@@ -1203,44 +1312,53 @@ class _$_TooManyLyricists extends _TooManyLyricists {
   }
 }
 
-abstract class _TooManyLyricists extends DraftArrangementError {
+abstract class _TooManyLyricists extends ArrangementValidationError {
   const factory _TooManyLyricists() = _$_TooManyLyricists;
   const _TooManyLyricists._() : super._();
 }
 
 /// @nodoc
-abstract class _$$_TooManyLyricistsCopyWith<$Res> {
-  factory _$$_TooManyLyricistsCopyWith(
-          _$_TooManyLyricists value, $Res Function(_$_TooManyLyricists) then) =
-      __$$_TooManyLyricistsCopyWithImpl<$Res>;
+abstract class _$$_LyricistMustHaveANameCopyWith<$Res> {
+  factory _$$_LyricistMustHaveANameCopyWith(_$_LyricistMustHaveAName value,
+          $Res Function(_$_LyricistMustHaveAName) then) =
+      __$$_LyricistMustHaveANameCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$_TooManyLyricistsCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
-    implements _$$_TooManyLyricistsCopyWith<$Res> {
-  __$$_TooManyLyricistsCopyWithImpl(
-      _$_TooManyLyricists _value, $Res Function(_$_TooManyLyricists) _then)
-      : super(_value, (v) => _then(v as _$_TooManyLyricists));
+class __$$_LyricistMustHaveANameCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
+    implements _$$_LyricistMustHaveANameCopyWith<$Res> {
+  __$$_LyricistMustHaveANameCopyWithImpl(_$_LyricistMustHaveAName _value,
+      $Res Function(_$_LyricistMustHaveAName) _then)
+      : super(_value, (v) => _then(v as _$_LyricistMustHaveAName));
 
   @override
-  _$_TooManyLyricists get _value => super._value as _$_TooManyLyricists;
+  _$_LyricistMustHaveAName get _value =>
+      super._value as _$_LyricistMustHaveAName;
 }
 
 /// @nodoc
 
-class _$_TooManyLyricists extends _TooManyLyricists {
-  const _$_TooManyLyricists() : super._();
+class _$_LyricistMustHaveAName extends _LyricistMustHaveAName
+    with DiagnosticableTreeMixin {
+  const _$_LyricistMustHaveAName() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.lyricistMustHaveAName()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.lyricistMustHaveAName()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.lyricistMustHaveAName'));
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$_TooManyLyricists);
+        (other.runtimeType == runtimeType && other is _$_LyricistMustHaveAName);
   }
 
   @override
@@ -1259,6 +1377,7 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return lyricistMustHaveAName();
   }
@@ -1276,6 +1395,7 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return lyricistMustHaveAName?.call();
   }
@@ -1293,6 +1413,7 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (lyricistMustHaveAName != null) {
@@ -1312,9 +1433,11 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return lyricistMustHaveAName(this);
   }
@@ -1329,9 +1452,10 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return lyricistMustHaveAName?.call(this);
   }
@@ -1346,9 +1470,10 @@ class _$_TooManyLyricists extends _TooManyLyricists {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (lyricistMustHaveAName != null) {
@@ -1358,9 +1483,9 @@ class _$_TooManyLyricists extends _TooManyLyricists {
   }
 }
 
-abstract class _TooManyLyricists extends DraftArrangementError {
-  const factory _TooManyLyricists() = _$_TooManyLyricists;
-  const _TooManyLyricists._() : super._();
+abstract class _LyricistMustHaveAName extends ArrangementValidationError {
+  const factory _LyricistMustHaveAName() = _$_LyricistMustHaveAName;
+  const _LyricistMustHaveAName._() : super._();
 }
 
 /// @nodoc
@@ -1372,7 +1497,7 @@ abstract class _$$_LyricistNameTooLongCopyWith<$Res> {
 
 /// @nodoc
 class __$$_LyricistNameTooLongCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_LyricistNameTooLongCopyWith<$Res> {
   __$$_LyricistNameTooLongCopyWithImpl(_$_LyricistNameTooLong _value,
       $Res Function(_$_LyricistNameTooLong) _then)
@@ -1384,12 +1509,20 @@ class __$$_LyricistNameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_LyricistNameTooLong extends _LyricistNameTooLong {
+class _$_LyricistNameTooLong extends _LyricistNameTooLong
+    with DiagnosticableTreeMixin {
   const _$_LyricistNameTooLong() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.lyricistNameTooLong()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.lyricistNameTooLong()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.lyricistNameTooLong'));
   }
 
   @override
@@ -1414,6 +1547,7 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return lyricistNameTooLong();
   }
@@ -1431,6 +1565,7 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return lyricistNameTooLong?.call();
   }
@@ -1448,6 +1583,7 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (lyricistNameTooLong != null) {
@@ -1467,9 +1603,11 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return lyricistNameTooLong(this);
   }
@@ -1484,9 +1622,10 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return lyricistNameTooLong?.call(this);
   }
@@ -1501,9 +1640,10 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (lyricistNameTooLong != null) {
@@ -1513,7 +1653,7 @@ class _$_LyricistNameTooLong extends _LyricistNameTooLong {
   }
 }
 
-abstract class _LyricistNameTooLong extends DraftArrangementError {
+abstract class _LyricistNameTooLong extends ArrangementValidationError {
   const factory _LyricistNameTooLong() = _$_LyricistNameTooLong;
   const _LyricistNameTooLong._() : super._();
 }
@@ -1527,7 +1667,7 @@ abstract class _$$_DescriptionTooLongCopyWith<$Res> {
 
 /// @nodoc
 class __$$_DescriptionTooLongCopyWithImpl<$Res>
-    extends _$DraftArrangementErrorCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
     implements _$$_DescriptionTooLongCopyWith<$Res> {
   __$$_DescriptionTooLongCopyWithImpl(
       _$_DescriptionTooLong _value, $Res Function(_$_DescriptionTooLong) _then)
@@ -1539,12 +1679,20 @@ class __$$_DescriptionTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_DescriptionTooLong extends _DescriptionTooLong {
+class _$_DescriptionTooLong extends _DescriptionTooLong
+    with DiagnosticableTreeMixin {
   const _$_DescriptionTooLong() : super._();
 
   @override
-  String toString() {
-    return 'DraftArrangementError.descriptionTooLong()';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.descriptionTooLong()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.descriptionTooLong'));
   }
 
   @override
@@ -1569,6 +1717,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     required TResult Function() lyricistMustHaveAName,
     required TResult Function() lyricistNameTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
   }) {
     return descriptionTooLong();
   }
@@ -1586,6 +1735,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
   }) {
     return descriptionTooLong?.call();
   }
@@ -1603,6 +1753,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function()? lyricistMustHaveAName,
     TResult Function()? lyricistNameTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
     required TResult orElse(),
   }) {
     if (descriptionTooLong != null) {
@@ -1622,9 +1773,11 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
     required TResult Function(_TooManyParts value) tooManyParts,
     required TResult Function(_TooManyLyricists value) tooManyLyricists,
-    required TResult Function(_TooManyLyricists value) lyricistMustHaveAName,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
     required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
   }) {
     return descriptionTooLong(this);
   }
@@ -1639,9 +1792,10 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
   }) {
     return descriptionTooLong?.call(this);
   }
@@ -1656,9 +1810,10 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
     TResult Function(_TooManyParts value)? tooManyParts,
     TResult Function(_TooManyLyricists value)? tooManyLyricists,
-    TResult Function(_TooManyLyricists value)? lyricistMustHaveAName,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
     TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
     required TResult orElse(),
   }) {
     if (descriptionTooLong != null) {
@@ -1668,7 +1823,176 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
   }
 }
 
-abstract class _DescriptionTooLong extends DraftArrangementError {
+abstract class _DescriptionTooLong extends ArrangementValidationError {
   const factory _DescriptionTooLong() = _$_DescriptionTooLong;
   const _DescriptionTooLong._() : super._();
+}
+
+/// @nodoc
+abstract class _$$_PartsNotValidCopyWith<$Res> {
+  factory _$$_PartsNotValidCopyWith(
+          _$_PartsNotValid value, $Res Function(_$_PartsNotValid) then) =
+      __$$_PartsNotValidCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$_PartsNotValidCopyWithImpl<$Res>
+    extends _$ArrangementValidationErrorCopyWithImpl<$Res>
+    implements _$$_PartsNotValidCopyWith<$Res> {
+  __$$_PartsNotValidCopyWithImpl(
+      _$_PartsNotValid _value, $Res Function(_$_PartsNotValid) _then)
+      : super(_value, (v) => _then(v as _$_PartsNotValid));
+
+  @override
+  _$_PartsNotValid get _value => super._value as _$_PartsNotValid;
+}
+
+/// @nodoc
+
+class _$_PartsNotValid extends _PartsNotValid with DiagnosticableTreeMixin {
+  const _$_PartsNotValid() : super._();
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'ArrangementValidationError.partsNotValid()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty(
+        'type', 'ArrangementValidationError.partsNotValid'));
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$_PartsNotValid);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() nameIsRequired,
+    required TResult Function() nameTooLong,
+    required TResult Function() tooManyArrangers,
+    required TResult Function() arrangerMustHaveAName,
+    required TResult Function() arrangerNameTooLong,
+    required TResult Function() tooManyParts,
+    required TResult Function() tooManyLyricists,
+    required TResult Function() lyricistMustHaveAName,
+    required TResult Function() lyricistNameTooLong,
+    required TResult Function() descriptionTooLong,
+    required TResult Function() partsNotValid,
+  }) {
+    return partsNotValid();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? nameIsRequired,
+    TResult Function()? nameTooLong,
+    TResult Function()? tooManyArrangers,
+    TResult Function()? arrangerMustHaveAName,
+    TResult Function()? arrangerNameTooLong,
+    TResult Function()? tooManyParts,
+    TResult Function()? tooManyLyricists,
+    TResult Function()? lyricistMustHaveAName,
+    TResult Function()? lyricistNameTooLong,
+    TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
+  }) {
+    return partsNotValid?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? nameIsRequired,
+    TResult Function()? nameTooLong,
+    TResult Function()? tooManyArrangers,
+    TResult Function()? arrangerMustHaveAName,
+    TResult Function()? arrangerNameTooLong,
+    TResult Function()? tooManyParts,
+    TResult Function()? tooManyLyricists,
+    TResult Function()? lyricistMustHaveAName,
+    TResult Function()? lyricistNameTooLong,
+    TResult Function()? descriptionTooLong,
+    TResult Function()? partsNotValid,
+    required TResult orElse(),
+  }) {
+    if (partsNotValid != null) {
+      return partsNotValid();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_NameIsRequired value) nameIsRequired,
+    required TResult Function(_NameTooLong value) nameTooLong,
+    required TResult Function(_TooManyArrangers value) tooManyArrangers,
+    required TResult Function(_ArrangerMustHaveAName value)
+        arrangerMustHaveAName,
+    required TResult Function(_ArrangerNameTooLong value) arrangerNameTooLong,
+    required TResult Function(_TooManyParts value) tooManyParts,
+    required TResult Function(_TooManyLyricists value) tooManyLyricists,
+    required TResult Function(_LyricistMustHaveAName value)
+        lyricistMustHaveAName,
+    required TResult Function(_LyricistNameTooLong value) lyricistNameTooLong,
+    required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_PartsNotValid value) partsNotValid,
+  }) {
+    return partsNotValid(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_NameIsRequired value)? nameIsRequired,
+    TResult Function(_NameTooLong value)? nameTooLong,
+    TResult Function(_TooManyArrangers value)? tooManyArrangers,
+    TResult Function(_ArrangerMustHaveAName value)? arrangerMustHaveAName,
+    TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
+    TResult Function(_TooManyParts value)? tooManyParts,
+    TResult Function(_TooManyLyricists value)? tooManyLyricists,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
+    TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
+    TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
+  }) {
+    return partsNotValid?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_NameIsRequired value)? nameIsRequired,
+    TResult Function(_NameTooLong value)? nameTooLong,
+    TResult Function(_TooManyArrangers value)? tooManyArrangers,
+    TResult Function(_ArrangerMustHaveAName value)? arrangerMustHaveAName,
+    TResult Function(_ArrangerNameTooLong value)? arrangerNameTooLong,
+    TResult Function(_TooManyParts value)? tooManyParts,
+    TResult Function(_TooManyLyricists value)? tooManyLyricists,
+    TResult Function(_LyricistMustHaveAName value)? lyricistMustHaveAName,
+    TResult Function(_LyricistNameTooLong value)? lyricistNameTooLong,
+    TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_PartsNotValid value)? partsNotValid,
+    required TResult orElse(),
+  }) {
+    if (partsNotValid != null) {
+      return partsNotValid(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _PartsNotValid extends ArrangementValidationError {
+  const factory _PartsNotValid() = _$_PartsNotValid;
+  const _PartsNotValid._() : super._();
 }

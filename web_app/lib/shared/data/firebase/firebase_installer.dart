@@ -16,10 +16,12 @@ class FirebaseInstaller implements Installer {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    await getIt<FirebaseRemoteConfig>().setConfigSettings(RemoteConfigSettings(
+    final remoteConfig = getIt<FirebaseRemoteConfig>();
+    await remoteConfig.setConfigSettings(RemoteConfigSettings(
       fetchTimeout: const Duration(minutes: 1),
       minimumFetchInterval: const Duration(hours: 1),
     ));
+    await remoteConfig.fetchAndActivate();
     getIt.logger<GetIt>().i('initialized firebase');
   }
 

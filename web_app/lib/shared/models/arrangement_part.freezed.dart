@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target
 
-part of 'draft_arrangement_part.dart';
+part of 'arrangement_part.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -15,7 +15,7 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
-mixin _$DraftArrangementPartError {
+mixin _$ArrangementPartValidationError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() tooManyLinks,
@@ -75,20 +75,21 @@ mixin _$DraftArrangementPartError {
 }
 
 /// @nodoc
-abstract class $DraftArrangementPartErrorCopyWith<$Res> {
-  factory $DraftArrangementPartErrorCopyWith(DraftArrangementPartError value,
-          $Res Function(DraftArrangementPartError) then) =
-      _$DraftArrangementPartErrorCopyWithImpl<$Res>;
+abstract class $ArrangementPartValidationErrorCopyWith<$Res> {
+  factory $ArrangementPartValidationErrorCopyWith(
+          ArrangementPartValidationError value,
+          $Res Function(ArrangementPartValidationError) then) =
+      _$ArrangementPartValidationErrorCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class _$DraftArrangementPartErrorCopyWithImpl<$Res>
-    implements $DraftArrangementPartErrorCopyWith<$Res> {
-  _$DraftArrangementPartErrorCopyWithImpl(this._value, this._then);
+class _$ArrangementPartValidationErrorCopyWithImpl<$Res>
+    implements $ArrangementPartValidationErrorCopyWith<$Res> {
+  _$ArrangementPartValidationErrorCopyWithImpl(this._value, this._then);
 
-  final DraftArrangementPartError _value;
+  final ArrangementPartValidationError _value;
   // ignore: unused_field
-  final $Res Function(DraftArrangementPartError) _then;
+  final $Res Function(ArrangementPartValidationError) _then;
 }
 
 /// @nodoc
@@ -100,7 +101,7 @@ abstract class _$$_TooManyLinksCopyWith<$Res> {
 
 /// @nodoc
 class __$$_TooManyLinksCopyWithImpl<$Res>
-    extends _$DraftArrangementPartErrorCopyWithImpl<$Res>
+    extends _$ArrangementPartValidationErrorCopyWithImpl<$Res>
     implements _$$_TooManyLinksCopyWith<$Res> {
   __$$_TooManyLinksCopyWithImpl(
       _$_TooManyLinks _value, $Res Function(_$_TooManyLinks) _then)
@@ -117,7 +118,7 @@ class _$_TooManyLinks extends _TooManyLinks {
 
   @override
   String toString() {
-    return 'DraftArrangementPartError.tooManyLinks()';
+    return 'ArrangementPartValidationError.tooManyLinks()';
   }
 
   @override
@@ -210,7 +211,7 @@ class _$_TooManyLinks extends _TooManyLinks {
   }
 }
 
-abstract class _TooManyLinks extends DraftArrangementPartError {
+abstract class _TooManyLinks extends ArrangementPartValidationError {
   const factory _TooManyLinks() = _$_TooManyLinks;
   const _TooManyLinks._() : super._();
 }
@@ -224,7 +225,7 @@ abstract class _$$_LinkMustHaveAValueCopyWith<$Res> {
 
 /// @nodoc
 class __$$_LinkMustHaveAValueCopyWithImpl<$Res>
-    extends _$DraftArrangementPartErrorCopyWithImpl<$Res>
+    extends _$ArrangementPartValidationErrorCopyWithImpl<$Res>
     implements _$$_LinkMustHaveAValueCopyWith<$Res> {
   __$$_LinkMustHaveAValueCopyWithImpl(
       _$_LinkMustHaveAValue _value, $Res Function(_$_LinkMustHaveAValue) _then)
@@ -241,7 +242,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
 
   @override
   String toString() {
-    return 'DraftArrangementPartError.linkMustHaveAValue()';
+    return 'ArrangementPartValidationError.linkMustHaveAValue()';
   }
 
   @override
@@ -334,7 +335,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
   }
 }
 
-abstract class _LinkMustHaveAValue extends DraftArrangementPartError {
+abstract class _LinkMustHaveAValue extends ArrangementPartValidationError {
   const factory _LinkMustHaveAValue() = _$_LinkMustHaveAValue;
   const _LinkMustHaveAValue._() : super._();
 }
@@ -348,7 +349,7 @@ abstract class _$$_LinkTooLongCopyWith<$Res> {
 
 /// @nodoc
 class __$$_LinkTooLongCopyWithImpl<$Res>
-    extends _$DraftArrangementPartErrorCopyWithImpl<$Res>
+    extends _$ArrangementPartValidationErrorCopyWithImpl<$Res>
     implements _$$_LinkTooLongCopyWith<$Res> {
   __$$_LinkTooLongCopyWithImpl(
       _$_LinkTooLong _value, $Res Function(_$_LinkTooLong) _then)
@@ -365,7 +366,7 @@ class _$_LinkTooLong extends _LinkTooLong {
 
   @override
   String toString() {
-    return 'DraftArrangementPartError.linkTooLong()';
+    return 'ArrangementPartValidationError.linkTooLong()';
   }
 
   @override
@@ -458,7 +459,7 @@ class _$_LinkTooLong extends _LinkTooLong {
   }
 }
 
-abstract class _LinkTooLong extends DraftArrangementPartError {
+abstract class _LinkTooLong extends ArrangementPartValidationError {
   const factory _LinkTooLong() = _$_LinkTooLong;
   const _LinkTooLong._() : super._();
 }
@@ -472,7 +473,7 @@ abstract class _$$_DescriptionTooLongCopyWith<$Res> {
 
 /// @nodoc
 class __$$_DescriptionTooLongCopyWithImpl<$Res>
-    extends _$DraftArrangementPartErrorCopyWithImpl<$Res>
+    extends _$ArrangementPartValidationErrorCopyWithImpl<$Res>
     implements _$$_DescriptionTooLongCopyWith<$Res> {
   __$$_DescriptionTooLongCopyWithImpl(
       _$_DescriptionTooLong _value, $Res Function(_$_DescriptionTooLong) _then)
@@ -489,7 +490,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
 
   @override
   String toString() {
-    return 'DraftArrangementPartError.descriptionTooLong()';
+    return 'ArrangementPartValidationError.descriptionTooLong()';
   }
 
   @override
@@ -582,7 +583,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
   }
 }
 
-abstract class _DescriptionTooLong extends DraftArrangementPartError {
+abstract class _DescriptionTooLong extends ArrangementPartValidationError {
   const factory _DescriptionTooLong() = _$_DescriptionTooLong;
   const _DescriptionTooLong._() : super._();
 }
@@ -596,7 +597,7 @@ abstract class _$$_TooManyInstrumentsCopyWith<$Res> {
 
 /// @nodoc
 class __$$_TooManyInstrumentsCopyWithImpl<$Res>
-    extends _$DraftArrangementPartErrorCopyWithImpl<$Res>
+    extends _$ArrangementPartValidationErrorCopyWithImpl<$Res>
     implements _$$_TooManyInstrumentsCopyWith<$Res> {
   __$$_TooManyInstrumentsCopyWithImpl(
       _$_TooManyInstruments _value, $Res Function(_$_TooManyInstruments) _then)
@@ -613,7 +614,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
 
   @override
   String toString() {
-    return 'DraftArrangementPartError.tooManyInstruments()';
+    return 'ArrangementPartValidationError.tooManyInstruments()';
   }
 
   @override
@@ -706,7 +707,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
   }
 }
 
-abstract class _TooManyInstruments extends DraftArrangementPartError {
+abstract class _TooManyInstruments extends ArrangementPartValidationError {
   const factory _TooManyInstruments() = _$_TooManyInstruments;
   const _TooManyInstruments._() : super._();
 }

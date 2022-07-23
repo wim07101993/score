@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/models/score.dart';
 
 class AddComposerButton extends StatelessWidget {
   const AddComposerButton({
@@ -24,9 +24,7 @@ class AddComposerButton extends StatelessWidget {
       return button;
     } else {
       return Tooltip(
-        message: s.tooManyComposersErrorMessage(
-          DraftScore.maxNumberOfComposers,
-        ),
+        message: s.tooManyComposersErrorMessage(Score.maxNumberOfComposers),
         child: button,
       );
     }

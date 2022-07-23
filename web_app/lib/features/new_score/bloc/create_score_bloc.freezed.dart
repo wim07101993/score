@@ -16,20 +16,20 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$CreateScoreEvent {
-  DraftScore get score => throw _privateConstructorUsedError;
+  Score get score => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(DraftScore score) save,
+    required TResult Function(Score score) save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(DraftScore score)? save,
+    TResult Function(Score score)? save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(DraftScore score)? save,
+    TResult Function(Score score)? save,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -60,7 +60,7 @@ abstract class $CreateScoreEventCopyWith<$Res> {
   factory $CreateScoreEventCopyWith(
           CreateScoreEvent value, $Res Function(CreateScoreEvent) then) =
       _$CreateScoreEventCopyWithImpl<$Res>;
-  $Res call({DraftScore score});
+  $Res call({Score score});
 }
 
 /// @nodoc
@@ -80,7 +80,7 @@ class _$CreateScoreEventCopyWithImpl<$Res>
       score: score == freezed
           ? _value.score
           : score // ignore: cast_nullable_to_non_nullable
-              as DraftScore,
+              as Score,
     ));
   }
 }
@@ -92,7 +92,7 @@ abstract class _$$_CreateScoreEventCopyWith<$Res>
           _$_CreateScoreEvent value, $Res Function(_$_CreateScoreEvent) then) =
       __$$_CreateScoreEventCopyWithImpl<$Res>;
   @override
-  $Res call({DraftScore score});
+  $Res call({Score score});
 }
 
 /// @nodoc
@@ -114,7 +114,7 @@ class __$$_CreateScoreEventCopyWithImpl<$Res>
       score == freezed
           ? _value.score
           : score // ignore: cast_nullable_to_non_nullable
-              as DraftScore,
+              as Score,
     ));
   }
 }
@@ -125,7 +125,7 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   const _$_CreateScoreEvent(this.score);
 
   @override
-  final DraftScore score;
+  final Score score;
 
   @override
   String toString() {
@@ -152,7 +152,7 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(DraftScore score) save,
+    required TResult Function(Score score) save,
   }) {
     return save(score);
   }
@@ -160,7 +160,7 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(DraftScore score)? save,
+    TResult Function(Score score)? save,
   }) {
     return save?.call(score);
   }
@@ -168,7 +168,7 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(DraftScore score)? save,
+    TResult Function(Score score)? save,
     required TResult orElse(),
   }) {
     if (save != null) {
@@ -207,10 +207,10 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
 }
 
 abstract class _CreateScoreEvent implements CreateScoreEvent {
-  const factory _CreateScoreEvent(final DraftScore score) = _$_CreateScoreEvent;
+  const factory _CreateScoreEvent(final Score score) = _$_CreateScoreEvent;
 
   @override
-  DraftScore get score;
+  Score get score;
   @override
   @JsonKey(ignore: true)
   _$$_CreateScoreEventCopyWith<_$_CreateScoreEvent> get copyWith =>

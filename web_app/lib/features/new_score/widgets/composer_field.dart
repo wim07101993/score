@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/new_score/models/draft_score.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/models/score.dart';
 
 class ComposerField extends StatelessWidget {
   const ComposerField({
@@ -23,12 +23,12 @@ class ComposerField extends StatelessWidget {
     );
   }
 
-  String? _validate(S s, String? value) {
-    final errors = DraftScore.validateComposer(value).toList(growable: false);
+  static String? _validate(S s, String? value) {
+    final errors = Score.validateComposer(value).toList(growable: false);
     if (errors.isEmpty) {
       return null;
     }
 
-    return errors.map((e) => e.getMessage(s)).join("\r\n");
+    return errors.map(s.getErrorMessage).join("\r\n");
   }
 }
