@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target
 
-part of 'create_score_bloc.dart';
+part of 'create_score_wizard_bloc.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -15,21 +15,20 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
-mixin _$CreateScoreEvent {
-  Score get score => throw _privateConstructorUsedError;
+mixin _$CreateScoreWizardEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(Score score) save,
+    required TResult Function() save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(Score score)? save,
+    TResult Function()? save,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(Score score)? save,
+    TResult Function()? save,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -49,55 +48,35 @@ mixin _$CreateScoreEvent {
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
-
-  @JsonKey(ignore: true)
-  $CreateScoreEventCopyWith<CreateScoreEvent> get copyWith =>
-      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $CreateScoreEventCopyWith<$Res> {
-  factory $CreateScoreEventCopyWith(
-          CreateScoreEvent value, $Res Function(CreateScoreEvent) then) =
-      _$CreateScoreEventCopyWithImpl<$Res>;
-  $Res call({Score score});
+abstract class $CreateScoreWizardEventCopyWith<$Res> {
+  factory $CreateScoreWizardEventCopyWith(CreateScoreWizardEvent value,
+          $Res Function(CreateScoreWizardEvent) then) =
+      _$CreateScoreWizardEventCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class _$CreateScoreEventCopyWithImpl<$Res>
-    implements $CreateScoreEventCopyWith<$Res> {
-  _$CreateScoreEventCopyWithImpl(this._value, this._then);
+class _$CreateScoreWizardEventCopyWithImpl<$Res>
+    implements $CreateScoreWizardEventCopyWith<$Res> {
+  _$CreateScoreWizardEventCopyWithImpl(this._value, this._then);
 
-  final CreateScoreEvent _value;
+  final CreateScoreWizardEvent _value;
   // ignore: unused_field
-  final $Res Function(CreateScoreEvent) _then;
-
-  @override
-  $Res call({
-    Object? score = freezed,
-  }) {
-    return _then(_value.copyWith(
-      score: score == freezed
-          ? _value.score
-          : score // ignore: cast_nullable_to_non_nullable
-              as Score,
-    ));
-  }
+  final $Res Function(CreateScoreWizardEvent) _then;
 }
 
 /// @nodoc
-abstract class _$$_CreateScoreEventCopyWith<$Res>
-    implements $CreateScoreEventCopyWith<$Res> {
+abstract class _$$_CreateScoreEventCopyWith<$Res> {
   factory _$$_CreateScoreEventCopyWith(
           _$_CreateScoreEvent value, $Res Function(_$_CreateScoreEvent) then) =
       __$$_CreateScoreEventCopyWithImpl<$Res>;
-  @override
-  $Res call({Score score});
 }
 
 /// @nodoc
 class __$$_CreateScoreEventCopyWithImpl<$Res>
-    extends _$CreateScoreEventCopyWithImpl<$Res>
+    extends _$CreateScoreWizardEventCopyWithImpl<$Res>
     implements _$$_CreateScoreEventCopyWith<$Res> {
   __$$_CreateScoreEventCopyWithImpl(
       _$_CreateScoreEvent _value, $Res Function(_$_CreateScoreEvent) _then)
@@ -105,74 +84,51 @@ class __$$_CreateScoreEventCopyWithImpl<$Res>
 
   @override
   _$_CreateScoreEvent get _value => super._value as _$_CreateScoreEvent;
-
-  @override
-  $Res call({
-    Object? score = freezed,
-  }) {
-    return _then(_$_CreateScoreEvent(
-      score == freezed
-          ? _value.score
-          : score // ignore: cast_nullable_to_non_nullable
-              as Score,
-    ));
-  }
 }
 
 /// @nodoc
 
 class _$_CreateScoreEvent implements _CreateScoreEvent {
-  const _$_CreateScoreEvent(this.score);
-
-  @override
-  final Score score;
+  const _$_CreateScoreEvent();
 
   @override
   String toString() {
-    return 'CreateScoreEvent.save(score: $score)';
+    return 'CreateScoreWizardEvent.save()';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$_CreateScoreEvent &&
-            const DeepCollectionEquality().equals(other.score, score));
+        (other.runtimeType == runtimeType && other is _$_CreateScoreEvent);
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, const DeepCollectionEquality().hash(score));
-
-  @JsonKey(ignore: true)
-  @override
-  _$$_CreateScoreEventCopyWith<_$_CreateScoreEvent> get copyWith =>
-      __$$_CreateScoreEventCopyWithImpl<_$_CreateScoreEvent>(this, _$identity);
+  int get hashCode => runtimeType.hashCode;
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(Score score) save,
+    required TResult Function() save,
   }) {
-    return save(score);
+    return save();
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult Function(Score score)? save,
+    TResult Function()? save,
   }) {
-    return save?.call(score);
+    return save?.call();
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(Score score)? save,
+    TResult Function()? save,
     required TResult orElse(),
   }) {
     if (save != null) {
-      return save(score);
+      return save();
     }
     return orElse();
   }
@@ -206,51 +162,50 @@ class _$_CreateScoreEvent implements _CreateScoreEvent {
   }
 }
 
-abstract class _CreateScoreEvent implements CreateScoreEvent {
-  const factory _CreateScoreEvent(final Score score) = _$_CreateScoreEvent;
-
-  @override
-  Score get score;
-  @override
-  @JsonKey(ignore: true)
-  _$$_CreateScoreEventCopyWith<_$_CreateScoreEvent> get copyWith =>
-      throw _privateConstructorUsedError;
+abstract class _CreateScoreEvent implements CreateScoreWizardEvent {
+  const factory _CreateScoreEvent() = _$_CreateScoreEvent;
 }
 
 /// @nodoc
-mixin _$CreateScoreState {
+mixin _$CreateScoreWizardState {
   Object? get error => throw _privateConstructorUsedError;
+  EditableScore get score => throw _privateConstructorUsedError;
   bool get created => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
-  $CreateScoreStateCopyWith<CreateScoreState> get copyWith =>
+  $CreateScoreWizardStateCopyWith<CreateScoreWizardState> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $CreateScoreStateCopyWith<$Res> {
-  factory $CreateScoreStateCopyWith(
-          CreateScoreState value, $Res Function(CreateScoreState) then) =
-      _$CreateScoreStateCopyWithImpl<$Res>;
-  $Res call({Object? error, bool created});
+abstract class $CreateScoreWizardStateCopyWith<$Res> {
+  factory $CreateScoreWizardStateCopyWith(CreateScoreWizardState value,
+          $Res Function(CreateScoreWizardState) then) =
+      _$CreateScoreWizardStateCopyWithImpl<$Res>;
+  $Res call({Object? error, EditableScore score, bool created});
 }
 
 /// @nodoc
-class _$CreateScoreStateCopyWithImpl<$Res>
-    implements $CreateScoreStateCopyWith<$Res> {
-  _$CreateScoreStateCopyWithImpl(this._value, this._then);
+class _$CreateScoreWizardStateCopyWithImpl<$Res>
+    implements $CreateScoreWizardStateCopyWith<$Res> {
+  _$CreateScoreWizardStateCopyWithImpl(this._value, this._then);
 
-  final CreateScoreState _value;
+  final CreateScoreWizardState _value;
   // ignore: unused_field
-  final $Res Function(CreateScoreState) _then;
+  final $Res Function(CreateScoreWizardState) _then;
 
   @override
   $Res call({
     Object? error = freezed,
+    Object? score = freezed,
     Object? created = freezed,
   }) {
     return _then(_value.copyWith(
       error: error == freezed ? _value.error : error,
+      score: score == freezed
+          ? _value.score
+          : score // ignore: cast_nullable_to_non_nullable
+              as EditableScore,
       created: created == freezed
           ? _value.created
           : created // ignore: cast_nullable_to_non_nullable
@@ -261,17 +216,17 @@ class _$CreateScoreStateCopyWithImpl<$Res>
 
 /// @nodoc
 abstract class _$$_CreateScoreStateCopyWith<$Res>
-    implements $CreateScoreStateCopyWith<$Res> {
+    implements $CreateScoreWizardStateCopyWith<$Res> {
   factory _$$_CreateScoreStateCopyWith(
           _$_CreateScoreState value, $Res Function(_$_CreateScoreState) then) =
       __$$_CreateScoreStateCopyWithImpl<$Res>;
   @override
-  $Res call({Object? error, bool created});
+  $Res call({Object? error, EditableScore score, bool created});
 }
 
 /// @nodoc
 class __$$_CreateScoreStateCopyWithImpl<$Res>
-    extends _$CreateScoreStateCopyWithImpl<$Res>
+    extends _$CreateScoreWizardStateCopyWithImpl<$Res>
     implements _$$_CreateScoreStateCopyWith<$Res> {
   __$$_CreateScoreStateCopyWithImpl(
       _$_CreateScoreState _value, $Res Function(_$_CreateScoreState) _then)
@@ -283,10 +238,15 @@ class __$$_CreateScoreStateCopyWithImpl<$Res>
   @override
   $Res call({
     Object? error = freezed,
+    Object? score = freezed,
     Object? created = freezed,
   }) {
     return _then(_$_CreateScoreState(
       error: error == freezed ? _value.error : error,
+      score: score == freezed
+          ? _value.score
+          : score // ignore: cast_nullable_to_non_nullable
+              as EditableScore,
       created: created == freezed
           ? _value.created
           : created // ignore: cast_nullable_to_non_nullable
@@ -298,17 +258,20 @@ class __$$_CreateScoreStateCopyWithImpl<$Res>
 /// @nodoc
 
 class _$_CreateScoreState implements _CreateScoreState {
-  const _$_CreateScoreState({this.error, this.created = false});
+  const _$_CreateScoreState(
+      {this.error, required this.score, this.created = false});
 
   @override
   final Object? error;
+  @override
+  final EditableScore score;
   @override
   @JsonKey()
   final bool created;
 
   @override
   String toString() {
-    return 'CreateScoreState(error: $error, created: $created)';
+    return 'CreateScoreWizardState(error: $error, score: $score, created: $created)';
   }
 
   @override
@@ -317,6 +280,7 @@ class _$_CreateScoreState implements _CreateScoreState {
         (other.runtimeType == runtimeType &&
             other is _$_CreateScoreState &&
             const DeepCollectionEquality().equals(other.error, error) &&
+            const DeepCollectionEquality().equals(other.score, score) &&
             const DeepCollectionEquality().equals(other.created, created));
   }
 
@@ -324,6 +288,7 @@ class _$_CreateScoreState implements _CreateScoreState {
   int get hashCode => Object.hash(
       runtimeType,
       const DeepCollectionEquality().hash(error),
+      const DeepCollectionEquality().hash(score),
       const DeepCollectionEquality().hash(created));
 
   @JsonKey(ignore: true)
@@ -332,12 +297,16 @@ class _$_CreateScoreState implements _CreateScoreState {
       __$$_CreateScoreStateCopyWithImpl<_$_CreateScoreState>(this, _$identity);
 }
 
-abstract class _CreateScoreState implements CreateScoreState {
-  const factory _CreateScoreState({final Object? error, final bool created}) =
-      _$_CreateScoreState;
+abstract class _CreateScoreState implements CreateScoreWizardState {
+  const factory _CreateScoreState(
+      {final Object? error,
+      required final EditableScore score,
+      final bool created}) = _$_CreateScoreState;
 
   @override
   Object? get error;
+  @override
+  EditableScore get score;
   @override
   bool get created;
   @override

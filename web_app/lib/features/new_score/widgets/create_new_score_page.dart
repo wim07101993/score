@@ -1,9 +1,9 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart' hide CloseButton;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/new_score/bloc/create_score_bloc.dart';
+import 'package:score/features/new_score/bloc/create_score_wizard_bloc.dart';
 import 'package:score/features/new_score/widgets/close_button.dart';
-import 'package:score/features/new_score/widgets/new_score_form.dart';
 import 'package:score/features/new_score/widgets/page_title.dart';
 import 'package:score/globals.dart';
 import 'package:score/shared/data/firebase/exceptions/permission_denied_exception.dart';
@@ -13,9 +13,9 @@ class CreateNewScorePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<CreateScoreBloc>(
+    return BlocProvider<CreateScoreWizardBloc>(
       create: (_) => context.read<GetIt>()(),
-      child: BlocListener<CreateScoreBloc, CreateScoreState>(
+      child: BlocListener<CreateScoreWizardBloc, CreateScoreWizardState>(
         listener: onStateChange,
         child: Stack(children: [
           SingleChildScrollView(
@@ -25,7 +25,7 @@ class CreateNewScorePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: const [
                   PageTitle(),
-                  NewScoreForm(),
+                  IntrinsicHeight(child: AutoRouter()),
                 ],
               ),
             ),
@@ -39,7 +39,7 @@ class CreateNewScorePage extends StatelessWidget {
     );
   }
 
-  void onStateChange(BuildContext context, CreateScoreState state) {
+  void onStateChange(BuildContext context, CreateScoreWizardState state) {
     final error = state.error;
     if (error != null) {
       late final String errorMessage;

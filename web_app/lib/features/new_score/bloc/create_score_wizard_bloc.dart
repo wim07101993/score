@@ -6,25 +6,27 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:score/features/new_score/behaviours/save_new_score.dart';
 import 'package:score/shared/models/score.dart';
 
-part 'create_score_bloc.freezed.dart';
+part 'create_score_wizard_bloc.freezed.dart';
 
 @freezed
-class CreateScoreEvent with _$CreateScoreEvent {
-  const factory CreateScoreEvent.save(Score score) = _CreateScoreEvent;
+class CreateScoreWizardEvent with _$CreateScoreWizardEvent {
+  const factory CreateScoreWizardEvent.save() = _CreateScoreEvent;
 }
 
 @freezed
-class CreateScoreState with _$CreateScoreState {
-  const factory CreateScoreState({
+class CreateScoreWizardState with _$CreateScoreWizardState {
+  const factory CreateScoreWizardState({
     Object? error,
+    required EditableScore score,
     @Default(false) bool created,
   }) = _CreateScoreState;
 }
 
-class CreateScoreBloc extends Bloc<CreateScoreEvent, CreateScoreState> {
-  CreateScoreBloc({
+class CreateScoreWizardBloc
+    extends Bloc<CreateScoreWizardEvent, CreateScoreWizardState> {
+  CreateScoreWizardBloc({
     required this.saveNewScore,
-  }) : super(const CreateScoreState()) {
+  }) : super(CreateScoreWizardState(score: EditableScore.empty())) {
     on<_CreateScoreEvent>(onCreateScoreEvent);
   }
 
@@ -32,10 +34,10 @@ class CreateScoreBloc extends Bloc<CreateScoreEvent, CreateScoreState> {
 
   Future<void> onCreateScoreEvent(
     _CreateScoreEvent event,
-    Emitter<CreateScoreState> emit,
+    Emitter<CreateScoreWizardState> emit,
   ) {
     emit(state.copyWith(error: null));
-    return saveNewScore(event.score).thenWhen(
+    return saveNewScore(state.score).thenWhen(
       (exception) => emit(state.copyWith(error: exception)),
       (_) => emit(state.copyWith(created: true)),
     );

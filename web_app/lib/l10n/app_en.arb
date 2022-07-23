@@ -51,6 +51,10 @@
   "@dedicationFieldLabel": {
     "description": "Label for the dedication field when editing an score"
   },
+  "next": "Next",
+  "@next": {
+    "description": "Text on a next-button"
+  },
   "save": "Save",
   "@save": {
     "description": "Text on a save-button"
