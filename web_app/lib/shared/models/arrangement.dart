@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:score/shared/list_notifier.dart';
 import 'package:score/shared/models/arrangement_part.dart';
 import 'package:score/shared/string_extensions.dart';
 
@@ -137,7 +138,7 @@ class SavedArrangement extends NewArrangement {
   });
 }
 
-class EditableArrangement extends ChangeNotifier with Arrangement {
+class EditableArrangement with Arrangement {
   EditableArrangement({
     required this.editableName,
     required this.editableDescription,
@@ -146,11 +147,21 @@ class EditableArrangement extends ChangeNotifier with Arrangement {
     required this.editableParts,
   });
 
+  factory EditableArrangement.empty() {
+    return EditableArrangement(
+      editableName: TextEditingController(),
+      editableDescription: TextEditingController(),
+      editableArrangers: ListNotifier.empty(),
+      editableLyricists: ListNotifier.empty(),
+      editableParts: ListNotifier.empty(),
+    );
+  }
+
   final TextEditingController editableName;
   final TextEditingController editableDescription;
-  final List<TextEditingController> editableArrangers;
-  final List<TextEditingController> editableLyricists;
-  final List<EditableArrangementPart> editableParts;
+  final ListNotifier<TextEditingController> editableArrangers;
+  final ListNotifier<TextEditingController> editableLyricists;
+  final ListNotifier<EditableArrangementPart> editableParts;
 
   @override
   String get name => editableName.text;
@@ -160,20 +171,20 @@ class EditableArrangement extends ChangeNotifier with Arrangement {
 
   @override
   List<String> get arrangers {
-    return editableArrangers
+    return editableArrangers.value
         .map((editableArranger) => editableArranger.text)
         .toList(growable: false);
   }
 
   @override
   List<String> get lyricists {
-    return editableLyricists
+    return editableLyricists.value
         .map((editableLyricist) => editableLyricist.text)
         .toList(growable: false);
   }
 
   @override
-  List<ArrangementPart> get parts => editableParts;
+  List<ArrangementPart> get parts => editableParts.value;
 }
 
 @freezed

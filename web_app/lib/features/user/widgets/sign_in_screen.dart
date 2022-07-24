@@ -9,7 +9,10 @@ import 'package:score/shared/data/firebase/provider_configurations.dart';
 class SignInScreen extends StatelessWidget {
   const SignInScreen({
     super.key,
+    required this.onSignedIn,
   });
+
+  final void Function() onSignedIn;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +32,7 @@ class SignInScreen extends StatelessWidget {
       }
     } else if (state is SignedIn) {
       context.read<UserNotifier>().refreshUser();
+      onSignedIn();
     }
   }
 }

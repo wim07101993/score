@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:score/globals.dart';
-import 'package:score/shared/models/score.dart';
+import 'package:score/shared/models/arrangement.dart';
 
-class DedicationField extends StatelessWidget {
-  const DedicationField({
+class ArrangementDescriptionField extends StatelessWidget {
+  const ArrangementDescriptionField({
     super.key,
   });
 
@@ -12,17 +12,18 @@ class DedicationField extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return TextFormField(
-      controller: context.read<EditableScore>().editableDedication,
+      controller: context.read<EditableArrangement>().editableDescription,
       validator: (value) => _validate(s, value),
       decoration: InputDecoration(
-        labelText: s.dedicationFieldLabel,
+        labelText: s.arrangementDescriptionFieldName,
       ),
       textInputAction: TextInputAction.next,
     );
   }
 
   static String? _validate(S s, String? value) {
-    final errors = Score.validateDedication(value).toList(growable: false);
+    final errors =
+        Arrangement.validateDescription(value).toList(growable: false);
     if (errors.isEmpty) {
       return null;
     }

@@ -94,23 +94,27 @@ class SavedArrangementPart extends NewArrangementPart {
 class EditableArrangementPart with ArrangementPart {
   EditableArrangementPart({
     required this.editableDescription,
-    required this.instruments,
+    required this.editableInstruments,
     required this.editableLinks,
   });
 
   final TextEditingController editableDescription;
-  @override
-  final List<Instrument> instruments;
-  final List<TextEditingController> editableLinks;
+  final ValueNotifier<List<Instrument>> editableInstruments;
+  final ValueNotifier<List<TextEditingController>> editableLinks;
 
   @override
   String? get description => editableDescription.text.nullIfEmpty();
 
   @override
   List<Uri> get links {
-    return editableLinks
+    return editableLinks.value
         .map((link) => Uri.parse(link.text))
         .toList(growable: false);
+  }
+
+  @override
+  List<Instrument> get instruments {
+    return editableInstruments.value.toList(growable: false);
   }
 }
 

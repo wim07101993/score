@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:score/shared/list_notifier.dart';
 import 'package:score/shared/models/arrangement.dart';
 import 'package:score/shared/string_extensions.dart';
 
@@ -206,7 +207,7 @@ class SavedScore extends NewScore {
   }
 }
 
-class EditableScore extends ChangeNotifier with Score {
+class EditableScore with Score {
   EditableScore({
     required this.editableTitle,
     required this.editableSubtitle,
@@ -223,18 +224,18 @@ class EditableScore extends ChangeNotifier with Score {
       editableTitle: TextEditingController(),
       editableSubtitle: TextEditingController(),
       editableDedication: TextEditingController(),
-      editableComposers: List.empty(growable: true),
-      editableTags: List.empty(growable: true),
-      editableArrangements: List.empty(growable: true),
+      editableComposers: ListNotifier.empty(),
+      editableTags: ListNotifier.empty(),
+      editableArrangements: ListNotifier.empty(),
     );
   }
 
   final TextEditingController editableTitle;
   final TextEditingController editableSubtitle;
   final TextEditingController editableDedication;
-  final List<TextEditingController> editableComposers;
-  final List<TextEditingController> editableTags;
-  final List<EditableArrangement> editableArrangements;
+  final ListNotifier<TextEditingController> editableComposers;
+  final ListNotifier<TextEditingController> editableTags;
+  final ListNotifier<EditableArrangement> editableArrangements;
 
   @override
   String get title => editableTitle.text;
@@ -252,18 +253,18 @@ class EditableScore extends ChangeNotifier with Score {
   final DateTime modifiedAt;
 
   @override
-  List<Arrangement> get arrangements => editableArrangements;
+  List<Arrangement> get arrangements => editableArrangements.value;
 
   @override
   List<String> get composers {
-    return editableComposers
+    return editableComposers.value
         .map((editableComposer) => editableComposer.text)
         .toList(growable: false);
   }
 
   @override
   List<String> get tags {
-    return editableTags
+    return editableTags.value
         .map((editableTag) => editableTag.text)
         .toList(growable: false);
   }
@@ -296,26 +297,4 @@ class ScoreValidationError with _$ScoreValidationError {
   const factory ScoreValidationError.idNotLongEnough() = _IdNotLongEnough;
   const factory ScoreValidationError.arrangementsNotValid() =
       _arrangementsNotValid;
-
-  // String getMessage(S s) {
-  //   return 'Validation error';
-  // TODO
-  // return when(
-  //   titleIsRequired: () => s.titleIsRequiredErrorMessage,
-  //   titleTooLong: () => s.titleTooLongErrorMessage(DraftScore.maxTitleLength),
-  //   subtitleTooLong: () {
-  //     return s.subtitleTooLongErrorMessage(DraftScore.maxSubtitleLength);
-  //   },
-  //   dedicationTooLong: () {
-  //     return s.dedicationTooLongErrorMessage(DraftScore.maxDedicationLength);
-  //   },
-  //   tooManyComposers: () {
-  //     return s.tooManyComposersErrorMessage(DraftScore.maxNumberOfComposers);
-  //   },
-  //   composerMustHaveAName: () => s.composerMustHaveANameErrorMessage,
-  //   composerNameTooLong: () {
-  //     return s.composerNameTooLongErrorMessage(DraftScore.maxComposerLength);
-  //   },
-  // );
-  // }
 }

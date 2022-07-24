@@ -1,30 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:score/globals.dart';
-import 'package:score/shared/models/score.dart';
+import 'package:score/shared/models/arrangement.dart';
 
-class ComposerField extends StatelessWidget {
-  const ComposerField({
+class ArrangementNameField extends StatelessWidget {
+  const ArrangementNameField({
     super.key,
-    required this.value,
   });
-
-  final TextEditingController value;
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     return TextFormField(
-      controller: value,
+      controller: context.read<EditableArrangement>().editableName,
       validator: (value) => _validate(s, value),
       decoration: InputDecoration(
-        labelText: s.composerFieldLabel,
+        labelText: s.arrangementNameFieldName,
       ),
       textInputAction: TextInputAction.next,
     );
   }
 
   static String? _validate(S s, String? value) {
-    final errors = Score.validateComposer(value).toList(growable: false);
+    final errors = Arrangement.validateName(value).toList(growable: false);
     if (errors.isEmpty) {
       return null;
     }

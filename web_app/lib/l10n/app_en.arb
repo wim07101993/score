@@ -41,15 +41,23 @@
   },
   "titleFieldLabel": "Title",
   "@titleFieldLabel": {
-    "description": "Label for the title field when editing an score"
+    "description": "Label for the title field when editing a score"
   },
   "subtitleFieldLabel": "Subtitle",
   "@subtitleFieldLabel": {
-    "description": "Label for the subtitle title field when editing an score"
+    "description": "Label for the subtitle title field when editing a score"
   },
   "dedicationFieldLabel": "Dedication",
   "@dedicationFieldLabel": {
-    "description": "Label for the dedication field when editing an score"
+    "description": "Label for the dedication field when editing a score"
+  },
+  "arrangementNameFieldName": "Arrangement name",
+  "@arrangementNameFieldName": {
+    "description": "Label for the arrangement name field when editing an arrangement"
+  },
+  "arrangementDescriptionFieldName": "Arrangement description",
+  "@arrangementDescriptionFieldName": {
+    "description": "Label for the arrangement description field when editing an arrangement"
   },
   "next": "Next",
   "@next": {
@@ -59,9 +67,49 @@
   "@save": {
     "description": "Text on a save-button"
   },
+  "tagsLabel": "Tags",
+  "@tagsLabel": {
+    "description": "Label for the tags field when editing a score"
+  },
+  "arrangersLabel": "Arrangers",
+  "@arrangersLabel": {
+    "description": "Label for the arrangers field when editing an arrangement"
+  },
+  "composersLabel": "Composers",
+  "@composersLabel": {
+    "description": "Label for the composers field when editing a score"
+  },
+  "lyricistsLabel": "Lyricists",
+  "@lyricistsLabel": {
+    "description": "Label for the lyricists field when editing an arrangement"
+  },
+  "arrangerFieldLabel": "Arranger",
+  "@arrangerFieldLabel": {
+    "description": "Label for the arranger field when editing an arrangement"
+  },
+  "tagFieldLabel": "Tag",
+  "@tagFieldLabel": {
+    "description": "Label for the tag field when editing a score"
+  },
   "composerFieldLabel": "Composer",
   "@composerFieldLabel": {
     "description": "Label for the composer field when editing a score"
+  },
+  "lyricistFieldLabel": "Lyricist",
+  "@lyricistFieldLabel": {
+    "description": "Label for the lyricist field when editing an arrangement"
+  },
+  "addTag": "Add tag",
+  "@addTag": {
+    "description": "Text on the button to add a tag"
+  },
+  "addArranger": "Add arranger",
+  "@addArranger": {
+    "description": "Text on the button to add an arranger"
+  },
+  "addLyricist": "Add lyricist",
+  "@addLyricist": {
+    "description": "Text on the button to add a lyricist"
   },
   "addComposer": "Add composer",
   "@addComposer": {
@@ -286,5 +334,15 @@
   "partsNotValidErrorMessage": "One or more arrangement parts are not valid",
   "@partsNotValidErrorMessage": {
     "description": "Error message when validation of arrangement parts went wrong"
+  },
+  "arrangementTitle": "Arrangement: {name}",
+  "@arrangementTitle": {
+    "description": "Title of the add-arrangement-form.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "My arrangement"
+      }
+    }
   }
 }
