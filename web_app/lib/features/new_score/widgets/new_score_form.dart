@@ -41,7 +41,7 @@ class _NewScoreFormState extends State<NewScoreForm> {
               const SubtitleField(),
               const SizedBox(height: 8),
               const DedicationField(),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               _composers(s, score),
               const SizedBox(height: 8),
               _tags(s, score),

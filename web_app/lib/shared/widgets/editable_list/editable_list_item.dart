@@ -1,32 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:score/globals.dart';
 
-class EditableListItem extends StatelessWidget {
-  const EditableListItem({
-    super.key,
-    required this.child,
-    required this.onRemove,
-  });
-
-  final Widget child;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(children: [
-      Expanded(child: child),
-      IconButton(
-        onPressed: onRemove,
-        icon: Icon(
-          Icons.remove_circle,
-          color: theme.colorScheme.secondary,
-        ),
-      ),
-    ]);
-  }
-}
-
 class EditableTextListItemChild extends StatelessWidget {
   const EditableTextListItemChild({
     Key? key,

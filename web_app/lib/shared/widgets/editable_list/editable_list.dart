@@ -29,11 +29,12 @@ class EditableList<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        Text(label),
+        Text(label, style: theme.textTheme.headline6),
         ValueListenableBuilder<List<T>>(
           valueListenable: items,
           builder: (context, composers, _) => Column(
