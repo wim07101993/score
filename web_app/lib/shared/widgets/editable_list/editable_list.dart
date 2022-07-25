@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:score/shared/list_notifier.dart';
 import 'package:score/shared/widgets/editable_list/add_button.dart';
-import 'package:score/shared/widgets/editable_list/editable_list_item.dart';
 
 class EditableList<T> extends StatelessWidget {
   const EditableList({
@@ -41,10 +40,7 @@ class EditableList<T> extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var i = 0; i < composers.length; i++) ...[
-                EditableListItem(
-                  onRemove: () => items.removeAt(i),
-                  child: itemBuilder(context, items, i),
-                ),
+                itemBuilder(context, items, i),
                 const SizedBox(height: 8),
               ],
               Align(
@@ -65,26 +61,4 @@ class EditableList<T> extends StatelessWidget {
       ],
     );
   }
-}
-
-class EditableTextList extends EditableList<TextEditingController> {
-  EditableTextList({
-    required super.items,
-    required super.maxNumberOfItems,
-    required super.addButtonText,
-    required super.tooManyItemsText,
-    required super.label,
-    required String itemLabel,
-    required Iterable Function(String? validator) validator,
-  }) : super(
-          itemFactory: () => TextEditingController(),
-          itemBuilder: (context, items, i) {
-            return EditableTextListItemChild(
-              label: itemLabel,
-              controller: items[i],
-              onRemove: () => items.removeAt(i),
-              validator: validator,
-            );
-          },
-        );
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:score/globals.dart';
 
-class EditableTextListItemChild extends StatelessWidget {
-  const EditableTextListItemChild({
+class EditableTextListItem extends StatelessWidget {
+  const EditableTextListItem({
     Key? key,
     required this.controller,
     required this.label,
@@ -18,13 +18,27 @@ class EditableTextListItemChild extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
-    return TextFormField(
-      controller: controller,
-      validator: (value) => _validate(s, value),
-      decoration: InputDecoration(
-        labelText: label,
-      ),
-      textInputAction: TextInputAction.next,
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: controller,
+            validator: (value) => _validate(s, value),
+            decoration: InputDecoration(
+              labelText: label,
+            ),
+            textInputAction: TextInputAction.next,
+          ),
+        ),
+        IconButton(
+          onPressed: onRemove,
+          icon: Icon(
+            Icons.remove_circle,
+            color: theme.colorScheme.secondary,
+          ),
+        ),
+      ],
     );
   }
 

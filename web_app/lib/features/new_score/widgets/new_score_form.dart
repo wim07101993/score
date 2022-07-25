@@ -10,7 +10,7 @@ import 'package:score/globals.dart';
 import 'package:score/router/app_router.gr.dart';
 import 'package:score/shared/models/arrangement.dart';
 import 'package:score/shared/models/score.dart';
-import 'package:score/shared/widgets/editable_list/editable_list.dart';
+import 'package:score/shared/widgets/editable_list/editable_text_list.dart';
 
 class NewScoreForm extends StatefulWidget {
   const NewScoreForm({super.key});
