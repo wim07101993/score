@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:score/shared/list_notifier.dart';
 import 'package:score/shared/models/instrument.dart';
 import 'package:score/shared/string_extensions.dart';
 
@@ -97,6 +98,14 @@ class EditableArrangementPart with ArrangementPart {
     required this.editableInstruments,
     required this.editableLinks,
   });
+
+  factory EditableArrangementPart.empty() {
+    return EditableArrangementPart(
+      editableDescription: TextEditingController(),
+      editableInstruments: ListNotifier.empty(),
+      editableLinks: ListNotifier.empty(),
+    );
+  }
 
   final TextEditingController editableDescription;
   final ValueNotifier<List<Instrument>> editableInstruments;

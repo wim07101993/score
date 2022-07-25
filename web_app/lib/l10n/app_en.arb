@@ -69,19 +69,23 @@
   },
   "tagsLabel": "Tags",
   "@tagsLabel": {
-    "description": "Label for the tags field when editing a score"
+    "description": "Label for the tags when editing a score"
   },
   "arrangersLabel": "Arrangers",
   "@arrangersLabel": {
-    "description": "Label for the arrangers field when editing an arrangement"
+    "description": "Label for the arrangers when editing an arrangement"
   },
   "composersLabel": "Composers",
   "@composersLabel": {
-    "description": "Label for the composers field when editing a score"
+    "description": "Label for the composers when editing a score"
   },
   "lyricistsLabel": "Lyricists",
   "@lyricistsLabel": {
-    "description": "Label for the lyricists field when editing an arrangement"
+    "description": "Label for the lyricists when editing an arrangement"
+  },
+  "partsLabel": "Parts",
+  "@partsLabel": {
+    "description": "Label for the parts when editing an arrangement"
   },
   "arrangerFieldLabel": "Arranger",
   "@arrangerFieldLabel": {
@@ -114,6 +118,18 @@
   "addComposer": "Add composer",
   "@addComposer": {
     "description": "Text on the button to add a composer"
+  },
+  "addArrangementPart": "Add part",
+  "@addArrangementPart": {
+    "description": "Text on the button to add an arrangement part"
+  },
+  "addInstrument": "Add instrument",
+  "@addInstrument": {
+    "description": "Text on the button to add an instrument to an arrangement part"
+  },
+  "addLink": "Add link",
+  "@addLink": {
+    "description": "Text on the button to add a link to an arrangement part"
   },
   "titleIsRequiredErrorMessage": "Please enter a title",
   "@titleIsRequiredErrorMessage" : {

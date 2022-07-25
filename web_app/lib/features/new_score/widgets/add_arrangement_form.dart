@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:score/features/new_score/widgets/arrangement/arrangement_description_field.dart';
 import 'package:score/features/new_score/widgets/arrangement/arrangement_name.dart';
 import 'package:score/features/new_score/widgets/arrangement/arrangement_name_field.dart';
+import 'package:score/features/new_score/widgets/arrangement/arrangement_part_form_fields.dart';
 import 'package:score/features/new_score/widgets/page_title.dart';
 import 'package:score/globals.dart';
 import 'package:score/shared/models/arrangement.dart';
+import 'package:score/shared/models/arrangement_part.dart';
 import 'package:score/shared/models/score.dart';
 import 'package:score/shared/widgets/editable_list/editable_list.dart';
 
@@ -51,6 +53,10 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
                 _arrangers(s, arrangement),
                 const SizedBox(height: 8),
                 _lyricists(s, arrangement),
+                const SizedBox(height: 8),
+                const Divider(),
+                const SizedBox(height: 8),
+                _parts(s, arrangement),
               ],
             ),
           ),
@@ -82,6 +88,21 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
       itemLabel: s.lyricistFieldLabel,
       label: s.lyricistsLabel,
       validator: Arrangement.validateLyricist,
+    );
+  }
+
+  Widget _parts(S s, EditableArrangement arrangement) {
+    return EditableList<EditableArrangementPart>(
+      items: arrangement.editableParts,
+      itemFactory: () => EditableArrangementPart.empty(),
+      itemBuilder: (context, arrangements, i) => ArrangementPartFormFields(
+        part: arrangements[i],
+      ),
+      maxNumberOfItems: Arrangement.maxNumberOfParts,
+      addButtonText: s.addArrangementPart,
+      tooManyItemsText:
+          s.tooManyArrangementsErrorMessage(Arrangement.maxNumberOfParts),
+      label: s.partsLabel,
     );
   }
 }
