@@ -16,11 +16,7 @@ class ListNotifier<T> extends ValueNotifier<List<T>> {
 
   void add(T item) {
     value.add(item);
-    notifyListeners();
-  }
-
-  void remove(T item) {
-    value.remove(item);
+    print('added');
     notifyListeners();
   }
 

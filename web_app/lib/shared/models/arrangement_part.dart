@@ -108,8 +108,8 @@ class EditableArrangementPart with ArrangementPart {
   }
 
   final TextEditingController editableDescription;
-  final ValueNotifier<List<Instrument>> editableInstruments;
-  final ValueNotifier<List<TextEditingController>> editableLinks;
+  final ListNotifier<ValueNotifier<Instrument>> editableInstruments;
+  final ListNotifier<TextEditingController> editableLinks;
 
   @override
   String? get description => editableDescription.text.nullIfEmpty();
@@ -123,7 +123,9 @@ class EditableArrangementPart with ArrangementPart {
 
   @override
   List<Instrument> get instruments {
-    return editableInstruments.value.toList(growable: false);
+    return editableInstruments.value
+        .map((e) => e.value)
+        .toList(growable: false);
   }
 }
 

@@ -1,16 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:score/features/new_score/widgets/dedication_field.dart';
 import 'package:score/features/new_score/widgets/next_button.dart';
 import 'package:score/features/new_score/widgets/page_title.dart';
-import 'package:score/features/new_score/widgets/score_title_field.dart';
-import 'package:score/features/new_score/widgets/subtitle_field.dart';
 import 'package:score/globals.dart';
 import 'package:score/router/app_router.gr.dart';
 import 'package:score/shared/models/arrangement.dart';
 import 'package:score/shared/models/score.dart';
 import 'package:score/shared/widgets/editable_list/editable_text_list.dart';
+import 'package:score/shared/widgets/editable_list/text_form_field_wrapper.dart';
 
 class NewScoreForm extends StatefulWidget {
   const NewScoreForm({super.key});
@@ -36,11 +34,11 @@ class _NewScoreFormState extends State<NewScoreForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const PageTitle(),
-              const ScoreTitleField(),
+              _titleField(s, score),
               const SizedBox(height: 8),
-              const SubtitleField(),
+              _subtitle(s, score),
               const SizedBox(height: 8),
-              const DedicationField(),
+              _dedication(s, score),
               const SizedBox(height: 16),
               _composers(s, score),
               const SizedBox(height: 8),
@@ -56,6 +54,30 @@ class _NewScoreFormState extends State<NewScoreForm> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _titleField(S s, EditableScore score) {
+    return TextFormFieldWrapper(
+      controller: score.editableTitle,
+      label: s.titleFieldLabel,
+      validator: Score.validateTitle,
+    );
+  }
+
+  Widget _subtitle(S s, EditableScore score) {
+    return TextFormFieldWrapper(
+      controller: score.editableSubtitle,
+      label: s.subtitleFieldLabel,
+      validator: Score.validateSubtitle,
+    );
+  }
+
+  Widget _dedication(S s, EditableScore score) {
+    return TextFormFieldWrapper(
+      controller: score.editableDedication,
+      label: s.dedicationFieldLabel,
+      validator: Score.validateDedication,
     );
   }
 

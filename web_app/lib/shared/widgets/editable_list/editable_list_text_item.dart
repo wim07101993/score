@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:score/globals.dart';
 
-class EditableTextListItem extends StatelessWidget {
-  const EditableTextListItem({
+class EditableListTextItem extends StatelessWidget {
+  const EditableListTextItem({
     Key? key,
     required this.controller,
     required this.label,

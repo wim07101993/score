@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:score/features/new_score/widgets/arrangement/arrangement_description_field.dart';
 import 'package:score/features/new_score/widgets/arrangement/arrangement_name.dart';
-import 'package:score/features/new_score/widgets/arrangement/arrangement_name_field.dart';
 import 'package:score/features/new_score/widgets/arrangement/arrangement_part_form_fields.dart';
 import 'package:score/features/new_score/widgets/page_title.dart';
 import 'package:score/globals.dart';
@@ -11,6 +9,7 @@ import 'package:score/shared/models/arrangement_part.dart';
 import 'package:score/shared/models/score.dart';
 import 'package:score/shared/widgets/editable_list/editable_list.dart';
 import 'package:score/shared/widgets/editable_list/editable_text_list.dart';
+import 'package:score/shared/widgets/editable_list/text_form_field_wrapper.dart';
 
 class AddArrangementForm extends StatefulWidget {
   const AddArrangementForm({
@@ -47,9 +46,9 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
                 const PageTitle(),
                 const ArrangementName(),
                 const SizedBox(height: 8),
-                const ArrangementNameField(),
+                _arrangementName(s, arrangement),
                 const SizedBox(height: 8),
-                const ArrangementDescriptionField(),
+                _arrangementDescription(s, arrangement),
                 const SizedBox(height: 8),
                 _arrangers(s, arrangement),
                 const SizedBox(height: 8),
@@ -63,6 +62,22 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _arrangementName(S s, EditableArrangement arrangement) {
+    return TextFormFieldWrapper(
+      controller: arrangement.editableName,
+      label: s.arrangementNameFieldName,
+      validator: Arrangement.validateName,
+    );
+  }
+
+  Widget _arrangementDescription(S s, EditableArrangement arrangement) {
+    return TextFormFieldWrapper(
+      controller: arrangement.editableDescription,
+      label: s.arrangementDescriptionFieldName,
+      validator: Arrangement.validateDescription,
     );
   }
 
