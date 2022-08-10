@@ -21,6 +21,7 @@ class ArrangementPartFormFields extends StatelessWidget {
       children: [
         _description(s, part),
         _instruments(s, part),
+        _link(s, part),
       ],
     );
   }
@@ -47,7 +48,25 @@ class ArrangementPartFormFields extends StatelessWidget {
       tooManyItemsText: s.tooManyInstrumentsErrorMessage(
         ArrangementPart.maxNumberOfInstruments,
       ),
+      // TODO translation
       label: 's.instrumentLabel',
+    );
+  }
+
+  Widget _link(S s, EditableArrangementPart part) {
+    return EditableList<TextEditingController>(
+      // TODO translations
+      addButtonText: 's.add link',
+      label: 's.part links',
+      maxNumberOfItems: ArrangementPart.maxNumberOfLinks,
+      tooManyItemsText: 's.too many links',
+      itemFactory: () => TextEditingController(),
+      items: part.editableLinks,
+      itemBuilder: (context, notifier, index) => TextFormFieldWrapper(
+        controller: notifier.value[index],
+        label: 's.link to part',
+        validator: ArrangementPart.validateLink,
+      ),
     );
   }
 }

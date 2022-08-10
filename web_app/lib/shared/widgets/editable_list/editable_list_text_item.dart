@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:score/globals.dart';
+import 'package:score/shared/widgets/editable_list/editable_list_simple_field.dart';
 
 class EditableListTextItem extends StatelessWidget {
   const EditableListTextItem({
@@ -18,27 +19,16 @@ class EditableListTextItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: TextFormField(
-            controller: controller,
-            validator: (value) => _validate(s, value),
-            decoration: InputDecoration(
-              labelText: label,
-            ),
-            textInputAction: TextInputAction.next,
-          ),
+    return EditableListSimpleField(
+      onRemove: onRemove,
+      child: TextFormField(
+        controller: controller,
+        validator: (value) => _validate(s, value),
+        decoration: InputDecoration(
+          labelText: label,
         ),
-        IconButton(
-          onPressed: onRemove,
-          icon: Icon(
-            Icons.remove_circle,
-            color: theme.colorScheme.secondary,
-          ),
-        ),
-      ],
+        textInputAction: TextInputAction.next,
+      ),
     );
   }
 

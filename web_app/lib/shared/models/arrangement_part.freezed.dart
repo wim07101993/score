@@ -22,6 +22,7 @@ mixin _$ArrangementPartValidationError {
     required TResult Function() linkMustHaveAValue,
     required TResult Function() linkTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
     required TResult Function() tooManyInstruments,
   }) =>
       throw _privateConstructorUsedError;
@@ -31,6 +32,7 @@ mixin _$ArrangementPartValidationError {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
   }) =>
       throw _privateConstructorUsedError;
@@ -40,6 +42,7 @@ mixin _$ArrangementPartValidationError {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
     required TResult orElse(),
   }) =>
@@ -50,6 +53,8 @@ mixin _$ArrangementPartValidationError {
     required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
     required TResult Function(_LinkTooLong value) linkTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
     required TResult Function(_TooManyInstruments value) tooManyInstruments,
   }) =>
       throw _privateConstructorUsedError;
@@ -59,6 +64,7 @@ mixin _$ArrangementPartValidationError {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
   }) =>
       throw _privateConstructorUsedError;
@@ -68,6 +74,7 @@ mixin _$ArrangementPartValidationError {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
     required TResult orElse(),
   }) =>
@@ -137,6 +144,7 @@ class _$_TooManyLinks extends _TooManyLinks {
     required TResult Function() linkMustHaveAValue,
     required TResult Function() linkTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
     required TResult Function() tooManyInstruments,
   }) {
     return tooManyLinks();
@@ -149,6 +157,7 @@ class _$_TooManyLinks extends _TooManyLinks {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
   }) {
     return tooManyLinks?.call();
@@ -161,6 +170,7 @@ class _$_TooManyLinks extends _TooManyLinks {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -177,6 +187,8 @@ class _$_TooManyLinks extends _TooManyLinks {
     required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
     required TResult Function(_LinkTooLong value) linkTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
     required TResult Function(_TooManyInstruments value) tooManyInstruments,
   }) {
     return tooManyLinks(this);
@@ -189,6 +201,7 @@ class _$_TooManyLinks extends _TooManyLinks {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
   }) {
     return tooManyLinks?.call(this);
@@ -201,6 +214,7 @@ class _$_TooManyLinks extends _TooManyLinks {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -261,6 +275,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
     required TResult Function() linkMustHaveAValue,
     required TResult Function() linkTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
     required TResult Function() tooManyInstruments,
   }) {
     return linkMustHaveAValue();
@@ -273,6 +288,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
   }) {
     return linkMustHaveAValue?.call();
@@ -285,6 +301,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -301,6 +318,8 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
     required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
     required TResult Function(_LinkTooLong value) linkTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
     required TResult Function(_TooManyInstruments value) tooManyInstruments,
   }) {
     return linkMustHaveAValue(this);
@@ -313,6 +332,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
   }) {
     return linkMustHaveAValue?.call(this);
@@ -325,6 +345,7 @@ class _$_LinkMustHaveAValue extends _LinkMustHaveAValue {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -385,6 +406,7 @@ class _$_LinkTooLong extends _LinkTooLong {
     required TResult Function() linkMustHaveAValue,
     required TResult Function() linkTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
     required TResult Function() tooManyInstruments,
   }) {
     return linkTooLong();
@@ -397,6 +419,7 @@ class _$_LinkTooLong extends _LinkTooLong {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
   }) {
     return linkTooLong?.call();
@@ -409,6 +432,7 @@ class _$_LinkTooLong extends _LinkTooLong {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -425,6 +449,8 @@ class _$_LinkTooLong extends _LinkTooLong {
     required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
     required TResult Function(_LinkTooLong value) linkTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
     required TResult Function(_TooManyInstruments value) tooManyInstruments,
   }) {
     return linkTooLong(this);
@@ -437,6 +463,7 @@ class _$_LinkTooLong extends _LinkTooLong {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
   }) {
     return linkTooLong?.call(this);
@@ -449,6 +476,7 @@ class _$_LinkTooLong extends _LinkTooLong {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -509,6 +537,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     required TResult Function() linkMustHaveAValue,
     required TResult Function() linkTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
     required TResult Function() tooManyInstruments,
   }) {
     return descriptionTooLong();
@@ -521,6 +550,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
   }) {
     return descriptionTooLong?.call();
@@ -533,6 +563,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -549,6 +580,8 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
     required TResult Function(_LinkTooLong value) linkTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
     required TResult Function(_TooManyInstruments value) tooManyInstruments,
   }) {
     return descriptionTooLong(this);
@@ -561,6 +594,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
   }) {
     return descriptionTooLong?.call(this);
@@ -573,6 +607,7 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -586,6 +621,141 @@ class _$_DescriptionTooLong extends _DescriptionTooLong {
 abstract class _DescriptionTooLong extends ArrangementPartValidationError {
   const factory _DescriptionTooLong() = _$_DescriptionTooLong;
   const _DescriptionTooLong._() : super._();
+}
+
+/// @nodoc
+abstract class _$$_InstrumentMustHaveAValueCopyWith<$Res> {
+  factory _$$_InstrumentMustHaveAValueCopyWith(
+          _$_InstrumentMustHaveAValue value,
+          $Res Function(_$_InstrumentMustHaveAValue) then) =
+      __$$_InstrumentMustHaveAValueCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$_InstrumentMustHaveAValueCopyWithImpl<$Res>
+    extends _$ArrangementPartValidationErrorCopyWithImpl<$Res>
+    implements _$$_InstrumentMustHaveAValueCopyWith<$Res> {
+  __$$_InstrumentMustHaveAValueCopyWithImpl(_$_InstrumentMustHaveAValue _value,
+      $Res Function(_$_InstrumentMustHaveAValue) _then)
+      : super(_value, (v) => _then(v as _$_InstrumentMustHaveAValue));
+
+  @override
+  _$_InstrumentMustHaveAValue get _value =>
+      super._value as _$_InstrumentMustHaveAValue;
+}
+
+/// @nodoc
+
+class _$_InstrumentMustHaveAValue extends _InstrumentMustHaveAValue {
+  const _$_InstrumentMustHaveAValue() : super._();
+
+  @override
+  String toString() {
+    return 'ArrangementPartValidationError.instrumentMustHaveAValue()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$_InstrumentMustHaveAValue);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() tooManyLinks,
+    required TResult Function() linkMustHaveAValue,
+    required TResult Function() linkTooLong,
+    required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
+    required TResult Function() tooManyInstruments,
+  }) {
+    return instrumentMustHaveAValue();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult Function()? tooManyLinks,
+    TResult Function()? linkMustHaveAValue,
+    TResult Function()? linkTooLong,
+    TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
+    TResult Function()? tooManyInstruments,
+  }) {
+    return instrumentMustHaveAValue?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? tooManyLinks,
+    TResult Function()? linkMustHaveAValue,
+    TResult Function()? linkTooLong,
+    TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
+    TResult Function()? tooManyInstruments,
+    required TResult orElse(),
+  }) {
+    if (instrumentMustHaveAValue != null) {
+      return instrumentMustHaveAValue();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(_TooManyLinks value) tooManyLinks,
+    required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
+    required TResult Function(_LinkTooLong value) linkTooLong,
+    required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
+    required TResult Function(_TooManyInstruments value) tooManyInstruments,
+  }) {
+    return instrumentMustHaveAValue(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult Function(_TooManyLinks value)? tooManyLinks,
+    TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
+    TResult Function(_LinkTooLong value)? linkTooLong,
+    TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
+    TResult Function(_TooManyInstruments value)? tooManyInstruments,
+  }) {
+    return instrumentMustHaveAValue?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(_TooManyLinks value)? tooManyLinks,
+    TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
+    TResult Function(_LinkTooLong value)? linkTooLong,
+    TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
+    TResult Function(_TooManyInstruments value)? tooManyInstruments,
+    required TResult orElse(),
+  }) {
+    if (instrumentMustHaveAValue != null) {
+      return instrumentMustHaveAValue(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class _InstrumentMustHaveAValue
+    extends ArrangementPartValidationError {
+  const factory _InstrumentMustHaveAValue() = _$_InstrumentMustHaveAValue;
+  const _InstrumentMustHaveAValue._() : super._();
 }
 
 /// @nodoc
@@ -633,6 +803,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
     required TResult Function() linkMustHaveAValue,
     required TResult Function() linkTooLong,
     required TResult Function() descriptionTooLong,
+    required TResult Function() instrumentMustHaveAValue,
     required TResult Function() tooManyInstruments,
   }) {
     return tooManyInstruments();
@@ -645,6 +816,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
   }) {
     return tooManyInstruments?.call();
@@ -657,6 +829,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
     TResult Function()? linkMustHaveAValue,
     TResult Function()? linkTooLong,
     TResult Function()? descriptionTooLong,
+    TResult Function()? instrumentMustHaveAValue,
     TResult Function()? tooManyInstruments,
     required TResult orElse(),
   }) {
@@ -673,6 +846,8 @@ class _$_TooManyInstruments extends _TooManyInstruments {
     required TResult Function(_LinkMustHaveAValue value) linkMustHaveAValue,
     required TResult Function(_LinkTooLong value) linkTooLong,
     required TResult Function(_DescriptionTooLong value) descriptionTooLong,
+    required TResult Function(_InstrumentMustHaveAValue value)
+        instrumentMustHaveAValue,
     required TResult Function(_TooManyInstruments value) tooManyInstruments,
   }) {
     return tooManyInstruments(this);
@@ -685,6 +860,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
   }) {
     return tooManyInstruments?.call(this);
@@ -697,6 +873,7 @@ class _$_TooManyInstruments extends _TooManyInstruments {
     TResult Function(_LinkMustHaveAValue value)? linkMustHaveAValue,
     TResult Function(_LinkTooLong value)? linkTooLong,
     TResult Function(_DescriptionTooLong value)? descriptionTooLong,
+    TResult Function(_InstrumentMustHaveAValue value)? instrumentMustHaveAValue,
     TResult Function(_TooManyInstruments value)? tooManyInstruments,
     required TResult orElse(),
   }) {

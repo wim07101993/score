@@ -55,6 +55,14 @@ mixin ArrangementPart {
     }
   }
 
+  static Iterable<ArrangementPartValidationError> validateInstrument(
+    Instrument? instrument,
+  ) sync* {
+    if (instrument == null) {
+      yield const ArrangementPartValidationError.instrumentMustHaveAValue();
+    }
+  }
+
   static Iterable<ArrangementPartValidationError> validateInstruments(
     List<Instrument> instruments,
   ) sync* {
@@ -138,6 +146,8 @@ class ArrangementPartValidationError with _$ArrangementPartValidationError {
   const factory ArrangementPartValidationError.linkTooLong() = _LinkTooLong;
   const factory ArrangementPartValidationError.descriptionTooLong() =
       _DescriptionTooLong;
+  const factory ArrangementPartValidationError.instrumentMustHaveAValue() =
+      _InstrumentMustHaveAValue;
   const factory ArrangementPartValidationError.tooManyInstruments() =
       _TooManyInstruments;
 }

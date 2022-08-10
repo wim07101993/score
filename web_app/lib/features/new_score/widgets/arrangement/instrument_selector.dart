@@ -16,15 +16,24 @@ class InstrumentSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
-    return EditableListAutocomplete(
-      possibleItems: {
+    return EditableListAutocomplete<Instrument>(
+      possibleOptions: {
         for (final instrument in Instrument.values)
+          // TODO translate
           instrument: instrument.toString()
       },
       controller: instrument,
       // TODO translate
       label: 's.instrumentLabel',
       onRemove: onRemove,
+      validator: _validate,
     );
+  }
+
+  Iterable _validate(Instrument? value) sync* {
+    if (value == null) {
+      // TODO translations
+      yield 'Please select an instrument';
+    }
   }
 }

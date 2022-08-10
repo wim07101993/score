@@ -84,6 +84,8 @@ extension TranslationExtensions on S {
             linkTooLongErrorMessage(ArrangementPart.maxLinkLength),
         descriptionTooLong: () => descriptionTooLongErrorMessage(
             ArrangementPart.maxDescriptionLength),
+        // TODO translation
+        instrumentMustHaveAValue: () => 's.instrument must have a value',
         tooManyInstruments: () => tooManyInstrumentsErrorMessage(
             ArrangementPart.maxNumberOfInstruments),
       );
