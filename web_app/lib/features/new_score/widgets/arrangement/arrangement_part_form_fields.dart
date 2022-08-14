@@ -29,8 +29,7 @@ class ArrangementPartFormFields extends StatelessWidget {
   Widget _description(S s, EditableArrangementPart part) {
     return TextFormFieldWrapper(
       controller: part.editableDescription,
-      // TODO translations
-      label: 's.descriptionLabel',
+      label: s.descriptionLabel,
       validator: ArrangementPart.validateDescription,
     );
   }
@@ -48,23 +47,22 @@ class ArrangementPartFormFields extends StatelessWidget {
       tooManyItemsText: s.tooManyInstrumentsErrorMessage(
         ArrangementPart.maxNumberOfInstruments,
       ),
-      // TODO translation
-      label: 's.instrumentLabel',
+      label: s.instrumentLabel,
     );
   }
 
   Widget _link(S s, EditableArrangementPart part) {
     return EditableList<TextEditingController>(
-      // TODO translations
-      addButtonText: 's.add link',
-      label: 's.part links',
+      addButtonText: s.addLink,
+      label: s.partLinksLabel,
       maxNumberOfItems: ArrangementPart.maxNumberOfLinks,
-      tooManyItemsText: 's.too many links',
+      tooManyItemsText:
+          s.tooManyLinksErrorMessage(ArrangementPart.maxNumberOfLinks),
       itemFactory: () => TextEditingController(),
       items: part.editableLinks,
       itemBuilder: (context, notifier, index) => TextFormFieldWrapper(
         controller: notifier.value[index],
-        label: 's.link to part',
+        label: s.linkToPartLabel,
         validator: ArrangementPart.validateLink,
       ),
     );

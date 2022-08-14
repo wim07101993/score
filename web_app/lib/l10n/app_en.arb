@@ -131,6 +131,71 @@
   "@addLink": {
     "description": "Text on the button to add a link to an arrangement part"
   },
+  "partLinksLabel": "Links to the arrangement part",
+  "@partLinksLabel": {
+    "description": "The label which indicates the links for an arrangement part"
+  },
+  "linkToPartLabel": "Link to the arrangement part",
+  "@linkToPartLabel": {
+    "description": "The label which indicates the link for an arrangement part"
+  },
+  "descriptionLabel": "Description",
+  "@descriptionLabel": {
+    "description": "The label for the description field of an arrangement part"
+  },
+  "instrumentLabel": "Instrument",
+  "@instrumentLabel": {
+    "description": "The label for the instrument field of an arrangement part"
+  },
+  "unknownInstrument": "Unknown instrument",
+  "guitar": "guitar",
+  "bassGuitar": "bass guitar",
+  "violin": "violin",
+  "tenorViolin": "tenor violin",
+  "viola": "viola",
+  "cello": "cello",
+  "doubleBass": "double bass",
+  "harp": "harp",
+  "lute": "lute",
+  "piano": "piano",
+  "organ": "organ",
+  "accordion": "accordion",
+  "flute": "flute",
+  "altoFlute": "alto flute",
+  "piccolo": "piccolo",
+  "recorder": "recorder",
+  "clarinet": "clarinet",
+  "altoClarinet": "alto clarinet",
+  "bassClarinet": "bass clarinet",
+  "bagpipes": "bagpipes",
+  "saxophone": "saxophone",
+  "sopranoSaxophone": "soprano saxophone",
+  "altoSaxophone": "alto saxophone",
+  "tenorSaxophone": "tenor saxophone",
+  "baritoneSaxophone": "baritone saxophone",
+  "bassSaxophone": "bass saxophone",
+  "bassoon": "bassoon",
+  "contraBassoon": "contra bassoon",
+  "tenoroon": "tenoroon",
+  "oboe": "oboe",
+  "trumpet": "trumpet",
+  "frenchHorn": "french horn",
+  "englishHorn": "english horn",
+  "altoHorn": "alto horn",
+  "baritoneHorn": "baritone horn",
+  "trombone": "trombone",
+  "euphonium": "euphonium",
+  "tuba": "tuba",
+  "singer": "singer",
+  "choir": "choir",
+  "sopranoSinger": "soprano",
+  "alto": "alto",
+  "tenor": "tenor",
+  "baritone": "baritone",
+  "bass": "bass",
+  "tenorDrum": "tenorDrum",
+  "bassDrum": "bassDrum",
+  "xylophone": "xylophone",
   "titleIsRequiredErrorMessage": "Please enter a title",
   "@titleIsRequiredErrorMessage" : {
     "description": "Error message when entering no title for a score"
@@ -360,5 +425,9 @@
         "example": "My arrangement"
       }
     }
+  },
+  "noInstrumentSelectedErrorMessage": "Please select an instrument",
+  "@noInstrumentSelectedValueErrorMessage": {
+    "description": "Error message when an instrument field stays empty"
   }
 }
