@@ -19,12 +19,14 @@ class NewScoreForm extends StatefulWidget {
 
 class _NewScoreFormState extends State<NewScoreForm> {
   final GlobalKey<FormState> _formKey = GlobalKey();
-  bool hasAddedArrangement = false;
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
     final score = context.read<EditableScore>();
+    if (score.editableArrangements.isEmpty) {
+      score.editableArrangements.add(EditableArrangement.empty());
+    }
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -110,10 +112,7 @@ class _NewScoreFormState extends State<NewScoreForm> {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
-    if (!hasAddedArrangement) {
-      score.arrangements.add(EditableArrangement.empty());
-      hasAddedArrangement = true;
-    }
+    score.editableArrangements.add(EditableArrangement.empty());
     AutoRouter.of(context).push(AddArrangementForm(arrangementIndex: 0));
   }
 }

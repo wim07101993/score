@@ -151,9 +151,12 @@ class EditableArrangement with Arrangement {
     return EditableArrangement(
       editableName: TextEditingController(),
       editableDescription: TextEditingController(),
-      editableArrangers: ListNotifier.empty(),
-      editableLyricists: ListNotifier.empty(),
-      editableParts: ListNotifier.empty(),
+      editableArrangers:
+          ListNotifier.empty(maxLength: Arrangement.maxNumberOfArrangers),
+      editableLyricists:
+          ListNotifier.empty(maxLength: Arrangement.maxNumberOfLyricists),
+      editableParts:
+          ListNotifier.empty(maxLength: Arrangement.maxNumberOfParts),
     );
   }
 

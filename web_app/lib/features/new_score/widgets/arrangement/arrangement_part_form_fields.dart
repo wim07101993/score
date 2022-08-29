@@ -4,6 +4,7 @@ import 'package:score/globals.dart';
 import 'package:score/shared/models/arrangement_part.dart';
 import 'package:score/shared/models/instrument.dart';
 import 'package:score/shared/widgets/editable_list/editable_list.dart';
+import 'package:score/shared/widgets/editable_list/editable_list_text_item.dart';
 import 'package:score/shared/widgets/editable_list/text_form_field_wrapper.dart';
 
 class ArrangementPartFormFields extends StatelessWidget {
@@ -19,10 +20,18 @@ class ArrangementPartFormFields extends StatelessWidget {
     final s = S.of(context)!;
     return Column(
       children: [
+        _title(s, part),
         _description(s, part),
         _instruments(s, part),
         _link(s, part),
       ],
+    );
+  }
+
+  Widget _title(S s, EditableArrangementPart part) {
+    return ValueListenableBuilder(
+      valueListenable: part.editableDescription,
+      builder: ValueList,
     );
   }
 
@@ -60,10 +69,11 @@ class ArrangementPartFormFields extends StatelessWidget {
           s.tooManyLinksErrorMessage(ArrangementPart.maxNumberOfLinks),
       itemFactory: () => TextEditingController(),
       items: part.editableLinks,
-      itemBuilder: (context, notifier, index) => TextFormFieldWrapper(
+      itemBuilder: (context, notifier, index) => EditableListTextItem(
         controller: notifier.value[index],
         label: s.linkToPartLabel,
         validator: ArrangementPart.validateLink,
+        onRemove: () => part.editableLinks.removeAt(index),
       ),
     );
   }

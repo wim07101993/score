@@ -429,5 +429,9 @@
   "noInstrumentSelectedErrorMessage": "Please select an instrument",
   "@noInstrumentSelectedValueErrorMessage": {
     "description": "Error message when an instrument field stays empty"
+  },
+  "previous": "Previous",
+  "@previous": {
+    "description": "Label on the previous button"
   }
 }

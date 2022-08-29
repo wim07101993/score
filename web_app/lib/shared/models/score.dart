@@ -224,9 +224,11 @@ class EditableScore with Score {
       editableTitle: TextEditingController(),
       editableSubtitle: TextEditingController(),
       editableDedication: TextEditingController(),
-      editableComposers: ListNotifier.empty(),
-      editableTags: ListNotifier.empty(),
-      editableArrangements: ListNotifier.empty(),
+      editableComposers:
+          ListNotifier.empty(maxLength: Score.maxNumberOfComposers),
+      editableTags: ListNotifier.empty(maxLength: Score.maxNumberOfTags),
+      editableArrangements:
+          ListNotifier.empty(maxLength: Score.maxNumberOfArrangements),
     );
   }
 

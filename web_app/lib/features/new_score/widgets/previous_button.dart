@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:score/globals.dart';
 
-class SaveButton extends StatelessWidget {
-  const SaveButton({
+class PreviousButton extends StatelessWidget {
+  const PreviousButton({
     super.key,
     required this.onPressed,
   });
@@ -14,7 +14,7 @@ class SaveButton extends StatelessWidget {
     final s = S.of(context)!;
     return ElevatedButton(
       onPressed: onPressed,
-      child: Text(s.save),
+      child: Text(s.previous),
     );
   }
 }

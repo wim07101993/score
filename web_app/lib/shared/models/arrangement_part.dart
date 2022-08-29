@@ -110,8 +110,10 @@ class EditableArrangementPart with ArrangementPart {
   factory EditableArrangementPart.empty() {
     return EditableArrangementPart(
       editableDescription: TextEditingController(),
-      editableInstruments: ListNotifier.empty(),
-      editableLinks: ListNotifier.empty(),
+      editableInstruments:
+          ListNotifier.empty(maxLength: ArrangementPart.maxNumberOfInstruments),
+      editableLinks:
+          ListNotifier.empty(maxLength: ArrangementPart.maxNumberOfLinks),
     );
   }
 

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+const primaryColor = Colors.pink;
+const secondaryColor = Colors.deepPurple;
+
 final lightColorScheme = ColorScheme(
-  primary: Colors.pink,
-  primaryContainer: Colors.pink[900],
-  secondary: Colors.deepPurple,
-  secondaryContainer: Colors.deepPurple[900],
+  primary: primaryColor,
+  primaryContainer: primaryColor[900],
+  secondary: secondaryColor,
+  secondaryContainer: secondaryColor[900],
   surface: Colors.grey[350]!,
   background: Colors.grey[200]!,
   error: Colors.red[900]!,
@@ -48,6 +51,7 @@ final textTheme = TextTheme(
 
 final lightTheme = ThemeData(
   colorScheme: lightColorScheme,
+  toggleableActiveColor: primaryColor[400],
   appBarTheme: AppBarTheme(
     toolbarHeight: 96,
     foregroundColor: lightColorScheme.onPrimary,
