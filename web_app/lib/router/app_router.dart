@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:score/features/new_score/widgets/add_arrangement_form.dart';
+import 'package:score/features/new_score/widgets/arrangement/arrangement_part_forms.dart';
 import 'package:score/features/new_score/widgets/create_new_score_page.dart';
 import 'package:score/features/new_score/widgets/new_score_form.dart';
 import 'package:score/features/scores/widgets/scores_list_page.dart';
@@ -11,11 +12,13 @@ import 'package:score/router/auth_guard.dart';
 class Paths {
   static const home = '';
   static const scoresList = 'scores-list';
-  static const siging = 'signin';
+  static const signin = 'signin';
   static const profile = 'user/profile';
   static const newScore = 'new-score';
   static const newScoreForm = '$newScore/score-details';
   static const addArrangementForm = '$newScore/arrangement/:arrangementIndex';
+  static const arrangementPartsForm =
+      '$newScore/arrangement/:arrangementIndex/parts';
 }
 
 @MaterialAutoRouter(
@@ -37,11 +40,15 @@ class Paths {
             RedirectRoute(path: Paths.home, redirectTo: Paths.newScoreForm),
             AutoRoute(path: Paths.newScoreForm, page: NewScoreForm),
             AutoRoute(path: Paths.addArrangementForm, page: AddArrangementForm),
+            AutoRoute(
+              path: Paths.arrangementPartsForm,
+              page: ArrangementPartForms,
+            ),
           ],
         ),
       ],
     ),
-    AutoRoute(path: Paths.siging, page: SignInScreen),
+    AutoRoute(path: Paths.signin, page: SignInScreen),
   ],
 )
 class $AppRouter {}

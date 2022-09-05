@@ -29,9 +29,9 @@ class ArrangementPartFormFields extends StatelessWidget {
   }
 
   Widget _title(S s, EditableArrangementPart part) {
-    return ValueListenableBuilder(
+    return ValueListenableBuilder<TextEditingValue>(
       valueListenable: part.editableDescription,
-      builder: ValueList,
+      builder: (context, description, _) => Text(description.text),
     );
   }
 
