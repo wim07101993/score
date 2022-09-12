@@ -48,9 +48,9 @@ class _ScoresListPageState extends State<ScoresListPage> {
       return PagedListView(
         pagingController: _pagingController,
         builderDelegate: PagedChildBuilderDelegate<Score>(
-          itemBuilder: (context, item, index) {
-            return ScoreSearchResultItem(score: item);
-          },
+          itemBuilder: (context, item, index) => ScoreSearchResultItem(
+            score: item,
+          ),
         ),
       );
     });

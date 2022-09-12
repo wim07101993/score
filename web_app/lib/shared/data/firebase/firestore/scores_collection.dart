@@ -42,7 +42,7 @@ class InstrumentNames {
   static const String trumpet = 'trumpet';
 }
 
-extension ScoresCollectionExtensions on FirebaseFirestore {
+extension FirebaseFirestoreExtensions on FirebaseFirestore {
   CollectionReference<Score> get scoresCollection {
     return collection('scores').withConverter<Score>(
       fromFirestore: _docToScore,

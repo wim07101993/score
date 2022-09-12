@@ -1,4 +1,7 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
+import 'package:score/router/app_router.gr.dart';
 import 'package:score/shared/models/score.dart';
 
 class ScoreSearchResultItem extends StatelessWidget {
@@ -15,37 +18,41 @@ class ScoreSearchResultItem extends StatelessWidget {
     final subtitle = score.subtitle;
     return Card(
       margin: const EdgeInsets.all(24),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(score.title, style: theme.textTheme.headline5),
-            if (subtitle != null) Text(subtitle),
-            composers(theme),
-          ],
+      child: InkWell(
+        onTap: () => AutoRouter.of(context).push(
+          ScoreDetailRoute(score: score),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(score.title, style: theme.textTheme.headline5),
+              if (subtitle != null) Text(subtitle),
+              creators(theme),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget composers(ThemeData theme) {
-    if (score.composers.isEmpty) {
-      return const Text('');
+  Widget creators(ThemeData theme) {
+    final creators = [
+      ...score.composers,
+      ...score.arrangements.mapMany((a) => a.lyricists),
+      ...score.arrangements.mapMany((a) => a.arrangers),
+    ];
+    switch (creators.length) {
+      case 0:
+        return const Text('');
+      case 1:
+        return Text(creators[0]);
+      default:
+        return Text(
+          creators.join(', '),
+          style: theme.textTheme.bodyText2,
+        );
     }
-    if (score.composers.length == 1) {
-      return Text(score.composers[0]);
-    }
-    return RichText(
-      text: TextSpan(
-        style: theme.textTheme.bodyText2,
-        children: [
-          ...score.composers
-              .take(score.composers.length - 1)
-              .map((composer) => TextSpan(text: '$composer, ')),
-          TextSpan(text: score.composers.last),
-        ],
-      ),
-    );
   }
 }

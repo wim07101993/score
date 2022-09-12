@@ -150,19 +150,12 @@ class __$$_NameIsRequiredCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_NameIsRequired extends _NameIsRequired with DiagnosticableTreeMixin {
+class _$_NameIsRequired extends _NameIsRequired {
   const _$_NameIsRequired() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.nameIsRequired()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.nameIsRequired'));
   }
 
   @override
@@ -319,19 +312,12 @@ class __$$_NameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_NameTooLong extends _NameTooLong with DiagnosticableTreeMixin {
+class _$_NameTooLong extends _NameTooLong {
   const _$_NameTooLong() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.nameTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ArrangementValidationError.nameTooLong'));
   }
 
   @override
@@ -488,20 +474,12 @@ class __$$_TooManyArrangersCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyArrangers extends _TooManyArrangers
-    with DiagnosticableTreeMixin {
+class _$_TooManyArrangers extends _TooManyArrangers {
   const _$_TooManyArrangers() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.tooManyArrangers()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.tooManyArrangers'));
   }
 
   @override
@@ -659,20 +637,12 @@ class __$$_ArrangerMustHaveANameCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName
-    with DiagnosticableTreeMixin {
+class _$_ArrangerMustHaveAName extends _ArrangerMustHaveAName {
   const _$_ArrangerMustHaveAName() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.arrangerMustHaveAName()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.arrangerMustHaveAName'));
   }
 
   @override
@@ -829,20 +799,12 @@ class __$$_ArrangerNameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_ArrangerNameTooLong extends _ArrangerNameTooLong
-    with DiagnosticableTreeMixin {
+class _$_ArrangerNameTooLong extends _ArrangerNameTooLong {
   const _$_ArrangerNameTooLong() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.arrangerNameTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.arrangerNameTooLong'));
   }
 
   @override
@@ -999,19 +961,12 @@ class __$$_TooManyPartsCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyParts extends _TooManyParts with DiagnosticableTreeMixin {
+class _$_TooManyParts extends _TooManyParts {
   const _$_TooManyParts() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.tooManyParts()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ArrangementValidationError.tooManyParts'));
   }
 
   @override
@@ -1168,20 +1123,12 @@ class __$$_TooManyLyricistsCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyLyricists extends _TooManyLyricists
-    with DiagnosticableTreeMixin {
+class _$_TooManyLyricists extends _TooManyLyricists {
   const _$_TooManyLyricists() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.tooManyLyricists()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.tooManyLyricists'));
   }
 
   @override
@@ -1339,20 +1286,12 @@ class __$$_LyricistMustHaveANameCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_LyricistMustHaveAName extends _LyricistMustHaveAName
-    with DiagnosticableTreeMixin {
+class _$_LyricistMustHaveAName extends _LyricistMustHaveAName {
   const _$_LyricistMustHaveAName() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.lyricistMustHaveAName()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.lyricistMustHaveAName'));
   }
 
   @override
@@ -1509,20 +1448,12 @@ class __$$_LyricistNameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_LyricistNameTooLong extends _LyricistNameTooLong
-    with DiagnosticableTreeMixin {
+class _$_LyricistNameTooLong extends _LyricistNameTooLong {
   const _$_LyricistNameTooLong() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.lyricistNameTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.lyricistNameTooLong'));
   }
 
   @override
@@ -1679,20 +1610,12 @@ class __$$_DescriptionTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_DescriptionTooLong extends _DescriptionTooLong
-    with DiagnosticableTreeMixin {
+class _$_DescriptionTooLong extends _DescriptionTooLong {
   const _$_DescriptionTooLong() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.descriptionTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.descriptionTooLong'));
   }
 
   @override
@@ -1849,19 +1772,12 @@ class __$$_PartsNotValidCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_PartsNotValid extends _PartsNotValid with DiagnosticableTreeMixin {
+class _$_PartsNotValid extends _PartsNotValid {
   const _$_PartsNotValid() : super._();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ArrangementValidationError.partsNotValid()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ArrangementValidationError.partsNotValid'));
   }
 
   @override

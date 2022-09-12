@@ -200,21 +200,12 @@ class __$$_TitleIsRequiredCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TitleIsRequired
-    with DiagnosticableTreeMixin
-    implements _TitleIsRequired {
+class _$_TitleIsRequired implements _TitleIsRequired {
   const _$_TitleIsRequired();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.titleIsRequired()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ScoreValidationError.titleIsRequired'));
   }
 
   @override
@@ -420,19 +411,12 @@ class __$$_TitleTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TitleTooLong with DiagnosticableTreeMixin implements _TitleTooLong {
+class _$_TitleTooLong implements _TitleTooLong {
   const _$_TitleTooLong();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.titleTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty('type', 'ScoreValidationError.titleTooLong'));
   }
 
   @override
@@ -638,21 +622,12 @@ class __$$_SubtitleTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_SubtitleTooLong
-    with DiagnosticableTreeMixin
-    implements _SubtitleTooLong {
+class _$_SubtitleTooLong implements _SubtitleTooLong {
   const _$_SubtitleTooLong();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.subtitleTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ScoreValidationError.subtitleTooLong'));
   }
 
   @override
@@ -858,21 +833,12 @@ class __$$_DedicationTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_DedicationTooLong
-    with DiagnosticableTreeMixin
-    implements _DedicationTooLong {
+class _$_DedicationTooLong implements _DedicationTooLong {
   const _$_DedicationTooLong();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.dedicationTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ScoreValidationError.dedicationTooLong'));
   }
 
   @override
@@ -1078,21 +1044,12 @@ class __$$_TooManyComposersCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyComposers
-    with DiagnosticableTreeMixin
-    implements _TooManyComposers {
+class _$_TooManyComposers implements _TooManyComposers {
   const _$_TooManyComposers();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.tooManyComposers()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ScoreValidationError.tooManyComposers'));
   }
 
   @override
@@ -1299,21 +1256,12 @@ class __$$_ComposerMustHaveANameCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_ComposerMustHaveAName
-    with DiagnosticableTreeMixin
-    implements _ComposerMustHaveAName {
+class _$_ComposerMustHaveAName implements _ComposerMustHaveAName {
   const _$_ComposerMustHaveAName();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.composerMustHaveAName()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.composerMustHaveAName'));
   }
 
   @override
@@ -1519,21 +1467,12 @@ class __$$_ComposerNameTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_ComposerNameTooLong
-    with DiagnosticableTreeMixin
-    implements _ComposerNameTooLong {
+class _$_ComposerNameTooLong implements _ComposerNameTooLong {
   const _$_ComposerNameTooLong();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.composerNameTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.composerNameTooLong'));
   }
 
   @override
@@ -1739,19 +1678,12 @@ class __$$_TooManyTagsCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyTags with DiagnosticableTreeMixin implements _TooManyTags {
+class _$_TooManyTags implements _TooManyTags {
   const _$_TooManyTags();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.tooManyTags()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty('type', 'ScoreValidationError.tooManyTags'));
   }
 
   @override
@@ -1957,21 +1889,12 @@ class __$$_TagMustHaveAValueCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TagMustHaveAValue
-    with DiagnosticableTreeMixin
-    implements _TagMustHaveAValue {
+class _$_TagMustHaveAValue implements _TagMustHaveAValue {
   const _$_TagMustHaveAValue();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.tagMustHaveAValue()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ScoreValidationError.tagMustHaveAValue'));
   }
 
   @override
@@ -2177,19 +2100,12 @@ class __$$_TagTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TagTooLong with DiagnosticableTreeMixin implements _TagTooLong {
+class _$_TagTooLong implements _TagTooLong {
   const _$_TagTooLong();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.tagTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty('type', 'ScoreValidationError.tagTooLong'));
   }
 
   @override
@@ -2395,21 +2311,12 @@ class __$$_TooManyArrangementsCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_TooManyArrangements
-    with DiagnosticableTreeMixin
-    implements _TooManyArrangements {
+class _$_TooManyArrangements implements _TooManyArrangements {
   const _$_TooManyArrangements();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.tooManyArrangements()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.tooManyArrangements'));
   }
 
   @override
@@ -2618,21 +2525,12 @@ class __$$_CreatedAtCannotBeInTheFutureCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_CreatedAtCannotBeInTheFuture
-    with DiagnosticableTreeMixin
-    implements _CreatedAtCannotBeInTheFuture {
+class _$_CreatedAtCannotBeInTheFuture implements _CreatedAtCannotBeInTheFuture {
   const _$_CreatedAtCannotBeInTheFuture();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.createdAtCannotBeInTheFuture()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.createdAtCannotBeInTheFuture'));
   }
 
   @override
@@ -2844,20 +2742,12 @@ class __$$_ModifiedAtCannotBeInTheFutureCopyWithImpl<$Res>
 /// @nodoc
 
 class _$_ModifiedAtCannotBeInTheFuture
-    with DiagnosticableTreeMixin
     implements _ModifiedAtCannotBeInTheFuture {
   const _$_ModifiedAtCannotBeInTheFuture();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.modifiedAtCannotBeInTheFuture()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.modifiedAtCannotBeInTheFuture'));
   }
 
   @override
@@ -3069,20 +2959,12 @@ class __$$_CreatedAtCannotBeAfterModifiedAtCopyWithImpl<$Res>
 /// @nodoc
 
 class _$_CreatedAtCannotBeAfterModifiedAt
-    with DiagnosticableTreeMixin
     implements _CreatedAtCannotBeAfterModifiedAt {
   const _$_CreatedAtCannotBeAfterModifiedAt();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.createdAtCannotBeAfterModifiedAt()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.createdAtCannotBeAfterModifiedAt'));
   }
 
   @override
@@ -3291,19 +3173,12 @@ class __$$_IdIsRequiredCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_IdIsRequired with DiagnosticableTreeMixin implements _IdIsRequired {
+class _$_IdIsRequired implements _IdIsRequired {
   const _$_IdIsRequired();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.idIsRequired()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty('type', 'ScoreValidationError.idIsRequired'));
   }
 
   @override
@@ -3509,19 +3384,12 @@ class __$$_IdIsTooLongCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_IdIsTooLong with DiagnosticableTreeMixin implements _IdIsTooLong {
+class _$_IdIsTooLong implements _IdIsTooLong {
   const _$_IdIsTooLong();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.idIsTooLong()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-        .add(DiagnosticsProperty('type', 'ScoreValidationError.idIsTooLong'));
   }
 
   @override
@@ -3727,21 +3595,12 @@ class __$$_IdNotLongEnoughCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_IdNotLongEnough
-    with DiagnosticableTreeMixin
-    implements _IdNotLongEnough {
+class _$_IdNotLongEnough implements _IdNotLongEnough {
   const _$_IdNotLongEnough();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.idNotLongEnough()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(
-        DiagnosticsProperty('type', 'ScoreValidationError.idNotLongEnough'));
   }
 
   @override
@@ -3947,21 +3806,12 @@ class __$$_arrangementsNotValidCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$_arrangementsNotValid
-    with DiagnosticableTreeMixin
-    implements _arrangementsNotValid {
+class _$_arrangementsNotValid implements _arrangementsNotValid {
   const _$_arrangementsNotValid();
 
   @override
-  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+  String toString() {
     return 'ScoreValidationError.arrangementsNotValid()';
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty(
-        'type', 'ScoreValidationError.arrangementsNotValid'));
   }
 
   @override
