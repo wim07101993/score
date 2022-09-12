@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:behaviour/behaviour.dart';
 import 'package:flutter/material.dart';
 import 'package:score/globals.dart';
@@ -6,20 +8,50 @@ import 'package:score/shared/models/arrangement_part.dart';
 import 'package:score/shared/models/instrument.dart';
 import 'package:score/shared/models/score.dart';
 
-extension FutureExceptionOrExtensions<T> on Future<ExceptionOr<T>> {
-  Future<void> handleException(
+extension ExceptionOrExtensions<T> on ExceptionOr<T> {
+  Future<ExceptionOr<T>> handleException(
     BuildContext context, [
     Future<void> Function(Exception exception)? action,
   ]) {
     final s = S.of(context)!;
     if (action != null) {
-      return thenWhen(action, (value) {});
+      return when(
+        (exception) => action(exception).then((_) => this),
+        (value) => Future.value(this),
+      );
+    }
+    return when(
+      (exception) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(translateException(s, exception))),
+        );
+        return Future.value(this);
+      },
+      (value) => Future.value(this),
+    );
+  }
+}
+
+extension FutureExceptionOrExtensions<T> on Future<ExceptionOr<T>> {
+  Future<ExceptionOr<T>> handleException(
+    BuildContext context, [
+    Future<void> Function(Exception exception)? action,
+  ]) {
+    final s = S.of(context)!;
+    if (action != null) {
+      return thenWhen(
+        (exception) async => action(exception).then((_) => this),
+        (value) => this,
+      );
     }
     return thenWhen(
-      (exception) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(translateException(s, exception))),
-      ),
-      (value) {},
+      (exception) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(translateException(s, exception))),
+        );
+        return this;
+      },
+      (value) => this,
     );
   }
 }

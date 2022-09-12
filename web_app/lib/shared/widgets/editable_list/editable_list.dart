@@ -24,16 +24,15 @@ class EditableList<T> extends StatelessWidget {
   final int maxNumberOfItems;
   final String addButtonText;
   final String tooManyItemsText;
-  final String label;
+  final Widget label;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 8),
-        Text(label, style: theme.textTheme.headline6),
+        label,
         ValueListenableBuilder<List<T>>(
           valueListenable: items,
           builder: (context, composers, _) => Column(

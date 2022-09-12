@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:score/features/new_score/widgets/arrangement/instrument_selector.dart';
 import 'package:score/globals.dart';
@@ -6,6 +7,7 @@ import 'package:score/shared/models/instrument.dart';
 import 'package:score/shared/widgets/editable_list/editable_list.dart';
 import 'package:score/shared/widgets/editable_list/editable_list_text_item.dart';
 import 'package:score/shared/widgets/editable_list/text_form_field_wrapper.dart';
+import 'package:score/shared/widgets/multi_value_listenable_builder.dart';
 
 class ArrangementPartFormFields extends StatelessWidget {
   const ArrangementPartFormFields({
@@ -17,13 +19,14 @@ class ArrangementPartFormFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final s = S.of(context)!;
     return Column(
       children: [
         _title(s, part),
         _description(s, part),
-        _instruments(s, part),
-        _link(s, part),
+        _instruments(s, theme, part),
+        _link(s, theme, part),
       ],
     );
   }
@@ -31,7 +34,23 @@ class ArrangementPartFormFields extends StatelessWidget {
   Widget _title(S s, EditableArrangementPart part) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: part.editableDescription,
-      builder: (context, description, _) => Text(description.text),
+      builder: (context, description, _) =>
+          ValueListenableBuilder<List<ValueListenable<Instrument>>>(
+        valueListenable: part.editableInstruments,
+        builder: (context, instruments, _) => instruments.isEmpty
+            ? Text(description.text)
+            : MultiValueListenableBuilder<Instrument?>(
+                valueListenables: instruments,
+                builder: (context, instrument, _) => Text(
+                  description.text.isNotEmpty
+                      ? description.text
+                      : instrument
+                          .whereType<Instrument>()
+                          .map((i) => s.getInstrumentName(i))
+                          .join(', '),
+                ),
+              ),
+      ),
     );
   }
 
@@ -43,7 +62,7 @@ class ArrangementPartFormFields extends StatelessWidget {
     );
   }
 
-  Widget _instruments(S s, EditableArrangementPart part) {
+  Widget _instruments(S s, ThemeData theme, EditableArrangementPart part) {
     return EditableList<ValueNotifier<Instrument>>(
       items: part.editableInstruments,
       itemFactory: () => ValueNotifier(Instrument.singer),
@@ -56,14 +75,14 @@ class ArrangementPartFormFields extends StatelessWidget {
       tooManyItemsText: s.tooManyInstrumentsErrorMessage(
         ArrangementPart.maxNumberOfInstruments,
       ),
-      label: s.instrumentLabel,
+      label: Text(s.instrumentLabel, style: theme.textTheme.headline6),
     );
   }
 
-  Widget _link(S s, EditableArrangementPart part) {
+  Widget _link(S s, ThemeData theme, EditableArrangementPart part) {
     return EditableList<TextEditingController>(
       addButtonText: s.addLink,
-      label: s.partLinksLabel,
+      label: Text(s.partLinksLabel, style: theme.textTheme.headline6),
       maxNumberOfItems: ArrangementPart.maxNumberOfLinks,
       tooManyItemsText:
           s.tooManyLinksErrorMessage(ArrangementPart.maxNumberOfLinks),

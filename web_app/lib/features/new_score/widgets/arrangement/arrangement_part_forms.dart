@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:score/features/new_score/behaviours/save_new_score.dart';
 import 'package:score/features/new_score/widgets/arrangement/arrangement_part_form_fields.dart';
 import 'package:score/features/new_score/widgets/next_button.dart';
 import 'package:score/features/new_score/widgets/previous_button.dart';
@@ -30,8 +31,11 @@ class _ArrangementPartFormsState extends State<ArrangementPartForms> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
-    final arrangements = context.read<EditableScore>().editableArrangements;
-    final parts = arrangements[widget.arrangementIndex].editableParts;
+    final theme = Theme.of(context);
+    final score = context.read<EditableScore>();
+    final arrangements = score.editableArrangements;
+    final arrangement = arrangements[widget.arrangementIndex];
+    final parts = arrangement.editableParts;
 
     return ValueListenableBuilder<List<EditableArrangement>>(
       valueListenable: arrangements,
@@ -48,7 +52,11 @@ class _ArrangementPartFormsState extends State<ArrangementPartForms> {
               key: _formKey,
               child: Column(
                 children: [
-                  _parts(s, parts),
+                  Text(
+                    '${score.title} - ${arrangement.name}',
+                    style: theme.textTheme.headline4,
+                  ),
+                  _parts(s, theme, parts),
                   Row(children: [
                     PreviousButton(
                       onPressed: () => AutoRouter.of(context).pop(),
@@ -72,7 +80,8 @@ class _ArrangementPartFormsState extends State<ArrangementPartForms> {
     );
   }
 
-  Widget _parts(S s, ListNotifier<EditableArrangementPart> parts) {
+  Widget _parts(
+      S s, ThemeData theme, ListNotifier<EditableArrangementPart> parts) {
     return EditableList<EditableArrangementPart>(
       items: parts,
       itemFactory: () => EditableArrangementPart.empty(),
@@ -80,7 +89,7 @@ class _ArrangementPartFormsState extends State<ArrangementPartForms> {
       addButtonText: s.addArrangementPart,
       tooManyItemsText:
           s.tooManyArrangementsErrorMessage(Arrangement.maxNumberOfParts),
-      label: s.partsLabel,
+      label: Text(s.partsLabel, style: theme.textTheme.headline5),
       itemBuilder: (context, parts, i) => ArrangementPartFormFields(
         part: parts[i],
       ),
@@ -101,8 +110,7 @@ class _ArrangementPartFormsState extends State<ArrangementPartForms> {
           arrangementIndex: arrangementsLength,
         ));
       },
-      // TODO translations
-      child: const Text('s.addAnotherArrangementButtonLabel'),
+      child: Text(s.addAnotherArrangementButtonLabel),
     );
   }
 
@@ -115,11 +123,15 @@ class _ArrangementPartFormsState extends State<ArrangementPartForms> {
     ));
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
-    // TODO
-    // AutoRouter.of(context).push()
+    final score = context.read<EditableScore>();
+    final nothingOrException = await context.read<SaveNewScore>()(score);
+    if (mounted) {
+      nothingOrException.handleException(context);
+      AutoRouter.of(context).parent()?.pop();
+    }
   }
 }

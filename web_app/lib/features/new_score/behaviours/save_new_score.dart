@@ -16,6 +16,10 @@ class SaveNewScore extends Behaviour<Score, void> {
 
   @override
   Future<void> action(Score input, BehaviourTrack? track) async {
+    final errors = input.validate().toList(growable: false);
+    if (errors.isNotEmpty) {
+      throw Exception(errors);
+    }
     await firestore.addScore(input);
   }
 

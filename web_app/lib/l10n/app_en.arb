@@ -433,5 +433,9 @@
   "previous": "Previous",
   "@previous": {
     "description": "Label on the previous button"
+  },
+  "addAnotherArrangementButtonLabel": "Add another arrangement",
+  "@addAnotherArrangementButtonLabel": {
+    "description": "Label on the button which adds another arrangement"
   }
 }

@@ -30,6 +30,7 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
+    final theme = Theme.of(context);
     final arrangements = context.read<EditableScore>().editableArrangements;
     final arrangement = arrangements[widget.arrangementIndex];
 
@@ -49,9 +50,9 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
                 const SizedBox(height: 8),
                 _arrangementDescription(s, arrangement),
                 const SizedBox(height: 8),
-                _arrangers(s, arrangement),
+                _arrangers(s, theme, arrangement),
                 const SizedBox(height: 8),
-                _lyricists(s, arrangement),
+                _lyricists(s, theme, arrangement),
                 const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),
@@ -86,7 +87,7 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
     );
   }
 
-  Widget _arrangers(S s, EditableArrangement arrangement) {
+  Widget _arrangers(S s, ThemeData theme, EditableArrangement arrangement) {
     return EditableTextList(
       items: arrangement.editableArrangers,
       maxNumberOfItems: Arrangement.maxNumberOfArrangers,
@@ -94,12 +95,12 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
       tooManyItemsText:
           s.tooManyArrangersErrorMessage(Arrangement.maxNumberOfArrangers),
       itemLabel: s.arrangerFieldLabel,
-      label: s.arrangersLabel,
+      label: Text(s.arrangersLabel, style: theme.textTheme.headline6),
       validator: Arrangement.validateArranger,
     );
   }
 
-  Widget _lyricists(S s, EditableArrangement arrangement) {
+  Widget _lyricists(S s, ThemeData theme, EditableArrangement arrangement) {
     return EditableTextList(
       items: arrangement.editableLyricists,
       maxNumberOfItems: Arrangement.maxNumberOfLyricists,
@@ -107,7 +108,7 @@ class _AddArrangementFormState extends State<AddArrangementForm> {
       tooManyItemsText:
           s.tooManyLyricistsErrorMessage(Arrangement.maxNumberOfLyricists),
       itemLabel: s.lyricistFieldLabel,
-      label: s.lyricistsLabel,
+      label: Text(s.lyricistsLabel, style: theme.textTheme.headline6),
       validator: Arrangement.validateLyricist,
     );
   }

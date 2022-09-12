@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart' hide CloseButton;
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
+import 'package:score/features/new_score/behaviours/save_new_score.dart';
 import 'package:score/features/new_score/widgets/close_button.dart';
 import 'package:score/shared/models/score.dart';
 
@@ -10,8 +11,12 @@ class CreateNewScorePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Provider<EditableScore>(
-      create: (_) => context.read<GetIt>()(),
+    final getIt = context.read<GetIt>();
+    return MultiProvider(
+      providers: [
+        Provider(create: (_) => getIt<EditableScore>()),
+        Provider(create: (_) => getIt<SaveNewScore>()),
+      ],
       child: Stack(children: const [
         AutoRouter(),
         Align(

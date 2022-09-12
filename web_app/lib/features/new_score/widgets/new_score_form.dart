@@ -23,6 +23,7 @@ class _NewScoreFormState extends State<NewScoreForm> {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context)!;
+    final theme = Theme.of(context);
     final score = context.read<EditableScore>();
     if (score.editableArrangements.isEmpty) {
       score.editableArrangements.add(EditableArrangement.empty());
@@ -42,9 +43,9 @@ class _NewScoreFormState extends State<NewScoreForm> {
               const SizedBox(height: 8),
               _dedication(s, score),
               const SizedBox(height: 16),
-              _composers(s, score),
+              _composers(s, theme, score),
               const SizedBox(height: 8),
-              _tags(s, score),
+              _tags(s, theme, score),
               Align(
                 alignment: Alignment.topRight,
                 child: Padding(
@@ -83,7 +84,7 @@ class _NewScoreFormState extends State<NewScoreForm> {
     );
   }
 
-  Widget _composers(S s, EditableScore score) {
+  Widget _composers(S s, ThemeData theme, EditableScore score) {
     return EditableTextList(
       items: score.editableComposers,
       maxNumberOfItems: Score.maxNumberOfComposers,
@@ -91,19 +92,19 @@ class _NewScoreFormState extends State<NewScoreForm> {
       tooManyItemsText:
           s.tooManyComposersErrorMessage(Score.maxNumberOfComposers),
       itemLabel: s.composerFieldLabel,
-      label: s.composersLabel,
+      label: Text(s.composersLabel, style: theme.textTheme.headline6),
       validator: Score.validateComposer,
     );
   }
 
-  Widget _tags(S s, EditableScore score) {
+  Widget _tags(S s, ThemeData theme, EditableScore score) {
     return EditableTextList(
       items: score.editableTags,
       maxNumberOfItems: Score.maxNumberOfTags,
       addButtonText: s.addTag,
       tooManyItemsText: s.tooManyTagsErrorMessage(Score.maxNumberOfTags),
       itemLabel: s.tagFieldLabel,
-      label: s.tagsLabel,
+      label: Text(s.tagsLabel, style: theme.textTheme.headline6),
       validator: Score.validateTag,
     );
   }
@@ -112,7 +113,6 @@ class _NewScoreFormState extends State<NewScoreForm> {
     if (_formKey.currentState?.validate() != true) {
       return;
     }
-    score.editableArrangements.add(EditableArrangement.empty());
     AutoRouter.of(context).push(AddArrangementForm(arrangementIndex: 0));
   }
 }
