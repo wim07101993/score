@@ -1,56 +1,22 @@
-import 'dart:async';
-import 'dart:developer';
+import 'dart:convert';
 
-import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_logging_extensions/flutter_logging_extensions.dart';
-import 'package:score/app.dart';
-import 'package:score/app_get_it_extensions.dart';
-import 'package:score/app_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
-late Logger rootLogger;
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  EquatableConfig.stringify = true;
-  final getIt = GetIt.asNewInstance()..registerApp();
-  await getIt.initializeApp();
-  rootLogger = getIt<Logger>(param1: 'root');
-  rootLogger.i('initialized dependency injection');
-  runZonedGuarded(
-    () => run(getIt),
-    onError,
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
   );
-}
-
-void run(GetIt getIt) {
-  runApp(AppProvider(
-    getIt: getIt,
-    child: const ScoreApp(),
-  ));
-}
-
-void onError(Object error, StackTrace stackTrace) {
-  try {
-    rootLogger.shout('Error on main', error, stackTrace);
-  } catch (nestedError, nestedStackTrace) {
-    log(
-      'Error on main',
-      time: DateTime.now(),
-      level: Level.SHOUT.value,
-      error: error,
-      stackTrace: stackTrace,
-      zone: Zone.current,
-      name: 'main',
-    );
-    log(
-      'Error while trying to log exception',
-      time: DateTime.now(),
-      level: Level.SHOUT.value,
-      error: nestedError,
-      stackTrace: nestedStackTrace,
-      zone: Zone.current,
-      name: 'main',
-    );
+  final collection = FirebaseFirestore.instance.collection("scoresx");
+  final json = await rootBundle.loadString('assets/scoresx.json');
+  final scores = jsonDecode(json) as List<dynamic>;
+  for (final score in scores.whereType<Map<String, dynamic>>()) {
+    print('adding score ${score["title"]}');
+    await collection.add(score);
   }
 }
