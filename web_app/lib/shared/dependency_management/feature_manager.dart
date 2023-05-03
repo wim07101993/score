@@ -80,12 +80,12 @@ class FeatureManager {
           .map(_ensureFeatureInstalled)
           .toList(growable: false);
 
+      await Future.wait(installFutures);
+
       if (installFutures.isEmpty) {
         throwCircularDependencyException();
         return;
       }
-
-      await Future.wait(installFutures);
     }
   }
 
@@ -118,22 +118,22 @@ class FeatureManager {
   }
 
   bool _canFeatureBeInstalled(Feature feature) {
-    final status = _featureStatuses[feature.runtimeType];
-    return status != null &&
-        !status.isInstalled &&
-        feature.dependencies
-            .map((type) => _featureStatuses[type])
-            .every((status) {
-          if (status == null) {
-            throw Exception('Feature $feature is not known...');
-          }
-          return status.isInstalled;
-        });
+    final status = _featureStatuses[feature];
+    return status == null ||
+        (!status.isInstalled &&
+            feature.dependencies
+                .map((type) => _featureStatuses[type])
+                .every((status) {
+              if (status == null) {
+                throw Exception('Feature $feature is not known...');
+              }
+              return status.isInstalled;
+            }));
   }
 
   T throwCircularDependencyException<T>() {
-    final leftOverFeatures = _featureStatuses.values
-        .where((status) => !status.isInstalled)
+    final leftOverFeatures = _featureStatuses.keys
+        .where((installer) => _featureStatuses[installer]?.isInstalled != true)
         .toList(growable: false);
     throw Exception(
       'Circular dependency between features detected. Left over features: '

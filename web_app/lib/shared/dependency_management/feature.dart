@@ -12,4 +12,7 @@ abstract class Feature {
   Future<void> install(GetIt getIt) => Future.value();
 
   FutureOr<dynamic> dispose() {}
+
+  @override
+  String toString() => runtimeType.toString();
 }

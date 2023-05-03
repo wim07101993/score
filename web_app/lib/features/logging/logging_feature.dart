@@ -4,7 +4,7 @@ import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/shared/dependency_management/feature.dart';
 
-class LoggingFeature implements Feature {
+class LoggingFeature extends Feature {
   const LoggingFeature();
 
   @override

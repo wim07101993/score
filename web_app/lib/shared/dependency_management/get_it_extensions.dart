@@ -3,6 +3,6 @@ import 'package:get_it/get_it.dart';
 
 extension DependencyManagementGetItExtensions on GetIt {
   Logger? logger<T>([String? loggerName]) {
-    return get<Logger>(param1: loggerName ?? T.runtimeType);
+    return get<Logger>(param1: loggerName ?? T.runtimeType.toString());
   }
 }
