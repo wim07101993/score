@@ -8,19 +8,22 @@ class FeatureManager {
     required List<Feature> features,
     required this.getIt,
   }) : _featureStatuses = {
-          for (final feature in features) feature: _FeatureStatus(),
+          for (final feature in features)
+            feature.runtimeType: _FeatureStatus(feature),
         } {
     assert(
       _featureStatuses.length == features.length,
       'Each feature can only occur once in the list of features',
     );
+    print(_featureStatuses);
   }
 
   final GetIt getIt;
-  final Map<Feature, _FeatureStatus> _featureStatuses;
+  final Map<Type, _FeatureStatus> _featureStatuses;
   Logger? _logger;
 
-  Iterable<Feature> get features => _featureStatuses.keys;
+  Iterable<Feature> get features =>
+      _featureStatuses.values.map((status) => status.feature);
 
   Logger? get logger {
     return _logger ??
@@ -57,7 +60,7 @@ class FeatureManager {
   }
 
   void _ensureFeatureTypesRegistered(Feature feature) {
-    final installStatus = _featureStatuses[feature];
+    final installStatus = _featureStatuses[feature.runtimeType];
     if (installStatus == null) {
       throw Exception('Feature $feature is not known...');
     }
@@ -68,7 +71,8 @@ class FeatureManager {
     logger?.finest('$feature: registering types of feature');
 
     feature.registerTypes(getIt);
-    _featureStatuses[feature] = installStatus..hasRegisteredTypes = true;
+    _featureStatuses[feature.runtimeType] = installStatus
+      ..hasRegisteredTypes = true;
 
     logger?.finer('$feature: registered types of feature');
   }
@@ -90,7 +94,7 @@ class FeatureManager {
   }
 
   Future<void> _ensureFeatureInstalled(Feature feature) async {
-    final status = _featureStatuses[feature];
+    final status = _featureStatuses[feature.runtimeType];
     if (status == null) {
       throw Exception(
         'First register the types, then call install. The installation method '
@@ -112,13 +116,13 @@ class FeatureManager {
     logger?.finest('$feature: installing feature');
 
     await feature.install(getIt);
-    _featureStatuses[feature] = status..isInstalled = true;
+    _featureStatuses[feature.runtimeType] = status..isInstalled = true;
 
     logger?.fine('$feature: installed feature');
   }
 
   bool _canFeatureBeInstalled(Feature feature) {
-    final status = _featureStatuses[feature];
+    final status = _featureStatuses[feature.runtimeType];
     return status == null ||
         (!status.isInstalled &&
             feature.dependencies
@@ -133,7 +137,7 @@ class FeatureManager {
 
   T throwCircularDependencyException<T>() {
     final leftOverFeatures = _featureStatuses.keys
-        .where((installer) => _featureStatuses[installer]?.isInstalled != true)
+        .where((type) => _featureStatuses[type]?.isInstalled != true)
         .toList(growable: false);
     throw Exception(
       'Circular dependency between features detected. Left over features: '
@@ -143,6 +147,10 @@ class FeatureManager {
 }
 
 class _FeatureStatus {
+  _FeatureStatus(this.feature);
+
+  final Feature feature;
+
   bool isInstalled = false;
   bool hasRegisteredTypes = false;
 }

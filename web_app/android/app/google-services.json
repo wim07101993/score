@@ -1,34 +1,33 @@
 {
   "project_info": {
-    "project_number": "769630625320",
-    "firebase_url": "https://score-e5588-default-rtdb.europe-west1.firebasedatabase.app",
-    "project_id": "score-e5588",
-    "storage_bucket": "score-e5588.appspot.com"
+    "project_number": "447067438269",
+    "project_id": "score-b48f4",
+    "storage_bucket": "score-b48f4.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:769630625320:android:efc28ed667deec330e5f1d",
+        "mobilesdk_app_id": "1:447067438269:android:faab246884700185ab8bd4",
         "android_client_info": {
           "package_name": "com.wimvanlaer.score.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "769630625320-guovbq2dj4frq5631ohfcpomrs2pt1nv.apps.googleusercontent.com",
+          "client_id": "447067438269-dba209rtbm979dut3deq89fn7apm9bek.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBRpxGh5jd8hBJXG1j6t7rjR5rycnsdCYo"
+          "current_key": "AIzaSyBiQIWZrHOm_EQ2IS-5IkVtS25HBdIylsI"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "769630625320-guovbq2dj4frq5631ohfcpomrs2pt1nv.apps.googleusercontent.com",
+              "client_id": "447067438269-dba209rtbm979dut3deq89fn7apm9bek.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

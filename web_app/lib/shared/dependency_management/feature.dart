@@ -11,8 +11,30 @@ abstract class Feature {
 
   Future<void> install(GetIt getIt) => Future.value();
 
-  FutureOr<dynamic> dispose() {}
+  FutureOr<void> dispose() {}
 
   @override
   String toString() => runtimeType.toString();
+}
+
+abstract class FeatureBase implements Feature {
+  FeatureBase();
+
+  List<StreamSubscription> subscriptions = [];
+
+  @override
+  List<Type> get dependencies => const [];
+
+  @override
+  void registerTypes(GetIt getIt) {}
+
+  @override
+  Future<void> install(GetIt getIt) => Future.value();
+
+  @override
+  FutureOr<void> dispose() async {
+    await Future.wait(
+      subscriptions.map((subscription) => subscription.cancel()),
+    );
+  }
 }
