@@ -27,7 +27,6 @@ Future<void> run(GetIt getIt) async {
       AuthFeature(),
       const FirebaseFeature(),
       const RoutingFeature(),
-      // const UploadFeature(),
     ],
     getIt: getIt,
   )..registerTypes();
