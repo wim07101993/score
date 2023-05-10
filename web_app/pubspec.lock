@@ -65,6 +65,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.2.0"
+  behaviour:
+    dependency: "direct main"
+    description:
+      name: behaviour
+      sha256: "37433c3a855322ef131f0e1cd3f4fb4ecd5d6ece59db48c0a87ed99d77bf9e9d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.1"
   boolean_selector:
     dependency: transitive
     description:

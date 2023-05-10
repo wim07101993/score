@@ -18,13 +18,6 @@ Future<void> main() async {
     final logger = getLogger(getIt);
     logger.wtf('Error in main: $error', error, stackTrace);
   });
-  // final collection = FirebaseFirestore.instance.collection("scoresx");
-  // final json = await rootBundle.loadString('assets/scoresx.json');
-  // final scores = jsonDecode(json) as List<dynamic>;
-  // for (final score in scores.whereType<Map<String, dynamic>>()) {
-  //   print('adding score ${score["title"]}');
-  //   await collection.add(score);
-  // }
 }
 
 Future<void> run(GetIt getIt) async {
@@ -34,6 +27,7 @@ Future<void> run(GetIt getIt) async {
       AuthFeature(),
       const FirebaseFeature(),
       const RoutingFeature(),
+      // const UploadFeature(),
     ],
     getIt: getIt,
   )..registerTypes();

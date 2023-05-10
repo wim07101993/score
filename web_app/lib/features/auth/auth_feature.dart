@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider, User;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/behaviours/logout.dart';
 import 'package:score/features/auth/models/user_value.dart';
 import 'package:score/shared/dependency_management/feature.dart';
 import 'package:score/shared/firebase/firebase_feature.dart';
@@ -30,6 +31,8 @@ class AuthFeature extends FeatureBase {
         firebaseUserConverter: getIt(),
       ).initialize(),
     );
+
+    getIt.registerFactory(() => Logout(firebaseAuth: getIt()));
   }
 
   @override

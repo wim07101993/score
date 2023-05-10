@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:score/features/auth/behaviours/logout.dart';
 import 'package:score/shared/dependency_management/get_it_build_context_extensions.dart';
 
 @RoutePage()
@@ -9,9 +9,55 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => context.getIt<FirebaseAuth>().signOut(),
-      child: const Text('LogOut'),
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        actions: [_popUpMenuButton(theme)],
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            Text(
+              'Score',
+              style: theme.textTheme.headlineLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search',
+              ),
+            ),
+            const SizedBox(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _popUpMenuButton(ThemeData theme) {
+    return PopupMenuButton(
+      color: theme.primaryColor,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          onTap: context.getIt<Logout>(),
+          child: Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: theme.textTheme.bodyMedium?.color,
+              ),
+              const SizedBox(width: 8),
+              const Text('Logout'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

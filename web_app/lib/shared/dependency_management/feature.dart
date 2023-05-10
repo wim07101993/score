@@ -17,7 +17,7 @@ abstract class Feature {
   String toString() => runtimeType.toString();
 }
 
-abstract class FeatureBase implements Feature {
+abstract class FeatureBase extends Feature {
   FeatureBase();
 
   List<StreamSubscription> subscriptions = [];
