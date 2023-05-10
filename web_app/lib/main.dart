@@ -6,6 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:score/app.dart';
 import 'package:score/features/auth/auth_feature.dart';
 import 'package:score/features/logging/logging_feature.dart';
+import 'package:score/features/score_search/score_search_feature.dart';
 import 'package:score/shared/dependency_management/feature_manager.dart';
 import 'package:score/shared/dependency_management/get_it_extensions.dart';
 import 'package:score/shared/dependency_management/get_it_provider.dart';
@@ -27,6 +28,7 @@ Future<void> run(GetIt getIt) async {
       AuthFeature(),
       const FirebaseFeature(),
       const RoutingFeature(),
+      const ScoreSearchFeature(),
     ],
     getIt: getIt,
   )..registerTypes();

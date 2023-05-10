@@ -47,3 +47,5 @@ app.*.map.json
 
 # firebase_options
 lib/shared/firebase/firebase_options.dart
+# algolia_options
+lib/shared/algolia/algolia_options.dart
