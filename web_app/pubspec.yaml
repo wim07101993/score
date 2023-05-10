@@ -32,7 +32,3 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
-
-  assets:
-    - assets/scores1.json
-    - assets/scores2.json
