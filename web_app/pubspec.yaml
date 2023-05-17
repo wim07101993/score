@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   algolia_helper_flutter: ">=0.2.0 <1.0.0"
-  auto_route: ">=6.0.0 <7.0.0"
+  auto_route: ">=7.0.0 <8.0.0"
   behaviour: ">=2.0.0 <3.0.0"
   cloud_firestore: ">=4.4.5 <5.0.0"
   firebase_auth: ">=4.0.0 <5.0.0"
@@ -23,9 +23,10 @@ dependencies:
   google_fonts: ">=4.0.3 <5.0.0"
   infinite_scroll_pagination: ">=3.2.0 <4.0.0"
   logging:
+  url_launcher: ">=6.0.0 <7.0.0"
 
 dev_dependencies:
-  auto_route_generator: ">=6.0.0 <7.0.0"
+  auto_route_generator:
   build_runner: ">=2.0.0 <3.0.0"
   flutter_test:
     sdk: flutter

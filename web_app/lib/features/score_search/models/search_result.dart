@@ -22,7 +22,7 @@ class SearchResult {
   final int numberOfPages;
 
   bool get isFirstPage => pageKey == 0;
-  bool get isLastPage => pageKey < numberOfPages;
+  bool get isLastPage => pageKey >= numberOfPages;
   int? get nextPage => isLastPage ? null : pageKey + 1;
 }
 
@@ -33,13 +33,16 @@ class SearchResultValue implements ReadOnlyGlobalValue<SearchResult?> {
     required Logger logger,
   }) {
     _searcherResponseSubscription = searcher.responses.listen((response) {
-      logger.i('received response ${response.page}');
+      logger.i(
+        'received search page ${response.page} with ${response.hits.length} items',
+      );
       _value = SearchResult(
         hits: response.hits.map(hitConverter.convert).toList(growable: false),
         numberOfHits: response.nbHits,
         pageKey: response.page,
         numberOfPages: response.nbPages,
       );
+      _streamController.add(_value);
     });
   }
 

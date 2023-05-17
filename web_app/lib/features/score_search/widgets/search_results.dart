@@ -1,14 +1,13 @@
 import 'dart:async';
 
-import 'package:algolia_helper_flutter/algolia_helper_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
-import 'package:score/features/logging/logging_widget_extensions.dart';
+import 'package:score/features/score_search/behaviours/search_page.dart';
 import 'package:score/features/score_search/models/score.dart';
 import 'package:score/features/score_search/models/search_result.dart';
 import 'package:score/features/score_search/widgets/score_list_item.dart';
 import 'package:score/shared/dependency_management/get_it_build_context_extensions.dart';
+import 'package:score/shared/dependency_management/global_value.dart';
 
 class SearchResults extends StatefulWidget {
   const SearchResults({super.key});
@@ -18,51 +17,49 @@ class SearchResults extends StatefulWidget {
 }
 
 class _SearchResultsState extends State<SearchResults> {
-  final _pagingController = PagingController<int, Score>(firstPageKey: 0);
-  late final HitsSearcher _searcher = context.getIt();
-  late final StreamSubscription _searchResultSubscription;
+  final pagingController = PagingController<int, Score>(firstPageKey: 0);
+
+  late final SearchResultValue searchResult = context.getIt();
+  late final GlobalValueListenable<SearchResult?> searchResultListenable =
+      GlobalValueListenable(globalValue: searchResult);
+  late final SearchPage searchPage = context.getIt();
+  late final StreamSubscription searchResultSubscription;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    _searchResultSubscription = context
-        .getIt<SearchResultValue>()
-        .changes
+    searchResultSubscription = searchResult.changes
         .where((result) => result != null)
         .cast<SearchResult>()
         .listen(appendPage);
 
-    _pagingController.addPageRequestListener(requestPage);
+    pagingController.addPageRequestListener(searchPage);
   }
 
   void appendPage(SearchResult result) {
-    logger.i('received page ${result.pageKey}');
     if (result.isFirstPage) {
-      _pagingController.refresh();
+      pagingController.refresh();
     }
-    _pagingController.appendPage(result.hits, result.nextPage);
-  }
-
-  void requestPage(int pageKey) {
-    logger.i('requesting page $pageKey');
-    _searcher.applyState((state) => state.copyWith(page: pageKey));
+    pagingController.appendPage(result.hits, result.nextPage);
   }
 
   @override
   void dispose() {
-    _searchResultSubscription.cancel();
+    pagingController.dispose();
+    searchResultSubscription.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return PagedListView<int, Score>(
-      pagingController: _pagingController,
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
+      pagingController: pagingController,
       builderDelegate: PagedChildBuilderDelegate(
-        itemBuilder: (context, score, index) => ScoreListItem(score: score),
+        itemBuilder: (context, score, index) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 4),
+          child: ScoreListItem(score: score),
+        ),
       ),
     );
   }

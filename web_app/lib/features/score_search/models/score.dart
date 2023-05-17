@@ -16,4 +16,8 @@ class Score {
   final List<String> composers;
   final List<String> lyricists;
   final List<Part> parts;
+
+  Set<String> get creators => {...composers, ...lyricists};
+  Set<String> get instruments =>
+      parts.expand((part) => part.instruments).toSet();
 }

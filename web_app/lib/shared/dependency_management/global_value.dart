@@ -15,7 +15,8 @@ abstract class GlobalValue<T> implements ReadOnlyGlobalValue<T> {
   T get value;
 }
 
-class GlobalValueListenable<T> extends ChangeNotifier {
+class GlobalValueListenable<T> extends ChangeNotifier
+    implements ValueListenable<T> {
   GlobalValueListenable({
     required this.globalValue,
   }) {
@@ -26,6 +27,7 @@ class GlobalValueListenable<T> extends ChangeNotifier {
 
   late final StreamSubscription _subscription;
 
+  @override
   T get value => globalValue.value;
 
   @override

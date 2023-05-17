@@ -18,4 +18,12 @@ class LinkedFile implements PartFile {
   });
 
   final String link;
+
+  @override
+  bool operator ==(Object other) {
+    return other is LinkedFile && other.link == link;
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode ^ link.hashCode;
 }

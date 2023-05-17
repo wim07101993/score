@@ -15,7 +15,6 @@ class FeatureManager {
       _featureStatuses.length == features.length,
       'Each feature can only occur once in the list of features',
     );
-    print(_featureStatuses);
   }
 
   final GetIt getIt;
