@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package 'score';
+
+option go_package = "github.com/wim07101993/score";
+
+// Service which handles the managing of scores.
+//
+// A score exists out of parts which have files linked it.
+service ScoreManager {
+  rpc CreateScoreFromMusicXml(stream FileChunk) returns (CreatedReply);
+}
+
+message FileChunk {
+  bytes content = 2;
+}
+
+message CreatedReply {
+  int32 id = 1;
+}
