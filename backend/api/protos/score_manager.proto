@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package 'score';
+package score;
 
 option go_package = "github.com/wim07101993/score";
 

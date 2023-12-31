@@ -5,9 +5,9 @@ import (
 	"io"
 )
 
-func ParseMusicXml(r io.Reader) (MusicDoc, error) {
+func ParseMusicXml(r io.Reader) (*ScorePartwise, error) {
 	decoder := xml.NewDecoder(r)
-	mdoc := MusicDoc{}
-	err := decoder.Decode(&mdoc)
+	mdoc := &ScorePartwise{}
+	err := decoder.Decode(mdoc)
 	return mdoc, err
 }

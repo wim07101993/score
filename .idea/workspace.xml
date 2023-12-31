@@ -5,105 +5,35 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/runConfigurations/run_score_manager.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/score.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/score_manager.pb.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/score_manager_grpc.pb.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/api/protos/score_manager.proto" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/cmd/client/main.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/cmd/server/main.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/closer/closer.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/grpc/logging_interceptor.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/grpc/stream_reader.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/grpc/stream_writing.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/grpc/token_validator.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/scripts/generate_servers.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/scripts/file_to_file_chunk.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/ActorPreludeSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/BeetAnGeSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Binchois.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/BrahWiMeSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/BrookeWestSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Chant.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/DebuMandSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Dichterliebe01.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Echigo-Jishi.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/FaurReveSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/MahlFaGe4Sample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/MozaChloSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/MozaVeilSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/MozartPianoSonata.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/MozartTrio.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Saltarello.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/SchbAvMaSample.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Telemann.musicxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/musicxml.xsd" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/.idea/importer.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/create_scores_json.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/go.mod" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/go.sum" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/scores.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/scores1.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/importer/scores2.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/.metadata" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/analysis_options.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/build.gradle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/google-services.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/debug/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/kotlin/com/wimvanlaer/score/app/MainActivity.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/drawable-v21/launch_background.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/drawable/launch_background.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/values-night/styles.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/main/res/values/styles.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/app/src/profile/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/build.gradle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/gradle.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/android/settings.gradle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/l10n.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/app.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/auth/auth_feature.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/auth/behaviours/logout.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/auth/models/user_value.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/auth/widgets/profile_button.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/auth/widgets/sign_in_screen.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/home/widgets/home_screen.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/logging/behaviour_tracks/logging_behaviour_track.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/logging/default_behaviour_monitor.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/logging/logging_feature.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/logging/logging_widget_extensions.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/behaviours/search.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/behaviours/search_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/models/part.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/models/score.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/models/search_result.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/score_search_feature.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/widgets/number_of_search_results.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/widgets/score_list_item.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/widgets/search_field.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/features/score_search/widgets/search_results.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/main.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/algolia/algolia_options.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/dependency_management/feature.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/dependency_management/feature_manager.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/dependency_management/get_it_build_context_extensions.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/dependency_management/get_it_extensions.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/dependency_management/get_it_provider.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/dependency_management/global_value.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/firebase/firebase_feature.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/json_extensions.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/localization/arb/app_en.arb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/router/app_router.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/router/app_router.gr.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/lib/shared/router/routing_feature.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/pubspec.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/pubspec.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/favicon.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/icons/Icon-192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/icons/Icon-512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/icons/Icon-maskable-192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/icons/Icon-maskable-512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/web_app/web/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/protos/score_manager.proto" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/protos/score_manager.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/server/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/server/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -120,6 +50,11 @@
   </component>
   <component name="GOROOT" url="file://$USER_HOME$/go/go1.21.2" />
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="restart" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="MarkdownSettingsMigration">
@@ -136,32 +71,45 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;restart&quot;,
-    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/wim/source/repos/score/backend/internal/grpc&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultGoTemplateProperty": "Go File",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "golang-muxicxml",
+    "go.import.settings.migrated": "true",
+    "last_opened_file_path": "/home/wim/source/repos/score/backend/test/data/musicxml",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
+      <recent name="$PROJECT_DIR$/backend/test/data" />
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
+      <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
+      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml/schema" />
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-266795519c66-911b893a1778-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-233.13135.104" />
+      </set>
+    </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
