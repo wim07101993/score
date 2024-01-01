@@ -1,7 +1,6 @@
-import '../code_sink.dart';
-import 'code.dart';
+part of 'code.dart';
 
-class Enum extends Code {
+class Enum extends Type {
   const Enum({
     required this.name,
     required this.values,
@@ -12,23 +11,16 @@ class Enum extends Code {
   final List<String> values;
 
   @override
-  void writeTo(CodeSink sink) {
+  void writeTo(IOSink sink) {
     print('writing enum $name');
-    writeDocs(sink.enumSink);
+    writeDocs(sink);
 
-    sink.enumSink
-      ..write('enum ')
-      ..write(name)
-      ..writeln(' {');
-
+    sink.writeln('enum $name {');
     for (final value in values) {
-      sink.enumSink
-        ..write('  ')
-        ..write(value)
-        ..writeln(',');
+      sink.writeln('  $value,');
     }
 
-    sink.enumSink
+    sink
       ..writeln('}')
       ..writeln();
   }

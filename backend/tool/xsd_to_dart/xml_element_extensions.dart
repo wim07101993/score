@@ -1,9 +1,7 @@
 import 'package:dart_casing/dart_casing.dart';
 import 'package:xml/xml.dart';
 
-import 'code/alias.dart';
-import 'code/enum.dart';
-import 'code/union.dart';
+import 'code/code.dart';
 import 'string_extensions.dart';
 
 extension XsdXmlElementExtensions on XmlElement {
@@ -54,7 +52,7 @@ extension XsdXmlElementExtensions on XmlElement {
     });
   }
 
-  Enum toEnum() {
+  Enum simpleTypeToEnum() {
     final typeName = this.typeName;
     return Enum(
       name: typeName,
@@ -84,7 +82,7 @@ extension XsdXmlElementExtensions on XmlElement {
         ?.mustGetAttribute('value', forType);
   }
 
-  Alias toAlias() {
+  Alias simpleTypeToAlias() {
     final typeName = this.typeName;
     final baseTypeName =
         restrictionElement?.mustGetAttribute('base', typeName).toDartTypeName();
@@ -103,15 +101,43 @@ extension XsdXmlElementExtensions on XmlElement {
 
   XmlElement? get unionElement => findChildElements('union').firstOrNull;
 
-  List<String> memberTypes(String forType) =>
-      unionElement?.mustGetAttribute('memberTypes', forType).split(' ') ?? [];
+  Iterable<String> memberTypes(String forType) =>
+      unionElement
+          ?.mustGetAttribute('memberTypes', forType)
+          .split(' ')
+          .map((type) => type.toDartTypeName()) ??
+      [];
 
-  Union toUnion() {
+  Union simpleTypeToUnion() {
     final typeName = this.typeName;
     return Union(
       name: typeName,
       docs: documentation.toList(growable: false),
-      types: memberTypes(typeName),
+      types: memberTypes(typeName).toList(growable: false),
+    );
+  }
+
+  Iterable<XmlElement> get attributeElements => findChildElements('attribute');
+
+  Iterable<Property> properties(String forType) {
+    return attributeElements
+        .map((attribute) => attribute.attributeToProperty(forType));
+  }
+
+  Property attributeToProperty(String forType) {
+    return Property(
+      name: Casing.camelCase(mustGetAttribute('name', forType)),
+      type: mustGetAttribute('type', forType).toDartTypeName(),
+      docs: documentation.toList(growable: false),
+    );
+  }
+
+  Interface attributeGroupToInterface() {
+    final typeName = this.typeName;
+    return Interface(
+      name: typeName,
+      docs: documentation.toList(growable: false),
+      properties: properties(typeName).toList(growable: false),
     );
   }
 }

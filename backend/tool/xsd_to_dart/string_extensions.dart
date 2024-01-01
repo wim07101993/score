@@ -10,6 +10,7 @@ extension XsdStringExtensions on String {
       'xs:token' => 'String',
       'xs:string' => 'String',
       'xs:NMTOKEN' => 'String',
+      'xs:ID' => 'String',
       'xs:date' => 'DateTime',
       String() => Casing.pascalCase(this),
     };

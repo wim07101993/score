@@ -1,5 +1,5 @@
 // ignore: unused_import, always_use_package_imports
-import 'enums.g.dart';
+import 'barrel.g.dart';
 
 /// The MusicXML format supports six levels of beaming, up to 1024th notes. Unlike the number-level type, the beam-level type identifies concurrent beams in a beam group. It does not distinguish overlapping beams such as grace notes within regular notes, or beams used in different voices.
 /// 

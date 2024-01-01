@@ -1,7 +1,6 @@
-import '../code_sink.dart';
-import 'code.dart';
+part of 'code.dart';
 
-class Alias extends Code {
+class Alias extends Type {
   Alias({
     required this.name,
     required this.baseType,
@@ -27,17 +26,12 @@ class Alias extends Code {
   final String? pattern;
 
   @override
-  void writeTo(CodeSink sink) {
+  void writeTo(IOSink sink) {
     print('writing alias $name');
+    writeDocs(sink);
 
-    writeDocs(sink.aliasSink);
-
-    sink.aliasSink
-      ..write('typedef ')
-      ..write(name)
-      ..write(' = ')
-      ..write(baseType)
-      ..writeln(';')
+    sink
+      ..writeln('typedef $name = $baseType;')
       ..writeln();
   }
 }

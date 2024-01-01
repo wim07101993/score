@@ -1,7 +1,6 @@
-import '../code_sink.dart';
-import 'code.dart';
+part of 'code.dart';
 
-class Union extends Code {
+class Union extends Type {
   const Union({
     required super.docs,
     required this.name,
@@ -12,7 +11,32 @@ class Union extends Code {
   final List<String> types;
 
   @override
-  void writeTo(CodeSink sink) {
-    // we write unions by hand since it are not as many
+  void writeTo(IOSink sink) {
+    print('writing enum $name');
+    writeDocs(sink);
+
+    sink.writeln('sealed class $name {');
+    for (final type in types) {
+      final camelCase = Casing.camelCase(type);
+      final subType = this.subType(type);
+      sink.writeln('  const factory $name.$camelCase($type value) = $subType;');
+    }
+
+    sink
+      ..writeln('}')
+      ..writeln();
+
+    for (final type in types) {
+      final subType = this.subType(type);
+      sink
+        ..writeln('class $subType implements $name {')
+        ..writeln('  const $subType(this.value);')
+        ..writeln()
+        ..writeln('  final $type value;')
+        ..writeln('}')
+        ..writeln();
+    }
   }
+
+  String subType(String type) => '${name}_$type';
 }

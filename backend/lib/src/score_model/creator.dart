@@ -1,4 +1,6 @@
 sealed class Creator {
+  const factory Creator.lyricist(String value) = Lyricist;
+
   String get value;
 }
 
