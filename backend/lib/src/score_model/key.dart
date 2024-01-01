@@ -1,3 +1,6 @@
+import 'package:score_backend/src/musicxml/models/aliases.g.dart';
+import 'package:score_backend/src/musicxml/models/enums.g.dart';
+
 sealed class Key {}
 
 class TraditionalKey implements Key {
@@ -20,19 +23,4 @@ class KeyCancel {
 
   final int fifths;
   final CancelLocation location;
-}
-
-enum CancelLocation { left, right, beforeBarline }
-
-enum Mode {
-  major,
-  minor,
-  dorian,
-  phrygian,
-  lydian,
-  mixolydian,
-  aeolian,
-  ionian,
-  locrian,
-  none
 }

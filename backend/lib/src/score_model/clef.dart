@@ -1,3 +1,5 @@
+import 'package:score_backend/src/musicxml/models/enums.g.dart';
+
 class Clef {
   const Clef({
     required this.sign,
@@ -11,5 +13,3 @@ class Clef {
   final int octaveChange;
   final int staffNumber;
 }
-
-enum ClefSign { g, f, c, percussion, tab, jianpu, none }

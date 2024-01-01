@@ -1,15 +1,9 @@
+import 'package:score_backend/src/musicxml/models/enums.g.dart';
 import 'package:score_backend/src/score_model/instrument.dart';
 
 export 'instrument.dart';
 
 sealed class PartListItem {}
-
-enum GroupSymbol {
-  brace,
-  line,
-  bracket,
-  square,
-}
 
 class PartGroupStart implements PartListItem {
   const PartGroupStart({
@@ -18,7 +12,7 @@ class PartGroupStart implements PartListItem {
   });
 
   final int number;
-  final GroupSymbol symbol;
+  final GroupSymbolValue symbol;
 }
 
 class PartGroupEnd implements PartListItem {
