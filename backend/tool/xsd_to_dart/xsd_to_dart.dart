@@ -1,9 +1,9 @@
 import 'package:xml/xml.dart';
 
 import 'code/code.dart';
-import 'complex_type_xml_element_extensions.dart';
-import 'simple_type_xml_element_extensions.dart';
-import 'xml_element_extensions.dart';
+import 'xml/complex_type_xml_element_extensions.dart';
+import 'xml/simple_type_xml_element_extensions.dart';
+import 'xml/xml_element_extensions.dart';
 
 Iterable<Type> createCodeFromXmlElement(XmlElement element) sync* {
   switch (element.name.local) {

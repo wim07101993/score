@@ -1,7 +1,7 @@
 import 'package:dart_casing/dart_casing.dart';
 import 'package:xml/xml.dart';
 
-import 'code/code.dart';
+import '../code/code.dart';
 import 'string_extensions.dart';
 import 'xml_element_extensions.dart';
 import 'xsd_xml_element_extensions.dart';

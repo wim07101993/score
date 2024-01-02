@@ -1,9 +1,9 @@
 import 'package:dart_casing/dart_casing.dart';
 import 'package:xml/xml.dart';
 
-import 'code/code.dart';
+import '../code/code.dart';
+import '../type_resolvers.dart';
 import 'string_extensions.dart';
-import 'type_resolvers.dart';
 import 'xml_element_extensions.dart';
 import 'xsd_xml_element_extensions.dart';
 
