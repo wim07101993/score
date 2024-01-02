@@ -1,4 +1,4 @@
-// ignore: unused_import, always_use_package_imports
+// ignore_for_file: unused_import, always_use_package_imports, camel_case_types
 import 'barrel.g.dart';
 
 /// The font-size can be one of the CSS font sizes (xx-small, x-small, small, medium, large, x-large, xx-large) or a numeric point size.
@@ -12,7 +12,6 @@ class FontSize_double implements FontSize {
 
   final double value;
 }
-
 class FontSize_CssFontSize implements FontSize {
   const FontSize_CssFontSize(this.value);
 
@@ -52,10 +51,8 @@ class YesNoNumber_YesNo implements YesNoNumber {
 
   final YesNo value;
 }
-
 class YesNoNumber_double implements YesNoNumber {
   const YesNoNumber_double(this.value);
 
   final double value;
 }
-

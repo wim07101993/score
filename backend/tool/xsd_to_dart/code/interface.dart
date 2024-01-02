@@ -1,43 +1,28 @@
 part of 'code.dart';
 
-class Interface extends Type {
+class Interface extends ComplexType {
   Interface({
-    required this.name,
+    required String name,
     required super.docs,
-    required this.properties,
-  });
-
-  final String name;
-  final List<Property> properties;
+    required super.properties,
+    required super.interfaces,
+  }) : super(name: '${name}Group');
 
   @override
   void writeTo(IOSink sink) {
+    // ignore: avoid_print
+    print('writing interface $name');
     writeDocs(sink);
 
-    sink.writeln('abstract class $name {');
+    sink.write('abstract class $name ');
+    if (interfaces.isNotEmpty) {
+      sink.write('implements ${interfaces.join(', ')} ');
+    }
+    sink.writeln('{');
+
     for (final property in properties) {
       property.writeTo(sink);
     }
-    sink
-      ..writeln('}')
-      ..writeln();
-  }
-}
-
-class Property extends Code {
-  const Property({
-    required super.docs,
-    required this.name,
-    required this.type,
-  });
-
-  final String name;
-  final String type;
-
-  @override
-  void writeTo(IOSink sink) {
-    writeDocs(sink, indent: 2);
-
-    sink.writeln('  $type get $name;');
+    sink.writeln('}');
   }
 }

@@ -2,9 +2,9 @@ part of 'code.dart';
 
 class Alias extends Type {
   Alias({
-    required this.name,
-    required this.baseType,
+    required super.name,
     required List<String> docs,
+    required this.baseType,
     this.minInclusive,
     this.maxInclusive,
     this.pattern,
@@ -19,7 +19,6 @@ class Alias extends Type {
           ],
         );
 
-  final String name;
   final String baseType;
   final String? minInclusive;
   final String? maxInclusive;
@@ -27,11 +26,10 @@ class Alias extends Type {
 
   @override
   void writeTo(IOSink sink) {
+    // ignore: avoid_print
     print('writing alias $name');
     writeDocs(sink);
 
-    sink
-      ..writeln('typedef $name = $baseType;')
-      ..writeln();
+    sink.writeln('typedef $name = $baseType;');
   }
 }

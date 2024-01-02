@@ -3,15 +3,15 @@ part of 'code.dart';
 class Union extends Type {
   const Union({
     required super.docs,
-    required this.name,
+    required super.name,
     required this.types,
   });
 
-  final String name;
   final List<String> types;
 
   @override
   void writeTo(IOSink sink) {
+    // ignore: avoid_print
     print('writing enum $name');
     writeDocs(sink);
 
@@ -33,8 +33,7 @@ class Union extends Type {
         ..writeln('  const $subType(this.value);')
         ..writeln()
         ..writeln('  final $type value;')
-        ..writeln('}')
-        ..writeln();
+        ..writeln('}');
     }
   }
 

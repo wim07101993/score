@@ -1,4 +1,4 @@
-// ignore: unused_import, always_use_package_imports
+// ignore_for_file: unused_import, always_use_package_imports, camel_case_types
 import 'barrel.g.dart';
 
 /// The above-below type is used to indicate whether one element appears above or below another element.
@@ -1063,4 +1063,3 @@ enum GroupSymbolValue {
   bracket,
   square,
 }
-

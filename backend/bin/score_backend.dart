@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:args/args.dart';
 
 const String version = '0.0.1';

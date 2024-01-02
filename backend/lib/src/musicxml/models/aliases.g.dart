@@ -1,4 +1,4 @@
-// ignore: unused_import, always_use_package_imports
+// ignore_for_file: unused_import, always_use_package_imports, camel_case_types
 import 'barrel.g.dart';
 
 /// The MusicXML format supports six levels of beaming, up to 1024th notes. Unlike the number-level type, the beam-level type identifies concurrent beams in a beam group. It does not distinguish overlapping beams such as grace notes within regular notes, or beams used in different voices.
@@ -216,4 +216,3 @@ typedef MeasureText = String;
 
 /// The swing-type-value type specifies the note type, either eighth or 16th, to which the ratio defined in the swing element is applied.
 typedef SwingTypeValue = NoteTypeValue;
-
