@@ -9,12 +9,12 @@ import 'globals.dart';
 import 'xsd_to_dart.dart';
 
 Future<void> main() async {
-  final xsdFile = File(join('doc', 'musicxml', 'musicxml.xsd'));
-  final xsd = await xsdFile.readAsString().then(XmlDocument.parse);
-
   await ensureBarrelFileImported();
 
-  final types = xsd.rootElement.childElements.expand(createCodeFromXmlElement);
+  final xsd = await File(join('doc', 'musicxml', 'musicxml.xsd'))
+      .readAsString()
+      .then(XmlDocument.parse);
+  final types = createCodeFromXsdDoc(xsd);
   for (final type in types) {
     allTypes.add(type);
 

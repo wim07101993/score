@@ -25,7 +25,7 @@ class Class extends ComplexType {
       sink.write('extends ${baseType.name} ');
     }
     if (interfaces.isNotEmpty) {
-      sink.write('implements ${interfaces.join(', ')} ');
+      sink.write('implements ${interfaces.map((i) => i.name).join(', ')} ');
     }
 
     sink
