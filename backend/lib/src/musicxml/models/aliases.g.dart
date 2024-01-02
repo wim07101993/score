@@ -213,6 +213,3 @@ typedef TremoloMarks = int;
 
 /// The measure-text type is used for the text attribute of measure elements. It has at least one character. The implicit attribute of the measure element should be set to "yes" rather than setting the text attribute to an empty string.
 typedef MeasureText = String;
-
-/// The swing-type-value type specifies the note type, either eighth or 16th, to which the ratio defined in the swing element is applied.
-typedef SwingTypeValue = NoteTypeValue;

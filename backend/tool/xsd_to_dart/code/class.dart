@@ -9,7 +9,7 @@ class Class extends ComplexType {
     required this.baseType,
   });
 
-  final String? baseType;
+  final Type? baseType;
 
   @override
   void writeTo(IOSink sink) {
@@ -18,7 +18,7 @@ class Class extends ComplexType {
     writeDocs(sink);
 
     final allProperties = getAllProperties();
-    final baseType = this.baseType == null ? null : resolveType(this.baseType!);
+    final baseType = this.baseType;
 
     sink.write('class $name ');
     if (baseType is ComplexType) {
@@ -58,7 +58,7 @@ class Class extends ComplexType {
       PropertyImplementation(
         name: 'value',
         docs: baseType.docs,
-        type: baseType.name,
+        type: baseType,
         isNullable: false,
         isOverridden: false,
       ).writeTo(sink);

@@ -3,6 +3,7 @@ import 'package:xml/xml.dart';
 
 import 'code/code.dart';
 import 'string_extensions.dart';
+import 'type_resolvers.dart';
 import 'xml_element_extensions.dart';
 import 'xsd_xml_element_extensions.dart';
 
@@ -30,13 +31,15 @@ extension ComplexTypeXmlElementExtensions on XmlElement {
       return switch (ref) {
         String() => AbstractProperty(
             name: Casing.camelCase(ref.split(':').last),
-            type: ref.toDartTypeName(),
+            type: resolveType(ref.toTypeName()),
             docs: docs,
             isNullable: isRequired,
           ),
         null => AbstractProperty(
             name: Casing.camelCase(attribute.mustGetAttribute('name', forType)),
-            type: attribute.mustGetAttribute('type', forType).toDartTypeName(),
+            type: resolveType(
+              attribute.mustGetAttribute('type', forType).toTypeName(),
+            ),
             docs: docs,
             isNullable: isRequired,
           ),
@@ -52,14 +55,16 @@ extension ComplexTypeXmlElementExtensions on XmlElement {
       return switch (ref) {
         String() => PropertyImplementation(
             name: Casing.camelCase(ref.split(':').last),
-            type: ref.toDartTypeName(),
+            type: resolveType(ref.toTypeName()),
             docs: docs,
             isNullable: isRequired,
             isOverridden: false,
           ),
         null => PropertyImplementation(
             name: Casing.camelCase(attribute.mustGetAttribute('name', forType)),
-            type: attribute.mustGetAttribute('type', forType).toDartTypeName(),
+            type: resolveType(
+              attribute.mustGetAttribute('type', forType).toTypeName(),
+            ),
             docs: docs,
             isNullable: isRequired,
             isOverridden: false,
@@ -72,27 +77,32 @@ extension ComplexTypeXmlElementExtensions on XmlElement {
           int.tryParse(element.getAttribute('maxOccurs') ?? '') ?? 1;
       final minOccurs =
           int.tryParse(element.getAttribute('minOccurs') ?? '') ?? 1;
-      final type = element.mustGetAttribute('type', forType).toDartTypeName();
+      final type = resolveType(
+        element.mustGetAttribute('type', forType).toTypeName(),
+      );
       return PropertyImplementation(
         docs: docs,
         name: Casing.camelCase(element.mustGetAttribute('name', forType)),
-        type: maxOccurs > 1 ? 'List<$type>' : type,
+        type: maxOccurs > 1 ? ListType(itemType: type) : type,
         isNullable: minOccurs == 0 && maxOccurs == 1,
         isOverridden: false,
       );
     });
   }
 
-  Iterable<String> interfaces(String forType) {
-    return attributeGroupElements.map((attributeGroup) {
-      return attributeGroup.mustGetAttribute('ref', forType).toDartTypeName();
-    });
+  Iterable<Interface> interfaces(String forType) {
+    return attributeGroupElements
+        .map(
+          (attributeGroup) =>
+              attributeGroup.mustGetAttribute('ref', forType).toInterfaceName(),
+        )
+        .map(resolveInterface);
   }
 
   Interface toInterface() {
     final typeName = this.typeName;
     return Interface(
-      name: typeName,
+      name: typeName.toInterfaceName(),
       docs: documentation.toList(growable: false),
       properties: abstractProperties(typeName).toList(growable: false),
       interfaces: interfaces(typeName).toList(growable: false),
@@ -118,7 +128,9 @@ extension ComplexTypeXmlElementExtensions on XmlElement {
       properties:
           extension.propertyImplementations(typeName).toList(growable: false),
       interfaces: extension.interfaces(typeName).toList(growable: false),
-      baseType: extension.mustGetAttribute('base', typeName).toDartTypeName(),
+      baseType: resolveType(
+        extension.mustGetAttribute('base', typeName).toTypeName(),
+      ),
     );
   }
 }

@@ -54,7 +54,7 @@ extension SimpleTypeXmlElementExtensions on XmlElement {
     return unionElement
             ?.mustGetAttribute('memberTypes', forType)
             .split(' ')
-            .map((type) => type.toDartTypeName()) ??
+            .map((type) => type.toTypeName()) ??
         [];
   }
 
@@ -70,7 +70,7 @@ extension SimpleTypeXmlElementExtensions on XmlElement {
   Alias toAlias() {
     final typeName = this.typeName;
     final baseTypeName =
-        restrictionElement?.mustGetAttribute('base', typeName).toDartTypeName();
+        restrictionElement?.mustGetAttribute('base', typeName).toTypeName();
     if (baseTypeName == null) {
       throw Exception('no base type for alias $typeName');
     }

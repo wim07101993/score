@@ -2,11 +2,11 @@ part of 'code.dart';
 
 class Interface extends ComplexType {
   Interface({
-    required String name,
+    required super.name,
     required super.docs,
     required super.properties,
     required super.interfaces,
-  }) : super(name: '${name}Group');
+  });
 
   @override
   void writeTo(IOSink sink) {
@@ -16,7 +16,7 @@ class Interface extends ComplexType {
 
     sink.write('abstract class $name ');
     if (interfaces.isNotEmpty) {
-      sink.write('implements ${interfaces.join(', ')} ');
+      sink.write('implements ${interfaces.map((i) => i.name).join(', ')} ');
     }
     sink.writeln('{');
 

@@ -1,15 +1,17 @@
 part of 'code.dart';
 
-sealed class Property extends Code {
+sealed class Property with Code {
   const Property({
-    required super.docs,
+    required this.docs,
     required this.name,
     required this.type,
     required this.isNullable,
   });
 
   final String name;
-  final String type;
+  @override
+  final List<String> docs;
+  final Type type;
   final bool isNullable;
 
   ConstructorParameter toConstructorParameter({bool isSuper = false}) {
@@ -49,9 +51,9 @@ class AbstractProperty extends Property {
     writeDocs(sink, indent: 2);
 
     if (isNullable) {
-      sink.writeln('  $type? get $name;');
+      sink.writeln('  ${type.name}? get $name;');
     } else {
-      sink.writeln('  $type get $name;');
+      sink.writeln('  ${type.name} get $name;');
     }
   }
 
@@ -79,9 +81,9 @@ class PropertyImplementation extends Property {
     }
 
     if (isNullable) {
-      sink.writeln('  final $type? $name;');
+      sink.writeln('  final ${type.name}? $name;');
     } else {
-      sink.writeln('  final $type $name;');
+      sink.writeln('  final ${type.name} $name;');
     }
   }
 
@@ -89,15 +91,17 @@ class PropertyImplementation extends Property {
   PropertyImplementation toPropertyImplementation() => this;
 }
 
-class ConstructorParameter extends Code {
+class ConstructorParameter with Code {
   ConstructorParameter({
-    required super.docs,
+    required this.docs,
     required this.name,
     required this.isSuper,
   });
 
   final String name;
   final bool isSuper;
+  @override
+  final List<String> docs;
 
   @override
   void writeTo(IOSink sink) {

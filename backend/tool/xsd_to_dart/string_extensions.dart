@@ -1,7 +1,7 @@
 import 'package:dart_casing/dart_casing.dart';
 
 extension XsdStringExtensions on String {
-  String toDartTypeName() {
+  String toTypeName() {
     return switch (this) {
       'string' => 'GuitarString',
       'xs:integer' => 'int',
@@ -25,5 +25,9 @@ extension XsdStringExtensions on String {
       'xs:date' => 'DateTime',
       String() => Casing.pascalCase(this),
     };
+  }
+
+  String toInterfaceName() {
+    return '${Casing.pascalCase(this)}Properties';
   }
 }
