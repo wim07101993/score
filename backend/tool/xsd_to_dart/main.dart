@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:xml/xml.dart';
 
-import 'barrel_file.dart';
 import 'code/complex_type_extensions.dart';
 import 'code/simple_type_extensions.dart';
-import 'globals.dart';
+import 'code/union_type_extensions.dart';
 import 'xsd/schema.dart' as xsd;
 import 'xsd/types/typed_mixin.dart' as xsd;
 
-Future<void> main() async {
-  await ensureBarrelFileImported();
+final sink = File(join('lib', 'src', 'musicxml', 'models.g.dart')).openWrite();
 
+Future<void> main() async {
   final schema = await File(join('doc', 'musicxml', 'musicxml.xsd'))
       .readAsString()
       .then(XmlDocument.parse)
@@ -24,11 +23,13 @@ Future<void> main() async {
       case xsd.TypeReference():
         continue; // references do not have to be declared
       case xsd.ComplexType():
-        type.writeAsCode(classesSink);
-        await aliasesSink.flush();
+        type.writeAsCode(sink);
       case xsd.SimpleType():
-        type.writeAsCode(aliasesSink);
-        await aliasesSink.flush();
+        type.writeAsCode(sink);
+      case xsd.Union():
+        type.writeAsCode(sink);
     }
+    await sink.flush();
+    sink.writeln();
   }
 }

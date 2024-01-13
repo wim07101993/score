@@ -23,12 +23,12 @@ extension ComplexTypeExtensions on ComplexType {
   void writeAsCode(IOSink sink) {
     writeClass(
       sink,
-      name: name,
+      name: name.toDartTypeName(),
       properties: [
         ...allAttributes.map(
           (attribute) => (
             attribute.type.name.toDartTypeName(),
-            attribute.name,
+            attribute.name.toPropertyName(),
             true,
             false,
           ),
@@ -36,7 +36,7 @@ extension ComplexTypeExtensions on ComplexType {
         ...allElements.map(
           (element) => (
             element.type.name.toDartTypeName(),
-            element.name,
+            element.name.toPropertyName(),
             true,
             false,
           ),
@@ -44,8 +44,8 @@ extension ComplexTypeExtensions on ComplexType {
       ],
       baseType: simpleContent?.extension?.base.name,
       interfaces: [
-        ...attributeGroups.map((group) => group.name),
-        ...groups.map((group) => group.name),
+        ...attributeGroups.map((group) => group.name.toDartTypeName()),
+        ...groups.map((group) => group.name.toDartTypeName()),
       ],
       mixins: const [],
       docs: docs,

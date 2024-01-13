@@ -11,7 +11,6 @@ class Choice extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting types from choice');
     return elements.expand((element) => element.declaredTypes);
   }
 }

@@ -17,7 +17,6 @@ class Extension extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes sync* {
-    print('getting types from extension on base $base');
     yield* base.declaredSubTypes;
     yield* attributes.expand((attribute) => attribute.declaredTypes);
     yield* attributeGroups.expand((group) => group.declaredTypes);

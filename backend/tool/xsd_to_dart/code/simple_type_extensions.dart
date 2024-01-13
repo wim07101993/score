@@ -18,15 +18,15 @@ extension SimpleTypeExtensions on SimpleType {
           writeEnum(
             sink,
             docs: docs,
-            name: name,
+            name: name.toDartTypeName(),
             values: restrictions.enumerations
-                .map((e) => (e.docs, e.value))
+                .map((e) => (e.docs, e.value.toEnumValueName()))
                 .toList(growable: false),
           );
         } else {
           writeAlias(
             sink,
-            name: name,
+            name: name.toDartTypeName(),
             baseType: value.restriction.base.name.toDartTypeName(),
             minLength: restrictions.minLength?.value,
             minExclusive: restrictions.minExclusive?.value,
@@ -39,11 +39,11 @@ extension SimpleTypeExtensions on SimpleType {
       case SimpleTypeValueUnion():
         writeUnion(
           sink,
-          name: name,
+          name: name.toDartTypeName(),
           types: [
             ...value.union.memberTypes,
             ...value.union.declaredTypes.map((type) => type.name),
-          ],
+          ].map((type) => type.toDartTypeName()).toList(growable: false),
           docs: docs,
         );
     }

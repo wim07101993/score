@@ -1,10 +1,8 @@
-import '../schema.dart';
-import '../xml_extensions.dart';
-import 'typed_mixin.dart';
+part of 'typed_mixin.dart';
 
 class Union extends XsdNode
     with SimpleTypesOwnerMixin, ComplexTypesOwnerMixin
-    implements TypeDeclarer {
+    implements XsdType, TypeDeclarer {
   Union({
     required super.xml,
     required this.parent,
@@ -15,20 +13,17 @@ class Union extends XsdNode
   final NamedMixin parent;
 
   List<String> get memberTypes {
-    return [
-      ...xml.getAttribute('memberTypes')?.split(' ') ?? const [],
-      ...simpleTypes.map((type) => type.name),
-    ];
+    return xml.getAttribute('memberTypes')?.split(' ') ?? const [];
   }
 
   @override
-  Iterable<XsdType> get declaredTypes {
-    print('getting types from union');
-    return simpleTypes.expand((simpleType) => simpleType.declaredTypes);
+  Iterable<XsdType> get declaredTypes sync* {
+    yield* simpleTypes;
+    yield* simpleTypes.expand((simpleType) => simpleType.declaredTypes);
   }
 
   @override
-  String get name => '${parent.name}-choice';
+  String get name => '${parent.name}-union';
 }
 
 mixin UnionOwnerMixin implements NamedMixin, XmlOwner {

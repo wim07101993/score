@@ -18,39 +18,20 @@ class Restrictions extends XsdNode with BasedMixin implements TypeDeclarer {
 
   List<RestrictionValueChoice> get values {
     return xml.childElements.map<RestrictionValueChoice>((e) {
-      var element = xml.findChildElement(Enumeration.xmlName);
-      if (element != null) {
-        return EnumeratedRestrictionValue(xml: element);
-      }
-      element = xml.findChildElement(MinLength.xmlName);
-      if (element != null) {
-        return MinLengthRestrictionValue(xml: element);
-      }
-      element = xml.findChildElement(MinInclusive.xmlName);
-      if (element != null) {
-        return MinInclusiveRestrictionValue(xml: element);
-      }
-      element = xml.findChildElement(MinExclusive.xmlName);
-      if (element != null) {
-        return MinExclusiveRestrictionValue(xml: element);
-      }
-      element = xml.findChildElement(MaxInclusive.xmlName);
-      if (element != null) {
-        return MaxInclusiveRestrictionValue(xml: element);
-      }
-      element = xml.findChildElement(PatternRestriction.xmlName);
-      if (element != null) {
-        return PatternRestrictionValue(xml: element);
-      }
-      throw Exception('no element found for value in $xml');
+      return switch (e.name.local) {
+        Enumeration.xmlName => EnumeratedRestrictionValue(xml: e),
+        MinLength.xmlName => MinLengthRestrictionValue(xml: e),
+        MinExclusive.xmlName => MinExclusiveRestrictionValue(xml: e),
+        MinInclusive.xmlName => MinInclusiveRestrictionValue(xml: e),
+        MaxInclusive.xmlName => MaxInclusiveRestrictionValue(xml: e),
+        PatternRestriction.xmlName => PatternRestrictionValue(xml: e),
+        String() => throw Exception('unknown restriction element found $e'),
+      } as RestrictionValueChoice;
     }).toList(growable: false);
   }
 
   @override
-  Iterable<XsdType> get declaredTypes {
-    print('getting types from restriction');
-    return base.declaredSubTypes;
-  }
+  Iterable<XsdType> get declaredTypes => base.declaredSubTypes;
 }
 
 sealed class Restriction {}

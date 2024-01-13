@@ -26,4 +26,20 @@ extension StringExtensions on String {
       String() => Casing.pascalCase(this),
     };
   }
+
+  String toPropertyName() {
+    return Casing.camelCase(this);
+  }
+
+  String toEnumValueName() {
+    if (startsWith(RegExp('[0-9]'))) {
+      return 'n$this';
+    }
+    return switch (this) {
+      '' => 'none',
+      'continue' => 'continue_',
+      'do' => 'do_',
+      String() => Casing.camelCase(this),
+    };
+  }
 }

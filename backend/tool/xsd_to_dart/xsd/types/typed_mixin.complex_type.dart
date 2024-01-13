@@ -13,7 +13,7 @@ class ComplexType extends XsdNode
     required this.parent,
   });
 
-  static const String xmlName = 'complexContent';
+  static const String xmlName = 'complexType';
 
   final NamedMixin parent;
 
@@ -23,7 +23,6 @@ class ComplexType extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes sync* {
-    print('getting types from complex type $name');
     final simpleContentTypes = simpleContent?.declaredTypes;
     if (simpleContentTypes != null) {
       yield* simpleContentTypes;
@@ -37,6 +36,6 @@ class ComplexType extends XsdNode
 
 mixin ComplexTypesOwnerMixin implements NamedMixin, XmlOwner {
   Iterable<ComplexType> get complexTypes => xml
-      .findChildElements('complexType')
+      .findChildElements(ComplexType.xmlName)
       .map((child) => ComplexType(xml: child, parent: this));
 }

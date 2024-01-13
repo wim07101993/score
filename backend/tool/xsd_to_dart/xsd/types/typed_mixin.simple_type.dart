@@ -30,7 +30,6 @@ class SimpleType extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting types from simple type $name');
     final value = this.value;
     return switch (value) {
       SimpleTypeValueRestriction() => value.restriction.declaredTypes,

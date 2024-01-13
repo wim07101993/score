@@ -6,10 +6,10 @@ import '../elements/element.dart';
 import '../restriction/restriction.dart';
 import '../schema.dart';
 import '../xml_extensions.dart';
-import 'union.dart';
 
 part 'typed_mixin.complex_type.dart';
 part 'typed_mixin.simple_type.dart';
+part 'typed_mixin.union.dart';
 
 mixin TypedMixin implements NamedMixin, XmlOwner {
   XsdType get type => _getTypeFromXml('type', xml, this);

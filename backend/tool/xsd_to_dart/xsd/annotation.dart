@@ -1,3 +1,5 @@
+import 'package:xml/xml.dart';
+
 import 'schema.dart';
 import 'xml_extensions.dart';
 
@@ -6,11 +8,12 @@ class Annotation extends XsdNode with IdNodeMixin {
 
   static const String xmlName = 'annotation';
 
-  List<String> get documentations => xml
-      .findChildElements('documentation')
-      .map((element) => element.value)
-      .whereType<String>()
-      .toList(growable: false);
+  List<String> get documentations {
+    return xml
+        .findChildElements('documentation')
+        .map((child) => child.innerText)
+        .toList(growable: false);
+  }
 }
 
 mixin MultiAnnotatedMixin implements XmlOwner {

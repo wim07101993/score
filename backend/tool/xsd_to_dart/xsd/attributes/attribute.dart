@@ -34,7 +34,6 @@ class Attribute extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting type from attribute $name ($type)');
     return type.declaredSubTypes;
   }
 }

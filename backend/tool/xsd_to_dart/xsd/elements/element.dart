@@ -14,7 +14,6 @@ class Element extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting types from element $name');
     return type.declaredSubTypes;
   }
 }

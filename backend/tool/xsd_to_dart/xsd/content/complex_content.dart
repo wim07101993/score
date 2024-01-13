@@ -17,7 +17,6 @@ class ComplexContent extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting types from complex content');
     return extension?.declaredTypes ?? const [];
   }
 }

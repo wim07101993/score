@@ -4,7 +4,9 @@ import '../xsd/restriction/restriction.dart';
 import '../xsd/schema.dart';
 
 extension XsdNodeExtension on XsdNode {
-  List<String> get docs => annotation?.documentations ?? const [];
+  List<String> get docs {
+    return annotation?.documentations ?? const [];
+  }
 
   void writeDocs(IOSink sink, {int indent = 0}) {
     final docs = this.docs;

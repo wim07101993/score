@@ -14,7 +14,6 @@ class AttributeGroup extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes sync* {
-    print('getting types from attribute-group $name');
     yield* attributes.expand((attribute) => attribute.declaredTypes);
     yield* attributeGroups.expand((group) => group.declaredTypes);
   }

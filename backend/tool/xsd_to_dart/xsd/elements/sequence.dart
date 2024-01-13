@@ -11,7 +11,6 @@ class Sequence extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting types from sequence');
     return elements.expand((element) => element.declaredTypes);
   }
 }

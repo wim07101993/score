@@ -17,7 +17,6 @@ class Group extends XsdNode
 
   @override
   Iterable<XsdType> get declaredTypes {
-    print('getting types from group $name');
     return elements.expand((element) => element.declaredTypes);
   }
 }
