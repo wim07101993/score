@@ -10,27 +10,39 @@ class Schema
         SimpleTypesOwnerMixin,
         ComplexTypesOwnerMixin,
         AttributesOwnerMixin,
-        MultiAnnotatedMixin {
+        MultiAnnotatedMixin
+    implements TypeDeclarer {
   const Schema({required this.xml});
 
   @override
   final XmlElement xml;
+
+  @override
+  String get name => 'schema';
+
+  @override
+  Iterable<XsdType> get declaredTypes sync* {
+    yield* simpleTypes.expand((simpleType) => simpleType.declaredTypes);
+    yield* simpleTypes;
+    yield* complexTypes.expand((complexType) => complexType.declaredTypes);
+    yield* attributes.expand((attribute) => attribute.declaredTypes);
+    yield* attributeGroups.expand((group) => group.declaredTypes);
+  }
 }
 
 mixin NamedMixin implements XmlOwner {
-  String get name => xml.mustGetAttribute('name');
+  static const String nameAttributeName = 'name';
+  String get name => xml.mustGetAttribute(nameAttributeName);
 }
 
 mixin ValueOwnerMixin implements XmlOwner {
-  String get value => xml.mustGetAttribute('value');
+  static const String valueAttributeName = 'value';
+  String get value => xml.mustGetAttribute(valueAttributeName);
 }
 
 mixin IdNodeMixin implements XmlOwner {
-  String? get id => xml.getAttribute('id');
-}
-
-mixin BasedMixin implements XmlOwner {
-  String get base => xml.mustGetAttribute('base');
+  static const String idAttributeName = 'id';
+  String? get id => xml.getAttribute(idAttributeName);
 }
 
 mixin OccurrenceMixin implements XmlOwner {
@@ -43,7 +55,11 @@ abstract class XmlOwner {
   XmlElement get xml;
 }
 
-class XsdNode implements XmlOwner {
+abstract class TypeDeclarer {
+  Iterable<XsdType> get declaredTypes;
+}
+
+abstract class XsdNode implements XmlOwner {
   const XsdNode({required this.xml});
 
   @override

@@ -7,13 +7,16 @@ import 'globals.dart';
 Future<void> ensureBarrelFileImported() async {
   const barrelFileName = 'barrel.g.dart';
   final barrelFile = File(join(modelsDirPath, barrelFileName));
+  if (!await barrelFile.exists()) {
+    await barrelFile.create(recursive: true);
+  }
   final barrelSink = barrelFile.openWrite();
   for (final sink in [
-    enumsSink,
     aliasesSink,
-    unionsSink,
-    interfacesSink,
     classesSink,
+    enumsSink,
+    mixinsSink,
+    unionsSink,
   ]) {
     sink
       ..writeln(
@@ -23,10 +26,11 @@ Future<void> ensureBarrelFileImported() async {
   }
 
   barrelSink
+    ..writeln("export 'package:xml/xml.dart';")
+    ..writeln()
     ..writeln("export '$aliasesFileName';")
     ..writeln("export '$classesFileName';")
     ..writeln("export '$enumsFileName';")
-    ..writeln("export '$interfacesFileName';")
     ..writeln("export '$unionsFileName';");
 
   await barrelSink.flush();

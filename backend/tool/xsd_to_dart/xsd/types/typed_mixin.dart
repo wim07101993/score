@@ -1,3 +1,5 @@
+import 'package:xml/xml.dart';
+
 import '../attributes/attribute.dart';
 import '../content/simple_content.dart';
 import '../elements/element.dart';
@@ -9,30 +11,52 @@ import 'union.dart';
 part 'typed_mixin.complex_type.dart';
 part 'typed_mixin.simple_type.dart';
 
-mixin TypedMixin implements XmlOwner {
-  String get typeXmlName => 'type';
-
-  XsdType get type {
-    final typeReferenceXml = xml.getAttribute(typeXmlName);
-    if (typeReferenceXml != null) {
-      return TypeReference(typeName: typeReferenceXml);
-    }
-    final simpleTypeXml = xml.findChildElement(SimpleType.xmlName);
-    if (simpleTypeXml != null) {
-      return SimpleType(xml: simpleTypeXml);
-    }
-    final complexTypeXml = xml.findChildElement(ComplexType.xmlName);
-    if (complexTypeXml != null) {
-      return ComplexType(xml: complexTypeXml);
-    }
-    throw Exception('no type found:\n$xml');
-  }
+mixin TypedMixin implements NamedMixin, XmlOwner {
+  XsdType get type => _getTypeFromXml('type', xml, this);
 }
 
-sealed class XsdType {}
+mixin BasedMixin implements NamedMixin, XmlOwner {
+  XsdType get base => _getTypeFromXml('base', xml, this);
+}
+
+XsdType _getTypeFromXml(
+  String typeXmlName,
+  XmlElement xml,
+  NamedMixin parent,
+) {
+  final typeReferenceXml = xml.getAttribute(typeXmlName);
+  if (typeReferenceXml != null) {
+    return TypeReference(name: typeReferenceXml);
+  }
+  final simpleTypeXml = xml.findChildElement(SimpleType.xmlName);
+  if (simpleTypeXml != null) {
+    return SimpleType(xml: simpleTypeXml, parent: parent);
+  }
+  final complexTypeXml = xml.findChildElement(ComplexType.xmlName);
+  if (complexTypeXml != null) {
+    return ComplexType(xml: complexTypeXml, parent: parent);
+  }
+  throw Exception('no type found:\n$xml');
+}
+
+sealed class XsdType {
+  String get name;
+}
 
 class TypeReference implements XsdType {
-  const TypeReference({required this.typeName});
+  const TypeReference({
+    required this.name,
+  });
 
-  final String typeName;
+  @override
+  final String name;
+}
+
+extension XsdTypeExtensions on XsdType {
+  Iterable<XsdType> get declaredSubTypes {
+    final type = this;
+    return type is TypeDeclarer
+        ? (type as TypeDeclarer).declaredTypes
+        : const [];
+  }
 }

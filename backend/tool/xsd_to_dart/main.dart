@@ -4,35 +4,31 @@ import 'package:path/path.dart';
 import 'package:xml/xml.dart';
 
 import 'barrel_file.dart';
-import 'code/code.dart';
+import 'code/complex_type_extensions.dart';
+import 'code/simple_type_extensions.dart';
 import 'globals.dart';
-import 'xsd_to_dart.dart';
+import 'xsd/schema.dart' as xsd;
+import 'xsd/types/typed_mixin.dart' as xsd;
 
 Future<void> main() async {
   await ensureBarrelFileImported();
 
-  final xsd = await File(join('doc', 'musicxml', 'musicxml.xsd'))
+  final schema = await File(join('doc', 'musicxml', 'musicxml.xsd'))
       .readAsString()
-      .then(XmlDocument.parse);
-  final types = createCodeFromXsdDoc(xsd);
+      .then(XmlDocument.parse)
+      .then((xml) => xsd.Schema(xml: xml.rootElement));
+
+  final types = schema.declaredTypes;
   for (final type in types) {
-    allTypes.add(type);
-
-    if (type is NativeType) {
-      continue;
+    switch (type) {
+      case xsd.TypeReference():
+        continue; // references do not have to be declared
+      case xsd.ComplexType():
+        type.writeAsCode(classesSink);
+        await aliasesSink.flush();
+      case xsd.SimpleType():
+        type.writeAsCode(aliasesSink);
+        await aliasesSink.flush();
     }
-
-    final sink = switch (type) {
-      Alias() => aliasesSink,
-      Enum() => enumsSink,
-      Interface() => interfacesSink,
-      Union() => unionsSink,
-      Class() => classesSink,
-      NativeType() => throw Exception('native types should not be written'),
-    };
-
-    sink.writeln();
-    type.writeTo(sink);
-    await sink.flush();
   }
 }

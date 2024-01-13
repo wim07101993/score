@@ -1,218 +1,974 @@
 // ignore_for_file: unused_import, always_use_package_imports, camel_case_types
 import 'barrel.g.dart';
-
-/// The MusicXML format supports six levels of beaming, up to 1024th notes. Unlike the number-level type, the beam-level type identifies concurrent beams in a beam group. It does not distinguish overlapping beams such as grace notes within regular notes, or beams used in different voices.
+enum above-below {
+  above,
+  above,
+}
 /// 
 /// min inclusive: 1
-/// max inclusive: 8
-typedef BeamLevel = int;
-
-/// The color type indicates the color of an element. Color may be represented as hexadecimal RGB triples, as in HTML, or as hexadecimal ARGB tuples, with the A indicating alpha of transparency. An alpha value of 00 is totally transparent; FF is totally opaque. If RGB is used, the A value is assumed to be FF.
-/// 
-/// For instance, the RGB value "#800080" represents purple. An ARGB value of "#40800080" would be a transparent purple.
-/// 
-/// As in SVG 1.1, colors are defined in terms of the sRGB color space (IEC 61966).
+typedef beam-level = int;
 /// 
 /// pattern: #[\dA-F]{6}([\dA-F][\dA-F])?
-typedef Color = String;
-
-/// The comma-separated-text type is used to specify a comma-separated list of text elements, as is used by the font-family attribute.
+typedef color = String;
 /// 
 /// pattern: [^,]+(, ?[^,]+)*
-typedef CommaSeparatedText = String;
+typedef comma-separated-text = String;
+enum css-font-size {
+  xx-small,
+  xx-small,
+  xx-small,
+  xx-small,
+  xx-small,
+  xx-small,
+  xx-small,
+}
+typedef divisions = double;
+enum enclosure-shape {
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+  rectangle,
+}
+enum fermata-shape {
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+}
+typedef font-family = CommaSeparatedText;
+sealed class font-size {
+  const factory font-size.xs:decimal(xs:decimal value) = font-size_xs:decimal;
+  const factory font-size.cssFontSize(css-font-size value) = font-size_css-font-size;
+}
 
-/// The divisions type is used to express values in terms of the musical divisions defined by the divisions element. It is preferred that these be integer values both for MIDI interoperability and to avoid roundoff errors.
-typedef Divisions = double;
+class font-size_xs:decimal implements font-size {
+  const font-size_xs:decimal(this.value);
 
-/// The font-family is a comma-separated list of font names. These can be specific font styles such as Maestro or Opus, or one of several generic font styles: music, engraved, handwritten, text, serif, sans-serif, handwritten, cursive, fantasy, and monospace. The music, engraved, and handwritten values refer to music fonts; the rest refer to text fonts. The fantasy style refers to decorative text such as found in older German-style printing.
-typedef FontFamily = CommaSeparatedText;
+  final xs:decimal value;
+}
+class font-size_css-font-size implements font-size {
+  const font-size_css-font-size(this.value);
 
-/// The midi-16 type is used to express MIDI 1.0 values that range from 1 to 16.
+  final css-font-size value;
+}
+enum font-style {
+  normal,
+  normal,
+}
+enum font-weight {
+  normal,
+  normal,
+}
+enum left-center-right {
+  left,
+  left,
+  left,
+}
+enum left-right {
+  left,
+  left,
+}
+enum line-length {
+  short,
+  short,
+  short,
+}
+enum line-shape {
+  straight,
+  straight,
+}
+enum line-type {
+  solid,
+  solid,
+  solid,
+  solid,
+}
 /// 
 /// min inclusive: 1
-/// max inclusive: 16
-typedef Midi16 = int;
-
-/// The midi-128 type is used to express MIDI 1.0 values that range from 1 to 128.
+typedef midi-16 = int;
 /// 
 /// min inclusive: 1
-/// max inclusive: 128
-typedef Midi128 = int;
-
-/// The midi-16384 type is used to express MIDI 1.0 values that range from 1 to 16,384.
+typedef midi-128 = int;
 /// 
 /// min inclusive: 1
-/// max inclusive: 16384
-typedef Midi16384 = int;
-
-/// The non-negative-decimal type specifies a non-negative decimal value.
+typedef midi-16384 = int;
+enum mute {
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+  on,
+}
 /// 
 /// min inclusive: 0
-typedef NonNegativeDecimal = double;
-
-/// Slurs, tuplets, and many other features can be concurrent and overlap within a single musical part. The number-level entity distinguishes up to 16 concurrent objects of the same type when the objects overlap in MusicXML document order. Values greater than 6 are usually only needed for music with a large number of divisi staves in a single part, or if there are more than 6 cross-staff arpeggios in a single measure. When a number-level value is implied, the value is 1 by default.
-/// 
-/// When polyphonic parts are involved, the ordering within a MusicXML document can differ from musical score order. As an example, say we have a piano part in 4/4 where within a single measure, all the notes on the top staff are followed by all the notes on the bottom staff. In this example, each staff has a slur that starts on beat 2 and stops on beat 3, and there is a third slur that goes from beat 1 of one staff to beat 4 of the other staff.
-/// 
-/// In this situation, the two mid-measure slurs can use the same number because they do not overlap in MusicXML document order, even though they do overlap in musical score order. Within the MusicXML document, the top staff slur will both start and stop before the bottom staff slur starts and stops.
-/// 
-/// If the cross-staff slur starts in the top staff and stops in the bottom staff, it will need a separate number from the mid-measure slurs because it overlaps those slurs in MusicXML document order. However, if the cross-staff slur starts in the bottom staff and stops in the top staff, all three slurs can use the same number. None of them overlap within the MusicXML document, even though they all overlap each other in the musical score order. Within the MusicXML document, the start and stop of the top-staff slur will be followed by the stop and start of the cross-staff slur, followed by the start and stop of the bottom-staff slur.
-/// 
-/// As this example demonstrates, a reading program should be prepared to handle cases where the number-levels start and stop in an arbitrary order. Because the start and stop values refer to musical score order, a program may find the stopping point of an object earlier in the MusicXML document than it will find its starting point.
+typedef non-negative-decimal = double;
 /// 
 /// min inclusive: 1
-/// max inclusive: 16
-typedef NumberLevel = int;
-
-/// The number-of-lines type is used to specify the number of lines in text decoration attributes.
+typedef number-level = int;
 /// 
 /// min inclusive: 0
-/// max inclusive: 3
-typedef NumberOfLines = int;
+typedef number-of-lines = int;
+sealed class number-or-normal {
+  const factory number-or-normal.xs:decimal(xs:decimal value) = number-or-normal_xs:decimal;
+  const factory number-or-normal.numberOrNormalChoiceType(number-or-normal-choice-type value) = number-or-normal_number-or-normal-choice-type;
+}
 
-/// The numeral-value type represents a Roman numeral or Nashville number value as a positive integer from 1 to 7.
+class number-or-normal_xs:decimal implements number-or-normal {
+  const number-or-normal_xs:decimal(this.value);
+
+  final xs:decimal value;
+}
+class number-or-normal_number-or-normal-choice-type implements number-or-normal {
+  const number-or-normal_number-or-normal-choice-type(this.value);
+
+  final number-or-normal-choice-type value;
+}
 /// 
 /// min inclusive: 1
-/// max inclusive: 7
-typedef NumeralValue = int;
-
-/// The percent type specifies a percentage from 0 to 100.
+typedef numeral-value = int;
+enum over-under {
+  over,
+  over,
+}
 /// 
 /// min inclusive: 0
-/// max inclusive: 100
-typedef Percent = double;
+typedef percent = double;
+/// 
+/// min exclusive: 0
+typedef positive-decimal = double;
+/// 
+/// min exclusive: 0
+typedef positive-divisions = Divisions;
+sealed class positive-integer-or-empty {
+  const factory positive-integer-or-empty.xs:positiveInteger(xs:positiveInteger value) = positive-integer-or-empty_xs:positiveInteger;
+  const factory positive-integer-or-empty.positiveIntegerOrEmptyChoiceType(positive-integer-or-empty-choice-type value) = positive-integer-or-empty_positive-integer-or-empty-choice-type;
+}
 
-/// The positive-decimal type specifies a positive decimal value.
-typedef PositiveDecimal = double;
+class positive-integer-or-empty_xs:positiveInteger implements positive-integer-or-empty {
+  const positive-integer-or-empty_xs:positiveInteger(this.value);
 
-/// The positive-divisions type restricts divisions values to positive numbers.
-typedef PositiveDivisions = Divisions;
+  final xs:positiveInteger value;
+}
+class positive-integer-or-empty_positive-integer-or-empty-choice-type implements positive-integer-or-empty {
+  const positive-integer-or-empty_positive-integer-or-empty-choice-type(this.value);
 
-/// The rotation-degrees type specifies rotation, pan, and elevation values in degrees. Values range from -180 to 180.
+  final positive-integer-or-empty-choice-type value;
+}
 /// 
 /// min inclusive: -180
-/// max inclusive: 180
-typedef RotationDegrees = double;
-
-/// The smufl-glyph-name type is used for attributes that reference a specific Standard Music Font Layout (SMuFL) character. The value is a SMuFL canonical glyph name, not a code point. For instance, the value for a standard piano pedal mark would be keyboardPedalPed, not U+E650.
-typedef SmuflGlyphName = String;
-
-/// The smufl-accidental-glyph-name type is used to reference a specific Standard Music Font Layout (SMuFL) accidental character. The value is a SMuFL canonical glyph name that starts with one of the strings used at the start of glyph names for SMuFL accidentals.
+typedef rotation-degrees = double;
+enum semi-pitched {
+  high,
+  high,
+  high,
+  high,
+  high,
+  high,
+}
+typedef smufl-glyph-name = String;
 /// 
 /// pattern: (acc|medRenFla|medRenNatura|medRenShar|kievanAccidental)(\c+)
-typedef SmuflAccidentalGlyphName = SmuflGlyphName;
-
-/// The smufl-coda-glyph-name type is used to reference a specific Standard Music Font Layout (SMuFL) coda character. The value is a SMuFL canonical glyph name that starts with coda.
+typedef smufl-accidental-glyph-name = SmuflGlyphName;
 /// 
 /// pattern: coda\c*
-typedef SmuflCodaGlyphName = SmuflGlyphName;
-
-/// The smufl-lyrics-glyph-name type is used to reference a specific Standard Music Font Layout (SMuFL) lyrics elision character. The value is a SMuFL canonical glyph name that starts with lyrics.
+typedef smufl-coda-glyph-name = SmuflGlyphName;
 /// 
 /// pattern: lyrics\c+
-typedef SmuflLyricsGlyphName = SmuflGlyphName;
-
-/// The smufl-pictogram-glyph-name type is used to reference a specific Standard Music Font Layout (SMuFL) percussion pictogram character. The value is a SMuFL canonical glyph name that starts with pict.
+typedef smufl-lyrics-glyph-name = SmuflGlyphName;
 /// 
 /// pattern: pict\c+
-typedef SmuflPictogramGlyphName = SmuflGlyphName;
-
-/// The smufl-segno-glyph-name type is used to reference a specific Standard Music Font Layout (SMuFL) segno character. The value is a SMuFL canonical glyph name that starts with segno.
+typedef smufl-pictogram-glyph-name = SmuflGlyphName;
 /// 
 /// pattern: segno\c*
-typedef SmuflSegnoGlyphName = SmuflGlyphName;
-
-/// The smufl-wavy-line-glyph-name type is used to reference a specific Standard Music Font Layout (SMuFL) wavy line character. The value is a SMuFL canonical glyph name that either starts with wiggle, or begins with guitar and ends with VibratoStroke. This includes all the glyphs in the Multi-segment lines range, excluding the beam glyphs.
+typedef smufl-segno-glyph-name = SmuflGlyphName;
 /// 
 /// pattern: (wiggle\c+)|(guitar\c*VibratoStroke)
-typedef SmuflWavyLineGlyphName = SmuflGlyphName;
-
-/// The string-number type indicates a string number. Strings are numbered from high to low, with 1 being the highest pitched full-length string.
-typedef StringNumber = int;
-
-/// The tenths type is a number representing tenths of interline staff space (positive or negative). Both integer and decimal values are allowed, such as 5 for a half space and 2.5 for a quarter space. Interline space is measured from the middle of a staff line.
-/// 
-/// Distances in a MusicXML file are measured in tenths of staff space. Tenths are then scaled to millimeters within the scaling element, used in the defaults element at the start of a score. Individual staves can apply a scaling factor to adjust staff size. When a MusicXML element or attribute refers to tenths, it means the global tenths defined by the scaling element, not the local tenths as adjusted by the staff-size element.
-typedef Tenths = double;
-
-/// The time-only type is used to indicate that a particular playback- or listening-related element only applies particular times through a repeated section. The value is a comma-separated list of positive integers arranged in ascending order, indicating which times through the repeated section that the element applies.
+typedef smufl-wavy-line-glyph-name = SmuflGlyphName;
+enum start-note {
+  upper,
+  upper,
+  upper,
+}
+enum start-stop {
+  start,
+  start,
+}
+enum start-stop-continue {
+  start,
+  start,
+  start,
+}
+enum start-stop-single {
+  start,
+  start,
+  start,
+}
+typedef string-number = int;
+enum symbol-size {
+  full,
+  full,
+  full,
+  full,
+}
+typedef tenths = double;
+enum text-direction {
+  ltr,
+  ltr,
+  ltr,
+  ltr,
+}
+enum tied-type {
+  start,
+  start,
+  start,
+  start,
+}
 /// 
 /// pattern: [1-9][0-9]*(, ?[1-9][0-9]*)*
-typedef TimeOnly = String;
-
-/// The trill-beats type specifies the beats used in a trill-sound or bend-sound attribute group. It is a decimal value with a minimum value of 2.
+typedef time-only = String;
+enum top-bottom {
+  top,
+  top,
+}
+enum tremolo-type {
+  start,
+  start,
+  start,
+  start,
+}
 /// 
 /// min inclusive: 2
-typedef TrillBeats = double;
+typedef trill-beats = double;
+enum trill-step {
+  whole,
+  whole,
+  whole,
+}
+enum two-note-turn {
+  whole,
+  whole,
+  whole,
+}
+enum up-down {
+  up,
+  up,
+}
+enum upright-inverted {
+  upright,
+  upright,
+}
+enum valign {
+  top,
+  top,
+  top,
+  top,
+}
+enum valign-image {
+  top,
+  top,
+  top,
+}
+enum yes-no {
+  yes,
+  yes,
+}
+sealed class yes-no-number {
+  const factory yes-no-number.yesNo(yes-no value) = yes-no-number_yes-no;
+  const factory yes-no-number.xs:decimal(xs:decimal value) = yes-no-number_xs:decimal;
+}
 
-/// Calendar dates are represented yyyy-mm-dd format, following ISO 8601. This is a W3C XML Schema date type, but without the optional timezone data.
+class yes-no-number_yes-no implements yes-no-number {
+  const yes-no-number_yes-no(this.value);
+
+  final yes-no value;
+}
+class yes-no-number_xs:decimal implements yes-no-number {
+  const yes-no-number_xs:decimal(this.value);
+
+  final xs:decimal value;
+}
 /// 
 /// pattern: [^:Z]*
-typedef YyyyMmDd = DateTime;
-
-/// The fifths type represents the number of flats or sharps in a traditional key signature. Negative numbers are used for flats and positive numbers for sharps, reflecting the key's placement within the circle of fifths (hence the type name).
-typedef Fifths = int;
-
-/// The mode type is used to specify major/minor and other mode distinctions. Valid mode values include major, minor, dorian, phrygian, lydian, mixolydian, aeolian, ionian, locrian, and none.
-typedef Mode = String;
-
-/// The staff-line type indicates the line on a given staff. Staff lines are numbered from bottom to top, with 1 being the bottom line on a staff.
-typedef StaffLine = int;
-
-/// The staff-line-position type indicates the line position on a given staff. Staff lines are numbered from bottom to top, with 1 being the bottom line on a staff. A staff-line-position value can extend beyond the range of the lines on the current staff.
-typedef StaffLinePosition = int;
-
-/// The staff-number type indicates staff numbers within a multi-staff part. Staves are numbered from top to bottom, with 1 being the top staff on a part.
-typedef StaffNumber = int;
-
-/// The ending-number type is used to specify either a comma-separated list of positive integers without leading zeros, or a string of zero or more spaces. It is used for the number attribute of the ending element. The zero or more spaces version is used when software knows that an ending is present, but cannot determine the type of the ending.
+typedef yyyy-mm-dd = DateTime;
+enum cancel-location {
+  left,
+  left,
+  left,
+}
+enum clef-sign {
+  G,
+  G,
+  G,
+  G,
+  G,
+  G,
+  G,
+}
+typedef fifths = int;
+typedef mode = String;
+enum show-frets {
+  numbers,
+  numbers,
+}
+typedef staff-line = int;
+typedef staff-line-position = int;
+typedef staff-number = int;
+enum staff-type {
+  ossia,
+  ossia,
+  ossia,
+  ossia,
+  ossia,
+}
+enum time-relation {
+  parentheses,
+  parentheses,
+  parentheses,
+  parentheses,
+  parentheses,
+  parentheses,
+}
+enum time-separator {
+  none,
+  none,
+  none,
+  none,
+  none,
+}
+enum time-symbol {
+  common,
+  common,
+  common,
+  common,
+  common,
+  common,
+}
+enum backward-forward {
+  backward,
+  backward,
+}
+enum bar-style {
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+  regular,
+}
 /// 
 /// pattern: ([ ]*)|([1-9][0-9]*(, ?[1-9][0-9]*)*)
-typedef EndingNumber = String;
-
-/// The accordion-middle type may have values of 1, 2, or 3, corresponding to having 1 to 3 dots in the middle section of the accordion registration symbol. This type is not used if no dots are present.
+typedef ending-number = String;
+enum right-left-middle {
+  right,
+  right,
+  right,
+}
+enum start-stop-discontinue {
+  start,
+  start,
+  start,
+}
+enum winged {
+  none,
+  none,
+  none,
+  none,
+  none,
+}
 /// 
 /// min inclusive: 1
-/// max inclusive: 3
-typedef AccordionMiddle = int;
-
-/// The milliseconds type represents an integral number of milliseconds.
-typedef Milliseconds = int;
-
-/// The system-relation type distinguishes elements that are associated with a system rather than the particular part where the element appears. A value of only-top indicates that the element should appear only on the top part of the current system. A value of also-top indicates that the element should appear on both the current part and the top part of the current system. If this value appears in a score, when parts are created the element should only appear once in this part, not twice. A value of none indicates that the element is associated only with the current part, not with the system.
-typedef SystemRelation = SystemRelationNumber;
-
-/// The distance-type defines what type of distance is being defined in a distance element. Values include beam and hyphen. This is left as a string so that other application-specific types can be defined, but it is made a separate type so that it can be redefined more strictly.
-typedef DistanceType = String;
-
-/// The glyph-type defines what type of glyph is being defined in a glyph element. Values include quarter-rest, g-clef-ottava-bassa, c-clef, f-clef, percussion-clef, octave-shift-up-8, octave-shift-down-8, octave-shift-continue-8, octave-shift-down-15, octave-shift-up-15, octave-shift-continue-15, octave-shift-down-22, octave-shift-up-22, and octave-shift-continue-22. This is left as a string so that other application-specific types can be defined, but it is made a separate type so that it can be redefined more strictly.
-/// 
-/// A quarter-rest type specifies the glyph to use when a note has a rest element and a type value of quarter. The c-clef, f-clef, and percussion-clef types specify the glyph to use when a clef sign element value is C, F, or percussion respectively. The g-clef-ottava-bassa type specifies the glyph to use when a clef sign element value is G and the clef-octave-change element value is -1. The octave-shift types specify the glyph to use when an octave-shift type attribute value is up, down, or continue and the octave-shift size attribute value is 8, 15, or 22.
-typedef GlyphType = String;
-
-/// The line-width-type defines what type of line is being defined in a line-width element. Values include beam, bracket, dashes, enclosure, ending, extend, heavy barline, leger, light barline, octave shift, pedal, slur middle, slur tip, staff, stem, tie middle, tie tip, tuplet bracket, and wedge. This is left as a string so that other application-specific types can be defined, but it is made a separate type so that it can be redefined more strictly.
-typedef LineWidthType = String;
-
-/// The millimeters type is a number representing millimeters. This is used in the scaling element to provide a default scaling from tenths to physical units.
-typedef Millimeters = double;
-
-/// Octaves are represented by the numbers 0 to 9, where 4 indicates the octave started by middle C.
+typedef accordion-middle = int;
+enum beater-value {
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+  bow,
+}
+enum degree-symbol-value {
+  major,
+  major,
+  major,
+  major,
+  major,
+}
+enum degree-type-value {
+  add,
+  add,
+  add,
+}
+enum effect-value {
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+  anvil,
+}
+enum glass-value {
+  glass harmonica,
+  glass harmonica,
+  glass harmonica,
+}
+enum harmony-arrangement {
+  vertical,
+  vertical,
+  vertical,
+}
+enum harmony-type {
+  explicit,
+  explicit,
+  explicit,
+}
+enum kind-value {
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+  major,
+}
+enum line-end {
+  up,
+  up,
+  up,
+  up,
+  up,
+}
+enum measure-numbering-value {
+  none,
+  none,
+  none,
+}
+enum membrane-value {
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+}
+enum metal-value {
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+  agogo,
+}
+typedef milliseconds = int;
+enum numeral-mode {
+  major,
+  major,
+  major,
+  major,
+  major,
+}
+enum on-off {
+  on,
+  on,
+}
+enum pedal-type {
+  start,
+  start,
+  start,
+  start,
+  start,
+  start,
+  start,
+}
+enum pitched-value {
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+  celesta,
+}
+enum principal-voice-symbol {
+  Hauptstimme,
+  Hauptstimme,
+  Hauptstimme,
+  Hauptstimme,
+}
+enum staff-divide-symbol {
+  down,
+  down,
+  down,
+}
+enum start-stop-change-continue {
+  start,
+  start,
+  start,
+  start,
+}
+enum sync-type {
+  none,
+  none,
+  none,
+  none,
+  none,
+  none,
+}
+enum system-relation-number {
+  only-top,
+  only-top,
+  only-top,
+  only-top,
+  only-top,
+}
+enum system-relation {
+  only-top,
+  only-top,
+  only-top,
+}
+enum tip-direction {
+  up,
+  up,
+  up,
+  up,
+  up,
+  up,
+  up,
+  up,
+}
+enum stick-location {
+  center,
+  center,
+  center,
+  center,
+}
+enum stick-material {
+  soft,
+  soft,
+  soft,
+  soft,
+  soft,
+}
+enum stick-type {
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+  bass drum,
+}
+enum up-down-stop-continue {
+  up,
+  up,
+  up,
+  up,
+}
+enum wedge-type {
+  crescendo,
+  crescendo,
+  crescendo,
+  crescendo,
+}
+enum wood-value {
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+  bamboo scraper,
+}
+typedef distance-type = String;
+typedef glyph-type = String;
+typedef line-width-type = String;
+enum margin-type {
+  odd,
+  odd,
+  odd,
+}
+typedef millimeters = double;
+enum note-size-type {
+  cue,
+  cue,
+  cue,
+  cue,
+}
+enum accidental-value {
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+  sharp,
+}
+enum arrow-direction {
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+  left,
+}
+enum arrow-style {
+  single,
+  single,
+  single,
+  single,
+  single,
+  single,
+  single,
+}
+enum beam-value {
+  begin,
+  begin,
+  begin,
+  begin,
+  begin,
+}
+enum bend-shape {
+  angled,
+  angled,
+}
+enum breath-mark-value {
+  ,
+  ,
+  ,
+  ,
+  ,
+}
+enum caesura-value {
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+  normal,
+}
+enum circular-arrow {
+  clockwise,
+  clockwise,
+}
+enum fan {
+  accel,
+  accel,
+  accel,
+}
+enum handbell-value {
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+  belltree,
+}
+enum harmon-closed-location {
+  right,
+  right,
+  right,
+  right,
+}
+enum harmon-closed-value {
+  yes,
+  yes,
+  yes,
+}
+enum hole-closed-location {
+  right,
+  right,
+  right,
+  right,
+}
+enum hole-closed-value {
+  yes,
+  yes,
+  yes,
+}
+enum note-type-value {
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+  1024th,
+}
+enum notehead-value {
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+  slash,
+}
 /// 
 /// min inclusive: 0
-/// max inclusive: 9
-typedef Octave = int;
-
-/// The semitones type is a number representing semitones, used for chromatic alteration. A value of -1 corresponds to a flat and a value of 1 to a sharp. Decimal values like 0.5 (quarter tone sharp) are used for microtones.
-typedef Semitones = double;
-
-/// The number of tremolo marks is represented by a number from 0 to 8: the same as beam-level with 0 added.
+typedef octave = int;
+typedef semitones = double;
+enum show-tuplet {
+  actual,
+  actual,
+  actual,
+}
+enum stem-value {
+  down,
+  down,
+  down,
+  down,
+}
+enum step {
+  A,
+  A,
+  A,
+  A,
+  A,
+  A,
+  A,
+}
+enum syllabic {
+  single,
+  single,
+  single,
+  single,
+}
+enum tap-hand {
+  left,
+  left,
+}
 /// 
 /// min inclusive: 0
-/// max inclusive: 8
-typedef TremoloMarks = int;
-
-/// The measure-text type is used for the text attribute of measure elements. It has at least one character. The implicit attribute of the measure element should be set to "yes" rather than setting the text attribute to an empty string.
-typedef MeasureText = String;
-
-/// The swing-type-value type specifies the note type, either eighth or 16th, to which the ratio defined in the swing element is applied.
-typedef SwingTypeValue = NoteTypeValue;
+typedef tremolo-marks = int;
+enum group-barline-value {
+  yes,
+  yes,
+  yes,
+}
+enum group-symbol-value {
+  none,
+  none,
+  none,
+  none,
+  none,
+}
+/// 
+/// min length: 1
+typedef measure-text = String;
+enum swing-type-value {
+  16th,
+  16th,
+}

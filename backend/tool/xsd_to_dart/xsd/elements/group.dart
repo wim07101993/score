@@ -1,16 +1,25 @@
 import '../annotation.dart';
 import '../schema.dart';
 import '../types/reference.dart';
+import '../types/typed_mixin.dart';
 import 'choice.dart';
 import 'element.dart';
 import 'sequence.dart';
 
 late Group Function(String xmlName) resolveGroup;
 
-class Group extends XsdNode with OccurrenceMixin, ElementsOwnerMixin {
+class Group extends XsdNode
+    with NamedMixin, OccurrenceMixin, ElementsOwnerMixin
+    implements TypeDeclarer {
   const Group({required super.xml});
 
   static const String xmlName = 'group';
+
+  @override
+  Iterable<XsdType> get declaredTypes {
+    print('getting types from group $name');
+    return elements.expand((element) => element.declaredTypes);
+  }
 }
 
 class GroupReference extends XsdNode
@@ -44,4 +53,10 @@ class GroupReference extends XsdNode
 
   @override
   Sequence? get sequence => refersTo.sequence;
+
+  @override
+  Iterable<XsdType> get declaredTypes => const [];
+
+  @override
+  String get name => reference;
 }

@@ -1,13 +1,20 @@
 import '../schema.dart';
+import '../types/typed_mixin.dart';
 import '../xml_extensions.dart';
-import 'enumeration.dart';
-import 'minmax.dart';
-import 'pattern.dart';
 
-class Restriction extends XsdNode with BasedMixin {
-  const Restriction({required super.xml});
+part 'enumeration.dart';
+part 'minmax.dart';
+part 'pattern.dart';
+
+class Restrictions extends XsdNode with BasedMixin implements TypeDeclarer {
+  const Restrictions({required super.xml, required this.parent});
 
   static const String xmlName = 'restriction';
+
+  final NamedMixin parent;
+
+  @override
+  String get name => '${parent.name}-restriction';
 
   List<RestrictionValueChoice> get values {
     return xml.childElements.map<RestrictionValueChoice>((e) {
@@ -15,9 +22,17 @@ class Restriction extends XsdNode with BasedMixin {
       if (element != null) {
         return EnumeratedRestrictionValue(xml: element);
       }
+      element = xml.findChildElement(MinLength.xmlName);
+      if (element != null) {
+        return MinLengthRestrictionValue(xml: element);
+      }
       element = xml.findChildElement(MinInclusive.xmlName);
       if (element != null) {
         return MinInclusiveRestrictionValue(xml: element);
+      }
+      element = xml.findChildElement(MinExclusive.xmlName);
+      if (element != null) {
+        return MinExclusiveRestrictionValue(xml: element);
       }
       element = xml.findChildElement(MaxInclusive.xmlName);
       if (element != null) {
@@ -30,12 +45,22 @@ class Restriction extends XsdNode with BasedMixin {
       throw Exception('no element found for value in $xml');
     }).toList(growable: false);
   }
+
+  @override
+  Iterable<XsdType> get declaredTypes {
+    print('getting types from restriction');
+    return base.declaredSubTypes;
+  }
 }
 
-mixin RestrictionOwnerMixin implements XmlOwner {
-  Restriction? get restriction {
-    final element = xml.findChildElement(Restriction.xmlName);
-    return element == null ? null : Restriction(xml: element);
+sealed class Restriction {}
+
+mixin RestrictionOwnerMixin implements NamedMixin, XmlOwner {
+  Restrictions get restriction {
+    return Restrictions(
+      xml: xml.mustFindChildElement(Restrictions.xmlName),
+      parent: this,
+    );
   }
 }
 
@@ -51,6 +76,12 @@ class MinInclusiveRestrictionValue extends XsdNode
     with MinInclusiveMixin
     implements RestrictionValueChoice {
   const MinInclusiveRestrictionValue({required super.xml});
+}
+
+class MinExclusiveRestrictionValue extends XsdNode
+    with MinExclusiveMixin
+    implements RestrictionValueChoice {
+  const MinExclusiveRestrictionValue({required super.xml});
 }
 
 class MaxInclusiveRestrictionValue extends XsdNode

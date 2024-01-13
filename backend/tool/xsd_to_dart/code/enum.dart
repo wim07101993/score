@@ -1,24 +1,18 @@
-part of 'code.dart';
+import 'dart:io';
 
-class Enum extends Type {
-  const Enum({
-    required super.name,
-    required super.docs,
-    required this.values,
-  });
+import 'code.dart';
 
-  final List<String> values;
-
-  @override
-  void writeTo(IOSink sink) {
-    // ignore: avoid_print
-    print('writing enum $name');
-    writeDocs(sink);
-
-    sink.writeln('enum $name {');
-    for (final value in values) {
-      sink.writeln('  $value,');
-    }
-    sink.writeln('}');
+void writeEnum(
+  IOSink sink, {
+  required String name,
+  required List<(List<String> docs, String name)> values,
+  required List<String> docs,
+}) {
+  writeDocs(sink, docs: docs);
+  sink.writeln('enum $name {');
+  for (final (docs, enumeration) in values) {
+    writeDocs(sink, docs: docs, indent: 1);
+    sink.writeln('  $enumeration,');
   }
+  sink.writeln('}');
 }

@@ -10,11 +10,15 @@ extension XsdXmlExtensions on XmlElement {
   }
 
   XmlElement? findChildElement(String localName) {
-    return findChildElements(localName).singleOrNull;
+    return findChildElements(localName).firstOrNull;
   }
 
   XmlElement mustFindChildElement(String localName) {
-    return findChildElements(localName).single;
+    final child = findChildElements(localName).firstOrNull;
+    if (child == null) {
+      throw Exception('no child found with name $localName in $name');
+    }
+    return child;
   }
 
   Iterable<XmlElement> findChildElements(String localName) {

@@ -5,10 +5,18 @@ import 'choice.dart';
 import 'group.dart';
 import 'sequence.dart';
 
-class Element extends XsdNode with OccurrenceMixin, NamedMixin, TypedMixin {
+class Element extends XsdNode
+    with OccurrenceMixin, NamedMixin, TypedMixin
+    implements TypeDeclarer {
   const Element({required super.xml});
 
   static const String xmlName = 'element';
+
+  @override
+  Iterable<XsdType> get declaredTypes {
+    print('getting types from element $name');
+    return type.declaredSubTypes;
+  }
 }
 
 mixin ElementsOwnerMixin implements XmlOwner {

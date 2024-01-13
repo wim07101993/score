@@ -1,35 +1,34 @@
-part of 'code.dart';
+import 'dart:io';
 
-class Alias extends Type {
-  Alias({
-    required super.name,
-    required List<String> docs,
-    required this.baseType,
-    this.minInclusive,
-    this.maxInclusive,
-    this.pattern,
-  }) : super(
-          docs: [
-            ...docs,
-            if (minInclusive != null || maxInclusive != null || pattern != null)
-              '',
-            if (minInclusive != null) 'min inclusive: $minInclusive',
-            if (maxInclusive != null) 'max inclusive: $maxInclusive',
-            if (pattern != null) 'pattern: $pattern',
-          ],
-        );
+import 'code.dart';
 
-  final String baseType;
-  final String? minInclusive;
-  final String? maxInclusive;
-  final String? pattern;
-
-  @override
-  void writeTo(IOSink sink) {
-    // ignore: avoid_print
-    print('writing alias $name');
-    writeDocs(sink);
-
-    sink.writeln('typedef $name = $baseType;');
-  }
+void writeAlias(
+  IOSink sink, {
+  required String name,
+  required String baseType,
+  required String? minLength,
+  required String? minExclusive,
+  required String? minInclusive,
+  required String? maxInclusive,
+  required String? pattern,
+  required List<String> docs,
+}) {
+  writeDocs(
+    sink,
+    docs: [
+      ...docs,
+      if (minLength != null ||
+          minExclusive != null ||
+          minInclusive != null ||
+          maxInclusive != null ||
+          pattern != null)
+        '',
+      if (minLength != null) 'min length: $minLength',
+      if (minExclusive != null) 'min exclusive: $minExclusive',
+      if (minInclusive != null) 'min inclusive: $minInclusive',
+      if (maxInclusive != null) 'max inclusive: $maxInclusive',
+      if (pattern != null) 'pattern: $pattern',
+    ],
+  );
+  sink.writeln('typedef $name = $baseType;');
 }
