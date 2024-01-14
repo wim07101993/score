@@ -3,13 +3,18 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:xml/xml.dart';
 
-import 'code/complex_type_extensions.dart';
-import 'code/simple_type_extensions.dart';
+import 'code/group_extensions.dart';
+import 'code/type_extensions.dart';
 import 'code/union_type_extensions.dart';
+import 'xsd/attributes/attribute_group.dart';
+import 'xsd/elements/group.dart';
 import 'xsd/schema.dart' as xsd;
 import 'xsd/types/typed_mixin.dart' as xsd;
 
-final sink = File(join('lib', 'src', 'musicxml', 'models.g.dart')).openWrite();
+const String barrelFileName = 'models.g.dart';
+const String interfacesFileName = 'interfaces.g.dart';
+const String typesFileName = 'types.g.dart';
+final modelsDirectory = join('lib', 'src', 'musicxml', 'models');
 
 Future<void> main() async {
   final schema = await File(join('doc', 'musicxml', 'musicxml.xsd'))
@@ -17,19 +22,83 @@ Future<void> main() async {
       .then(XmlDocument.parse)
       .then((xml) => xsd.Schema(xml: xml.rootElement));
 
-  final types = schema.declaredTypes;
-  for (final type in types) {
-    switch (type) {
-      case xsd.TypeReference():
-        continue; // references do not have to be declared
-      case xsd.ComplexType():
-        type.writeAsCode(sink);
-      case xsd.SimpleType():
-        type.writeAsCode(sink);
-      case xsd.Union():
-        type.writeAsCode(sink);
+  resolveAttributeGroup = (xmlName) {
+    return schema.attributeGroups
+        .firstWhere((attributeGroup) => attributeGroup.name == xmlName);
+  };
+  resolveGroup = (xmlName) {
+    return schema.groups.firstWhere((group) => group.name == xmlName);
+  };
+
+  final dir = Directory(modelsDirectory);
+  if (!await dir.exists()) {
+    await dir.create(recursive: true);
+  }
+
+  await Future.wait([
+    writeBarrelFile(),
+    writeTypes(schema),
+    writeGroups(schema),
+  ]);
+}
+
+Future<void> writeBarrelFile() async {
+  final sink = File(join(modelsDirectory, barrelFileName)).openWrite();
+  try {
+    sink
+      ..writeln("part '$interfacesFileName';")
+      ..writeln("part '$typesFileName';");
+    sink.flush();
+  } finally {
+    sink.close();
+  }
+}
+
+Future<void> writeTypes(xsd.Schema schema) async {
+  final sink = File(join(modelsDirectory, typesFileName)).openWrite();
+  sink
+    ..writeln("part of '$barrelFileName';")
+    ..writeln();
+
+  try {
+    for (final type in schema.declaredTypes) {
+      switch (type) {
+        case xsd.TypeReference():
+          continue; // references do not have to be declared
+        case xsd.ComplexType():
+          type.writeAsCode(sink);
+        case xsd.SimpleType():
+          type.writeAsCode(sink);
+        case xsd.Union():
+          type.writeAsCode(sink);
+      }
+      sink.writeln();
+      await sink.flush();
     }
-    await sink.flush();
-    sink.writeln();
+  } finally {
+    await sink.close();
+  }
+}
+
+Future<void> writeGroups(xsd.Schema schema) async {
+  final sink = File(join(modelsDirectory, interfacesFileName)).openWrite();
+  sink
+    ..writeln("part of  '$barrelFileName';")
+    ..writeln();
+
+  try {
+    for (final attributeGroup in schema.attributeGroups) {
+      attributeGroup.writeAsCode(sink);
+      sink.writeln();
+      await sink.flush();
+    }
+
+    for (final elementGroup in schema.groups) {
+      elementGroup.writeAsCode(sink);
+      sink.writeln();
+      await sink.flush();
+    }
+  } finally {
+    await sink.close();
   }
 }

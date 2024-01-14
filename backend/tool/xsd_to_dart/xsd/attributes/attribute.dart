@@ -26,7 +26,7 @@ class Attribute extends XsdNode
   @override
   XsdType get type {
     if (xml.getAttribute('ref') != null) {
-      return TypeReference(name: name);
+      return const TypeReference(name: 'String');
     } else {
       return super.type;
     }

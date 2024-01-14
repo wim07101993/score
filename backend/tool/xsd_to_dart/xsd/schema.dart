@@ -2,6 +2,7 @@ import 'package:xml/xml.dart';
 
 import 'annotation.dart';
 import 'attributes/attribute.dart';
+import 'elements/element.dart';
 import 'types/typed_mixin.dart';
 import 'xml_extensions.dart';
 
@@ -10,6 +11,7 @@ class Schema
         SimpleTypesOwnerMixin,
         ComplexTypesOwnerMixin,
         AttributesOwnerMixin,
+        ElementsOwnerMixin,
         MultiAnnotatedMixin
     implements TypeDeclarer {
   const Schema({required this.xml});

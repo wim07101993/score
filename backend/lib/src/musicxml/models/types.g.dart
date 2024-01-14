@@ -1,3 +1,5 @@
+part of 'models.g.dart';
+
 enum NumberOrNormalUnionType {
   normal,
 }

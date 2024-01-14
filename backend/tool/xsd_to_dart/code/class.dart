@@ -16,7 +16,6 @@ void writeClass(
       properties,
   required String? baseType,
   required List<String> interfaces,
-  required List<String> mixins,
   required List<String> docs,
 }) {
   writeDocs(sink, docs: docs);
@@ -25,8 +24,8 @@ void writeClass(
   if (baseType is ComplexType) {
     sink.write('extends $baseType ');
   }
-  if (mixins.isNotEmpty) {
-    sink.write('with ${mixins.join(', ')} ');
+  if (interfaces.isNotEmpty) {
+    sink.write('implements ${interfaces.join(', ')} ');
   }
 
   sink

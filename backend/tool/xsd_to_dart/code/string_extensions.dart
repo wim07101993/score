@@ -1,6 +1,8 @@
 import 'package:dart_casing/dart_casing.dart';
 
 extension StringExtensions on String {
+  String toDartClassName() => Casing.pascalCase(this);
+
   String toDartTypeName() {
     return switch (this) {
       'string' => 'GuitarString',
