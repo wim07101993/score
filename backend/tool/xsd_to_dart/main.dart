@@ -48,7 +48,7 @@ Future<void> writeBarrelFile() async {
     sink
       ..writeln("part '$interfacesFileName';")
       ..writeln("part '$typesFileName';");
-    sink.flush();
+    await sink.flush();
   } finally {
     sink.close();
   }
