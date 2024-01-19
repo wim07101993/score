@@ -5,7 +5,6 @@ import 'package:xml/xml.dart';
 
 import 'code/group_extensions.dart';
 import 'code/type_extensions.dart';
-import 'xsd/attributes/attribute.dart';
 import 'xsd/attributes/attribute_group.dart';
 import 'xsd/elements/group.dart';
 import 'xsd/schema.dart' as xsd;
@@ -21,10 +20,6 @@ Future<void> main() async {
       .then(XmlDocument.parse)
       .then((xml) => xsd.Schema(xml: xml.rootElement));
 
-  resolveAttribute = (xmlName) {
-    print(xmlName);
-    throw Exception('here');
-  };
   resolveAttributeGroup = (xmlName) {
     return schema.attributeGroups
         .firstWhere((attributeGroup) => attributeGroup.name == xmlName);

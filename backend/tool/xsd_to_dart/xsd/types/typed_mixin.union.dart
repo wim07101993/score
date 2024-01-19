@@ -1,6 +1,6 @@
 part of 'typed_mixin.dart';
 
-class Union implements XsdType, TypeDeclarer {
+class Union extends XsdType {
   const Union({
     required this.name,
     required this.simpleTypes,
@@ -49,7 +49,6 @@ class Union implements XsdType, TypeDeclarer {
   @override
   final String name;
 
-  @override
   Iterable<XsdType> get declaredTypes sync* {
     yield* simpleTypes;
   }

@@ -1,13 +1,12 @@
 import 'package:xml/xml.dart';
 
 import '../annotation.dart';
-import '../schema.dart';
 import '../types/typed_mixin.dart';
 import 'sequence.dart';
 
 late Group Function(String xmlName) resolveGroup;
 
-class Group implements TypeDeclarer {
+class Group {
   const Group({
     required this.name,
     required this.annotation,
@@ -41,7 +40,7 @@ class Group implements TypeDeclarer {
         case Annotation.xmlName:
           annotation = Annotation.fromXml(child);
         case Sequence.xmlName:
-          sequences.add(Sequence(xml: child));
+          sequences.add(Sequence.fromXml(xml: child, parentName: name));
         default:
           throw Exception('unknown choice element ${child.name.local}');
       }
@@ -60,9 +59,8 @@ class Group implements TypeDeclarer {
   final Annotation? annotation;
   final List<Sequence> sequences;
 
-  @override
-  Iterable<XsdType> get declaredTypes sync* {
-    // return elements.expand((element) => element.declaredTypes);
+  Iterable<XsdType> get declaredTypes {
+    return sequences.expand((sequences) => sequences.declaredTypes);
   }
 }
 

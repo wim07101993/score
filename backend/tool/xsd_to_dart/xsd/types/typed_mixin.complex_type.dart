@@ -1,28 +1,31 @@
 part of 'typed_mixin.dart';
 
-class ComplexType implements XsdType, TypeDeclarer {
+class ComplexType extends XsdType {
   const ComplexType({
     required this.name,
     this.annotation,
     this.simpleContent,
+    this.complexContent,
     this.attributes = const [],
     this.attributesGroups = const [],
     this.choices = const [],
     this.sequences = const [],
     this.groups = const [],
-    this.complexContent = const [],
   });
 
-  factory ComplexType.fromXml(XmlElement xml) {
+  factory ComplexType.fromXml({
+    required XmlElement xml,
+    required String parentName,
+  }) {
     String? name;
     Annotation? annotation;
     SimpleContent? simpleContent;
+    ComplexContent? complexContent;
     final List<Attribute> attributes = [];
     final List<AttributeGroup> attributesGroups = [];
     final List<Choice> choices = [];
     final List<Sequence> sequences = [];
     final List<Group> groups = [];
-    final List<ComplexContent> complexContent = [];
 
     for (final attribute in xml.attributes) {
       switch (attribute.name.local) {
@@ -34,9 +37,7 @@ class ComplexType implements XsdType, TypeDeclarer {
           );
       }
     }
-    if (name == null) {
-      throw Exception('no name for complex type $xml');
-    }
+    name ??= '${parentName}_type';
 
     for (final child in xml.childElements) {
       switch (child.name.local) {
@@ -45,7 +46,7 @@ class ComplexType implements XsdType, TypeDeclarer {
         case SimpleContent.xmlName:
           simpleContent = SimpleContent.fromXml(child);
         case ComplexContent.xmlName:
-          complexContent.add(ComplexContent.fromXml(child));
+          complexContent = ComplexContent.fromXml(child);
         case Attribute.xmlName:
           attributes.add(Attribute.fromXml(child));
         case AttributeGroup.xmlName:
@@ -53,7 +54,7 @@ class ComplexType implements XsdType, TypeDeclarer {
         case Choice.xmlName:
           choices.add(Choice.fromXml(xml: child, parentName: name));
         case Sequence.xmlName:
-          sequences.add(Sequence(xml: child));
+          sequences.add(Sequence.fromXml(xml: child, parentName: name));
         case Group.xmlName:
           groups.add(Group.fromXml(child));
         default:
@@ -65,12 +66,12 @@ class ComplexType implements XsdType, TypeDeclarer {
       name: name,
       annotation: annotation,
       simpleContent: simpleContent,
+      complexContent: complexContent,
       attributes: attributes,
       attributesGroups: attributesGroups,
       choices: choices,
       sequences: sequences,
       groups: groups,
-      complexContent: complexContent,
     );
   }
 
@@ -80,13 +81,16 @@ class ComplexType implements XsdType, TypeDeclarer {
   final String name;
   final Annotation? annotation;
   final SimpleContent? simpleContent;
+  final ComplexContent? complexContent;
   final List<Attribute> attributes;
   final List<AttributeGroup> attributesGroups;
   final List<Choice> choices;
   final List<Sequence> sequences;
   final List<Group> groups;
-  final List<ComplexContent> complexContent;
 
-  @override
-  Iterable<XsdType> get declaredTypes sync* {}
+  Iterable<XsdType> get declaredTypes sync* {
+    yield* choices.expand((choices) => choices.declaredTypes);
+    yield* groups.expand((groups) => groups.declaredTypes);
+    yield* sequences.expand((sequences) => sequences.declaredTypes);
+  }
 }

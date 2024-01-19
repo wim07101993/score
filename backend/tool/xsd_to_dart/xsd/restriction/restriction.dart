@@ -1,10 +1,9 @@
 import 'package:xml/xml.dart';
 
-import '../schema.dart';
 import '../types/typed_mixin.dart';
 import 'enumeration.dart';
 
-class Restrictions implements TypeDeclarer {
+class Restrictions {
   const Restrictions({
     required this.values,
     required this.base,
@@ -52,9 +51,6 @@ class Restrictions implements TypeDeclarer {
   final List<Enumeration> enumerations;
   final List<Restriction> values;
   final TypeReference base;
-
-  @override
-  Iterable<XsdType> get declaredTypes => base.declaredSubTypes;
 }
 
 class Restriction {

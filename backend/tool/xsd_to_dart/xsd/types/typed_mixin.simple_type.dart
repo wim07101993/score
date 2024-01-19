@@ -1,6 +1,6 @@
 part of 'typed_mixin.dart';
 
-class SimpleType implements XsdType, TypeDeclarer, Named {
+class SimpleType extends XsdType {
   const SimpleType({
     required this.name,
     required this.annotation,
@@ -58,15 +58,10 @@ class SimpleType implements XsdType, TypeDeclarer, Named {
   final Restrictions? restrictions;
   final Union? union;
 
-  @override
   Iterable<XsdType> get declaredTypes sync* {
     final unionTypes = union?.declaredTypes;
     if (unionTypes != null) {
       yield* unionTypes;
-    }
-    final restrictionTypes = restrictions?.declaredTypes;
-    if (restrictionTypes != null) {
-      yield* restrictionTypes;
     }
   }
 }

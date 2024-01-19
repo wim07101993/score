@@ -67,14 +67,14 @@ extension ComplexTypeExtensions on ComplexType {
             false,
           ),
         ),
-        ...allElements.map(
-          (element) => (
-            element.type.dartTypeName,
-            element.name.toPropertyName(),
-            true,
-            false,
-          ),
-        ),
+        // ...allElements.map(
+        //   (element) => (
+        //     element.type.dartTypeName,
+        //     element.name.toPropertyName(),
+        //     true,
+        //     false,
+        //   ),
+        // ),
       ],
       baseType: null, // simpleContent?.extension?.base.name,
       interfaces: [

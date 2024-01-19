@@ -1,14 +1,10 @@
 import 'dart:io';
 
-import '../xsd/schema.dart';
+import '../xsd/annotation.dart';
 
-extension XsdNodeExtension on XsdNode {
-  List<String> get docs {
-    return annotation?.documentation ?? const [];
-  }
-
+extension XsdNodeExtension on Annotation {
   void writeDocs(IOSink sink, {int indent = 0}) {
-    final docs = this.docs;
+    final docs = documentation;
     if (docs.isEmpty) {
       return;
     }

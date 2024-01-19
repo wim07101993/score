@@ -2,10 +2,9 @@ import 'package:xml/xml.dart';
 
 import '../attributes/attribute.dart';
 import '../attributes/attribute_group.dart';
-import '../schema.dart';
 import '../types/typed_mixin.dart';
 
-class Extension implements TypeDeclarer {
+class Extension {
   const Extension({
     required this.base,
     this.attributeGroups = const [],
@@ -54,10 +53,4 @@ class Extension implements TypeDeclarer {
   final TypeReference base;
   final List<Attribute> attributes;
   final List<AttributeGroup> attributeGroups;
-
-  @override
-  Iterable<XsdType> get declaredTypes sync* {
-    yield* attributes.expand((attribute) => attribute.declaredTypes);
-    yield* attributeGroups.expand((group) => group.declaredTypes);
-  }
 }

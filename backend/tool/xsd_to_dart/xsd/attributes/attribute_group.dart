@@ -1,13 +1,11 @@
 import 'package:xml/xml.dart';
 
 import '../annotation.dart';
-import '../schema.dart';
-import '../types/typed_mixin.dart';
 import 'attribute.dart';
 
 late AttributeGroup Function(String xmlName) resolveAttributeGroup;
 
-class AttributeGroup implements TypeDeclarer {
+class AttributeGroup {
   const AttributeGroup({
     required this.name,
     required this.attributes,
@@ -67,12 +65,6 @@ class AttributeGroup implements TypeDeclarer {
   final Annotation? annotation;
   final List<Attribute> attributes;
   final List<AttributeGroup> attributeGroups;
-
-  @override
-  Iterable<XsdType> get declaredTypes sync* {
-    yield* attributes.expand((attribute) => attribute.declaredTypes);
-    yield* attributeGroups.expand((group) => group.declaredTypes);
-  }
 }
 
 class AttributeGroupReference implements AttributeGroup {
@@ -94,8 +86,5 @@ class AttributeGroupReference implements AttributeGroup {
   String get name => reference;
 
   @override
-  Annotation? get annotation => throw UnimplementedError();
-
-  @override
-  Iterable<XsdType> get declaredTypes => const [];
+  Annotation? get annotation => refersTo.annotation;
 }

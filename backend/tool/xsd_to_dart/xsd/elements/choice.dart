@@ -1,11 +1,11 @@
 import 'package:xml/xml.dart';
 
-import '../schema.dart';
 import '../types/typed_mixin.dart';
 import 'element.dart';
+import 'group.dart';
 import 'sequence.dart';
 
-class Choice implements TypeDeclarer {
+class Choice {
   const Choice({
     required this.name,
     required this.minOccurs,
@@ -13,6 +13,7 @@ class Choice implements TypeDeclarer {
     required this.elements,
     required this.sequences,
     required this.choices,
+    required this.groups,
   });
 
   factory Choice.fromXml({
@@ -24,6 +25,7 @@ class Choice implements TypeDeclarer {
     final List<Element> elements = [];
     final List<Sequence> sequences = [];
     final List<Choice> choices = [];
+    final List<Group> groups = [];
 
     final name = '${parentName}_choice';
 
@@ -47,11 +49,13 @@ class Choice implements TypeDeclarer {
     for (final child in xml.childElements) {
       switch (child.name.local) {
         case Element.xmlName:
-          elements.add(Element(xml: child));
+          elements.add(Element.fromXml(child));
         case Sequence.xmlName:
-          sequences.add(Sequence(xml: child));
+          sequences.add(Sequence.fromXml(xml: child, parentName: name));
         case Choice.xmlName:
           choices.add(Choice.fromXml(xml: child, parentName: name));
+        case Group.xmlName:
+          groups.add(Group.fromXml(child));
         default:
           throw Exception('unknown choice element ${child.name.local}');
       }
@@ -64,6 +68,7 @@ class Choice implements TypeDeclarer {
       elements: elements,
       sequences: sequences,
       choices: choices,
+      groups: groups,
     );
   }
 
@@ -75,7 +80,11 @@ class Choice implements TypeDeclarer {
   final List<Element> elements;
   final List<Sequence> sequences;
   final List<Choice> choices;
+  final List<Group> groups;
 
-  @override
-  Iterable<XsdType> get declaredTypes => const [];
+  Iterable<XsdType> get declaredTypes sync* {
+    yield* elements.expand((element) => element.declaredTypes);
+    yield* choices.expand((choice) => choice.declaredTypes);
+    yield* groups.expand((group) => group.declaredTypes);
+  }
 }

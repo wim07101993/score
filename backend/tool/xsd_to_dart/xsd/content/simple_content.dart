@@ -1,10 +1,8 @@
 import 'package:xml/xml.dart';
 
-import '../schema.dart';
-import '../types/typed_mixin.dart';
 import 'extension.dart';
 
-class SimpleContent implements TypeDeclarer {
+class SimpleContent {
   const SimpleContent({
     required this.extension,
   });
@@ -42,7 +40,4 @@ class SimpleContent implements TypeDeclarer {
   static const String xmlName = 'simpleContent';
 
   final Extension extension;
-
-  @override
-  Iterable<XsdType> get declaredTypes => extension.declaredTypes;
 }

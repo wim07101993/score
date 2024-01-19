@@ -1,12 +1,12 @@
+import 'dart:io';
+
 import 'package:xml/xml.dart';
 
-import '../schema.dart';
+import '../../code/string_extensions.dart';
 import '../types/typed_mixin.dart';
 
-late Attribute Function(String xmlName) resolveAttribute;
-
-class Attribute implements TypeDeclarer {
-  const Attribute({
+class Attribute {
+  Attribute({
     required this.name,
     required this.type,
     this.fixed,
@@ -74,6 +74,19 @@ class Attribute implements TypeDeclarer {
   final String? defaultValue;
   final String? fixed;
 
-  @override
-  Iterable<XsdType> get declaredTypes sync* {}
+  late final String propertyName = name.toPropertyName();
+
+  bool get isRequired => use == 'required';
+
+  void writeAsCtorParam(IOSink sink) {
+    sink.writeln('    required this.$propertyName');
+  }
+
+  void writeAsProperty(IOSink sink) {
+    if (isRequired) {
+      sink.writeln('  final ${type.dartTypeName} $propertyName');
+    } else {
+      sink.writeln('  final ${type.dartTypeName}? $propertyName');
+    }
+  }
 }
