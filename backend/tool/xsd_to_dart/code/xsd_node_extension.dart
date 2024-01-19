@@ -1,11 +1,10 @@
 import 'dart:io';
 
-import '../xsd/restriction/restriction.dart';
 import '../xsd/schema.dart';
 
 extension XsdNodeExtension on XsdNode {
   List<String> get docs {
-    return annotation?.documentations ?? const [];
+    return annotation?.documentation ?? const [];
   }
 
   void writeDocs(IOSink sink, {int indent = 0}) {
@@ -19,21 +18,4 @@ extension XsdNodeExtension on XsdNode {
       sink.writeln(doc);
     }
   }
-}
-
-extension XsdRestrictionsExtensions on List<RestrictionValueChoice> {
-  MinLength? get minLength =>
-      whereType<MinLengthRestrictionValue>().firstOrNull?.value;
-
-  MinExclusive? get minExclusive =>
-      whereType<MinExclusiveRestrictionValue>().firstOrNull?.value;
-  MinInclusive? get minInclusive =>
-      whereType<MinInclusiveRestrictionValue>().firstOrNull?.value;
-  MaxInclusive? get maxInclusive =>
-      whereType<MaxInclusiveRestrictionValue>().firstOrNull?.value;
-  PatternRestriction? get pattern =>
-      whereType<PatternRestrictionValue>().firstOrNull?.value;
-
-  Iterable<Enumeration> get enumerations =>
-      whereType<EnumeratedRestrictionValue>().map((e) => e.value);
 }

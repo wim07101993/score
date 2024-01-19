@@ -1,11 +1,36 @@
-part of 'restriction.dart';
+import 'package:xml/xml.dart';
 
-class Enumeration extends XsdNode with ValueOwnerMixin implements Restriction {
-  const Enumeration({required super.xml});
+class Enumeration {
+  const Enumeration({
+    required this.value,
+  });
 
-  static const String xmlName = 'enumeration';
-}
+  factory Enumeration.fromXml(XmlElement xml) {
+    String? value;
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        case 'value':
+          value = attribute.value;
+        default:
+          throw Exception(
+            'unknown enumeration attribute ${attribute.name.local}',
+          );
+      }
+    }
 
-mixin EnumeratedMixin implements XmlOwner {
-  Enumeration get value => Enumeration(xml: xml);
+    if (value == null) {
+      throw Exception('no value for enumeration $xml');
+    }
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        default:
+          throw Exception('unknown enumeration element ${child.name.local}');
+      }
+    }
+
+    return Enumeration(value: value);
+  }
+
+  final String value;
 }

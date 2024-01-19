@@ -1,28 +1,48 @@
+import 'package:xml/xml.dart';
+
 import '../schema.dart';
 import '../types/typed_mixin.dart';
-import '../xml_extensions.dart';
 import 'extension.dart';
 
-class SimpleContent extends XsdNode
-    with ExtensionOwnerMixin
-    implements TypeDeclarer {
+class SimpleContent implements TypeDeclarer {
   const SimpleContent({
-    required super.xml,
-    required this.parent,
+    required this.extension,
   });
 
-  final NamedMixin parent;
+  factory SimpleContent.fromXml(XmlElement xml) {
+    Extension? extension;
 
-  @override
-  Iterable<XsdType> get declaredTypes => extension?.declaredTypes ?? const [];
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        default:
+          throw Exception(
+            'unknown simple content attribute ${attribute.name.local}',
+          );
+      }
+    }
 
-  @override
-  String get name => '${parent.name}-simple-content';
-}
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        case Extension.xmlName:
+          extension = Extension.fromXml(child);
+        default:
+          throw Exception('unknown simple content element ${child.name.local}');
+      }
+    }
 
-mixin SimpleContentOwnerMixin implements XmlOwner, NamedMixin {
-  SimpleContent? get simpleContent {
-    final element = xml.findChildElement('simpleContent');
-    return element == null ? null : SimpleContent(xml: element, parent: this);
+    if (extension == null) {
+      throw Exception('no extension for simple content $xml');
+    }
+
+    return SimpleContent(
+      extension: extension,
+    );
   }
+
+  static const String xmlName = 'simpleContent';
+
+  final Extension extension;
+
+  @override
+  Iterable<XsdType> get declaredTypes => extension.declaredTypes;
 }

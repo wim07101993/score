@@ -1,59 +1,72 @@
 part of 'typed_mixin.dart';
 
-class SimpleType extends XsdNode
-    with NamedMixin, IdNodeMixin
-    implements XsdType, TypeDeclarer {
+class SimpleType implements XsdType, TypeDeclarer, Named {
   const SimpleType({
-    required super.xml,
-    required this.parent,
+    required this.name,
+    required this.annotation,
+    required this.restrictions,
+    required this.union,
   });
+  factory SimpleType.fromXml({
+    required XmlElement xml,
+    required String parentName,
+  }) {
+    String? name;
+    Annotation? annotation;
+    Restrictions? restrictions;
+    Union? union;
+
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        case 'name':
+          name = attribute.value;
+        default:
+          throw Exception(
+            'unknown simpleType attribute ${attribute.name.local}',
+          );
+      }
+    }
+
+    name ??= '${parentName}_Type';
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        case Annotation.xmlName:
+          annotation = Annotation.fromXml(child);
+        case Restrictions.xmlName:
+          restrictions = Restrictions.fromXml(child);
+        case Union.xmlName:
+          union = Union.fromXml(xml: child, parentName: name);
+        default:
+          throw Exception('unknown simpleType element ${child.name.local}');
+      }
+    }
+
+    return SimpleType(
+      name: name,
+      annotation: annotation,
+      restrictions: restrictions,
+      union: union,
+    );
+  }
 
   static const String xmlName = 'simpleType';
 
-  final NamedMixin parent;
+  @override
+  final String name;
+  final Annotation? annotation;
+  final Restrictions? restrictions;
+  final Union? union;
 
   @override
-  String get name =>
-      xml.getAttribute(NamedMixin.nameAttributeName) ?? '${parent.name}-type';
-
-  SimpleTypeValueChoice get value {
-    var element = xml.findChildElement(Restrictions.xmlName);
-    if (element != null) {
-      return SimpleTypeValueRestriction(xml: xml);
+  Iterable<XsdType> get declaredTypes sync* {
+    final unionTypes = union?.declaredTypes;
+    if (unionTypes != null) {
+      yield* unionTypes;
     }
-    element = xml.findChildElement(Union.xmlName);
-    if (element != null) {
-      return SimpleTypeValueUnion(xml: xml);
+    final restrictionTypes = restrictions?.declaredTypes;
+    if (restrictionTypes != null) {
+      yield* restrictionTypes;
     }
-    throw Exception('no element found for value in $xml');
   }
-
-  @override
-  Iterable<XsdType> get declaredTypes {
-    final value = this.value;
-    return switch (value) {
-      SimpleTypeValueRestriction() => value.restriction.declaredTypes,
-      SimpleTypeValueUnion() => value.union.declaredTypes,
-    };
-  }
-}
-
-mixin SimpleTypesOwnerMixin implements NamedMixin, XmlOwner {
-  Iterable<SimpleType> get simpleTypes => xml
-      .findChildElements(SimpleType.xmlName)
-      .map((child) => SimpleType(xml: child, parent: this));
-}
-
-sealed class SimpleTypeValueChoice {}
-
-class SimpleTypeValueRestriction extends XsdNode
-    with RestrictionOwnerMixin, NamedMixin
-    implements SimpleTypeValueChoice {
-  const SimpleTypeValueRestriction({required super.xml});
-}
-
-class SimpleTypeValueUnion extends XsdNode
-    with UnionOwnerMixin, NamedMixin
-    implements SimpleTypeValueChoice {
-  const SimpleTypeValueUnion({required super.xml});
 }

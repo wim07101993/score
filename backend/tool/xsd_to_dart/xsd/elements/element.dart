@@ -23,11 +23,12 @@ mixin ElementsOwnerMixin implements XmlOwner {
       .findChildElements(Element.xmlName)
       .map((child) => Element(xml: child));
 
-  Iterable<Choice> get choices =>
-      xml.findChildElements(Choice.xmlName).map((child) => Choice(xml: child));
+  Iterable<Choice> get choices => xml
+      .findChildElements(Choice.xmlName)
+      .map((child) => Choice.fromXml(xml: child, parentName: 'TODO'));
 
   Iterable<Group> get groups =>
-      xml.findChildElements(Group.xmlName).map((child) => Group(xml: child));
+      xml.findChildElements(Group.xmlName).map((child) => Group.fromXml(child));
 
   Sequence? get sequence {
     final child = xml.findChildElement(Sequence.xmlName);

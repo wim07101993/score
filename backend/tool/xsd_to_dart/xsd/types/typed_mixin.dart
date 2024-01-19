@@ -1,8 +1,13 @@
 import 'package:xml/xml.dart';
 
+import '../annotation.dart';
 import '../attributes/attribute.dart';
+import '../attributes/attribute_group.dart';
+import '../content/complex_content.dart';
 import '../content/simple_content.dart';
-import '../elements/element.dart';
+import '../elements/choice.dart';
+import '../elements/group.dart';
+import '../elements/sequence.dart';
 import '../restriction/restriction.dart';
 import '../schema.dart';
 import '../xml_extensions.dart';
@@ -12,17 +17,17 @@ part 'typed_mixin.simple_type.dart';
 part 'typed_mixin.union.dart';
 
 mixin TypedMixin implements NamedMixin, XmlOwner {
-  XsdType get type => _getTypeFromXml('type', xml, this);
+  XsdType get type => getTypeFromXml('type', xml, 'typed');
 }
 
 mixin BasedMixin implements NamedMixin, XmlOwner {
-  XsdType get base => _getTypeFromXml('base', xml, this);
+  XsdType get base => getTypeFromXml('base', xml, 'based');
 }
 
-XsdType _getTypeFromXml(
+XsdType getTypeFromXml(
   String typeXmlName,
   XmlElement xml,
-  NamedMixin parent,
+  String parentName,
 ) {
   final typeReferenceXml = xml.getAttribute(typeXmlName);
   if (typeReferenceXml != null) {
@@ -30,18 +35,16 @@ XsdType _getTypeFromXml(
   }
   final simpleTypeXml = xml.findChildElement(SimpleType.xmlName);
   if (simpleTypeXml != null) {
-    return SimpleType(xml: simpleTypeXml, parent: parent);
+    return SimpleType.fromXml(xml: simpleTypeXml, parentName: parentName);
   }
   final complexTypeXml = xml.findChildElement(ComplexType.xmlName);
   if (complexTypeXml != null) {
-    return ComplexType(xml: complexTypeXml, parent: parent);
+    return ComplexType.fromXml(complexTypeXml);
   }
   throw Exception('no type found:\n$xml');
 }
 
-sealed class XsdType {
-  String get name;
-}
+sealed class XsdType implements Named {}
 
 class TypeReference implements XsdType {
   const TypeReference({

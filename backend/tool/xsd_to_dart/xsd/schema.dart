@@ -1,39 +1,82 @@
 import 'package:xml/xml.dart';
 
 import 'annotation.dart';
-import 'attributes/attribute.dart';
-import 'elements/element.dart';
+import 'attributes/attribute_group.dart';
+import 'elements/group.dart';
 import 'types/typed_mixin.dart';
 import 'xml_extensions.dart';
 
-class Schema
-    with
-        SimpleTypesOwnerMixin,
-        ComplexTypesOwnerMixin,
-        AttributesOwnerMixin,
-        ElementsOwnerMixin,
-        MultiAnnotatedMixin
-    implements TypeDeclarer {
-  const Schema({required this.xml});
+class Schema implements TypeDeclarer, NamedMixin {
+  Schema({
+    required this.xml,
+  }) {
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        case 'xs':
+        case 'xlink':
+        case 'elementFormDefault':
+        case 'attributeFormDefault':
+          // ignore xs, xlink, elementFormDefault, attributeFormDefault
+          break;
+        default:
+          throw Exception(
+            'unknown simpleType attribute ${attribute.name.local}',
+          );
+      }
+    }
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        case Annotation.xmlName:
+          annotations.add(Annotation.fromXml(child));
+        case SimpleType.xmlName:
+          simpleTypes.add(SimpleType.fromXml(xml: child, parentName: ''));
+        case ComplexType.xmlName:
+          complexTypes.add(ComplexType.fromXml(child));
+        case AttributeGroup.xmlName:
+          attributeGroups.add(AttributeGroup.fromXml(child));
+        case Group.xmlName:
+          groups.add(Group.fromXml(child));
+        case 'import':
+          // ignore imports
+          break;
+        case 'element':
+          // TODO handle elements
+          break;
+        default:
+          throw Exception('unknown schema element ${child.name.local}');
+      }
+    }
+  }
 
   @override
   final XmlElement xml;
 
   @override
-  String get name => 'schema';
+  String get name {
+    throw Exception('All types under schema should have a name');
+  }
+
+  final List<Annotation> annotations = [];
+  final List<SimpleType> simpleTypes = [];
+  final List<ComplexType> complexTypes = [];
+  final List<AttributeGroup> attributeGroups = [];
+  final List<Group> groups = [];
 
   @override
   Iterable<XsdType> get declaredTypes sync* {
-    yield* simpleTypes.expand((simpleType) => simpleType.declaredTypes);
     yield* simpleTypes;
-    yield* complexTypes.expand((complexType) => complexType.declaredTypes);
-    yield* attributes.expand((attribute) => attribute.declaredTypes);
-    yield* attributeGroups.expand((group) => group.declaredTypes);
+    yield* complexTypes;
   }
 }
 
-mixin NamedMixin implements XmlOwner {
+abstract class Named {
+  String get name;
+}
+
+mixin NamedMixin implements XmlOwner, Named {
   static const String nameAttributeName = 'name';
+  @override
   String get name => xml.mustGetAttribute(nameAttributeName);
 }
 
@@ -69,7 +112,7 @@ abstract class XsdNode implements XmlOwner {
 
   Annotation? get annotation {
     final element = xml.findChildElement(Annotation.xmlName);
-    return element == null ? null : Annotation(xml: element);
+    return element == null ? null : Annotation.fromXml(element);
   }
 }
 

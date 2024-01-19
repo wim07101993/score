@@ -5,11 +5,10 @@ import 'package:xml/xml.dart';
 
 import 'code/group_extensions.dart';
 import 'code/type_extensions.dart';
-import 'code/union_type_extensions.dart';
+import 'xsd/attributes/attribute.dart';
 import 'xsd/attributes/attribute_group.dart';
 import 'xsd/elements/group.dart';
 import 'xsd/schema.dart' as xsd;
-import 'xsd/types/typed_mixin.dart' as xsd;
 
 const String barrelFileName = 'models.g.dart';
 const String interfacesFileName = 'interfaces.g.dart';
@@ -22,6 +21,10 @@ Future<void> main() async {
       .then(XmlDocument.parse)
       .then((xml) => xsd.Schema(xml: xml.rootElement));
 
+  resolveAttribute = (xmlName) {
+    print(xmlName);
+    throw Exception('here');
+  };
   resolveAttributeGroup = (xmlName) {
     return schema.attributeGroups
         .firstWhere((attributeGroup) => attributeGroup.name == xmlName);
@@ -61,17 +64,13 @@ Future<void> writeTypes(xsd.Schema schema) async {
     ..writeln();
 
   try {
-    for (final type in schema.declaredTypes) {
-      switch (type) {
-        case xsd.TypeReference():
-          continue; // references do not have to be declared
-        case xsd.ComplexType():
-          type.writeAsCode(sink);
-        case xsd.SimpleType():
-          type.writeAsCode(sink);
-        case xsd.Union():
-          type.writeAsCode(sink);
-      }
+    for (final type in schema.simpleTypes) {
+      type.writeAsCode(sink);
+      sink.writeln();
+      await sink.flush();
+    }
+    for (final type in schema.complexTypes) {
+      type.writeAsCode(sink);
       sink.writeln();
       await sink.flush();
     }

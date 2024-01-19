@@ -5,9 +5,9 @@ import 'code.dart';
 void writeInterface(
   IOSink sink, {
   required String name,
-  required List<(String type, String name)> properties,
-  required List<String> interfaces,
-  required List<String> docs,
+  List<(String type, String name)> properties = const [],
+  List<String> interfaces = const [],
+  List<String> docs = const [],
 }) {
   writeDocs(sink, docs: docs);
 

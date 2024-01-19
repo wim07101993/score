@@ -1,36 +1,56 @@
 part of 'typed_mixin.dart';
 
-class Union extends XsdNode
-    with SimpleTypesOwnerMixin, ComplexTypesOwnerMixin
-    implements XsdType, TypeDeclarer {
-  Union({
-    required super.xml,
-    required this.parent,
+class Union implements XsdType, TypeDeclarer {
+  const Union({
+    required this.name,
+    required this.simpleTypes,
+    required this.memberTypes,
   });
+
+  factory Union.fromXml({
+    required XmlElement xml,
+    required String parentName,
+  }) {
+    final List<TypeReference> memberTypes = [];
+    final List<SimpleType> simpleTypes = [];
+    final name = '${parentName}_Union';
+
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        case 'memberTypes':
+          memberTypes.add(TypeReference(name: attribute.value));
+        default:
+          throw Exception(
+            'unknown union attribute ${attribute.name.local}',
+          );
+      }
+    }
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        case SimpleType.xmlName:
+          simpleTypes.add(SimpleType.fromXml(xml: child, parentName: name));
+        default:
+          throw Exception('unknown union element ${child.name.local}');
+      }
+    }
+
+    return Union(
+      name: name,
+      simpleTypes: simpleTypes,
+      memberTypes: memberTypes,
+    );
+  }
 
   static const String xmlName = 'union';
 
-  final NamedMixin parent;
-
-  List<String> get memberTypes {
-    return xml.getAttribute('memberTypes')?.split(' ') ?? const [];
-  }
+  final List<TypeReference> memberTypes;
+  final List<SimpleType> simpleTypes;
+  @override
+  final String name;
 
   @override
   Iterable<XsdType> get declaredTypes sync* {
     yield* simpleTypes;
-    yield* simpleTypes.expand((simpleType) => simpleType.declaredTypes);
-  }
-
-  @override
-  String get name => '${parent.name}-union';
-}
-
-mixin UnionOwnerMixin implements NamedMixin, XmlOwner {
-  Union get union {
-    return Union(
-      xml: xml.mustFindChildElement('union'),
-      parent: this,
-    );
   }
 }

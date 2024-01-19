@@ -1,84 +1,96 @@
+import 'package:xml/xml.dart';
+
 import '../schema.dart';
 import '../types/typed_mixin.dart';
-import '../xml_extensions.dart';
+import 'enumeration.dart';
 
-part 'enumeration.dart';
-part 'minmax.dart';
-part 'pattern.dart';
+class Restrictions implements TypeDeclarer {
+  const Restrictions({
+    required this.values,
+    required this.base,
+    required this.enumerations,
+  });
 
-class Restrictions extends XsdNode with BasedMixin implements TypeDeclarer {
-  const Restrictions({required super.xml, required this.parent});
+  factory Restrictions.fromXml(XmlElement xml) {
+    TypeReference? base;
+    final values = <Restriction>[];
+    final enumerations = <Enumeration>[];
+
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        case 'base':
+          base = TypeReference(name: attribute.value);
+        default:
+          throw Exception(
+            'unknown restriction attribute ${attribute.name.local}',
+          );
+      }
+    }
+
+    if (base == null) {
+      throw Exception('no base in restrictions $xml');
+    }
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        case 'enumeration':
+          enumerations.add(Enumeration.fromXml(child));
+        default:
+          values.add(Restriction.fromXml(child));
+      }
+    }
+
+    return Restrictions(
+      values: values,
+      base: base,
+      enumerations: enumerations,
+    );
+  }
 
   static const String xmlName = 'restriction';
 
-  final NamedMixin parent;
-
-  @override
-  String get name => '${parent.name}-restriction';
-
-  List<RestrictionValueChoice> get values {
-    return xml.childElements.map<RestrictionValueChoice>((e) {
-      return switch (e.name.local) {
-        Enumeration.xmlName => EnumeratedRestrictionValue(xml: e),
-        MinLength.xmlName => MinLengthRestrictionValue(xml: e),
-        MinExclusive.xmlName => MinExclusiveRestrictionValue(xml: e),
-        MinInclusive.xmlName => MinInclusiveRestrictionValue(xml: e),
-        MaxInclusive.xmlName => MaxInclusiveRestrictionValue(xml: e),
-        PatternRestriction.xmlName => PatternRestrictionValue(xml: e),
-        String() => throw Exception('unknown restriction element found $e'),
-      } as RestrictionValueChoice;
-    }).toList(growable: false);
-  }
+  final List<Enumeration> enumerations;
+  final List<Restriction> values;
+  final TypeReference base;
 
   @override
   Iterable<XsdType> get declaredTypes => base.declaredSubTypes;
 }
 
-sealed class Restriction {}
+class Restriction {
+  const Restriction({
+    required this.type,
+    required this.value,
+  });
 
-mixin RestrictionOwnerMixin implements NamedMixin, XmlOwner {
-  Restrictions get restriction {
-    return Restrictions(
-      xml: xml.mustFindChildElement(Restrictions.xmlName),
-      parent: this,
-    );
+  factory Restriction.fromXml(XmlElement xml) {
+    final type = xml.name.local;
+    String? value;
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        case 'value':
+          value = attribute.value;
+        default:
+          throw Exception(
+            'unknown $type attribute ${attribute.name.local}',
+          );
+      }
+    }
+
+    if (value == null) {
+      throw Exception('no value for $type $xml');
+    }
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        default:
+          throw Exception('unknown $type element ${child.name.local}');
+      }
+    }
+
+    return Restriction(type: type, value: value);
   }
-}
 
-sealed class RestrictionValueChoice {}
-
-class EnumeratedRestrictionValue extends XsdNode
-    with EnumeratedMixin
-    implements RestrictionValueChoice {
-  const EnumeratedRestrictionValue({required super.xml});
-}
-
-class MinInclusiveRestrictionValue extends XsdNode
-    with MinInclusiveMixin
-    implements RestrictionValueChoice {
-  const MinInclusiveRestrictionValue({required super.xml});
-}
-
-class MinExclusiveRestrictionValue extends XsdNode
-    with MinExclusiveMixin
-    implements RestrictionValueChoice {
-  const MinExclusiveRestrictionValue({required super.xml});
-}
-
-class MaxInclusiveRestrictionValue extends XsdNode
-    with MaxInclusiveMixin
-    implements RestrictionValueChoice {
-  const MaxInclusiveRestrictionValue({required super.xml});
-}
-
-class PatternRestrictionValue extends XsdNode
-    with PatternMixin
-    implements RestrictionValueChoice {
-  const PatternRestrictionValue({required super.xml});
-}
-
-class MinLengthRestrictionValue extends XsdNode
-    with MinLengthMixin
-    implements RestrictionValueChoice {
-  const MinLengthRestrictionValue({required super.xml});
+  final String value;
+  final String type;
 }

@@ -1,24 +1,37 @@
 import 'package:xml/xml.dart';
 
-import 'schema.dart';
-import 'xml_extensions.dart';
+class Annotation {
+  const Annotation({
+    this.documentation = const [],
+  });
 
-class Annotation extends XsdNode with IdNodeMixin {
-  const Annotation({required super.xml});
+  factory Annotation.fromXml(
+    XmlElement xml,
+  ) {
+    final List<String> documentation = [];
+
+    for (final attribute in xml.attributes) {
+      switch (attribute.name.local) {
+        default:
+          throw Exception(
+            'unknown simpleType attribute ${attribute.name.local}',
+          );
+      }
+    }
+
+    for (final child in xml.childElements) {
+      switch (child.name.local) {
+        case 'documentation':
+          documentation.add(child.innerText);
+        default:
+          throw Exception('unknown annotation element ${child.name.local}');
+      }
+    }
+
+    return Annotation(documentation: documentation);
+  }
 
   static const String xmlName = 'annotation';
 
-  List<String> get documentations {
-    return xml
-        .findChildElements('documentation')
-        .map((child) => child.innerText)
-        .toList(growable: false);
-  }
-}
-
-mixin MultiAnnotatedMixin implements XmlOwner {
-  List<Annotation> get annotations => xml
-      .findChildElements(Annotation.xmlName)
-      .map((child) => Annotation(xml: child))
-      .toList(growable: false);
+  final List<String> documentation;
 }
