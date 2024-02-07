@@ -6,8 +6,9 @@ import '../xsd/attributes/attribute.dart';
 import '../xsd/elements/element.dart';
 import '../xsd/types/typed_mixin.dart';
 import 'alias.dart';
-import 'class.dart';
 import 'code.dart';
+import 'dart_type.dart';
+import 'documentation.dart';
 import 'enum.dart';
 import 'string_extensions.dart';
 
@@ -77,10 +78,6 @@ extension ComplexTypeExtensions on ComplexType {
         // ),
       ],
       baseType: null, // simpleContent?.extension?.base.name,
-      interfaces: [
-        // ...attributeGroups.map((group) => group.dartTypeName),
-        // ...groups.map((group) => group.dartTypeName),
-      ],
       docs: annotation?.documentation ?? const [],
     );
   }
@@ -101,15 +98,19 @@ extension SimpleTypeExtensions on SimpleType {
               .toList(growable: false),
         );
       } else {
-        writeAlias(
-          sink,
-          name: name.toDartClassName(),
+        TypeDef(
+          name: dartTypeName,
           baseType: restrictions.base.dartTypeName,
-          restrictions: restrictions.values
-              .map((restriction) => '${restriction.type}: ${restriction.value}')
-              .toList(growable: false),
-          docs: annotation?.documentation ?? const [],
-        );
+          docs: Docs(
+            lines: [
+              ...annotation?.documentation ?? const [],
+              if (restrictions.values.isNotEmpty) '',
+              ...restrictions.values.map(
+                (restriction) => '${restriction.type}: ${restriction.value}',
+              ),
+            ],
+          ),
+        ).writeTo(sink);
       }
     }
 

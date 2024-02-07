@@ -1,13 +1,5 @@
 part of 'models.g.dart';
 
-enum NumberOrNormalUnionType {
-  normal,
-}
-
-enum PositiveIntegerOrEmptyUnionType {
-  none,
-}
-
 /// The above-below type is used to indicate whether one element appears above or below another element.
 enum AboveBelow {
   above,
@@ -16,8 +8,8 @@ enum AboveBelow {
 
 /// The MusicXML format supports six levels of beaming, up to 1024th notes. Unlike the number-level type, the beam-level type identifies concurrent beams in a beam group. It does not distinguish overlapping beams such as grace notes within regular notes, or beams used in different voices.
 /// 
-/// min inclusive: 1
-/// max inclusive: 8
+/// minInclusive: 1
+/// maxInclusive: 8
 typedef BeamLevel = int;
 
 /// The color type indicates the color of an element. Color may be represented as hexadecimal RGB triples, as in HTML, or as hexadecimal ARGB tuples, with the A indicating alpha of transparency. An alpha value of 00 is totally transparent; FF is totally opaque. If RGB is used, the A value is assumed to be FF.
@@ -85,20 +77,8 @@ typedef FontFamily = CommaSeparatedText;
 
 /// The font-size can be one of the CSS font sizes (xx-small, x-small, small, medium, large, x-large, xx-large) or a numeric point size.
 sealed class FontSize {
-  const factory FontSize.double(double value) = FontSize_double;
-  const factory FontSize.cssFontSize(CssFontSize value) = FontSize_CssFontSize;
 }
 
-class FontSize_double implements FontSize {
-  const FontSize_double(this.value);
-
-  final double value;
-}
-class FontSize_CssFontSize implements FontSize {
-  const FontSize_CssFontSize(this.value);
-
-  final CssFontSize value;
-}
 
 /// The font-style type represents a simplified version of the CSS font-style property.
 enum FontStyle {
@@ -148,20 +128,20 @@ enum LineType {
 
 /// The midi-16 type is used to express MIDI 1.0 values that range from 1 to 16.
 /// 
-/// min inclusive: 1
-/// max inclusive: 16
+/// minInclusive: 1
+/// maxInclusive: 16
 typedef Midi16 = int;
 
 /// The midi-128 type is used to express MIDI 1.0 values that range from 1 to 128.
 /// 
-/// min inclusive: 1
-/// max inclusive: 128
+/// minInclusive: 1
+/// maxInclusive: 128
 typedef Midi128 = int;
 
 /// The midi-16384 type is used to express MIDI 1.0 values that range from 1 to 16,384.
 /// 
-/// min inclusive: 1
-/// max inclusive: 16384
+/// minInclusive: 1
+/// maxInclusive: 16384
 typedef Midi16384 = int;
 
 /// The mute type represents muting for different instruments, including brass, winds, and strings. The on and off values are used for undifferentiated mutes. The remaining values represent specific mutes.
@@ -185,7 +165,7 @@ enum Mute {
 
 /// The non-negative-decimal type specifies a non-negative decimal value.
 /// 
-/// min inclusive: 0
+/// minInclusive: 0
 typedef NonNegativeDecimal = double;
 
 /// Slurs, tuplets, and many other features can be concurrent and overlap within a single musical part. The number-level entity distinguishes up to 16 concurrent objects of the same type when the objects overlap in MusicXML document order. Values greater than 6 are usually only needed for music with a large number of divisi staves in a single part, or if there are more than 6 cross-staff arpeggios in a single measure. When a number-level value is implied, the value is 1 by default.
@@ -198,27 +178,21 @@ typedef NonNegativeDecimal = double;
 /// 
 /// As this example demonstrates, a reading program should be prepared to handle cases where the number-levels start and stop in an arbitrary order. Because the start and stop values refer to musical score order, a program may find the stopping point of an object earlier in the MusicXML document than it will find its starting point.
 /// 
-/// min inclusive: 1
-/// max inclusive: 16
+/// minInclusive: 1
+/// maxInclusive: 16
 typedef NumberLevel = int;
 
 /// The number-of-lines type is used to specify the number of lines in text decoration attributes.
 /// 
-/// min inclusive: 0
-/// max inclusive: 3
+/// minInclusive: 0
+/// maxInclusive: 3
 typedef NumberOfLines = int;
 
 /// The number-or-normal values can be either a decimal number or the string "normal". This is used by the line-height and letter-spacing attributes.
 sealed class NumberOrNormal {
-  const factory NumberOrNormal.double(double value) = NumberOrNormal_double;
   const factory NumberOrNormal.numberOrNormalUnionType(NumberOrNormalUnionType value) = NumberOrNormal_NumberOrNormalUnionType;
 }
 
-class NumberOrNormal_double implements NumberOrNormal {
-  const NumberOrNormal_double(this.value);
-
-  final double value;
-}
 class NumberOrNormal_NumberOrNormalUnionType implements NumberOrNormal {
   const NumberOrNormal_NumberOrNormalUnionType(this.value);
 
@@ -227,8 +201,8 @@ class NumberOrNormal_NumberOrNormalUnionType implements NumberOrNormal {
 
 /// The numeral-value type represents a Roman numeral or Nashville number value as a positive integer from 1 to 7.
 /// 
-/// min inclusive: 1
-/// max inclusive: 7
+/// minInclusive: 1
+/// maxInclusive: 7
 typedef NumeralValue = int;
 
 /// The over-under type is used to indicate whether the tips of curved lines such as slurs and ties are overhand (tips down) or underhand (tips up).
@@ -239,31 +213,25 @@ enum OverUnder {
 
 /// The percent type specifies a percentage from 0 to 100.
 /// 
-/// min inclusive: 0
-/// max inclusive: 100
+/// minInclusive: 0
+/// maxInclusive: 100
 typedef Percent = double;
 
 /// The positive-decimal type specifies a positive decimal value.
 /// 
-/// min exclusive: 0
+/// minExclusive: 0
 typedef PositiveDecimal = double;
 
 /// The positive-divisions type restricts divisions values to positive numbers.
 /// 
-/// min exclusive: 0
+/// minExclusive: 0
 typedef PositiveDivisions = Divisions;
 
 /// The positive-integer-or-empty values can be either a positive integer or an empty string.
 sealed class PositiveIntegerOrEmpty {
-  const factory PositiveIntegerOrEmpty.int(int value) = PositiveIntegerOrEmpty_int;
   const factory PositiveIntegerOrEmpty.positiveIntegerOrEmptyUnionType(PositiveIntegerOrEmptyUnionType value) = PositiveIntegerOrEmpty_PositiveIntegerOrEmptyUnionType;
 }
 
-class PositiveIntegerOrEmpty_int implements PositiveIntegerOrEmpty {
-  const PositiveIntegerOrEmpty_int(this.value);
-
-  final int value;
-}
 class PositiveIntegerOrEmpty_PositiveIntegerOrEmptyUnionType implements PositiveIntegerOrEmpty {
   const PositiveIntegerOrEmpty_PositiveIntegerOrEmptyUnionType(this.value);
 
@@ -272,8 +240,8 @@ class PositiveIntegerOrEmpty_PositiveIntegerOrEmptyUnionType implements Positive
 
 /// The rotation-degrees type specifies rotation, pan, and elevation values in degrees. Values range from -180 to 180.
 /// 
-/// min inclusive: -180
-/// max inclusive: 180
+/// minInclusive: -180
+/// maxInclusive: 180
 typedef RotationDegrees = double;
 
 /// The semi-pitched type represents categories of indefinite pitch for percussion instruments.
@@ -413,7 +381,7 @@ enum TremoloType {
 
 /// The trill-beats type specifies the beats used in a trill-sound or bend-sound attribute group. It is a decimal value with a minimum value of 2.
 /// 
-/// min inclusive: 2
+/// minInclusive: 2
 typedef TrillBeats = double;
 
 /// The trill-step type describes the alternating note of trills and mordents for playback, relative to the current note.
@@ -465,20 +433,8 @@ enum YesNo {
 
 /// The yes-no-number type is used for attributes that can be either boolean or numeric values.
 sealed class YesNoNumber {
-  const factory YesNoNumber.yesNo(YesNo value) = YesNoNumber_YesNo;
-  const factory YesNoNumber.double(double value) = YesNoNumber_double;
 }
 
-class YesNoNumber_YesNo implements YesNoNumber {
-  const YesNoNumber_YesNo(this.value);
-
-  final YesNo value;
-}
-class YesNoNumber_double implements YesNoNumber {
-  const YesNoNumber_double(this.value);
-
-  final double value;
-}
 
 /// Calendar dates are represented yyyy-mm-dd format, following ISO 8601. This is a W3C XML Schema date type, but without the optional timezone data.
 /// 
@@ -615,8 +571,8 @@ enum Winged {
 
 /// The accordion-middle type may have values of 1, 2, or 3, corresponding to having 1 to 3 dots in the middle section of the accordion registration symbol. This type is not used if no dots are present.
 /// 
-/// min inclusive: 1
-/// max inclusive: 3
+/// minInclusive: 1
+/// maxInclusive: 3
 typedef AccordionMiddle = int;
 
 /// The beater-value type represents pictograms for beaters, mallets, and sticks that do not have different materials represented in the pictogram. The finger and hammer values are in addition to Stone's list.
@@ -1288,8 +1244,8 @@ enum NoteheadValue {
 
 /// Octaves are represented by the numbers 0 to 9, where 4 indicates the octave started by middle C.
 /// 
-/// min inclusive: 0
-/// max inclusive: 9
+/// minInclusive: 0
+/// maxInclusive: 9
 typedef Octave = int;
 
 /// The semitones type is a number representing semitones, used for chromatic alteration. A value of -1 corresponds to a flat and a value of 1 to a sharp. Decimal values like 0.5 (quarter tone sharp) are used for microtones.
@@ -1337,8 +1293,8 @@ enum TapHand {
 
 /// The number of tremolo marks is represented by a number from 0 to 8: the same as beam-level with 0 added.
 /// 
-/// min inclusive: 0
-/// max inclusive: 8
+/// minInclusive: 0
+/// maxInclusive: 8
 typedef TremoloMarks = int;
 
 /// The group-barline-value type indicates if the group should have common barlines.
@@ -1359,7 +1315,7 @@ enum GroupSymbolValue {
 
 /// The measure-text type is used for the text attribute of measure elements. It has at least one character. The implicit attribute of the measure element should be set to "yes" rather than setting the text attribute to an empty string.
 /// 
-/// min length: 1
+/// minLength: 1
 typedef MeasureText = String;
 
 /// The swing-type-value type specifies the note type, either eighth or 16th, to which the ratio defined in the swing element is applied.
@@ -1367,4 +1323,228 @@ enum SwingTypeValue {
   n16th,
   eighth,
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

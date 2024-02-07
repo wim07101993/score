@@ -36,16 +36,13 @@ Future<void> main() async {
   await Future.wait([
     writeBarrelFile(),
     writeTypes(schema),
-    writeGroups(schema),
   ]);
 }
 
 Future<void> writeBarrelFile() async {
   final sink = File(join(modelsDirectory, barrelFileName)).openWrite();
   try {
-    sink
-      ..writeln("part '$interfacesFileName';")
-      ..writeln("part '$typesFileName';");
+    sink..writeln("part '$typesFileName';");
     await sink.flush();
   } finally {
     sink.close();

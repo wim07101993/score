@@ -1,21 +1,20 @@
 import 'dart:io';
 
-import 'code.dart';
+import 'documentation.dart';
 
-void writeAlias(
-  IOSink sink, {
-  required String name,
-  required String baseType,
-  required List<String> restrictions,
-  required List<String> docs,
-}) {
-  writeDocs(
-    sink,
-    docs: [
-      ...docs,
-      if (restrictions.isNotEmpty) '',
-      ...restrictions,
-    ],
-  );
-  sink.writeln('typedef $name = $baseType;');
+class TypeDef {
+  const TypeDef({
+    required this.name,
+    required this.baseType,
+    this.docs,
+  });
+
+  final String name;
+  final String baseType;
+  final Docs? docs;
+
+  void writeTo(IOSink sink) {
+    docs?.writeTo(sink);
+    sink.writeln('typedef $name = $baseType;');
+  }
 }
