@@ -6,7 +6,6 @@ import (
 	"io"
 	"score/backend/api/generated/github.com/wim07101993/score"
 	"score/backend/internal/grpc"
-	"score/backend/pkgs/musicxml"
 )
 
 type ScoreManager struct {
@@ -15,7 +14,7 @@ type ScoreManager struct {
 
 func (s *ScoreManager) CreateScoreFromMusicXml(stream score.ScoreManager_CreateScoreFromMusicXmlServer) error {
 	reader := grpc.NewFileChunkReader(stream)
-	musicDoc, err := musicxml.ParseMusicXml(reader)
+	musicDoc, err := score.ParseMusicXml(reader)
 	if err != nil {
 		if err == io.EOF {
 			return errors.New("no file to parse")

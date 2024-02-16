@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"score/backend/pkgs/musicxml"
+	"score/backend/pkgs/score"
 )
 
 var filePath = flag.String("file", "", "the file to parse")
@@ -21,18 +22,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("error while reading file: %v", err)
 	}
-	music, err := musicxml.ParseMusicXml(f)
+
+	d := xml.NewDecoder(f)
+	p := score.MusicXmlParser{}
+	s, err := p.FromXml(d)
 	if err != nil {
-		log.Fatalf("error while parsing the file: %v", err)
+		panic(err)
 	}
-	log.Printf("read file: %v\n", music.Work.WorkTitle)
-	fmt.Println(len(music.Parts))
-	for _, p := range music.Parts {
-		fmt.Println(len(p.Measure))
-	}
-	fmt.Println(music.Defaults.Scaling.Millimeters)
-	fmt.Println(music.Version)
-	fmt.Println(music.Identification.Creator[0])
-	fmt.Println(music.Identification.Encoding.Encoder[0])
-	fmt.Println(music.Identification.Encoding.SupportedFeatures[1])
+	fmt.Println(s)
 }
