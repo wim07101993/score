@@ -14,7 +14,7 @@ type ScoreManager struct {
 
 func (s *ScoreManager) CreateScoreFromMusicXml(stream score.ScoreManager_CreateScoreFromMusicXmlServer) error {
 	reader := grpc.NewFileChunkReader(stream)
-	musicDoc, err := score.ParseMusicXml(reader)
+	musicDoc, err := modes.ParseMusicXml(reader)
 	if err != nil {
 		if err == io.EOF {
 			return errors.New("no file to parse")
