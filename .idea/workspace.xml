@@ -5,12 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="parsing stuff">
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/score/music_xml_parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/music_xml_parser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/score/score.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/score.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/score/xml_functions.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/xml_functions.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/music_xml_parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/score.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/score.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/xml_functions.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,7 +67,7 @@
     "dart.analysis.tool.window.visible": "false",
     "git-widget-placeholder": "golang-muxicxml",
     "go.import.settings.migrated": "true",
-    "last_opened_file_path": "/home/wim/source/repos/score/backend/cmd/cli/main.go",
+    "last_opened_file_path": "/home/wim/source/repos/score/backend/pkgs/musicxml",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm"
@@ -73,13 +75,14 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
       <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
       <recent name="$PROJECT_DIR$/backend/test/data" />
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/backend/pkgs/score" />
       <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
+      <recent name="$PROJECT_DIR$/backend/pkgs/score" />
       <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
       <recent name="$PROJECT_DIR$/backend/pkgs/musicxml/schema" />
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />

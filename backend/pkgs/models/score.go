@@ -4,10 +4,21 @@ type Score struct {
 	Title     string
 	Composers []string
 	Lyricists []string
-	PartList  []PartGroup
+	PartGroup *PartGroup
 }
 
 type PartGroup struct {
-	GroupSymbols []string
-	number       int
+	Id         string
+	Symbol     string
+	PartGroups []*PartGroup
+	Parts      []*Part
+}
+
+type Part struct {
+	Id                  string
+	Name                string
+	NameDisplay         string
+	Abbreviation        string
+	AbbreviationDisplay string
+	Instrument          string
 }

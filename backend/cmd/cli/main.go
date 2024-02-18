@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"score/backend/pkgs/models"
+	"score/backend/pkgs/musicxml"
 )
 
 var filePath = flag.String("file", "", "the file to parse")
@@ -24,7 +24,7 @@ func main() {
 	}
 
 	d := xml.NewDecoder(f)
-	p := models.MusicXmlParser{}
+	p := musicxml.Parser{}
 	s, err := p.FromXml(d)
 	if err != nil {
 		panic(err)
