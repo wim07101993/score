@@ -22,14 +22,11 @@ func (p *Parser) FromXml(r xml.TokenReader) (*models.Score, error) {
 		case "score-partwise":
 			score, err = p.parseScorePartwise(r, el)
 		default:
-			p.unknownElement(root, el)
+			err = p.unknownElement(r, root, el)
 		}
 		return err
 	})
-	if err != nil {
-		return nil, err
-	}
-	return score, nil
+	return score, err
 }
 
 func (p *Parser) parseScorePartwise(r xml.TokenReader, root xml.StartElement) (*models.Score, error) {
@@ -42,201 +39,15 @@ func (p *Parser) parseScorePartwise(r xml.TokenReader, root xml.StartElement) (*
 			return p.parseIdentificationIntoScore(r, el, score)
 		case "part-list":
 			var err error
-			score.PartGroup, err = p.parsePartList(r, el)
+			score.Parts, err = p.parsePartList(r, el)
 			return err
 		case "part":
-			return p.parsePart(r, score)
+			return p.parsePart(r, el, score)
 		default:
-			p.unknownElement(root, el)
-			return nil
+			return p.unknownElement(r, root, el)
 		}
 	})
 	return score, err
-}
-
-func (p *Parser) parseWorkElementsIntoScore(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
-	return p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		var err error
-		switch el.Name.Local {
-		case "work-title":
-			score.Title, err = p.CharData(r)
-		default:
-			p.unknownElement(root, el)
-		}
-		return err
-	})
-}
-
-func (p *Parser) parseIdentificationIntoScore(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
-	return p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		switch el.Name.Local {
-		case "creator":
-			return p.parseCreatorIntoScore(r, el, score)
-		default:
-			p.unknownElement(root, el)
-			return nil
-		}
-	})
-}
-
-func (p *Parser) parseCreatorIntoScore(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
-	t, err := r.Token()
-	if err != nil {
-		return err
-	}
-
-	var val string
-	switch el := t.(type) {
-	case xml.CharData:
-		val = string(el)
-	default:
-		p.unknownToken(root, t)
-		fmt.Printf("unknown token for 'creator': %v\n", el)
-	}
-
-	if val == "" {
-		return nil
-	}
-
-	for _, attr := range root.Attr {
-		switch attr.Name.Local {
-		case "type":
-			switch attr.Value {
-			case "composer":
-				score.Composers = append(score.Composers, attr.Value)
-			case "lyricist":
-				score.Lyricists = append(score.Lyricists, attr.Value)
-			default:
-				fmt.Printf("unknown type of creator %v\n", attr.Value)
-			}
-		default:
-			fmt.Printf("unknown creator attribute %v\n", attr)
-		}
-	}
-	return nil
-}
-
-func (p *Parser) parsePartList(r xml.TokenReader, root xml.StartElement) (*models.PartGroup, error) {
-	ret := &models.PartGroup{}
-	open := []*models.PartGroup{ret}
-	err := p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		switch el.Name.Local {
-		case "part-group":
-			var tp string
-			var id string
-			for _, attr := range el.Attr {
-				switch attr.Name.Local {
-				case "type":
-					tp = attr.Value
-				case "number":
-					id = attr.Value
-				default:
-					p.unknownAttribute(el, attr)
-				}
-			}
-
-			switch tp {
-			case "start":
-				pg, err := p.parsePartGroup(r, el, id)
-				if err != nil {
-					return err
-				}
-				open = append(open, pg)
-				if len(open) == 0 {
-					ret.PartGroups = append(ret.PartGroups)
-				} else {
-					parent := open[len(open)-1]
-					parent.PartGroups = append(parent.PartGroups, pg)
-				}
-			case "stop":
-				for i := range open {
-					if open[i].Id == id {
-						copy(open[i:], open[i+1:])
-						open = open[:len(open)-1]
-						break
-					}
-				}
-			}
-
-			return nil
-
-		case "score-part":
-			part, err := p.parseScorePart(r, el)
-			if err != nil {
-				return err
-			}
-			pg := open[len(open)-1]
-			pg.Parts = append(pg.Parts, part)
-			return nil
-		default:
-			p.unknownElement(root, el)
-			return nil
-		}
-	})
-	return ret, err
-}
-
-func (p *Parser) parsePartGroup(r xml.TokenReader, root xml.StartElement, id string) (*models.PartGroup, error) {
-	pg := &models.PartGroup{Id: id}
-	err := p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		var err error
-		switch el.Name.Local {
-		case "group-symbol":
-			pg.Symbol, err = p.CharData(r)
-		default:
-			p.unknownElement(root, el)
-		}
-		return err
-	})
-	return pg, err
-}
-
-func (p *Parser) parseScorePart(r xml.TokenReader, root xml.StartElement) (*models.Part, error) {
-	var id string
-	for _, attr := range root.Attr {
-		switch attr.Name.Local {
-		case "id":
-			id = attr.Value
-		default:
-			p.unknownAttribute(root, attr)
-		}
-	}
-
-	part := &models.Part{Id: id}
-	err := p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		var err error
-		switch el.Name.Local {
-		case "part-name":
-			part.Name, err = p.CharData(r)
-		case "part-name-display":
-			part.NameDisplay, err = p.parseDisplayText(r, el)
-		case "part-abbreviation":
-			part.Name, err = p.CharData(r)
-		case "part-abbreviation-display":
-			part.AbbreviationDisplay, err = p.parseDisplayText(r, el)
-		case "score-instrument":
-			part.Instrument, err = p.parseInstrument(r, el)
-		default:
-			p.unknownElement(root, el)
-		}
-		return err
-	})
-	return part, err
-}
-
-func (p *Parser) parseInstrument(r xml.TokenReader, root xml.StartElement) (string, error) {
-	var instrument string
-	err := p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		var err error
-		switch el.Name.Local {
-		case "instrument-name":
-			instrument, err = p.CharData(r)
-		default:
-			p.unknownElement(root, el)
-		}
-		return err
-	})
-	return instrument, err
 }
 
 func (p *Parser) parseDisplayText(r xml.TokenReader, root xml.StartElement) (string, error) {
@@ -252,20 +63,28 @@ func (p *Parser) parseDisplayText(r xml.TokenReader, root xml.StartElement) (str
 			s, err = p.CharData(r)
 			display.WriteString(AccidentalToString(s))
 		default:
-			p.unknownElement(root, el)
+			err = p.unknownElement(r, root, el)
 		}
 		return err
 	})
 	return display.String(), err
 }
 
-func (p *Parser) parsePart(r xml.TokenReader, score *models.Score) error {
-	fmt.Println("TODO parse part")
-	return nil
-}
-
-func (p *Parser) unknownElement(root xml.StartElement, el xml.StartElement) {
+func (p *Parser) unknownElement(r xml.TokenReader, root xml.StartElement, el xml.StartElement) error {
 	fmt.Printf("unknown element %v for %v\n", el.Name.Local, root.Name.Local)
+	for {
+		t, err := r.Token()
+		if err != nil {
+			return err
+		}
+
+		switch e := t.(type) {
+		case xml.EndElement:
+			if e.Name.Local == root.Name.Local {
+				return nil
+			}
+		}
+	}
 }
 
 func (p *Parser) unknownToken(root xml.StartElement, t xml.Token) {
@@ -321,6 +140,15 @@ func (p *Parser) IterateOverElements(r xml.TokenReader, parent xml.StartElement,
 			if len(strings.Trim(data, " \n\r")) > 0 {
 				fmt.Printf("unexpected token %s for %v\n", t, parent.Name.Local)
 			}
+			return false, nil
+		case xml.Comment:
+			// IGNORE comments
+			return false, nil
+		case xml.ProcInst:
+			// IGNORE
+			return false, nil
+		case xml.Directive:
+			// IGNORE
 			return false, nil
 		default:
 			fmt.Printf("unexpected token %s for %v\n", t, parent.Name.Local)

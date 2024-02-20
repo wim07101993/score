@@ -28,7 +28,7 @@ package musicxml
 //
 //type PartListItem any
 //
-//type PartGroup struct {
+//type Parts struct {
 //	XMLName     xml.Name `xml:"part-group"`
 //	Type        string   `xml:"type,attr"`
 //	Number      int      `xml:"number,attr"`

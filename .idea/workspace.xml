@@ -4,14 +4,17 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="parsing stuff">
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="parsing stuff first works">
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/identification.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/measure.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/part.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/partlist.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/work.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/music_xml_parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/models/score.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/score.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/xml_functions.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -50,29 +53,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultGoTemplateProperty": "Go File",
-    "Go Build.go build score main.go.executor": "Run",
-    "Go Build.run cli.executor": "Debug",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "golang-muxicxml",
-    "go.import.settings.migrated": "true",
-    "last_opened_file_path": "/home/wim/source/repos/score/backend/pkgs/musicxml",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;Go Build.go build score main.go.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.run cli.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;golang-muxicxml&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/wim/source/repos/score/backend/pkgs/musicxml&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
@@ -118,9 +121,26 @@
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="parsing stuff" />
-    <option name="LAST_COMMIT_MESSAGE" value="parsing stuff" />
+    <MESSAGE value="parsing stuff first works" />
+    <option name="LAST_COMMIT_MESSAGE" value="parsing stuff first works" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/backend/pkgs/musicxml/measure.go</url>
+          <line>15</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/backend/pkgs/musicxml/measure.go</url>
+          <line>29</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

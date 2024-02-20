@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"flag"
 	"fmt"
@@ -26,8 +27,11 @@ func main() {
 	d := xml.NewDecoder(f)
 	p := musicxml.Parser{}
 	s, err := p.FromXml(d)
+
+	fmt.Println()
+	j, _ := json.MarshalIndent(s, "", "\t")
+	fmt.Printf("%s\n", j)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(s)
 }
