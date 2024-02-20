@@ -26,7 +26,7 @@ func (p *Parser) parsePart(r xml.TokenReader, root xml.StartElement, score *mode
 		switch el.Name.Local {
 		case "measure":
 			var m *models.Measure
-			m, err := p.parseMeasure(r, root)
+			m, err = p.parseMeasure(r, el)
 			if err == nil {
 				part.Measures = append(part.Measures, m)
 			}

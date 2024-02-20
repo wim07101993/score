@@ -72,23 +72,11 @@ func (p *Parser) parseDisplayText(r xml.TokenReader, root xml.StartElement) (str
 
 func (p *Parser) unknownElement(r xml.TokenReader, root xml.StartElement, el xml.StartElement) error {
 	fmt.Printf("unknown element %v for %v\n", el.Name.Local, root.Name.Local)
-	for {
-		t, err := r.Token()
-		if err != nil {
-			return err
-		}
-
-		switch e := t.(type) {
-		case xml.EndElement:
-			if e.Name.Local == root.Name.Local {
-				return nil
-			}
-		}
-	}
+	return p.IgnoreElement(r, el)
 }
 
 func (p *Parser) unknownToken(root xml.StartElement, t xml.Token) {
-	fmt.Printf("unexpected token %v for %v\n", t, root.Name.Local)
+	fmt.Printf("unexpected token %s for %s\n", t, root.Name.Local)
 }
 
 func (p *Parser) unknownAttribute(root xml.StartElement, attr xml.Attr) {
@@ -138,7 +126,7 @@ func (p *Parser) IterateOverElements(r xml.TokenReader, parent xml.StartElement,
 		case xml.CharData:
 			data := string(el)
 			if len(strings.Trim(data, " \n\r")) > 0 {
-				fmt.Printf("unexpected token %s for %v\n", t, parent.Name.Local)
+				p.unknownToken(parent, t)
 			}
 			return false, nil
 		case xml.Comment:
@@ -151,10 +139,26 @@ func (p *Parser) IterateOverElements(r xml.TokenReader, parent xml.StartElement,
 			// IGNORE
 			return false, nil
 		default:
-			fmt.Printf("unexpected token %s for %v\n", t, parent.Name.Local)
+			p.unknownToken(parent, t)
 			return false, nil
 		}
 	})
+}
+
+func (p *Parser) IgnoreElement(r xml.TokenReader, root xml.StartElement) error {
+	for {
+		t, err := r.Token()
+		if err != nil {
+			return err
+		}
+
+		switch e := t.(type) {
+		case xml.EndElement:
+			if e.Name.Local == root.Name.Local {
+				return nil
+			}
+		}
+	}
 }
 
 func (p *Parser) CharData(r xml.TokenReader) (string, error) {
