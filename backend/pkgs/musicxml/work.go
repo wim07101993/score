@@ -5,14 +5,15 @@ import (
 	"score/backend/pkgs/models"
 )
 
-func (p *Parser) parseWorkElementsIntoScore(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
-	return p.IterateOverElements(r, root, func(el xml.StartElement) error {
+func (p *Parser) parseWorkElementsIntoScore(start xml.StartElement, score *models.Score) error {
+	return p.readObject(start, nil, func(el xml.StartElement) error {
 		var err error
 		switch el.Name.Local {
 		case "work-title":
-			score.Title, err = p.CharData(r)
+			score.Title, err = p.readString(el)
 		default:
-			err = p.unknownElement(r, root, el)
+			p.unknownElement(start, el)
+			err = p.ignoreObject(el)
 		}
 		return err
 	})

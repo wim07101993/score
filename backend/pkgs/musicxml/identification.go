@@ -2,23 +2,24 @@ package musicxml
 
 import (
 	"encoding/xml"
-	"fmt"
+	"log/slog"
 	"score/backend/pkgs/models"
 )
 
-func (p *Parser) parseIdentificationIntoScore(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
-	return p.IterateOverElements(r, root, func(el xml.StartElement) error {
+func (p *Parser) parseIdentificationIntoScore(start xml.StartElement, score *models.Score) error {
+	return p.readObject(start, nil, func(el xml.StartElement) error {
 		switch el.Name.Local {
 		case "creator":
-			return p.parseCreatorIntoScore(r, el, score)
+			return p.parseCreatorIntoScore(el, score)
 		default:
-			return p.unknownElement(r, root, el)
+			p.unknownElement(start, el)
+			return p.ignoreObject(el)
 		}
 	})
 }
 
-func (p *Parser) parseCreatorIntoScore(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
-	t, err := r.Token()
+func (p *Parser) parseCreatorIntoScore(start xml.StartElement, score *models.Score) error {
+	t, err := p.Reader.Token()
 	if err != nil {
 		return err
 	}
@@ -28,27 +29,31 @@ func (p *Parser) parseCreatorIntoScore(r xml.TokenReader, root xml.StartElement,
 	case xml.CharData:
 		val = string(el)
 	default:
-		p.unknownToken(root, t)
-		fmt.Printf("unknown token for 'creator': %v\n", el)
+		p.unexpectedToken(start, t)
+	}
+
+	err = p.readUntilClose(start)
+	if err != nil {
+		return err
 	}
 
 	if val == "" {
 		return nil
 	}
 
-	for _, attr := range root.Attr {
+	for _, attr := range start.Attr {
 		switch attr.Name.Local {
 		case "type":
 			switch attr.Value {
 			case "composer":
-				score.Composers = append(score.Composers, attr.Value)
+				score.Composers = append(score.Composers, val)
 			case "lyricist":
-				score.Lyricists = append(score.Lyricists, attr.Value)
+				score.Lyricists = append(score.Lyricists, val)
 			default:
-				fmt.Printf("unknown type of creator %v\n", attr.Value)
+				p.logger.Warn("unknown type of creator", slog.Any("creator", attr.Value))
 			}
 		default:
-			fmt.Printf("unknown creator attribute %v\n", attr)
+			p.unknownAttribute(start, attr)
 		}
 	}
 	return nil

@@ -4,12 +4,18 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="more parsing...">
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="all initial elements are parsed (i think)">
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_helpers.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/score.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/score.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/server/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/server/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/identification.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/identification.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/measure.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/measure.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/part.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/part.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/partlist.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/partlist.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/work.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/work.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -117,25 +123,10 @@
     <MESSAGE value="parsing stuff" />
     <MESSAGE value="parsing stuff first works" />
     <MESSAGE value="more parsing..." />
-    <option name="LAST_COMMIT_MESSAGE" value="more parsing..." />
+    <MESSAGE value="all initial elements are parsed (i think)" />
+    <option name="LAST_COMMIT_MESSAGE" value="all initial elements are parsed (i think)" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/backend/pkgs/musicxml/parser.go</url>
-          <line>78</line>
-          <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/backend/pkgs/musicxml/parser.go</url>
-          <line>126</line>
-          <option name="timeStamp" value="14" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

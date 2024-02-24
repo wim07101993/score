@@ -55,6 +55,6 @@ func main() {
 	reflection.Register(s)
 
 	if err := s.Serve(lis); err != nil {
-		_ = level.Error(logger).Log("failed to serve score manager: %v", err)
+		_ = level.Error(logger).Log([]any{"failed to serve score manager: %v", err})
 	}
 }

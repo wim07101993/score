@@ -6,33 +6,33 @@ import (
 	"score/backend/pkgs/models"
 )
 
-func (p *Parser) parsePart(r xml.TokenReader, root xml.StartElement, score *models.Score) error {
+func (p *Parser) parsePart(start xml.StartElement, score *models.Score) error {
 	var part *models.Part
-	for _, attr := range root.Attr {
-		switch attr.Name.Local {
-		case "id":
-			part = score.Parts.Part(attr.Value)
-		default:
-			p.unknownAttribute(root, attr)
-		}
-	}
-
-	if part == nil {
-		return fmt.Errorf("unknown part (%v)", root)
-	}
-
-	return p.IterateOverElements(r, root, func(el xml.StartElement) error {
-		var err error
-		switch el.Name.Local {
-		case "measure":
-			var m *models.Measure
-			m, err = p.parseMeasure(r, el)
-			if err == nil {
-				part.Measures = append(part.Measures, m)
+	return p.readObject(start,
+		func(attr xml.Attr) error {
+			switch attr.Name.Local {
+			case "id":
+				part = score.Parts.Part(attr.Value)
+			default:
+				p.unknownAttribute(start, attr)
 			}
-		default:
-			err = p.unknownElement(r, root, el)
-		}
-		return err
-	})
+			return nil
+		},
+		func(el xml.StartElement) error {
+			switch el.Name.Local {
+			case "measure":
+				m, err := p.parseMeasure(el)
+				if err != nil {
+					return err
+				}
+				if part == nil {
+					return fmt.Errorf("unknown part (%v)", start)
+				}
+				part.Measures = append(part.Measures, m)
+				return nil
+			default:
+				p.unknownElement(start, el)
+				return p.ignoreObject(el)
+			}
+		})
 }

@@ -1,13 +1,15 @@
 package musicxml
 
-import "fmt"
+import (
+	"log/slog"
+)
 
-func AccidentalToString(accidental string) string {
+func (p *Parser) AccidentalToString(accidental string) string {
 	switch accidental {
 	case "flat":
 		return "♭"
 	default:
-		fmt.Printf("unknown accidental %s\n", accidental)
+		p.logger.Warn("unknown accidental", slog.Any("accidental", accidental))
 		return accidental
 	}
 }
