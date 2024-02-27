@@ -4,3 +4,10 @@ services:
     environment:
       ZINC_FIRST_ADMIN_USER: admin
       ZINC_FIRST_ADMIN_PASSWORD: admin
+    volumes:
+      - ./.dev/zincsearch/data:/data
+    ports:
+      - 4080:4080
+
+volumes:
+  zincsearch:

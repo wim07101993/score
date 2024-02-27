@@ -4,16 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="cleanup + logging">
-      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="parsing">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/protos/score_manager.proto" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/protos/score_manager.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/identification.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/identification.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_helpers.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_helpers.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,6 +55,7 @@
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "DefaultGoTemplateProperty": "Go File",
     "Docker.Start docker.executor": "Run",
+    "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
     "Go Build.go build score main.go.executor": "Run",
     "Go Build.run cli.executor": "Debug",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
@@ -103,7 +97,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Docker.Start docker">
+  <component name="RunManager" selected="Docker.Docker compose">
     <configuration name="run cli" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="score" />
       <working_directory value="$PROJECT_DIR$" />
@@ -112,6 +106,15 @@
       <package value="score" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/backend/cmd/cli/main.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Docker compose" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
+      <deployment type="docker-compose.yml">
+        <settings>
+          <option name="envFilePath" value="" />
+          <option name="sourceFilePath" value="docker-compose.yml" />
+        </settings>
+      </deployment>
       <method v="2" />
     </configuration>
     <configuration name="Start docker" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
@@ -128,11 +131,21 @@
       </deployment>
       <method v="2" />
     </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
+      <deployment type="docker-compose.yml" />
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Docker.Start docker" />
+      <item itemvalue="Docker.Docker compose" />
       <item itemvalue="Go Build.run score manager" />
       <item itemvalue="Go Build.run cli" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Docker.Docker compose" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -152,7 +165,8 @@
     <MESSAGE value="more parsing..." />
     <MESSAGE value="all initial elements are parsed (i think)" />
     <MESSAGE value="cleanup + logging" />
-    <option name="LAST_COMMIT_MESSAGE" value="cleanup + logging" />
+    <MESSAGE value="parsing" />
+    <option name="LAST_COMMIT_MESSAGE" value="parsing" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
