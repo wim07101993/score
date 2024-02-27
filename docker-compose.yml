@@ -1,0 +1,6 @@
+services:
+  zincsearch:
+    image: public.ecr.aws/zinclabs/zincsearch:latest
+    environment:
+      ZINC_FIRST_ADMIN_USER: admin
+      ZINC_FIRST_ADMIN_PASSWORD: admin

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"log/slog"
 	"os"
 	"score/backend/pkgs/musicxml"
 )
@@ -25,10 +24,9 @@ func main() {
 		log.Fatalf("error while reading file: %v", err)
 	}
 
-	logger := slog.Default()
 	d := xml.NewDecoder(f)
-	p := musicxml.NewParser(d, logger)
-	s, err := p.FromXml()
+	p := musicxml.NewParser(d)
+	s, err := p.Parse()
 
 	fmt.Println()
 	j, _ := json.MarshalIndent(s, "", "\t")

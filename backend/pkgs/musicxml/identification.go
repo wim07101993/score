@@ -50,7 +50,7 @@ func (p *Parser) parseCreatorIntoScore(start xml.StartElement, score *models.Sco
 			case "lyricist":
 				score.Lyricists = append(score.Lyricists, val)
 			default:
-				p.logger.Warn("unknown type of creator", slog.Any("creator", attr.Value))
+				p.Logger.Warn("unknown type of creator", slog.Any("creator", attr.Value))
 			}
 		default:
 			p.unknownAttribute(start, attr)

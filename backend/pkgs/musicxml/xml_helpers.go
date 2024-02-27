@@ -93,19 +93,19 @@ func (p *Parser) readUntilClose(start xml.StartElement) error {
 }
 
 func (p *Parser) unknownElement(parent xml.StartElement, child xml.StartElement) {
-	p.logger.Warn("unknown start element inside element",
+	p.Logger.Warn("unknown start element inside element",
 		slog.Any("parent", parent),
 		slog.Any("child", child))
 }
 
 func (p *Parser) unknownAttribute(parent xml.StartElement, attr xml.Attr) {
-	p.logger.Warn("unknown attribute inside element",
+	p.Logger.Warn("unknown attribute inside element",
 		slog.Any("element", parent),
 		slog.Any("attribute", attr))
 }
 
 func (p *Parser) unexpectedToken(parent xml.StartElement, t xml.Token) {
-	p.logger.Warn("unexpected token inside element",
+	p.Logger.Warn("unexpected token inside element",
 		slog.Any("element", parent),
 		slog.Any("token", t))
 }

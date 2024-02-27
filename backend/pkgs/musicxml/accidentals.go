@@ -9,7 +9,7 @@ func (p *Parser) AccidentalToString(accidental string) string {
 	case "flat":
 		return "♭"
 	default:
-		p.logger.Warn("unknown accidental", slog.Any("accidental", accidental))
+		p.Logger.Warn("unknown accidental", slog.Any("accidental", accidental))
 		return accidental
 	}
 }

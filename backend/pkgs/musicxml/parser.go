@@ -9,17 +9,17 @@ import (
 
 type Parser struct {
 	Reader xml.TokenReader
-	logger *slog.Logger
+	Logger *slog.Logger
 }
 
-func NewParser(reader xml.TokenReader, logger *slog.Logger) *Parser {
+func NewParser(reader xml.TokenReader) *Parser {
 	return &Parser{
 		Reader: reader,
-		logger: logger,
+		Logger: slog.Default(),
 	}
 }
 
-func (p *Parser) FromXml() (*models.Score, error) {
+func (p *Parser) Parse() (*models.Score, error) {
 	root := xml.StartElement{
 		Name: xml.Name{Local: "root"},
 	}

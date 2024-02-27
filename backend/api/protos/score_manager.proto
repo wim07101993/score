@@ -12,7 +12,10 @@ service ScoreManager {
 }
 
 message FileChunk {
-  bytes content = 2;
+  // The actual contents of the music-xml file.
+  //
+  // Bytes are sequentially read to build the file.
+  bytes content = 1;
 }
 
 message CreatedReply {

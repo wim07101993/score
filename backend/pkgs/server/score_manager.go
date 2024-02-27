@@ -1,11 +1,12 @@
 package server
 
 import (
+	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"score/backend/api/generated/github.com/wim07101993/score"
 	"score/backend/internal/grpc"
+	"score/backend/pkgs/musicxml"
 )
 
 type ScoreManager struct {
@@ -14,7 +15,7 @@ type ScoreManager struct {
 
 func (s *ScoreManager) CreateScoreFromMusicXml(stream score.ScoreManager_CreateScoreFromMusicXmlServer) error {
 	reader := grpc.NewFileChunkReader(stream)
-	musicDoc, err := modes.ParseMusicXml(reader)
+	musicDoc, err := musicxml.NewParser(xml.NewDecoder(reader)).Parse()
 	if err != nil {
 		if err == io.EOF {
 			return errors.New("no file to parse")
@@ -22,9 +23,6 @@ func (s *ScoreManager) CreateScoreFromMusicXml(stream score.ScoreManager_CreateS
 		return err
 	}
 
-	fmt.Println(musicDoc.ScoreHeader.Identification.Creator)
-	fmt.Println(musicDoc.ScoreHeader.Movementtitle)
-	fmt.Println(len(musicDoc.Parts))
 	_ = musicDoc // TODO save the doc to the database
 
 	var id int32 = 0 // TODO actually create the score
