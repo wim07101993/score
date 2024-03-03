@@ -5,16 +5,45 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"github.com/meilisearch/meilisearch-go"
 	"log"
+	"log/slog"
 	"os"
+	"score/backend/internal/search"
+	"score/backend/pkgs/models"
 	"score/backend/pkgs/musicxml"
 )
 
 var filePath = flag.String("file", "", "the file to parse")
 
+var meiliClient = *meilisearch.NewClient(meilisearch.ClientConfig{
+	Host:   "http://127.0.0.1:7700",
+	APIKey: "masterKey",
+})
+
 func main() {
 	flag.Parse()
 
+	score := readFile()
+
+	j, _ := json.MarshalIndent(score, "", "\t")
+	fmt.Printf("%s\n", j)
+
+	logger := slog.Default()
+	searcher := search.NewSearcher(logger, meiliClient)
+
+	err := searcher.EnsureIndexesCreated()
+	if err != nil {
+		panic(err)
+	}
+
+	err = searcher.IndexScore(score, "hello")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func readFile() *models.Score {
 	if filePath == nil || *filePath == "" {
 		log.Fatalln("a file to parse must be provided")
 	}
@@ -26,12 +55,7 @@ func main() {
 
 	d := xml.NewDecoder(f)
 	p := musicxml.NewParser(d)
-	s, err := p.Parse()
+	score, err := p.Parse()
 
-	fmt.Println()
-	j, _ := json.MarshalIndent(s, "", "\t")
-	fmt.Printf("%s\n", j)
-	if err != nil {
-		panic(err)
-	}
+	return score
 }

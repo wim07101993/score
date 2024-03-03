@@ -4,9 +4,21 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="parsing">
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="zincsearch docker compose">
+      <change afterPath="$PROJECT_DIR$/backend/internal/search/documents.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internal/search/indexes.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internal/search/score.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internal/search/search.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/models/measure.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/models/partgroup.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.dev/zincsearch/data/_metadata.bolt" beforeDir="false" afterPath="$PROJECT_DIR$/.dev/zincsearch/data/_metadata.bolt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/score.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/score.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,32 +61,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "DefaultGoTemplateProperty": "Go File",
-    "Docker.Start docker.executor": "Run",
-    "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
-    "Go Build.go build score main.go.executor": "Run",
-    "Go Build.run cli.executor": "Debug",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "golang-muxicxml",
-    "go.import.settings.migrated": "true",
-    "last_opened_file_path": "/home/wim/source/repos/score/docker-compose.yml",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;Docker.Docker compose.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.Start docker.executor&quot;: &quot;Run&quot;,
+    &quot;Docker.docker-compose.yml: Compose Deployment.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build score main.go.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.run cli.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;golang-muxicxml&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/wim/source/repos/score/docker-compose.yml&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
@@ -83,11 +96,11 @@
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/backend/pkgs" />
+      <recent name="$PROJECT_DIR$/backend/internal" />
       <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
       <recent name="$PROJECT_DIR$/backend/pkgs/score" />
       <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
-      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml/schema" />
-      <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -97,7 +110,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Docker.Docker compose">
+  <component name="RunManager" selected="Docker.Start docker">
     <configuration name="run cli" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="score" />
       <working_directory value="$PROJECT_DIR$" />
@@ -108,44 +121,26 @@
       <filePath value="$PROJECT_DIR$/backend/cmd/cli/main.go" />
       <method v="2" />
     </configuration>
-    <configuration name="Docker compose" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
-      <deployment type="docker-compose.yml">
-        <settings>
-          <option name="envFilePath" value="" />
-          <option name="sourceFilePath" value="docker-compose.yml" />
-        </settings>
-      </deployment>
-      <method v="2" />
-    </configuration>
     <configuration name="Start docker" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
       <deployment type="docker-compose.yml">
         <settings>
           <option name="envFilePath" value="" />
-          <option name="services">
-            <list>
-              <option value="zincsearch" />
-            </list>
-          </option>
           <option name="sourceFilePath" value="docker-compose.yml" />
         </settings>
       </deployment>
       <method v="2" />
     </configuration>
     <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
-      <deployment type="docker-compose.yml" />
+      <deployment type="docker-compose.yml">
+        <settings />
+      </deployment>
       <method v="2" />
     </configuration>
     <list>
       <item itemvalue="Docker.Start docker" />
-      <item itemvalue="Docker.Docker compose" />
       <item itemvalue="Go Build.run score manager" />
       <item itemvalue="Go Build.run cli" />
     </list>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Docker.Docker compose" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -166,7 +161,8 @@
     <MESSAGE value="all initial elements are parsed (i think)" />
     <MESSAGE value="cleanup + logging" />
     <MESSAGE value="parsing" />
-    <option name="LAST_COMMIT_MESSAGE" value="parsing" />
+    <MESSAGE value="zincsearch docker compose" />
+    <option name="LAST_COMMIT_MESSAGE" value="zincsearch docker compose" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
