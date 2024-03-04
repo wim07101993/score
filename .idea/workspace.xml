@@ -4,19 +4,16 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="zincsearch docker compose">
-      <change afterPath="$PROJECT_DIR$/backend/internal/search/documents.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/search/indexes.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/search/score.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internal/search/search.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/models/measure.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/models/partgroup.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.dev/zincsearch/data/_metadata.bolt" beforeDir="false" afterPath="$PROJECT_DIR$/.dev/zincsearch/data/_metadata.bolt" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="index score works">
+      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internal/search/helping_funcs.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/score.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/models/score.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/models.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/search/documents.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/search/indexes.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/search/score.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/search/search.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/search/indexer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
     </list>
@@ -153,6 +150,17 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="parsing stuff" />
@@ -162,7 +170,8 @@
     <MESSAGE value="cleanup + logging" />
     <MESSAGE value="parsing" />
     <MESSAGE value="zincsearch docker compose" />
-    <option name="LAST_COMMIT_MESSAGE" value="zincsearch docker compose" />
+    <MESSAGE value="index score works" />
+    <option name="LAST_COMMIT_MESSAGE" value="index score works" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
