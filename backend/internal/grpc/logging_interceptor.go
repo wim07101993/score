@@ -2,28 +2,31 @@ package grpc
 
 import (
 	"context"
-	"fmt"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	"log/slog"
 )
 
-func NewLogger(l log.Logger) logging.Logger {
+func NewLogger(logger *slog.Logger) logging.Logger {
 	return logging.LoggerFunc(
-		func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
-			largs := append([]any{"msg", msg}, fields...)
+		func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
+			var level slog.Level
 			switch lvl {
 			case logging.LevelDebug:
-				_ = level.Debug(l).Log(largs...)
+				level = slog.LevelDebug
 			case logging.LevelInfo:
-				_ = level.Info(l).Log(largs...)
+				level = slog.LevelInfo
 			case logging.LevelWarn:
-				_ = level.Warn(l).Log(largs...)
+				level = slog.LevelWarn
 			case logging.LevelError:
-				_ = level.Error(l).Log(largs...)
+				level = slog.LevelError
 			default:
-				panic(fmt.Sprintf("unknown level %v", lvl))
+				logger.Error("unknown log level",
+					slog.Any("level", lvl),
+					slog.String("message", msg),
+					slog.Any("fields", fields))
+				return
 			}
+			logger.Log(ctx, level, msg, fields)
 		},
 	)
 }

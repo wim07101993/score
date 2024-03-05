@@ -34,7 +34,7 @@ func NewScoreManagerClient(cc grpc.ClientConnInterface) ScoreManagerClient {
 }
 
 func (c *scoreManagerClient) CreateScoreFromMusicXml(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_CreateScoreFromMusicXmlClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ScoreManager_ServiceDesc.Streams[0], "/ScoreManager/CreateScoreFromMusicXml", opts...)
+	stream, err := c.cc.NewStream(ctx, &ScoreManager_ServiceDesc.Streams[0], "/score.ScoreManager/CreateScoreFromMusicXml", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (x *scoreManagerCreateScoreFromMusicXmlServer) Recv() (*FileChunk, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ScoreManager_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "ScoreManager",
+	ServiceName: "score.ScoreManager",
 	HandlerType: (*ScoreManagerServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
