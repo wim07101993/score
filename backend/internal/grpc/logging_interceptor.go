@@ -2,13 +2,26 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"log/slog"
+	"strings"
 )
 
 func NewLogger(logger *slog.Logger) logging.Logger {
 	return logging.LoggerFunc(
 		func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
+			if len(fields) >= 6 {
+				service := fmt.Sprint(fields[5])
+				if strings.HasPrefix(service, "grpc.reflection") {
+					return
+				}
+			}
+			attrs := make([]slog.Attr, len(fields))
+			for i := 0; i < len(fields)/2; i++ {
+				attrs[i] = slog.Any(fmt.Sprint(fields[i*2]), fields[(i*2)+1])
+			}
+
 			var level slog.Level
 			switch lvl {
 			case logging.LevelDebug:
@@ -26,7 +39,7 @@ func NewLogger(logger *slog.Logger) logging.Logger {
 					slog.Any("fields", fields))
 				return
 			}
-			logger.Log(ctx, level, msg, fields)
+			logger.LogAttrs(ctx, level, msg, attrs...)
 		},
 	)
 }

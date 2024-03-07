@@ -14,7 +14,7 @@ service Indexer {
 message IndexScoresRequest {
   // Indicates the timestamp of the scores from which the index should start.
   // All scores created/modified before this timestamp will be ignored.
-  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp since = 1;
 
   // Indicates the timestamp of the scores until which the index should include.
   // All scores created/modified after this timestamp will be ignored.

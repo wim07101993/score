@@ -4,22 +4,22 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="feat: created indexer">
-      <change afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer.pb.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer_grpc.pb.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/api/protos/indexer.proto" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/main" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/run_score_manager.xml" beforeDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="git stuff">
+      <change afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/file.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/server.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/stdin.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/score_manager.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/score_manager.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/score_manager_grpc.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/score_manager_grpc.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/protos/score_manager.proto" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer_grpc.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer_grpc.pb.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/api/protos/indexer.proto" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/protos/indexer.proto" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/indexer/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/server/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/internal/grpc/logging_interceptor.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/grpc/logging_interceptor.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/score_manager.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/scripts/generate_servers.sh" beforeDir="false" afterPath="$PROJECT_DIR$/backend/scripts/generate_servers.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,33 +62,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
-    &quot;Docker.Docker compose.executor&quot;: &quot;Run&quot;,
-    &quot;Docker.Start docker.executor&quot;: &quot;Run&quot;,
-    &quot;Docker.docker-compose.yml: Compose Deployment.executor&quot;: &quot;Run&quot;,
-    &quot;Go Build.go build score main.go.executor&quot;: &quot;Run&quot;,
-    &quot;Go Build.run cli.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;golang-muxicxml&quot;,
-    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/wim/source/repos/score/docker-compose.yml&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultGoTemplateProperty": "Go File",
+    "Docker.Docker compose.executor": "Run",
+    "Docker.Start docker.executor": "Run",
+    "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
+    "Go Build.go build score main.go.executor": "Run",
+    "Go Build.run cli.executor": "Debug",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "golang-muxicxml",
+    "go.import.settings.migrated": "true",
+    "last_opened_file_path": "/home/wim/source/repos/score/docker-compose.yml",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
@@ -161,7 +161,9 @@
     <MESSAGE value="zincsearch docker compose" />
     <MESSAGE value="index score works" />
     <MESSAGE value="feat: created indexer" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: created indexer" />
+    <MESSAGE value="added server" />
+    <MESSAGE value="git stuff" />
+    <option name="LAST_COMMIT_MESSAGE" value="git stuff" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

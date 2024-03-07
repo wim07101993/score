@@ -12,5 +12,4 @@ protoc \
   --go_out="$GENERATED_DIR" \
   --go-grpc_out="$GENERATED_DIR" \
   --proto_path "$PROTOS_DIR" \
-  --experimental_allow_proto3_optional \
   "$PROTOS_DIR"/*
