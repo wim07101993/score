@@ -2,32 +2,40 @@ package server
 
 import (
 	"context"
+	"encoding/xml"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log/slog"
 	"score/backend/api/generated/github.com/wim07101993/score"
 	"score/backend/internal/gitstorage"
+	"score/backend/internal/search"
+	"score/backend/pkgs/musicxml"
 	"time"
 )
 
-type Indexer struct {
+type IndexerServer struct {
 	score.IndexerServer
 	gitStore *gitstorage.GitFileStore
 	logger   *slog.Logger
+	indexer  search.Indexer
 }
 
-func NewIndexer(logger *slog.Logger, gitStore *gitstorage.GitFileStore) *Indexer {
-	return &Indexer{
+func NewIndexerServer(
+	logger *slog.Logger,
+	gitStore *gitstorage.GitFileStore,
+	indexer search.Indexer) *IndexerServer {
+	return &IndexerServer{
 		logger:   logger,
 		gitStore: gitStore,
+		indexer:  indexer,
 	}
 }
 
-func (ix *Indexer) IndexScores(_ context.Context, request *score.IndexScoresRequest) (*empty.Empty, error) {
-	err := ix.gitStore.Pull()
+func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexScoresRequest) (*empty.Empty, error) {
+	err := serv.gitStore.Pull()
 	if err != nil {
-		ix.logger.Error("failed to get git work tree", slog.Any("error", err))
+		serv.logger.Error("failed to get git work tree", slog.Any("error", err))
 		return nil, status.Error(codes.Internal, "an internal error occurred: failed to pull git")
 	}
 
@@ -42,13 +50,67 @@ func (ix *Indexer) IndexScores(_ context.Context, request *score.IndexScoresRequ
 		until = &t
 	}
 
-	files, err := ix.gitStore.ChangedFiles(since, until)
+	newFiles, changed, removed, err := serv.gitStore.ChangedFiles(since, until)
 	if err != nil {
-		ix.logger.Error("failed to pull git", slog.Any("error", err))
+		serv.logger.Error("failed to pull git", slog.Any("error", err))
 		return nil, status.Error(codes.Internal, "an internal error occurred: failed to update scores repo")
 	}
 
-	ix.logger.Info("got changed git files", slog.Any("files", files))
+	serv.logger.Info("got changed git files",
+		slog.Any("newFiles", newFiles),
+		slog.Any("changed", changed),
+		slog.Any("removed", removed))
+
+	if err != nil {
+		serv.logger.Error("error", err)
+	}
+	for _, f := range append(newFiles, changed...) {
+		f := f
+		go func() {
+			id, err := gitstorage.ScoreIdFromPath(f.Name)
+			if err != nil {
+				serv.logger.Error("failed getting id from file name",
+					slog.String("file", f.Name),
+					slog.Any("error", err))
+			}
+			r, err := f.Reader()
+			if err != nil {
+				serv.logger.Error("failed to read file",
+					slog.String("file", f.Name),
+					slog.Any("error", err))
+			}
+			s, err := musicxml.NewParser(xml.NewDecoder(r)).Parse()
+			if err != nil {
+				serv.logger.Error("failed to parse file",
+					slog.String("file", f.Name),
+					slog.Any("error", err))
+			}
+			err = serv.indexer.Index(s, id)
+			if err != nil {
+				serv.logger.Error("failed to index score",
+					slog.String("file", f.Name),
+					slog.Any("error", err))
+			}
+		}()
+	}
+
+	for _, f := range removed {
+		f := f
+		go func() {
+			id, err := gitstorage.ScoreIdFromPath(f.Name)
+			if err != nil {
+				serv.logger.Error("failed getting id from file name",
+					slog.String("file", f.Name),
+					slog.Any("error", err))
+			}
+			err = serv.indexer.Remove(id)
+			if err != nil {
+				serv.logger.Error("failed to remove score",
+					slog.String("file", f.Name),
+					slog.Any("error", err))
+			}
+		}()
+	}
 
 	return &empty.Empty{}, nil
 }

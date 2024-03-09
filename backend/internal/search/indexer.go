@@ -11,6 +11,7 @@ const scoresIndex = "scores"
 
 type Indexer interface {
 	Index(score *models.Score, id string) error
+	Remove(id string) error
 }
 
 type searcher struct {
@@ -26,7 +27,9 @@ func NewIndexer(logger *slog.Logger, meili *meilisearch.Client) Indexer {
 }
 
 func (s *searcher) Index(score *models.Score, id string) error {
-	s.Logger.Info("indexing document", slog.String("title", score.Title))
+	s.Logger.Info("indexing document",
+		slog.String("title", score.Title),
+		slog.String("id", id))
 
 	doc := ScoreToDocument(score, id)
 	resp, err := s.Meili.Index(scoresIndex).AddDocuments(doc)
@@ -39,6 +42,12 @@ func (s *searcher) Index(score *models.Score, id string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *searcher) Remove(id string) error {
+	s.Logger.Info("removing document", slog.String("id", id))
+	_, err := s.Meili.Index(scoresIndex).DeleteDocument(id)
+	return err
 }
 
 func ScoreToDocument(score *models.Score, id string) map[string]interface{} {

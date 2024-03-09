@@ -4,22 +4,15 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="git stuff">
-      <change afterPath="$PROJECT_DIR$/backend/cmd/cli/main.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/file.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/server.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/cmd/indexer/stdin.go" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="git stuff works">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer_grpc.pb.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/generated/github.com/wim07101993/score/indexer_grpc.pb.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/api/protos/indexer.proto" beforeDir="false" afterPath="$PROJECT_DIR$/backend/api/protos/indexer.proto" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/file.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/indexer/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/server.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/stdin.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/grpc/logging_interceptor.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/grpc/logging_interceptor.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/search/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/search/indexer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/scripts/generate_servers.sh" beforeDir="false" afterPath="$PROJECT_DIR$/backend/scripts/generate_servers.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,6 +44,9 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="DEPENDENCY_CHECKER_PROBLEMS_TAB" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
 }</component>
@@ -71,13 +67,13 @@
     "Docker.Start docker.executor": "Run",
     "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
     "Go Build.go build score main.go.executor": "Run",
+    "Go Build.indexer.executor": "Debug",
     "Go Build.run cli.executor": "Debug",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.go.formatter.settings.were.checked": "true",
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
     "dart.analysis.tool.window.visible": "false",
     "git-widget-placeholder": "golang-muxicxml",
@@ -111,7 +107,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Go Build.indexer">
     <configuration name="Start docker" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
       <deployment type="docker-compose.yml">
         <settings>
@@ -127,6 +123,10 @@
       </deployment>
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Docker.Start docker" />
+      <item itemvalue="Go Build.indexer" />
+    </list>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -163,9 +163,21 @@
     <MESSAGE value="feat: created indexer" />
     <MESSAGE value="added server" />
     <MESSAGE value="git stuff" />
-    <option name="LAST_COMMIT_MESSAGE" value="git stuff" />
+    <MESSAGE value="git stuff works" />
+    <option name="LAST_COMMIT_MESSAGE" value="git stuff works" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/backend/pkgs/server/indexer.go</url>
+          <line>99</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

@@ -2,11 +2,11 @@ package gitstorage
 
 import (
 	"errors"
-	"fmt"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -16,6 +16,7 @@ import (
 
 var NoIdDelimiterFound = errors.New("no '---' found in file-name which indicate the start of the id of the score")
 var MultipleIdDelimitersFound = errors.New("multiple '---' found in filename which indicate the start of the id of the score")
+var NoSinceTimeSpecified = errors.New("no 'since' time specified")
 
 type GitFileStore struct {
 	repo   *git.Repository
@@ -33,21 +34,6 @@ func NewGitStore(logger *slog.Logger, url string) *GitFileStore {
 		os.Exit(1)
 	}
 
-	ref, err := repo.Head()
-	if err != nil {
-		panic(err)
-	}
-
-	cIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
-	if err != nil {
-		panic(err)
-	}
-
-	// ... just iterates over the commits, printing it
-	err = cIter.ForEach(func(c *object.Commit) error {
-		fmt.Println(c)
-		return nil
-	})
 	return &GitFileStore{
 		repo:   repo,
 		logger: logger,
@@ -70,79 +56,87 @@ func (gfs *GitFileStore) Pull() error {
 	return err
 }
 
-func (gfs *GitFileStore) ChangedFiles(since *time.Time, until *time.Time) (files []string, err error) {
+func (gfs *GitFileStore) ChangedFiles(since *time.Time, until *time.Time) (
+	new []*object.File, changed []*object.File, removed []*object.File, err error) {
 	gfs.logger.Debug("getting changed files", slog.Any("since", since), slog.Any("until", until))
-	log, err := gfs.repo.Log(&git.LogOptions{
-		Since: since,
-		Until: until,
-	})
-	if err != nil {
-		return nil, err
+
+	if since == nil {
+		return nil, nil, nil, NoSinceTimeSpecified
+	}
+	if until == nil {
+		now := time.Now().UTC()
+		until = &now
 	}
 
-	var first *object.Commit
-	var last *object.Commit
-	err = log.ForEach(func(commit *object.Commit) error {
-		if first == nil {
-			first = commit
-		} else {
-			last = commit
-		}
-		return nil
-	})
+	first, err := gfs.LastCommitBefore(*since)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
-
-	if first == nil {
-		return make([]string, 0), nil
+	last, err := gfs.LastCommitBefore(*until)
+	if err != nil || first == nil {
+		return nil, nil, nil, err
 	}
 
 	if last == nil {
 		filesIter, err := first.Files()
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
-
 		err = filesIter.ForEach(func(file *object.File) error {
-			files = append(files, file.Name)
+			new = append(new, file)
 			return nil
 		})
-		if err != nil {
-			return nil, err
-		}
-
-		return files, nil
+		return new, nil, nil, err
 	}
 
 	fTree, err := first.Tree()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	lTree, err := last.Tree()
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	changes, err := lTree.Diff(fTree)
+	changes, err := fTree.Diff(lTree)
 
 	for _, change := range changes {
-		_, to, err := change.Files()
+		from, to, err := change.Files()
 		if err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
-		files = append(files, to.Name)
+		if from != nil && to != nil {
+			changed = append(changed, to)
+		} else if to != nil {
+			new = append(new, to)
+		} else if from != nil {
+			removed = append(removed, from)
+		}
 	}
-	return files, nil
+	return new, changed, removed, nil
+}
+
+func (gfs *GitFileStore) LastCommitBefore(until time.Time) (*object.Commit, error) {
+	log, err := gfs.repo.Log(&git.LogOptions{
+		Until: &until,
+	})
+	if err != nil {
+		return nil, err
+	}
+	commit, err := log.Next()
+	if err == nil || err == io.EOF {
+		return commit, nil
+	}
+	return nil, err
 }
 
 func ScoreIdFromPath(path string) (id string, err error) {
 	ext := filepath.Ext(path)
 	split := strings.Split(filepath.Base(path[:len(path)-len(ext)]), "---")
 	switch len(split) {
-	case 0:
+	case 0, 1:
 		return "", NoIdDelimiterFound
-	case 1:
+	case 2:
 		break
 	default:
 		return "", MultipleIdDelimitersFound
