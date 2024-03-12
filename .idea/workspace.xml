@@ -4,15 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="git stuff works">
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="indexing works">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/file.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/client/main.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/indexer/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/stdin.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/search/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/search/indexer.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/closer/closer.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/grpc/stream_reader.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/grpc/stream_writing.go" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,7 +66,7 @@
     "Docker.Start docker.executor": "Run",
     "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
     "Go Build.go build score main.go.executor": "Run",
-    "Go Build.indexer.executor": "Debug",
+    "Go Build.indexer.executor": "Run",
     "Go Build.run cli.executor": "Debug",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -78,7 +77,7 @@
     "dart.analysis.tool.window.visible": "false",
     "git-widget-placeholder": "golang-muxicxml",
     "go.import.settings.migrated": "true",
-    "last_opened_file_path": "/home/wim/source/repos/score/docker-compose.yml",
+    "last_opened_file_path": "/home/wim/scores",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -131,7 +130,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-gosdk-2946fb9b3188-155fe4b6e3a0-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-233.14475.38" />
+        <option value="bundled-gosdk-2946fb9b3188-155fe4b6e3a0-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-233.14808.20" />
       </set>
     </attachedChunks>
   </component>
@@ -164,20 +163,10 @@
     <MESSAGE value="added server" />
     <MESSAGE value="git stuff" />
     <MESSAGE value="git stuff works" />
-    <option name="LAST_COMMIT_MESSAGE" value="git stuff works" />
+    <MESSAGE value="indexing works" />
+    <option name="LAST_COMMIT_MESSAGE" value="indexing works" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/backend/pkgs/server/indexer.go</url>
-          <line>99</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

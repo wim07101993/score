@@ -17,7 +17,6 @@ import (
 	"score/backend/pkgs/server"
 )
 
-var file string
 var meiliConfig meilisearch.ClientConfig
 var serverPort int
 
@@ -27,11 +26,20 @@ var indexer search.Indexer
 func init() {
 	flag.StringVar(&meiliConfig.Host, "host", "http://localhost:7700", "The meili search server on which to index the score.")
 	flag.StringVar(&meiliConfig.APIKey, "apikey", "", "The api key with which to connect to the meili server.")
-	flag.IntVar(&serverPort, "port", 0, "The port on which the server should listen. If omitted, stdin is used.")
+	flag.IntVar(&serverPort, "port", 7701, "The port on which the server should listen. If omitted, stdin is used.")
 }
 
 func main() {
 	flag.Parse()
+	if meiliConfig.Host == "" {
+		panic("no host specified for meili. e.g.: --host http://localhost:7700")
+	}
+	if meiliConfig.APIKey == "" {
+		panic("no meili api key specified. e.g.: --apikey MY_API_KEY")
+	}
+	if serverPort < 80 {
+		panic("cannot listen on a port lower than 80. e.g.: --port")
+	}
 
 	indexer = search.NewIndexer(logger, meilisearch.NewClient(meiliConfig))
 
