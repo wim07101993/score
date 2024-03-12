@@ -15,8 +15,17 @@ import (
 	grpc2 "score/backend/internal/grpc"
 	"score/backend/internal/search"
 	"score/backend/pkgs/server"
+	"strconv"
 )
 
+const (
+	meiliHostEnvVar        = "MEILI_HOST"
+	meiliApiKeyEnvVar      = "MEILI_API_KEY"
+	scoresRepositoryEnvVar = "SCORES_REPOSITORY"
+	scorePortEnvVar        = "SCORE_PORT"
+)
+
+var gitConfig gitstorage.Config
 var meiliConfig meilisearch.ClientConfig
 var serverPort int
 
@@ -24,26 +33,32 @@ var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level:
 var indexer search.Indexer
 
 func init() {
+	flag.StringVar(&gitConfig.Repository, "repo", "", "The git repository on which the scores are stored. Ensure this server has read access to that repo.")
 	flag.StringVar(&meiliConfig.Host, "host", "http://localhost:7700", "The meili search server on which to index the score.")
 	flag.StringVar(&meiliConfig.APIKey, "apikey", "", "The api key with which to connect to the meili server.")
 	flag.IntVar(&serverPort, "port", 7701, "The port on which the server should listen. If omitted, stdin is used.")
+
+	gitConfig.Repository = os.Getenv(scoresRepositoryEnvVar)
+	meiliConfig.Host = os.Getenv(meiliHostEnvVar)
+	meiliConfig.APIKey = os.Getenv(meiliApiKeyEnvVar)
+
+	sport := os.Getenv(scorePortEnvVar)
+	if sport != "" {
+		p, err := strconv.Atoi(os.Getenv(scorePortEnvVar))
+		if err != nil {
+			panic(err)
+		}
+		serverPort = p
+	}
 }
 
 func main() {
 	flag.Parse()
-	if meiliConfig.Host == "" {
-		panic("no host specified for meili. e.g.: --host http://localhost:7700")
-	}
-	if meiliConfig.APIKey == "" {
-		panic("no meili api key specified. e.g.: --apikey MY_API_KEY")
-	}
-	if serverPort < 80 {
-		panic("cannot listen on a port lower than 80. e.g.: --port")
-	}
+	validateVars()
 
 	indexer = search.NewIndexer(logger, meilisearch.NewClient(meiliConfig))
 
-	gitStore := gitstorage.NewGitStore(logger, "git@github.com:wim07101993/scores.git")
+	gitStore := gitstorage.NewGitStore(logger, gitConfig.Repository)
 
 	logger.Info("starting grpc server")
 	addr := fmt.Sprintf(":%d", serverPort)
@@ -68,5 +83,20 @@ func main() {
 		logger.Error("failed to serve score indexer",
 			slog.Any("error", err),
 			slog.String("address", addr))
+	}
+}
+
+func validateVars() {
+	if meiliConfig.Host == "" {
+		panic("no host specified for meili. e.g.: --host http://localhost:7700 or " + meiliHostEnvVar + " environment variable")
+	}
+	if meiliConfig.APIKey == "" {
+		panic("no meili api key specified. e.g.: --apikey MY_API_KEY or " + meiliApiKeyEnvVar + " environment variable")
+	}
+	if gitConfig.Repository == "" {
+		panic("no git repo specified. e.g.: --repo git@SERVER.com:MY_USER/REPOSITORY.git or " + scoresRepositoryEnvVar + " environment variable")
+	}
+	if serverPort < 80 {
+		panic("cannot listen on a port lower than 80. e.g.: --port 7701 or " + scorePortEnvVar + " environment variable")
 	}
 }

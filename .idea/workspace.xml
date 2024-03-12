@@ -4,14 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="indexing works">
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="cleanup + fixes">
+      <change afterPath="$PROJECT_DIR$/backend/internal/gitstorage/config.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/cli/main.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/client/main.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/indexer/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/indexer/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/closer/closer.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/grpc/stream_reader.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/grpc/stream_writing.go" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +160,8 @@
     <MESSAGE value="git stuff" />
     <MESSAGE value="git stuff works" />
     <MESSAGE value="indexing works" />
-    <option name="LAST_COMMIT_MESSAGE" value="indexing works" />
+    <MESSAGE value="cleanup + fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="cleanup + fixes" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
