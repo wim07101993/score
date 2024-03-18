@@ -10,7 +10,6 @@ import (
 	"score/backend/api/generated/github.com/wim07101993/score"
 	"score/backend/internal/gitstorage"
 	"score/backend/internal/search"
-	"score/backend/pkgs/musicxml"
 	"time"
 )
 
@@ -67,6 +66,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexSc
 	for _, f := range append(newFiles, changed...) {
 		f := f
 		go func() {
+			serv.logger.Info("indexing score", slog.String("file", f.Name))
 			id, err := gitstorage.ScoreIdFromPath(f.Name)
 			if err != nil {
 				serv.logger.Error("failed getting id from file name",
@@ -79,7 +79,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexSc
 					slog.String("file", f.Name),
 					slog.Any("error", err))
 			}
-			s, err := musicxml.NewParser(xml.NewDecoder(r)).Parse()
+			s, err := search.ParseScore(xml.NewDecoder(r))
 			if err != nil {
 				serv.logger.Error("failed to parse file",
 					slog.String("file", f.Name),
@@ -90,6 +90,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexSc
 				serv.logger.Error("failed to index score",
 					slog.String("file", f.Name),
 					slog.Any("error", err))
+				panic(err)
 			}
 		}()
 	}
@@ -97,6 +98,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexSc
 	for _, f := range removed {
 		f := f
 		go func() {
+			serv.logger.Info("removing score", slog.String("file", f.Name))
 			id, err := gitstorage.ScoreIdFromPath(f.Name)
 			if err != nil {
 				serv.logger.Error("failed getting id from file name",

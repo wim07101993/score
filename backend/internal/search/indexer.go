@@ -3,14 +3,13 @@ package search
 import (
 	"github.com/meilisearch/meilisearch-go"
 	"log/slog"
-	"score/backend/pkgs/models"
 	"time"
 )
 
 const scoresIndex = "scores"
 
 type Indexer interface {
-	Index(score *models.Score, id string) error
+	Index(score *Score, id string) error
 	Remove(id string) error
 }
 
@@ -26,12 +25,12 @@ func NewIndexer(logger *slog.Logger, meili *meilisearch.Client) Indexer {
 	}
 }
 
-func (s *searcher) Index(score *models.Score, id string) error {
+func (s *searcher) Index(score *Score, id string) error {
 	s.Logger.Info("indexing document",
 		slog.String("title", score.Title),
 		slog.String("id", id))
 
-	doc := ScoreToDocument(score, id)
+	doc := score.ToDocument(id)
 	resp, err := s.Meili.Index(scoresIndex).AddDocuments(doc)
 	if err != nil {
 		return err
@@ -48,17 +47,4 @@ func (s *searcher) Remove(id string) error {
 	s.Logger.Info("removing document", slog.String("id", id))
 	_, err := s.Meili.Index(scoresIndex).DeleteDocument(id)
 	return err
-}
-
-func ScoreToDocument(score *models.Score, id string) map[string]interface{} {
-	if score == nil {
-		return nil
-	}
-	return map[string]interface{}{
-		"id":          id,
-		"title":       score.Title,
-		"composers":   score.Composers,
-		"lyricists":   score.Lyricists,
-		"instruments": score.Instruments(),
-	}
 }

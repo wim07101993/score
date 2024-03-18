@@ -68,22 +68,25 @@ func (gfs *GitFileStore) ChangedFiles(since *time.Time, until *time.Time) (
 		until = &now
 	}
 
+	last, err := gfs.LastCommitBefore(*until)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	first, err := gfs.LastCommitBefore(*since)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	last, err := gfs.LastCommitBefore(*until)
-	if err != nil || first == nil {
-		return nil, nil, nil, err
-	}
 
-	if last == nil {
-		filesIter, err := first.Files()
+	if first == nil {
+		filesIter, err := last.Files()
 		if err != nil {
 			return nil, nil, nil, err
 		}
 		err = filesIter.ForEach(func(file *object.File) error {
-			new = append(new, file)
+			if strings.HasSuffix(file.Name, ".musicxml") {
+				new = append(new, file)
+			}
 			return nil
 		})
 		return new, nil, nil, err
@@ -105,11 +108,11 @@ func (gfs *GitFileStore) ChangedFiles(since *time.Time, until *time.Time) (
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		if from != nil && to != nil {
+		if from != nil && to != nil && strings.HasSuffix(to.Name, ".musicxml") {
 			changed = append(changed, to)
-		} else if to != nil {
+		} else if to != nil && strings.HasSuffix(to.Name, ".musicxml") {
 			new = append(new, to)
-		} else if from != nil {
+		} else if from != nil && strings.HasSuffix(from.Name, ".musicxml") {
 			removed = append(removed, from)
 		}
 	}
