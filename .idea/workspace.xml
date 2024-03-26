@@ -4,21 +4,19 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="env var config">
-      <change afterPath="$PROJECT_DIR$/backend/internal/search/models.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="use separate models for indexing">
+      <change afterPath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.copy.musicxml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/gitstorage/gitstore.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internal/search/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/search/indexer.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/accidentals.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/identification.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/measure.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/parser.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/part.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/partlist.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/work.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_helpers.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/server/indexer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internal/search/models.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internal/search/models.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/measure.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/partgroup.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/models/score.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.musicxml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.musicxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/test/data/musicxml/Irish Blessing.xml" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,8 +31,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Go Application" />
         <option value="Go File" />
+        <option value="Go Application" />
       </list>
     </option>
   </component>
@@ -68,11 +66,12 @@
   &quot;keyToString&quot;: {
     &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
     &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go Application&quot;,
     &quot;Docker.Docker compose.executor&quot;: &quot;Run&quot;,
     &quot;Docker.Start docker.executor&quot;: &quot;Run&quot;,
     &quot;Docker.docker-compose.yml: Compose Deployment.executor&quot;: &quot;Run&quot;,
     &quot;Go Build.go build score main.go.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build score/backend/cmd/musicxml_processor.executor&quot;: &quot;Debug&quot;,
     &quot;Go Build.indexer.executor&quot;: &quot;Run&quot;,
     &quot;Go Build.run cli.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
@@ -84,7 +83,7 @@
     &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
     &quot;git-widget-placeholder&quot;: &quot;golang-muxicxml&quot;,
     &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/wim/scores&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/wim/source/repos/score/backend/test/data/musicxml&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
@@ -93,8 +92,8 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
       <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
+      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
       <recent name="$PROJECT_DIR$/backend/test/data" />
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
@@ -113,7 +112,16 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.indexer">
+  <component name="RunManager" selected="Go Build.go build score/backend/cmd/musicxml_processor">
+    <configuration name="go build score/backend/cmd/musicxml_processor" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="score" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="score/backend/cmd/musicxml_processor" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/backend/cmd/musicxml_processor/main.go" />
+      <method v="2" />
+    </configuration>
     <configuration name="Start docker" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
       <deployment type="docker-compose.yml">
         <settings>
@@ -132,12 +140,18 @@
     <list>
       <item itemvalue="Docker.Start docker" />
       <item itemvalue="Go Build.indexer" />
+      <item itemvalue="Go Build.go build score/backend/cmd/musicxml_processor" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Build.go build score/backend/cmd/musicxml_processor" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-gosdk-2946fb9b3188-155fe4b6e3a0-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-233.14808.20" />
+        <option value="bundled-gosdk-2946fb9b3188-155fe4b6e3a0-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-233.15026.17" />
       </set>
     </attachedChunks>
   </component>
@@ -173,7 +187,8 @@
     <MESSAGE value="indexing works" />
     <MESSAGE value="cleanup + fixes" />
     <MESSAGE value="env var config" />
-    <option name="LAST_COMMIT_MESSAGE" value="env var config" />
+    <MESSAGE value="use separate models for indexing" />
+    <option name="LAST_COMMIT_MESSAGE" value="use separate models for indexing" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

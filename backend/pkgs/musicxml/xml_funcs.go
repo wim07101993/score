@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type UnexpectedTokenError struct {
@@ -54,7 +55,7 @@ func ReadObject(
 		switch e := t.(type) {
 		case xml.StartElement:
 			if onElement == nil {
-				err = IgnoreObject(r, e)
+				err = ReadUntilClose(r, e)
 			} else {
 				err = onElement(e)
 			}
@@ -79,10 +80,6 @@ func ReadObject(
 		}
 		return stop, err
 	})
-}
-
-func IgnoreObject(r xml.TokenReader, start xml.StartElement) error {
-	return ReadUntilClose(r, start)
 }
 
 func ReadUntilClose(r xml.TokenReader, start xml.StartElement) error {
@@ -127,4 +124,12 @@ func ReadFloat(r xml.TokenReader, start xml.StartElement) (float64, error) {
 		return 0, err
 	}
 	return strconv.ParseFloat(s, 64)
+}
+
+func ReadTime(r xml.TokenReader, start xml.StartElement) (time.Time, error) {
+	s, err := ReadString(r, start)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse("2006-01-02", s)
 }

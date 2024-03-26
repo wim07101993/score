@@ -32,7 +32,7 @@ func ParseScore(r xml.TokenReader) (*Score, error) {
 		case "score-partwise":
 			score, err = parseScorePartwise(r, el)
 		default:
-			err = musicxml.IgnoreObject(r, el)
+			err = musicxml.ReadUntilClose(r, el)
 		}
 		return err
 	})
@@ -52,7 +52,7 @@ func parseScorePartwise(r xml.TokenReader, start xml.StartElement) (*Score, erro
 					case "work-title":
 						score.Title, err = musicxml.ReadString(r, el2)
 					default:
-						err = musicxml.IgnoreObject(r, el2)
+						err = musicxml.ReadUntilClose(r, el2)
 					}
 					return err
 				})
@@ -62,7 +62,7 @@ func parseScorePartwise(r xml.TokenReader, start xml.StartElement) (*Score, erro
 					case "creator":
 						return parseCreatorIntoScore(r, el2, score)
 					default:
-						return musicxml.IgnoreObject(r, el2)
+						return musicxml.ReadUntilClose(r, el2)
 					}
 				})
 			case "part-list":
@@ -82,19 +82,19 @@ func parseScorePartwise(r xml.TokenReader, start xml.StartElement) (*Score, erro
 										score.Instruments = append(score.Instruments, instr)
 										return nil
 									default:
-										return musicxml.IgnoreObject(r, el4)
+										return musicxml.ReadUntilClose(r, el4)
 									}
 								})
 							default:
-								return musicxml.IgnoreObject(r, el3)
+								return musicxml.ReadUntilClose(r, el3)
 							}
 						})
 					default:
-						return musicxml.IgnoreObject(r, el2)
+						return musicxml.ReadUntilClose(r, el2)
 					}
 				})
 			default:
-				return musicxml.IgnoreObject(r, el)
+				return musicxml.ReadUntilClose(r, el)
 			}
 		})
 	return score, err
