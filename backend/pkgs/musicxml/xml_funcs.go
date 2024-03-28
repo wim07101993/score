@@ -100,11 +100,16 @@ func ReadString(r xml.TokenReader, start xml.StartElement) (string, error) {
 		return "", nil
 	}
 
-	switch t.(type) {
+	switch e := t.(type) {
 	case xml.CharData:
 		data := string(t.(xml.CharData))
 		err := ReadUntilClose(r, start)
 		return data, err
+	case xml.EndElement:
+		if e.Name.Local != start.Name.Local {
+			return "", fmt.Errorf("unexpected end element %s while expecting %v", e.Name.Local, start.Name.Local)
+		}
+		return "", nil
 	default:
 		return "", fmt.Errorf("unknown token (while expecting char-data) %t %v", t, t)
 	}
@@ -118,7 +123,19 @@ func ReadInt(r xml.TokenReader, start xml.StartElement) (int, error) {
 	return strconv.Atoi(s)
 }
 
-func ReadFloat(r xml.TokenReader, start xml.StartElement) (float64, error) {
+func ReadFloat32(r xml.TokenReader, start xml.StartElement) (float32, error) {
+	s, err := ReadString(r, start)
+	if err != nil {
+		return 0, err
+	}
+	value, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return 0, err
+	}
+	return float32(value), nil
+}
+
+func ReadFloat64(r xml.TokenReader, start xml.StartElement) (float64, error) {
 	s, err := ReadString(r, start)
 	if err != nil {
 		return 0, err
