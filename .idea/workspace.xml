@@ -8,7 +8,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -223,12 +223,127 @@ func harmony(r xml.TokenReader, element xml.StartElement) (harmony *Harmony, err
 					return err
 				}
 				harmony.Degrees = append(harmony.Degrees, degree)
+			case "frame":
+				harmony.Frame, err = frame(r, el)
 			default:
 				err = &UnknownElement{element, el}
 			}
 			return err
 		})
 	return harmony, err
+}
+
+func frame(r xml.TokenReader, element xml.StartElement) (frame *Frame, err error) {
+	frame = &Frame{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			if ignoreLayoutAttribute(attr) {
+				return nil
+			}
+			return &UnknownAttribute{element, attr}
+		},
+		func(el xml.StartElement) error {
+			switch el.Name.Local {
+			case "frame-strings":
+				frame.Strings, err = ReadInt(r, el)
+			case "frame-frets":
+				frame.Frets, err = ReadInt(r, el)
+			case "first-fret":
+				frame.FirstFret, err = firstFret(r, el)
+			case "frame-note":
+				note, err := frameNote(r, el)
+				if err != nil {
+					return err
+				}
+				frame.Notes = append(frame.Notes, note)
+			default:
+				err = &UnknownElement{element, el}
+			}
+			return err
+		})
+	return frame, err
+}
+
+func frameNote(r xml.TokenReader, element xml.StartElement) (note *FrameNote, err error) {
+	note = &FrameNote{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			return &UnknownAttribute{element, attr}
+		},
+		func(el xml.StartElement) error {
+			switch el.Name.Local {
+			case "string":
+				note.String, err = ReadInt(r, el)
+			case "fret":
+				note.Fret, err = ReadInt(r, el)
+			case "fingering":
+				note.Fingering, err = fingering(r, el)
+			case "barre":
+				note.Barre, err = barre(r, el)
+			default:
+				err = &UnknownElement{element, el}
+			}
+			return err
+		})
+	return note, err
+}
+
+func barre(r xml.TokenReader, element xml.StartElement) (barre *Barre, err error) {
+	barre = &Barre{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			switch attr.Name.Local {
+			case "type":
+				barre.Type = attr.Value
+			default:
+				return &UnknownAttribute{element, attr}
+			}
+			return nil
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+
+	return barre, err
+}
+
+func fingering(r xml.TokenReader, element xml.StartElement) (f *Fingering, err error) {
+	f = &Fingering{}
+
+	for _, attr := range element.Attr {
+		if ignoreLayoutAttribute(attr) {
+			continue
+		}
+		switch attr.Name.Local {
+		case "substitution":
+			f.Substitution = attr.Value == "yes"
+		case "alternate":
+			f.Alternate = attr.Value == "yes"
+		default:
+			return f, &UnknownAttribute{element, attr}
+		}
+	}
+
+	f.Value, err = ReadString(r, element)
+	return f, err
+}
+
+func firstFret(r xml.TokenReader, element xml.StartElement) (fret *FirstFret, err error) {
+	fret = &FirstFret{}
+
+	for _, attr := range element.Attr {
+		switch attr.Name.Local {
+		case "text":
+			fret.Text = attr.Value
+		case "location":
+			fret.Location = attr.Value
+		default:
+			return fret, &UnknownAttribute{element, attr}
+		}
+	}
+
+	fret.Value, err = ReadInt(r, element)
+	return fret, err
 }
 
 func degree(r xml.TokenReader, element xml.StartElement) (degree *Degree, err error) {
@@ -508,6 +623,11 @@ func note(r xml.TokenReader, element xml.StartElement) (note *Note, err error) {
 			case "cue":
 				err = ReadUntilClose(r, el)
 				note.Cue = true
+			case "grace":
+				note.Grace, err = grace(r, el)
+			case "unpitched":
+				err = ReadUntilClose(r, el)
+				note.IsUnpitched = true
 			default:
 				err = &UnknownElement{element, el}
 			}
@@ -515,6 +635,24 @@ func note(r xml.TokenReader, element xml.StartElement) (note *Note, err error) {
 		})
 
 	return note, err
+}
+
+func grace(r xml.TokenReader, element xml.StartElement) (grace *Grace, err error) {
+	grace = &Grace{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			switch attr.Name.Local {
+			case "slash":
+				grace.Slash = attr.Value == "yes"
+			default:
+				return &UnknownAttribute{element, attr}
+			}
+			return nil
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+	return grace, err
 }
 
 func noteHead(r xml.TokenReader, element xml.StartElement) (head *NoteHead, err error) {
@@ -633,12 +771,144 @@ func notation(r xml.TokenReader, element xml.StartElement) (notation *Notation, 
 					return err
 				}
 				notation.Dynamics = append(notation.Dynamics, dynamic)
+			case "articulations":
+				articulations, err := articulations(r, el)
+				if err != nil {
+					return err
+				}
+				notation.Articulations = append(notation.Articulations, articulations)
+			case "slide":
+				slide, err := slide(r, el)
+				if err != nil {
+					return err
+				}
+				notation.Slides = append(notation.Slides, slide)
+			case "arpeggiate":
+				apr, err := arpeggiate(r, el)
+				if err != nil {
+					return err
+				}
+				notation.Arpeggiate = append(notation.Arpeggiate, apr)
+			case "technical":
+				tech, err := technical(r, el)
+				if err != nil {
+					return err
+				}
+				notation.Technical = append(notation.Technical, tech)
+			case "glissando":
+				glissando, err := glissando(r, el)
+				if err != nil {
+					return err
+				}
+				notation.Glissandos = append(notation.Glissandos, glissando)
 			default:
 				return &UnknownElement{element, el}
 			}
 			return err
 		})
 	return notation, err
+}
+
+func glissando(r xml.TokenReader, element xml.StartElement) (glissando *Glissando, err error) {
+	glissando = &Glissando{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			switch attr.Name.Local {
+			case "type":
+				glissando.Type = attr.Value
+			case "number":
+				num, err := strconv.Atoi(attr.Value)
+				if err != nil {
+					return err
+				}
+				glissando.Number = &num
+			case "line-type":
+				glissando.LineType = attr.Value
+			}
+			return nil
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+	return glissando, err
+}
+
+func technical(r xml.TokenReader, element xml.StartElement) (tech *Technical, err error) {
+	tech = &Technical{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			return &UnknownAttribute{element, attr}
+		},
+		func(el xml.StartElement) error {
+			switch el.Name.Local {
+			case "fret":
+				tech.Fret, err = ReadInt(r, el)
+			case "string":
+				tech.String, err = ReadInt(r, el)
+			default:
+				return &UnknownElement{element, el}
+			}
+			return err
+		})
+	return tech, err
+}
+
+func arpeggiate(r xml.TokenReader, element xml.StartElement) (apr *Arpeggiate, err error) {
+	apr = &Arpeggiate{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			return &UnknownAttribute{element, attr}
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+	return apr, err
+}
+
+func slide(r xml.TokenReader, element xml.StartElement) (slide *Slide, err error) {
+	slide = &Slide{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			switch attr.Name.Local {
+			case "type":
+				slide.Type = attr.Value
+			default:
+				return &UnknownAttribute{element, attr}
+			}
+			return nil
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+	return slide, err
+}
+
+func articulations(r xml.TokenReader, element xml.StartElement) (art *Articulations, err error) {
+	art = &Articulations{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			return &UnknownAttribute{element, attr}
+		},
+		func(el xml.StartElement) error {
+			switch el.Name.Local {
+			case "tenuto":
+				err = ReadUntilClose(r, el)
+				art.Tenuto = true
+			case "staccato":
+				err = ReadUntilClose(r, el)
+				art.Staccato = true
+			case "breath-mark":
+				err = ReadUntilClose(r, el)
+				art.BreathMark = true
+			case "accent":
+				err = ReadUntilClose(r, el)
+				art.Accent = true
+			default:
+				return &UnknownElement{element, el}
+			}
+			return err
+		})
+	return art, err
 }
 
 func fermata(r xml.TokenReader, element xml.StartElement) (fermata *Fermata, err error) {
@@ -1072,12 +1342,69 @@ func directionType(r xml.TokenReader, element xml.StartElement) (tp DirectionTyp
 					return err
 				}
 				tp.Dynamics = append(tp.Dynamics, dynamic)
+			case "wedge":
+				tp.Wedge, err = wedge(r, el)
+			case "other-direction":
+				tp.OtherDirection, err = ReadString(r, el)
+			case "octave-shift":
+				tp.OctaveShift, err = octaveShift(r, el)
+			case "segno":
+				err = ReadUntilClose(r, el)
+				tp.Segno = true
 			default:
 				err = &UnknownElement{element, el}
 			}
 			return err
 		})
 	return tp, err
+}
+
+func octaveShift(r xml.TokenReader, element xml.StartElement) (shift *OctaveShift, err error) {
+	shift = &OctaveShift{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			if ignoreLayoutAttribute(attr) {
+				return nil
+			}
+			switch attr.Name.Local {
+			case "type":
+				shift.Type = attr.Value
+			case "number":
+				shift.Number, err = strconv.Atoi(attr.Value)
+			case "size":
+				shift.Size, err = strconv.Atoi(attr.Value)
+			default:
+				return &UnknownAttribute{element, attr}
+			}
+			return nil
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+	return shift, err
+}
+
+func wedge(r xml.TokenReader, element xml.StartElement) (wedge *Wedge, err error) {
+	wedge = &Wedge{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			if ignoreLayoutAttribute(attr) {
+				return nil
+			}
+			switch attr.Name.Local {
+			case "number":
+				wedge.Number, err = strconv.Atoi(attr.Value)
+			case "type":
+				wedge.Type = attr.Value
+			default:
+				return &UnknownAttribute{element, attr}
+			}
+			return err
+		},
+		func(el xml.StartElement) error {
+			return &UnknownElement{element, el}
+		})
+	return wedge, err
 }
 
 func dynamic(r xml.TokenReader, element xml.StartElement) (dynamic *Dynamic, err error) {
@@ -1123,6 +1450,9 @@ func metronome(r xml.TokenReader, element xml.StartElement) (metronome *Metronom
 			switch el.Name.Local {
 			case "beat-unit":
 				metronome.BeatUnit, err = ReadString(r, el)
+			case "beat-unit-dot":
+				err = ReadUntilClose(r, el)
+				metronome.BeatUnitDot = true
 			case "per-minute":
 				metronome.PerMinute, err = ReadInt(r, el)
 			default:
@@ -1205,10 +1535,50 @@ func staffDetails(r xml.TokenReader, element xml.StartElement) (staff *StaffDeta
 			return err
 		},
 		func(el xml.StartElement) error {
-			return &UnknownElement{element, el}
+			switch el.Name.Local {
+			case "staff-lines":
+				staff.Lines, err = ReadInt(r, el)
+			case "staff-tuning":
+				tuning, err := tuning(r, el)
+				if err != nil {
+					return err
+				}
+				staff.Tuning = append(staff.Tuning, tuning)
+			default:
+				return &UnknownElement{element, el}
+			}
+			return err
 		})
 
 	return staff, err
+}
+
+func tuning(r xml.TokenReader, element xml.StartElement) (tuning *StaffTuning, err error) {
+	tuning = &StaffTuning{}
+	err = ReadObject(r, element,
+		func(attr xml.Attr) error {
+			switch attr.Name.Local {
+			case "line":
+				tuning.Line, err = strconv.Atoi(attr.Value)
+			default:
+				return &UnknownAttribute{element, attr}
+			}
+			return nil
+		},
+		func(el xml.StartElement) error {
+			switch el.Name.Local {
+			case "tuning-step":
+				tuning.step, err = ReadString(r, el)
+			case "tuning-octave":
+				tuning.octave, err = ReadInt(r, el)
+			case "tuning-alter":
+				tuning.alter, err = ReadFloat32(r, el)
+			default:
+				return &UnknownElement{element, el}
+			}
+			return err
+		})
+	return tuning, err
 }
 
 func clef(r xml.TokenReader, element xml.StartElement) (clef *Clef, err error) {
@@ -1573,7 +1943,7 @@ func encoding(r xml.TokenReader, element xml.StartElement) (encoding *Encoding, 
 
 var layoutAttrs = []string{
 	"print-object", "color",
-	"default-x", "default-y", "width",
+	"default-x", "default-y", "valign", "width",
 	"font-family", "font-style", "font-size", "font-weight",
 	"placement",
 }

@@ -1,6 +1,8 @@
 package musicxml
 
-import "time"
+import (
+	"time"
+)
 
 type TypedText struct {
 	Type  string
@@ -74,8 +76,17 @@ type Clef struct {
 	OctaveChange int
 }
 
+type StaffTuning struct {
+	Line   int
+	step   string
+	octave int
+	alter  float32
+}
+
 type StaffDetails struct {
 	Number int
+	Lines  int
+	Tuning []*StaffTuning
 }
 
 type Transpose struct {
@@ -98,15 +109,31 @@ type Dynamic struct {
 	Values []string
 }
 
+type Wedge struct {
+	Type   string
+	Number int
+}
+
+type OctaveShift struct {
+	Type   string
+	Number int
+	Size   int
+}
+
 type DirectionType struct {
-	Metronome *Metronome
-	Words     []string
-	Dynamics  []*Dynamic
+	Metronome      *Metronome
+	Words          []string
+	Dynamics       []*Dynamic
+	Wedge          *Wedge
+	OtherDirection string
+	OctaveShift    *OctaveShift
+	Segno          bool
 }
 
 type Metronome struct {
-	BeatUnit  string
-	PerMinute int
+	BeatUnit    string
+	PerMinute   int
+	BeatUnitDot bool
 }
 
 type Offset struct {
@@ -206,12 +233,42 @@ type Fermata struct {
 	IsInverted bool
 }
 
+type Articulations struct {
+	Tenuto     bool
+	Staccato   bool
+	BreathMark bool
+	Accent     bool
+}
+
+type Slide struct {
+	Type string
+}
+
+type Arpeggiate struct {
+}
+
+type Technical struct {
+	Fret   int
+	String int
+}
+
+type Glissando struct {
+	Type     string
+	Number   *int
+	LineType string
+}
+
 type Notation struct {
-	Slurs    []*Slur
-	Ties     []*Tied
-	Tuplets  []*Tuplet
-	Dynamics []*Dynamic
-	Fermatas []*Fermata
+	Slurs         []*Slur
+	Ties          []*Tied
+	Tuplets       []*Tuplet
+	Dynamics      []*Dynamic
+	Fermatas      []*Fermata
+	Articulations []*Articulations
+	Slides        []*Slide
+	Arpeggiate    []*Arpeggiate
+	Technical     []*Technical
+	Glissandos    []*Glissando
 }
 
 type Accidental struct {
@@ -235,6 +292,10 @@ type NoteHead struct {
 	Parentheses bool
 }
 
+type Grace struct {
+	Slash bool
+}
+
 type Note struct {
 	Pitch             *Pitch
 	Duration          int
@@ -254,6 +315,8 @@ type Note struct {
 	TimeModifications []*TimeModification
 	Head              *NoteHead
 	Cue               bool
+	Grace             *Grace
+	IsUnpitched       bool
 }
 
 type Tie struct {
@@ -312,12 +375,43 @@ type Degree struct {
 	Type  *DegreeType
 }
 
+type FirstFret struct {
+	Value    int
+	Text     string
+	Location string
+}
+
+type Fingering struct {
+	Value        string
+	Substitution bool
+	Alternate    bool
+}
+
+type Barre struct {
+	Type string
+}
+
+type FrameNote struct {
+	String    int
+	Fret      int
+	Fingering *Fingering
+	Barre     *Barre
+}
+
+type Frame struct {
+	Strings   int
+	Frets     int
+	FirstFret *FirstFret
+	Notes     []*FrameNote
+}
+
 type Harmony struct {
 	Root    *HarmonyRoot
 	Kind    string
 	Staff   int
 	Bass    *Bass
 	Degrees []*Degree
+	Frame   *Frame
 }
 
 type Forward struct {
