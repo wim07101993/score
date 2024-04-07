@@ -55,7 +55,7 @@ type ScorePart struct {
 	NameDisplay         string
 	Abbreviation        string
 	AbbreviationDisplay string
-	Instrument          *Instrument
+	Instruments         []*Instrument
 }
 
 type Key struct {
@@ -66,7 +66,7 @@ type Key struct {
 type TimeSignature struct {
 	Symbol   string
 	Beats    int
-	BeatType int
+	BeatType string
 }
 
 type Clef struct {
@@ -85,18 +85,18 @@ type StaffTuning struct {
 
 type StaffDetails struct {
 	Number int
-	Lines  int
+	Lines  *int
 	Tuning []*StaffTuning
 }
 
 type Transpose struct {
-	Diatonic     int
+	Diatonic     *int
 	Chromatic    int
-	OctaveChange int
+	OctaveChange *int
 }
 
 type MeasureAttributes struct {
-	Divisions    int
+	Divisions    float32
 	Key          *Key
 	Time         *TimeSignature
 	Staves       int
@@ -164,7 +164,7 @@ type Sound struct {
 
 type Direction struct {
 	DirectionTypes []DirectionType
-	Voice          int
+	Voice          string
 	Staff          int
 	Offset         *Offset
 	Sound          *Sound
@@ -254,7 +254,7 @@ type Technical struct {
 
 type Glissando struct {
 	Type     string
-	Number   *int
+	Number   int
 	LineType string
 }
 
@@ -277,7 +277,7 @@ type Accidental struct {
 
 type TimeModificationItem struct {
 	NormalType string
-	NormalDot  struct{}
+	HasDot     bool
 }
 
 type TimeModification struct {
