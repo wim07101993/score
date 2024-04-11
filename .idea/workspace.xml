@@ -4,12 +4,12 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="all can be parsed">
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="created serializer">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/xml_funcs.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -186,7 +186,8 @@
     <MESSAGE value="use separate models for indexing" />
     <MESSAGE value="more parsing" />
     <MESSAGE value="all can be parsed" />
-    <option name="LAST_COMMIT_MESSAGE" value="all can be parsed" />
+    <MESSAGE value="created serializer" />
+    <option name="LAST_COMMIT_MESSAGE" value="created serializer" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

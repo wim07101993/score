@@ -8,6 +8,9 @@ import (
 )
 
 func SerializeMusixXml(w *xml.Encoder, music *ScorePartwise) (err error) {
+	if err = writeHeaders(w); err != nil {
+		return err
+	}
 	return WriteObject(w, "score-partwise",
 		[]xml.Attr{
 			{Name: xml.Name{Local: "version"}, Value: "4.0"},
@@ -51,6 +54,27 @@ func SerializeMusixXml(w *xml.Encoder, music *ScorePartwise) (err error) {
 			return nil
 		},
 	)
+}
+
+func writeHeaders(w *xml.Encoder) (err error) {
+	err = w.EncodeToken(xml.ProcInst{
+		Target: "xml",
+		Inst:   []byte(`version="1.0" encoding="UTF-8" standalone="no"`),
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = w.EncodeToken(xml.CharData("\n")); err != nil {
+		return err
+	}
+
+	err = w.EncodeToken(xml.Directive(`DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd"`))
+	if err != nil {
+		return err
+	}
+
+	return w.EncodeToken(xml.CharData("\n"))
 }
 
 func writePart(w *xml.Encoder, name string, part *Part) (err error) {
@@ -118,52 +142,32 @@ func writeMeasure(w *xml.Encoder, name string, measure *Measure) (err error) {
 func writeNote(w *xml.Encoder, name string, note *Note) (err error) {
 	return WriteObject(w, name, nil,
 		func() error {
-			return writePitch(w, "pitch", note.Pitch)
-		},
-		func() error {
-			return WriteString(w, "duration", strconv.Itoa(note.Duration), nil)
-		},
-		func() error {
-			for _, instrument := range note.Instruments {
-				if err = writeInstrumentReference(w, "instrument", instrument); err != nil {
-					return err
-				}
+			if note.Grace != nil {
+				return writeGrace(w, "grace", note.Grace)
 			}
 			return nil
 		},
 		func() error {
-			return WriteString(w, "voice", strconv.Itoa(note.Voice), nil)
-		},
-		func() error {
-			return WriteString(w, "type", note.Type, nil)
-		},
-		func() error {
-			return WriteString(w, "stem", note.Stem, nil)
-		},
-		func() error {
-			return WriteString(w, "staff", strconv.Itoa(note.Staff), nil)
-		},
-		func() error {
-			for _, beam := range note.Beams {
-				if err = writeBeam(w, "beam", beam); err != nil {
-					return err
-				}
+			if note.Cue {
+				return WriteObject(w, "cue", nil)
 			}
 			return nil
 		},
 		func() error {
-			for _, lyric := range note.Lyrics {
-				if err = writeLyric(w, "lyric", lyric); err != nil {
-					return err
-				}
+			if note.IsChord {
+				return WriteObject(w, "chord", nil)
 			}
 			return nil
 		},
 		func() error {
-			for i := 0; i < note.dotCount; i++ {
-				if err = WriteObject(w, "dot", nil); err != nil {
-					return err
-				}
+			if note.Pitch != nil {
+				return writePitch(w, "pitch", note.Pitch)
+			}
+			return nil
+		},
+		func() error {
+			if note.IsUnpitched {
+				return WriteObject(w, "unpitched", nil)
 			}
 			return nil
 		},
@@ -174,8 +178,8 @@ func writeNote(w *xml.Encoder, name string, note *Note) (err error) {
 			return nil
 		},
 		func() error {
-			if note.IsChord {
-				return WriteObject(w, "chord", nil)
+			if note.Duration != 0 {
+				return WriteString(w, "duration", strconv.Itoa(note.Duration), nil)
 			}
 			return nil
 		},
@@ -188,8 +192,25 @@ func writeNote(w *xml.Encoder, name string, note *Note) (err error) {
 			return nil
 		},
 		func() error {
-			for _, notation := range note.Notations {
-				if err = writeNotation(w, "notations", notation); err != nil {
+			for _, instrument := range note.Instruments {
+				if err = writeInstrumentReference(w, "instrument", instrument); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func() error {
+			if note.Voice != 0 {
+				return WriteString(w, "voice", strconv.Itoa(note.Voice), nil)
+			}
+			return nil
+		},
+		func() error {
+			return WriteString(w, "type", note.Type, nil)
+		},
+		func() error {
+			for i := 0; i < note.dotCount; i++ {
+				if err = WriteObject(w, "dot", nil); err != nil {
 					return err
 				}
 			}
@@ -212,20 +233,41 @@ func writeNote(w *xml.Encoder, name string, note *Note) (err error) {
 			return nil
 		},
 		func() error {
-			return writeNoteHead(w, "notehead", note.Head)
+			if note.Stem == "" {
+				return nil
+			}
+			return WriteString(w, "stem", note.Stem, nil)
 		},
 		func() error {
-			if note.Cue {
-				return WriteObject(w, "cue", nil)
+			if note.Head != nil {
+				return writeNoteHead(w, "notehead", note.Head)
 			}
 			return nil
 		},
 		func() error {
-			return writeGrace(w, "grace", note.Grace)
+			return WriteString(w, "staff", strconv.Itoa(note.Staff), nil)
 		},
 		func() error {
-			if note.IsUnpitched {
-				return WriteObject(w, "unpitched", nil)
+			for _, beam := range note.Beams {
+				if err = writeBeam(w, "beam", beam); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func() error {
+			for _, notation := range note.Notations {
+				if err = writeNotation(w, "notations", notation); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func() error {
+			for _, lyric := range note.Lyrics {
+				if err = writeLyric(w, "lyric", lyric); err != nil {
+					return err
+				}
 			}
 			return nil
 		})
@@ -383,12 +425,12 @@ func writeTechnical(w *xml.Encoder, name string, technical *Technical) (err erro
 	return WriteObject(w, name, nil,
 		func() error {
 			if technical.Fret != def.Fret {
-				if err = WriteString(w, "fret", strconv.Itoa(def.Fret), nil); err != nil {
+				if err = WriteString(w, "fret", strconv.Itoa(technical.Fret), nil); err != nil {
 					return err
 				}
 			}
 			if technical.String != def.String {
-				if err = WriteString(w, "string", strconv.Itoa(def.String), nil); err != nil {
+				if err = WriteString(w, "string", strconv.Itoa(technical.String), nil); err != nil {
 					return err
 				}
 			}
@@ -551,15 +593,18 @@ func writeLyric(w *xml.Encoder, name string, lyric *Lyric) (err error) {
 		},
 		func() error {
 			if lyric.Extend != nil {
-				return WriteExtend(w, "extend", lyric.Extend)
+				return writeExtend(w, "extend", lyric.Extend)
 			}
 			return nil
 		})
 }
 
-func WriteExtend(w *xml.Encoder, name string, extend *Extend) (err error) {
-	return WriteObject(w, name,
-		[]xml.Attr{{Name: xml.Name{Local: "type"}, Value: extend.Type}})
+func writeExtend(w *xml.Encoder, name string, extend *Extend) (err error) {
+	var attrs []xml.Attr
+	if extend.Type != "" {
+		attrs = append(attrs, xml.Attr{Name: xml.Name{Local: "type"}, Value: extend.Type})
+	}
+	return WriteObject(w, name, attrs)
 }
 
 func writeBeam(w *xml.Encoder, name string, beam *Beam) (err error) {
@@ -586,7 +631,7 @@ func writePitch(w *xml.Encoder, name string, pitch *Pitch) (err error) {
 			return WriteString(w, "step", pitch.Step, nil)
 		},
 		func() error {
-			if pitch.Alter == def.Alter {
+			if pitch.Alter != def.Alter {
 				return WriteString(w, "alter", strconv.Itoa(pitch.Alter), nil)
 			}
 			return nil
@@ -610,17 +655,18 @@ func writeBarline(w *xml.Encoder, name string, barline *Barline) (err error) {
 			return nil
 		},
 		func() error {
+			if barline.Ending != nil {
+				return writeEnding(w, "ending", barline.Ending)
+			}
+			return nil
+		},
+		func() error {
 			if barline.Repeat != nil {
 				return writeRepeat(w, "repeat", barline.Repeat)
 			}
 			return nil
 		},
-		func() error {
-			if barline.Ending != nil {
-				return writeEnding(w, "ending", barline.Ending)
-			}
-			return nil
-		})
+	)
 }
 
 func writeEnding(w *xml.Encoder, name string, ending *Ending) (err error) {
@@ -641,7 +687,7 @@ func writeHarmony(w *xml.Encoder, name string, harmony *Harmony) (err error) {
 	return WriteObject(w, name, nil,
 		func() error {
 			if harmony.Root != nil {
-				return writeHarmonyRoot(w, "harmony", harmony.Root)
+				return writeHarmonyRoot(w, "root", harmony.Root)
 			}
 			return nil
 		},
@@ -876,7 +922,7 @@ func writeSound(w *xml.Encoder, name string, sound *Sound) (err error) {
 		attrs = append(attrs, xml.Attr{Name: xml.Name{Local: "tocoda"}, Value: sound.ToCoda})
 	}
 	if sound.TimeOnly != def.TimeOnly {
-		attrs = append(attrs, xml.Attr{Name: xml.Name{Local: "timeonly"}, Value: sound.TimeOnly})
+		attrs = append(attrs, xml.Attr{Name: xml.Name{Local: "time-only"}, Value: sound.TimeOnly})
 	}
 	if sound.Tempo != def.Tempo {
 		attrs = append(attrs, xml.Attr{Name: xml.Name{Local: "tempo"}, Value: fmt.Sprintf("%g", sound.Tempo)})
@@ -980,6 +1026,12 @@ func writeDirectionType(w *xml.Encoder, name string, direction DirectionType) (e
 			}
 			return nil
 		},
+		func() error {
+			if direction.OtherDirection != "" {
+				return WriteString(w, "other-direction", direction.OtherDirection, nil)
+			}
+			return nil
+		},
 	)
 }
 
@@ -1050,7 +1102,7 @@ func writeMeasureAttributes(w *xml.Encoder, name string, attributes *MeasureAttr
 		nil,
 		func() error {
 			if attributes.Divisions != def.Divisions {
-				return WriteString(w, "divistions", fmt.Sprintf("%g", attributes.Divisions), nil)
+				return WriteString(w, "divisions", fmt.Sprintf("%g", attributes.Divisions), nil)
 			}
 			return nil
 		},
@@ -1073,20 +1125,26 @@ func writeMeasureAttributes(w *xml.Encoder, name string, attributes *MeasureAttr
 			return nil
 		},
 		func() error {
-			if attributes.Clef != nil {
-				return writeClef(w, "clef", attributes.Clef)
+			for _, clef := range attributes.Clefs {
+				if err := writeClef(w, "clef", clef); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
 		func() error {
-			if attributes.StaffDetails != nil {
-				return writeStaffDetails(w, "staff-details", attributes.StaffDetails)
+			for _, details := range attributes.StaffDetails {
+				if err := writeStaffDetails(w, "staff-details", details); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
 		func() error {
-			if attributes.Transpose != nil {
-				return writeTranspose(w, "transpose", attributes.Transpose)
+			for _, transpose := range attributes.Transposes {
+				if err := writeTranspose(w, "transpose", transpose); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
@@ -1129,7 +1187,9 @@ func writeStaffDetails(w *xml.Encoder, name string, details *StaffDetails) (err 
 		},
 		func() error {
 			for _, tuning := range details.Tuning {
-				return writeTuning(w, "staff-tuning", tuning)
+				if err = writeTuning(w, "staff-tuning", tuning); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
@@ -1250,20 +1310,20 @@ func writeScorePart(w *xml.Encoder, name string, part *ScorePart) (err error) {
 			return WriteString(w, "part-name", part.Name, nil)
 		},
 		func() error {
-			if part.NameDisplay != def.NameDisplay {
-				return WriteString(w, "part-name-display", part.NameDisplay, nil)
+			if part.NameDisplay != nil && part.Name != part.NameDisplay.String() {
+				return writeDisplayName(w, "part-name-display", part.NameDisplay)
 			}
 			return nil
 		},
 		func() error {
-			if part.NameDisplay != def.Abbreviation {
+			if part.Abbreviation != def.Abbreviation {
 				return WriteString(w, "part-abbreviation", part.Abbreviation, nil)
 			}
 			return nil
 		},
 		func() error {
-			if part.NameDisplay != def.AbbreviationDisplay {
-				return WriteString(w, "part-abbreviation-display", part.AbbreviationDisplay, nil)
+			if part.AbbreviationDisplay != nil && part.Abbreviation != part.AbbreviationDisplay.String() {
+				return writeDisplayName(w, "part-abbreviation-display", part.AbbreviationDisplay)
 			}
 			return nil
 		},
@@ -1271,6 +1331,26 @@ func writeScorePart(w *xml.Encoder, name string, part *ScorePart) (err error) {
 			for _, instr := range part.Instruments {
 				if err = writeInstrument(w, "score-instrument", instr); err != nil {
 					return err
+				}
+			}
+			return nil
+		})
+}
+
+func writeDisplayName(w *xml.Encoder, name string, display *DisplayName) (err error) {
+	return WriteObject(w, name, nil,
+		func() error {
+			def := DisplayNameItem{}
+			for _, item := range display.Items {
+				if item.DisplayText != def.DisplayText {
+					if err = WriteString(w, "display-text", item.DisplayText, nil); err != nil {
+						return err
+					}
+				}
+				if item.AccidentalText != def.AccidentalText {
+					if err = WriteString(w, "accidental-text", item.AccidentalText, nil); err != nil {
+						return err
+					}
 				}
 			}
 			return nil
@@ -1288,7 +1368,7 @@ func writeInstrument(w *xml.Encoder, name string, instr *Instrument) (err error)
 		},
 		func() error {
 			if instr.Sound != def.Sound {
-				return WriteString(w, "instrument-sound", instr.Name, nil)
+				return WriteString(w, "instrument-sound", instr.Sound, nil)
 			}
 			return nil
 		},
@@ -1335,7 +1415,7 @@ func writeDefaults(w *xml.Encoder, name string, defaults *Defaults) (err error) 
 
 func writeLanguage(w *xml.Encoder, name string, language string) error {
 	return WriteObject(w, name,
-		[]xml.Attr{{Name: xml.Name{Local: "lang", Space: "xml"}, Value: language}},
+		[]xml.Attr{{Name: xml.Name{Local: "xml:lang"}, Value: language}},
 	)
 }
 

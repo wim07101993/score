@@ -20,7 +20,6 @@ func main() {
 		}
 
 		cleanFile(path.Join(dir, entry.Name()))
-		return
 	}
 
 }
@@ -28,22 +27,22 @@ func main() {
 func cleanFile(path string) {
 	rFile, err := os.Open(path)
 	panicErr(err)
-	defer func() {
-		panicErr(rFile.Close())
-	}()
 
 	reader := xml.NewDecoder(rFile)
 	score, err := musicxml.DeserializeMusicXml(reader)
 	panicErr(err)
 
-	wFile, err := os.OpenFile(fmt.Sprint(path), os.O_CREATE|os.O_RDWR, 777)
+	err = rFile.Close()
+	panicErr(err)
+
+	wFile, err := os.Create(path)
 	panicErr(err)
 	defer func() {
 		panicErr(wFile.Close())
 	}()
 
 	writer := xml.NewEncoder(wFile)
-	writer.Indent("", "  ")
+	writer.Indent("", " ")
 	err = musicxml.SerializeMusixXml(writer, score)
 	defer func() {
 		panicErr(writer.Close())

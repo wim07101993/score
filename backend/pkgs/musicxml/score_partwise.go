@@ -1,6 +1,7 @@
 package musicxml
 
 import (
+	"strings"
 	"time"
 )
 
@@ -48,13 +49,42 @@ type Instrument struct {
 	Ensemble *int
 }
 
+type DisplayName struct {
+	Items []DisplayNameItem
+}
+
+func (name DisplayName) String() string {
+	switch len(name.Items) {
+	case 0:
+		return ""
+	case 1:
+		return name.Items[0].DisplayText + name.Items[0].AccidentalText
+	}
+
+	b := strings.Builder{}
+	for _, item := range name.Items {
+		if len(item.DisplayText) != 0 {
+			b.WriteString(item.DisplayText)
+		}
+		if len(item.AccidentalText) != 0 {
+			b.WriteString(item.AccidentalText)
+		}
+	}
+	return b.String()
+}
+
+type DisplayNameItem struct {
+	DisplayText    string
+	AccidentalText string
+}
+
 type ScorePart struct {
 	Id                  string
 	Identification      *Identification
 	Name                string
-	NameDisplay         string
+	NameDisplay         *DisplayName
 	Abbreviation        string
-	AbbreviationDisplay string
+	AbbreviationDisplay *DisplayName
 	Instruments         []*Instrument
 }
 
@@ -100,9 +130,9 @@ type MeasureAttributes struct {
 	Key          *Key
 	Time         *TimeSignature
 	Staves       int
-	Clef         *Clef
-	StaffDetails *StaffDetails
-	Transpose    *Transpose
+	Clefs        []*Clef
+	StaffDetails []*StaffDetails
+	Transposes   []*Transpose
 }
 
 type Dynamic struct {
@@ -448,4 +478,8 @@ type ScorePartwise struct {
 	Parts          []*Part
 	MovementNumber string
 	MovementTitle  string
+}
+
+func NewMeasureAttributes() MeasureAttributes {
+	return MeasureAttributes{}
 }
