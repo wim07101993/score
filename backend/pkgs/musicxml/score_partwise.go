@@ -35,6 +35,11 @@ type PartListItem struct {
 	ScorePart *ScorePart
 }
 
+const (
+	PartGroupType_Start = "start"
+	PartGroupType_Stop  = "stop"
+)
+
 type PartGroup struct {
 	Type   string
 	Number int
