@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="serialization fixes">
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="feat: cleaner">
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parts_selection.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,9 +90,9 @@
       <recent name="$PROJECT_DIR$/backend/internal/grpc" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
       <recent name="$PROJECT_DIR$/backend/pkgs" />
       <recent name="$PROJECT_DIR$/backend/internal" />
-      <recent name="$PROJECT_DIR$/backend/pkgs/musicxml" />
       <recent name="$PROJECT_DIR$/backend/pkgs/score" />
       <recent name="$PROJECT_DIR$/backend/test/data/musicxml" />
     </key>
@@ -185,7 +185,8 @@
     <MESSAGE value="all can be parsed" />
     <MESSAGE value="created serializer" />
     <MESSAGE value="serialization fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="serialization fixes" />
+    <MESSAGE value="feat: cleaner" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: cleaner" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
