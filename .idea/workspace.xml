@@ -4,10 +4,14 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="feat: cleaner">
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/parts_selection.go" afterDir="false" />
+    <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="transposing first">
+      <change afterPath="$PROJECT_DIR$/backend/cmd/editor/main.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/transposing.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,8 +26,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Go Application" />
         <option value="Go File" />
+        <option value="Go Application" />
       </list>
     </option>
   </component>
@@ -57,7 +61,7 @@
   &quot;keyToString&quot;: {
     &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
     &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go Application&quot;,
     &quot;Docker.Docker compose.executor&quot;: &quot;Run&quot;,
     &quot;Docker.Start docker.executor&quot;: &quot;Run&quot;,
     &quot;Docker.docker-compose.yml: Compose Deployment.executor&quot;: &quot;Run&quot;,
@@ -186,7 +190,9 @@
     <MESSAGE value="created serializer" />
     <MESSAGE value="serialization fixes" />
     <MESSAGE value="feat: cleaner" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: cleaner" />
+    <MESSAGE value="feat: remove parts func" />
+    <MESSAGE value="transposing first" />
+    <option name="LAST_COMMIT_MESSAGE" value="transposing first" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

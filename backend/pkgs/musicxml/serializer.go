@@ -438,7 +438,7 @@ func writeTechnical(w *xml.Encoder, name string, technical *Technical) (err erro
 		})
 }
 
-func writeArpeggiate(w *xml.Encoder, name string, arpeggiate *Arpeggiate) (err error) {
+func writeArpeggiate(w *xml.Encoder, name string, _ *Arpeggiate) (err error) {
 	return WriteObject(w, name, nil)
 }
 
@@ -628,11 +628,11 @@ func writePitch(w *xml.Encoder, name string, pitch *Pitch) (err error) {
 	def := Pitch{}
 	return WriteObject(w, name, nil,
 		func() error {
-			return WriteString(w, "step", pitch.Step, nil)
+			return WriteString(w, "step", string(pitch.Step), nil)
 		},
 		func() error {
 			if pitch.Alter != def.Alter {
-				return WriteString(w, "alter", strconv.Itoa(pitch.Alter), nil)
+				return WriteString(w, "alter", fmt.Sprintf("%g", pitch.Alter), nil)
 			}
 			return nil
 		},
@@ -860,11 +860,11 @@ func writeHarmonyRoot(w *xml.Encoder, name string, root *HarmonyRoot) (err error
 	def := HarmonyRoot{}
 	return WriteObject(w, name, nil,
 		func() error {
-			return WriteString(w, "root-step", root.Step, nil)
+			return WriteString(w, "root-step", string(root.Step), nil)
 		},
 		func() error {
 			if root.Alter != def.Alter {
-				return WriteString(w, "root-alter", root.Alter, nil)
+				return WriteString(w, "root-alter", fmt.Sprintf("%g", root.Alter), nil)
 			}
 			return nil
 		})
@@ -1264,7 +1264,7 @@ func writeKey(w *xml.Encoder, name string, key *Key) (err error) {
 	return WriteObject(w, name,
 		nil,
 		func() error {
-			return WriteString(w, "fifths", strconv.Itoa(key.Fifths), nil)
+			return WriteString(w, "fifths", strconv.Itoa(int(key.Fifths)), nil)
 		},
 		func() error {
 			if key.Mode != def.Mode {

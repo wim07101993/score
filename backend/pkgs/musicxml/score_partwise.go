@@ -93,8 +93,12 @@ type ScorePart struct {
 	Instruments         []*Instrument
 }
 
+type KeyMode string
+
+type Fifths int
+
 type Key struct {
-	Fifths int
+	Fifths Fifths
 	Mode   string
 }
 
@@ -206,10 +210,12 @@ type Direction struct {
 	IsDirective    bool
 }
 
+type Step string
+
 type Pitch struct {
-	Step   string
+	Step   Step
 	Octave int
-	Alter  int
+	Alter  float32
 }
 
 type Beam struct {
@@ -379,8 +385,8 @@ type Barline struct {
 }
 
 type HarmonyRoot struct {
-	Step  string
-	Alter string
+	Step  Step
+	Alter float32
 }
 
 type Bass struct {

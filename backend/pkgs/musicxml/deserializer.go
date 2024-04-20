@@ -558,12 +558,16 @@ func harmonyRoot(r xml.TokenReader, element xml.StartElement) (root *HarmonyRoot
 				if root.Step != "" {
 					return &FieldAlreadySet{element, el}
 				}
-				root.Step, err = ReadString(r, el)
+				s, err := ReadString(r, el)
+				if err != nil {
+					return err
+				}
+				root.Step = Step(s)
 			case "root-alter":
-				if root.Alter != "" {
+				if root.Alter != 0 {
 					return &FieldAlreadySet{element, el}
 				}
-				root.Alter, err = ReadString(r, el)
+				root.Alter, err = ReadFloat32(r, el)
 			default:
 				err = &UnknownElement{element, el}
 			}
@@ -1347,7 +1351,11 @@ func pitch(r xml.TokenReader, element xml.StartElement) (pitch *Pitch, err error
 				if pitch.Step != "" {
 					return &FieldAlreadySet{element, el}
 				}
-				pitch.Step, err = ReadString(r, el)
+				s, err := ReadString(r, el)
+				if err != nil {
+					return err
+				}
+				pitch.Step = Step(s)
 			case "octave":
 				if pitch.Octave != 0 {
 					return &FieldAlreadySet{element, el}
@@ -1357,7 +1365,7 @@ func pitch(r xml.TokenReader, element xml.StartElement) (pitch *Pitch, err error
 				if pitch.Alter != 0 {
 					return &FieldAlreadySet{element, el}
 				}
-				pitch.Alter, err = ReadInt(r, el)
+				pitch.Alter, err = ReadFloat32(r, el)
 			default:
 				err = &UnknownElement{element, el}
 			}
@@ -1935,7 +1943,11 @@ func key(r xml.TokenReader, element xml.StartElement) (key *Key, err error) {
 				if key.Fifths != 0 {
 					return &FieldAlreadySet{element, el}
 				}
-				key.Fifths, err = ReadInt(r, el)
+				i, err := ReadInt(r, el)
+				if err != nil {
+					return err
+				}
+				key.Fifths = Fifths(i)
 			case "mode":
 				if key.Mode != "" {
 					return &FieldAlreadySet{element, el}
