@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="indexer" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="score" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="-port 6000 -apikey masterKey" />
+    <kind value="DIRECTORY" />
+    <package value="score" />
+    <directory value="$PROJECT_DIR$/backend/cmd/indexer/" />
+    <filePath value="$PROJECT_DIR$" />
+    <method v="2" />
+  </configuration>
+</component>
