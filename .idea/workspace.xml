@@ -5,13 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c26979c1-2845-48c0-867f-5da412fe9af6" name="Changes" comment="transposing first">
-      <change afterPath="$PROJECT_DIR$/backend/cmd/editor/main.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/transposing.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/cmd/cleaner/main.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/deserializer.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/score_partwise.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/serializer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/cmd/editor/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/cmd/editor/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pkgs/musicxml/transposing.go" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pkgs/musicxml/transposing.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

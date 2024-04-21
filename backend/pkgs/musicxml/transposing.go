@@ -44,13 +44,14 @@ func (p *Part) Transpose(interval Tone) error {
 	for _, m := range p.Measures {
 		for _, element := range m.Elements {
 			if element.Attributes != nil && element.Attributes.Key != nil {
+				element.Attributes.Key.Transpose(interval)
 				scoreKey = *element.Attributes.Key
 				keyContext = element.Attributes.Key.Fifths
 			}
 
 			if element.Harmony != nil {
 				tone := stepAndAlterToTone(element.Harmony.Root.Step, element.Harmony.Root.Alter)
-				tone += interval % toneCount
+				tone = (tone + interval) % toneCount
 				var err error
 				element.Harmony.Root.Step, element.Harmony.Root.Alter, err = tone.toStepAndAlter(scoreKey.Fifths)
 				if err != nil {
@@ -58,9 +59,9 @@ func (p *Part) Transpose(interval Tone) error {
 				}
 				keyContext, err = harmonyToFifths(element.Harmony)
 			}
-			if element.Note != nil {
+			if element.Note != nil && element.Note.Rest == nil {
 				tone := stepAndAlterToTone(element.Note.Pitch.Step, element.Note.Pitch.Alter)
-				tone += interval % toneCount
+				tone = (tone + interval) % toneCount
 				element.Note.Pitch.Octave += int(interval / toneCount)
 				var err error
 				element.Note.Pitch.Step, element.Note.Pitch.Alter, err = tone.toStepAndAlter(keyContext)
@@ -71,6 +72,10 @@ func (p *Part) Transpose(interval Tone) error {
 		}
 	}
 	return nil
+}
+
+func (key *Key) Transpose(interval Tone) {
+	key.Fifths = Fifths(int(key.Fifths)-int(interval)*5) % 8
 }
 
 func stepAndAlterToTone(step Step, alter float32) Tone {

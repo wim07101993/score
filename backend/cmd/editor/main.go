@@ -8,13 +8,13 @@ import (
 )
 
 var opts struct {
-	path       string
+	file       string
 	removePart string
 	transpose  int
 }
 
 func init() {
-	flag.StringVar(&opts.path, "path", ".", "path to the musicxml file")
+	flag.StringVar(&opts.file, "file", ".", "file to the musicxml file")
 	flag.StringVar(&opts.removePart, "remove", "", "part to remove from the score")
 	flag.IntVar(&opts.transpose, "transpose", 0, "interval to transpose the score by")
 }
@@ -43,7 +43,7 @@ func main() {
 func getScore() *musicxml.ScorePartwise {
 	var err error
 	var file *os.File
-	if file, err = os.Open(opts.path); err != nil {
+	if file, err = os.Open(opts.file); err != nil {
 		panic(err)
 	}
 
@@ -61,32 +61,29 @@ func getScore() *musicxml.ScorePartwise {
 }
 
 func writeScore(score *musicxml.ScorePartwise) {
-	file, err := os.Create(opts.path)
+	file, err := os.Create(opts.file)
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			panic(err)
-		}
-	}()
 
 	encoder := xml.NewEncoder(file)
 	defer func() {
-		if err := file.Close(); err != nil {
+		if err := encoder.Flush(); err != nil {
+			panic(err)
+		}
+		if err := encoder.Close(); err != nil {
 			panic(err)
 		}
 	}()
 	encoder.Indent("", " ")
 
-	if err = musicxml.SerializeMusixXml(encoder, score); err != nil {
+	if err := musicxml.SerializeMusixXml(encoder, score); err != nil {
 		panic(err)
 	}
-
 }
 
 func validateVars() {
-	if opts.path == "" {
-		panic("no file path to score specified")
+	if opts.file == "" {
+		panic("no file file to score specified")
 	}
 }
