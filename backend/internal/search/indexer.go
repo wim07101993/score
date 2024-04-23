@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const scoresIndex = "scores"
+const ScoresIndex = "scores"
 
 type Indexer interface {
 	Index(score *Score, id string) error
@@ -31,7 +31,7 @@ func (s *searcher) Index(score *Score, id string) error {
 		slog.String("id", id))
 
 	doc := score.ToDocument(id)
-	resp, err := s.Meili.Index(scoresIndex).AddDocuments(doc)
+	resp, err := s.Meili.Index(ScoresIndex).AddDocuments(doc)
 	if err != nil {
 		return err
 	}
@@ -45,6 +45,6 @@ func (s *searcher) Index(score *Score, id string) error {
 
 func (s *searcher) Remove(id string) error {
 	s.Logger.Info("removing document", slog.String("id", id))
-	_, err := s.Meili.Index(scoresIndex).DeleteDocument(id)
+	_, err := s.Meili.Index(ScoresIndex).DeleteDocument(id)
 	return err
 }

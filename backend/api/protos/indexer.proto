@@ -5,7 +5,7 @@ import "google/protobuf/timestamp.proto";
 
 package score;
 
-option go_package = "github.com/wim07101993/score";
+option go_package = "github.com/wim07101993/score/index";
 
 service Indexer {
   rpc IndexScores(IndexScoresRequest) returns (google.protobuf.Empty);

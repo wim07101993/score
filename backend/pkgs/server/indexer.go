@@ -7,14 +7,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"log/slog"
-	"score/backend/api/generated/github.com/wim07101993/score"
+	"score/backend/api/generated/github.com/wim07101993/score/index"
 	"score/backend/internal/gitstorage"
 	"score/backend/internal/search"
 	"time"
 )
 
 type IndexerServer struct {
-	score.IndexerServer
+	index.IndexerServer
 	gitStore *gitstorage.GitFileStore
 	logger   *slog.Logger
 	indexer  search.Indexer
@@ -31,7 +31,7 @@ func NewIndexerServer(
 	}
 }
 
-func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexScoresRequest) (*empty.Empty, error) {
+func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexScoresRequest) (*empty.Empty, error) {
 	err := serv.gitStore.Pull()
 	if err != nil {
 		serv.logger.Error("failed to get git work tree", slog.Any("error", err))
@@ -60,9 +60,6 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *score.IndexSc
 		slog.Any("changed", changed),
 		slog.Any("removed", removed))
 
-	if err != nil {
-		serv.logger.Error("error", err)
-	}
 	for _, f := range append(newFiles, changed...) {
 		f := f
 		go func() {

@@ -10,7 +10,8 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"score/backend/api/generated/github.com/wim07101993/score"
+	"score/backend/api/generated/github.com/wim07101993/score/index"
+	grpcsearch "score/backend/api/generated/github.com/wim07101993/score/search"
 	"score/backend/internal/gitstorage"
 	grpc2 "score/backend/internal/grpc"
 	"score/backend/internal/search"
@@ -56,8 +57,8 @@ func main() {
 	flag.Parse()
 	validateVars()
 
-	indexer = search.NewIndexer(logger, meilisearch.NewClient(meiliConfig))
-
+	meili := meilisearch.NewClient(meiliConfig)
+	indexer = search.NewIndexer(logger, meili)
 	gitStore := gitstorage.NewGitStore(logger, gitConfig.Repository)
 
 	logger.Info("starting grpc server")
@@ -76,7 +77,10 @@ func main() {
 		grpc.ChainStreamInterceptor(logging.StreamServerInterceptor(grpcLogger)))
 
 	indexerServer := server.NewIndexerServer(logger, gitStore, indexer)
-	score.RegisterIndexerServer(s, indexerServer)
+	searchServer := server.NewSearcherServer(logger, meili)
+
+	index.RegisterIndexerServer(s, indexerServer)
+	grpcsearch.RegisterScoreSearcherServer(s, searchServer)
 	reflection.Register(s)
 
 	if err := s.Serve(list); err != nil {
