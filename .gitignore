@@ -67,5 +67,4 @@ node_modules/
 
 # dev data
 .dev/
-
-**/generated/*
+/.idea/workspace.xml
