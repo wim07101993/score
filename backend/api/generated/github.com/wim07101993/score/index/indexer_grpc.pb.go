@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IndexerClient interface {
+	/// Starts the index of all changed files within a time-window.
 	IndexScores(ctx context.Context, in *IndexScoresRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -47,6 +48,7 @@ func (c *indexerClient) IndexScores(ctx context.Context, in *IndexScoresRequest,
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
 type IndexerServer interface {
+	/// Starts the index of all changed files within a time-window.
 	IndexScores(context.Context, *IndexScoresRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedIndexerServer()
 }

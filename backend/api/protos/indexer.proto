@@ -8,6 +8,7 @@ package score;
 option go_package = "github.com/wim07101993/score/index";
 
 service Indexer {
+  /// Starts the index of all changed files within a time-window.
   rpc IndexScores(IndexScoresRequest) returns (google.protobuf.Empty);
 }
 

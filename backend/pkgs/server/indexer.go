@@ -3,13 +3,16 @@ package server
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 	"score/backend/api/generated/github.com/wim07101993/score/index"
 	"score/backend/internal/gitstorage"
 	"score/backend/internal/search"
+	"strings"
 	"time"
 )
 
@@ -31,9 +34,12 @@ func NewIndexerServer(
 	}
 }
 
-func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexScoresRequest) (*empty.Empty, error) {
-	err := serv.gitStore.Pull()
-	if err != nil {
+func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexScoresRequest) (*emptypb.Empty, error) {
+	if err := validateIndexScoreRequest(request); err != nil {
+		serv.logger.Debug("invalid index scores request", slog.Any("error", err))
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	if err := serv.gitStore.Pull(); err != nil {
 		serv.logger.Error("failed to get git work tree", slog.Any("error", err))
 		return nil, status.Error(codes.Internal, "an internal error occurred: failed to pull git")
 	}
@@ -112,4 +118,20 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 	}
 
 	return &empty.Empty{}, nil
+}
+
+func validateIndexScoreRequest(request *index.IndexScoresRequest) error {
+	builder := strings.Builder{}
+	if request.Since == nil {
+		builder.WriteString("'since' field must be specified. ")
+	}
+	if request.Until == nil {
+		builder.WriteString("'until' field must be specified. ")
+	} else if request.Until.AsTime().Before(time.Date(2024, 3, 7, 0, 0, 0, 0, time.UTC)) {
+		builder.WriteString("until date is before 2024-03-07. There were no scores back then. ")
+	}
+	if builder.Len() > 0 {
+		return errors.New(builder.String())
+	}
+	return nil
 }

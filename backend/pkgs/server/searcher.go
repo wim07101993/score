@@ -9,7 +9,7 @@ import (
 )
 
 type SearcherServer struct {
-	grpcsearch.ScoreSearcherServer
+	grpcsearch.SearcherServer
 	logger   *slog.Logger
 	searcher *meilisearch.Client
 }
@@ -23,7 +23,7 @@ func NewSearcherServer(
 	}
 }
 
-func (serv *SearcherServer) Search(ctx context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
+func (serv *SearcherServer) SearchScores(_ context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
 	result, err := serv.searcher.Index(search.ScoresIndex).Search(
 		request.Query,
 		&meilisearch.SearchRequest{
@@ -46,7 +46,7 @@ func (serv *SearcherServer) Search(ctx context.Context, request *grpcsearch.Sear
 	}
 
 	return &grpcsearch.SearchResponse{
-		Score:              nil,
+		Scores:             scores,
 		EstimatedTotalHits: result.EstimatedTotalHits,
 	}, err
 }

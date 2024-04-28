@@ -1,0 +1,9 @@
+### Searches for scores in the database
+GRPC {{host}}/score.Searcher/SearchScores
+Content-Type: "Application/json"
+
+{
+  "query": "Dream",
+  "offset": "0",
+  "limit": "100"
+}

@@ -80,7 +80,7 @@ func main() {
 	searchServer := server.NewSearcherServer(logger, meili)
 
 	index.RegisterIndexerServer(s, indexerServer)
-	grpcsearch.RegisterScoreSearcherServer(s, searchServer)
+	grpcsearch.RegisterSearcherServer(s, searchServer)
 	reflection.Register(s)
 
 	if err := s.Serve(list); err != nil {

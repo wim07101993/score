@@ -7,7 +7,6 @@ services:
       - "7700:7700"
     environment:
       - MEILI_MASTER_KEY=masterKey
-      - MEILI_NO_ANALYTICS=true
     volumes:
       - ./.dev/meilisearch/data.ms:/data.ms
     healthcheck:

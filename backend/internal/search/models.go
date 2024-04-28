@@ -131,6 +131,9 @@ func parseCreatorIntoScore(r xml.TokenReader, start xml.StartElement, score *Sco
 				score.Composers = append(score.Composers, val)
 			case "lyricist":
 				score.Lyricists = append(score.Lyricists, val)
+			case "arranger":
+				// IGNORE ARRANGERS FOR THE SEARCH MODEL
+				break
 			default:
 				return fmt.Errorf("unknown creator type %v", attr)
 			}
