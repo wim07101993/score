@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/meilisearch/meilisearch-go"
 	"google.golang.org/grpc"
@@ -12,8 +13,9 @@ import (
 	"os"
 	"score/backend/api/generated/github.com/wim07101993/score/index"
 	grpcsearch "score/backend/api/generated/github.com/wim07101993/score/search"
+	auth2 "score/backend/internal/auth"
 	"score/backend/internal/gitstorage"
-	grpc2 "score/backend/internal/grpc"
+	grpchelpers "score/backend/internal/grpc"
 	"score/backend/internal/search"
 	"score/backend/pkgs/server"
 	"strconv"
@@ -60,6 +62,12 @@ func main() {
 	meili := meilisearch.NewClient(meiliConfig)
 	indexer = search.NewIndexer(logger, meili)
 	gitStore := gitstorage.NewGitStore(logger, gitConfig.Repository)
+	jwkSet, err := auth2.CreateGoogleJwkSet()
+	if err != nil {
+		logger.Error("failed to create jwk set")
+		panic(err)
+	}
+	tokenValidator := auth2.NewTokenValidator(jwkSet)
 
 	logger.Info("starting grpc server")
 	addr := fmt.Sprintf(":%d", serverPort)
@@ -71,10 +79,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	grpcLogger := grpc2.NewLogger(logger)
+	grpcLogger := grpchelpers.NewLogger(logger)
 	s := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(logging.UnaryServerInterceptor(grpcLogger)),
-		grpc.ChainStreamInterceptor(logging.StreamServerInterceptor(grpcLogger)))
+		grpc.ChainUnaryInterceptor(
+			logging.UnaryServerInterceptor(grpcLogger),
+			auth.UnaryServerInterceptor(tokenValidator.EnsureContextAuthenticated),
+		),
+		grpc.ChainStreamInterceptor(
+			logging.StreamServerInterceptor(grpcLogger),
+			auth.StreamServerInterceptor(tokenValidator.EnsureContextAuthenticated),
+		),
+	)
 
 	indexerServer := server.NewIndexerServer(logger, gitStore, indexer)
 	searchServer := server.NewSearcherServer(logger, meili)

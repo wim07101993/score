@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
-	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -117,7 +116,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 		}()
 	}
 
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func validateIndexScoreRequest(request *index.IndexScoresRequest) error {
