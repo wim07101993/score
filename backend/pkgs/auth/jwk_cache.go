@@ -2,14 +2,14 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"time"
 )
 
 const googleCerts = `https://www.googleapis.com/oauth2/v3/certs`
+const googleIssuer = "https://accounts.google.com"
 
-func CreateGoogleJwkSet() (jwk.Set, error) {
+func CreateJwkCache() (*jwk.Cache, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -18,11 +18,17 @@ func CreateGoogleJwkSet() (jwk.Set, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	_, err = c.Refresh(ctx, googleCerts)
 	if err != nil {
-		fmt.Printf("failed to refresh google JWKS: %s\n", err)
 		return nil, err
 	}
 
-	return jwk.NewCachedSet(c, googleCerts), nil
+	return c, err
+}
+
+func JwkCachedSets(cache *jwk.Cache) map[string]jwk.Set {
+	return map[string]jwk.Set{
+		googleIssuer: jwk.NewCachedSet(cache, googleCerts),
+	}
 }

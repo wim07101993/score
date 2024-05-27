@@ -9,23 +9,22 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
 	"score/backend/api/generated/github.com/wim07101993/score/index"
-	"score/backend/internal/gitstorage"
-	"score/backend/internal/search"
+	"score/backend/pkgs/persistence"
 	"strings"
 	"time"
 )
 
 type IndexerServer struct {
 	index.IndexerServer
-	gitStore *gitstorage.GitFileStore
+	gitStore *persistence.GitFileStore
 	logger   *slog.Logger
-	indexer  search.Indexer
+	indexer  persistence.Indexer
 }
 
 func NewIndexerServer(
 	logger *slog.Logger,
-	gitStore *gitstorage.GitFileStore,
-	indexer search.Indexer) *IndexerServer {
+	gitStore *persistence.GitFileStore,
+	indexer persistence.Indexer) *IndexerServer {
 	return &IndexerServer{
 		logger:   logger,
 		gitStore: gitStore,
@@ -69,7 +68,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 		f := f
 		go func() {
 			serv.logger.Info("indexing score", slog.String("file", f.Name))
-			id, err := gitstorage.ScoreIdFromPath(f.Name)
+			id, err := persistence.ScoreIdFromPath(f.Name)
 			if err != nil {
 				serv.logger.Error("failed getting id from file name",
 					slog.String("file", f.Name),
@@ -81,7 +80,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 					slog.String("file", f.Name),
 					slog.Any("error", err))
 			}
-			s, err := search.ParseScore(xml.NewDecoder(r))
+			s, err := persistence.ParseScore(xml.NewDecoder(r))
 			if err != nil {
 				serv.logger.Error("failed to parse file",
 					slog.String("file", f.Name),
@@ -101,7 +100,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 		f := f
 		go func() {
 			serv.logger.Info("removing score", slog.String("file", f.Name))
-			id, err := gitstorage.ScoreIdFromPath(f.Name)
+			id, err := persistence.ScoreIdFromPath(f.Name)
 			if err != nil {
 				serv.logger.Error("failed getting id from file name",
 					slog.String("file", f.Name),

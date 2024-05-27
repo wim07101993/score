@@ -1,12 +1,15 @@
-package search
+package persistence
 
 import (
+	"errors"
 	"github.com/meilisearch/meilisearch-go"
 	"log/slog"
 	"time"
 )
 
 const ScoresIndex = "scores"
+
+var TaskTimeoutErr = errors.New("timeout while waiting for task")
 
 type Indexer interface {
 	Index(score *Score, id string) error
@@ -47,4 +50,24 @@ func (s *searcher) Remove(id string) error {
 	s.Logger.Info("removing document", slog.String("id", id))
 	_, err := s.Meili.Index(ScoresIndex).DeleteDocument(id)
 	return err
+}
+
+func (s *searcher) waitForTask(taskUID int64, timeout time.Duration) (*meilisearch.Task, error) {
+	timedOut := time.Now().UTC().Add(timeout)
+	task, err := s.Meili.GetTask(taskUID)
+	if err != nil || task == nil {
+		return nil, err
+	}
+	for task.Status != meilisearch.TaskStatusFailed && task.Status != meilisearch.TaskStatusSucceeded {
+		if timedOut.Before(time.Now().UTC()) {
+			return nil, TaskTimeoutErr
+		}
+
+		time.Sleep(time.Duration(1) * time.Second)
+		task, err = s.Meili.GetTask(taskUID)
+		if err != nil || task == nil {
+			return nil, err
+		}
+	}
+	return task, nil
 }

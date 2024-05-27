@@ -1,4 +1,4 @@
-package gitstorage
+package persistence
 
 import (
 	"errors"

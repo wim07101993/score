@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
-	"github.com/meilisearch/meilisearch-go"
+	meili "github.com/meilisearch/meilisearch-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log/slog"
 	"net"
 	"os"
 	"score/backend/api/generated/github.com/wim07101993/score/index"
-	grpcsearch "score/backend/api/generated/github.com/wim07101993/score/search"
-	auth2 "score/backend/internal/auth"
-	"score/backend/internal/gitstorage"
-	grpchelpers "score/backend/internal/grpc"
-	"score/backend/internal/search"
+	"score/backend/api/generated/github.com/wim07101993/score/search"
+	auth2 "score/backend/pkgs/auth"
+	"score/backend/pkgs/interceptors"
+	"score/backend/pkgs/persistence"
 	"score/backend/pkgs/server"
 	"strconv"
 )
@@ -28,20 +27,20 @@ const (
 	scorePortEnvVar        = "SCORE_PORT"
 )
 
-var gitConfig gitstorage.Config
-var meiliConfig meilisearch.ClientConfig
+var scoresRepository string
+var meiliConfig meili.ClientConfig
 var serverPort int
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-var indexer search.Indexer
+var indexer persistence.Indexer
 
 func init() {
-	flag.StringVar(&gitConfig.Repository, "repo", "", "The git repository on which the scores are stored. Ensure this server has read access to that repo.")
+	flag.StringVar(&scoresRepository, "repo", "", "The git repository on which the scores are stored. Ensure this server has read access to that repo.")
 	flag.StringVar(&meiliConfig.Host, "host", "http://localhost:7700", "The meili search server on which to index the score.")
 	flag.StringVar(&meiliConfig.APIKey, "apikey", "", "The api key with which to connect to the meili server.")
 	flag.IntVar(&serverPort, "port", 7701, "The port on which the server should listen. If omitted, stdin is used.")
 
-	gitConfig.Repository = os.Getenv(scoresRepositoryEnvVar)
+	scoresRepository = os.Getenv(scoresRepositoryEnvVar)
 	meiliConfig.Host = os.Getenv(meiliHostEnvVar)
 	meiliConfig.APIKey = os.Getenv(meiliApiKeyEnvVar)
 
@@ -59,16 +58,6 @@ func main() {
 	flag.Parse()
 	validateVars()
 
-	meili := meilisearch.NewClient(meiliConfig)
-	indexer = search.NewIndexer(logger, meili)
-	gitStore := gitstorage.NewGitStore(logger, gitConfig.Repository)
-	jwkSet, err := auth2.CreateGoogleJwkSet()
-	if err != nil {
-		logger.Error("failed to create jwk set")
-		panic(err)
-	}
-	tokenValidator := auth2.NewTokenValidator(jwkSet)
-
 	logger.Info("starting grpc server")
 	addr := fmt.Sprintf(":%d", serverPort)
 	list, err := net.Listen("tcp", addr)
@@ -79,26 +68,38 @@ func main() {
 		os.Exit(1)
 	}
 
-	grpcLogger := grpchelpers.NewLogger(logger)
-	s := grpc.NewServer(
+	jwkCache, err := auth2.CreateJwkCache()
+	if err != nil {
+		logger.Error("failed to create jwk cache")
+		panic(err)
+	}
+	jwkSets := auth2.JwkCachedSets(jwkCache)
+
+	grpcLogger := interceptors.NewLogger(logger)
+	authMiddleware := interceptors.EnsureContextAuthenticated(jwkSets)
+	serv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			logging.UnaryServerInterceptor(grpcLogger),
-			auth.UnaryServerInterceptor(tokenValidator.EnsureContextAuthenticated),
+			auth.UnaryServerInterceptor(authMiddleware),
 		),
 		grpc.ChainStreamInterceptor(
 			logging.StreamServerInterceptor(grpcLogger),
-			auth.StreamServerInterceptor(tokenValidator.EnsureContextAuthenticated),
+			auth.StreamServerInterceptor(authMiddleware),
 		),
 	)
 
+	meiliClient := meili.NewClient(meiliConfig)
+	indexer = persistence.NewIndexer(logger, meiliClient)
+	gitStore := persistence.NewGitStore(logger, scoresRepository)
+
 	indexerServer := server.NewIndexerServer(logger, gitStore, indexer)
-	searchServer := server.NewSearcherServer(logger, meili)
+	searchServer := server.NewSearcherServer(logger, meiliClient)
 
-	index.RegisterIndexerServer(s, indexerServer)
-	grpcsearch.RegisterSearcherServer(s, searchServer)
-	reflection.Register(s)
+	index.RegisterIndexerServer(serv, indexerServer)
+	search.RegisterSearcherServer(serv, searchServer)
+	reflection.Register(serv)
 
-	if err := s.Serve(list); err != nil {
+	if err := serv.Serve(list); err != nil {
 		logger.Error("failed to serve score indexer",
 			slog.Any("error", err),
 			slog.String("address", addr))
@@ -112,7 +113,7 @@ func validateVars() {
 	if meiliConfig.APIKey == "" {
 		panic("no meili api key specified. e.g.: --apikey MY_API_KEY or " + meiliApiKeyEnvVar + " environment variable")
 	}
-	if gitConfig.Repository == "" {
+	if scoresRepository == "" {
 		panic("no git repo specified. e.g.: --repo git@SERVER.com:MY_USER/REPOSITORY.git or " + scoresRepositoryEnvVar + " environment variable")
 	}
 	if serverPort < 80 {

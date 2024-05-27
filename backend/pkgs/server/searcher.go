@@ -5,7 +5,7 @@ import (
 	"github.com/meilisearch/meilisearch-go"
 	"log/slog"
 	grpcsearch "score/backend/api/generated/github.com/wim07101993/score/search"
-	"score/backend/internal/search"
+	"score/backend/pkgs/persistence"
 )
 
 type SearcherServer struct {
@@ -24,7 +24,7 @@ func NewSearcherServer(
 }
 
 func (serv *SearcherServer) SearchScores(_ context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
-	result, err := serv.searcher.Index(search.ScoresIndex).Search(
+	result, err := serv.searcher.Index(persistence.ScoresIndex).Search(
 		request.Query,
 		&meilisearch.SearchRequest{
 			Offset: request.Offset,
