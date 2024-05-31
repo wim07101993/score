@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"github.com/meilisearch/meilisearch-go"
 	"log/slog"
 	grpcsearch "score/backend/api/generated/github.com/wim07101993/score/search"
+	"score/backend/pkgs/interceptors"
 	"score/backend/pkgs/persistence"
 )
 
@@ -23,7 +25,8 @@ func NewSearcherServer(
 	}
 }
 
-func (serv *SearcherServer) SearchScores(_ context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
+func (serv *SearcherServer) SearchScores(ctx context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
+	fmt.Println(ctx.Value(interceptors.TokenContextKey))
 	result, err := serv.searcher.Index(persistence.ScoresIndex).Search(
 		request.Query,
 		&meilisearch.SearchRequest{

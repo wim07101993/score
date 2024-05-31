@@ -1,6 +1,7 @@
 ### Searches for scores in the database
 GRPC {{host}}/score.Searcher/SearchScores
 Content-Type: "Application/json"
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20ifQ.eZalLkk4YCRnPyZOogtfF-0n1uK2IrzoH2PG3kcKb1c
 
 {
   "query": "Dream",
