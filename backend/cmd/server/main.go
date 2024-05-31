@@ -6,6 +6,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	meili "github.com/meilisearch/meilisearch-go"
+	"golang.org/x/exp/maps"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"score/backend/pkgs/persistence"
 	"score/backend/pkgs/server"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -25,21 +27,22 @@ const (
 	meiliApiKeyEnvVar      = "MEILI_API_KEY"
 	scoresRepositoryEnvVar = "SCORES_REPOSITORY"
 	scorePortEnvVar        = "SCORE_PORT"
+	authProvidersEnvVars   = "AUTH_PROVIDERS"
 )
 
 var scoresRepository string
 var meiliConfig meili.ClientConfig
 var serverPort int
+var authProviderCsvList string
+var authConfigs []auth2.Config
+var knownAuthConfigs = map[string]auth2.Config{
+	"google": auth2.GoogleConfig,
+}
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 var indexer persistence.Indexer
 
 func init() {
-	flag.StringVar(&scoresRepository, "repo", "", "The git repository on which the scores are stored. Ensure this server has read access to that repo.")
-	flag.StringVar(&meiliConfig.Host, "host", "http://localhost:7700", "The meili search server on which to index the score.")
-	flag.StringVar(&meiliConfig.APIKey, "apikey", "", "The api key with which to connect to the meili server.")
-	flag.IntVar(&serverPort, "port", 7701, "The port on which the server should listen. If omitted, stdin is used.")
-
 	scoresRepository = os.Getenv(scoresRepositoryEnvVar)
 	meiliConfig.Host = os.Getenv(meiliHostEnvVar)
 	meiliConfig.APIKey = os.Getenv(meiliApiKeyEnvVar)
@@ -52,6 +55,26 @@ func init() {
 		}
 		serverPort = p
 	}
+
+	authProviderCsvList = os.Getenv(authProvidersEnvVars)
+
+	flag.StringVar(&scoresRepository, "repo", "",
+		"The git repository on which the scores are stored. Ensure this server has read access to that repo.")
+	flag.StringVar(&meiliConfig.Host, "host", "http://localhost:7700",
+		"The meili search server on which to index the score.")
+	flag.StringVar(&meiliConfig.APIKey, "apikey", "",
+		"The api key with which to connect to the meili server.")
+	flag.IntVar(&serverPort, "port", 7701,
+		"The port on which the server should listen. If omitted, stdin is used.")
+
+	knownAuthProviders := make([]string, 0, len(knownAuthConfigs))
+	for k := range knownAuthConfigs {
+		knownAuthProviders = append(knownAuthProviders, k)
+	}
+
+	flag.StringVar(&authProviderCsvList, "auth", "google",
+		"The allowed auth providers. Should be a comma separated list without spaces. E.g.: google,github. "+
+			"Implemented providers are: "+strings.Join(maps.Keys(knownAuthConfigs), ", "))
 }
 
 func main() {
@@ -68,12 +91,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	jwkCache, err := auth2.CreateJwkCache()
+	jwkCache, err := auth2.CreateJwkCache(authConfigs)
 	if err != nil {
 		logger.Error("failed to create jwk cache")
 		panic(err)
 	}
-	jwkSets := auth2.JwkCachedSets(jwkCache)
+	jwkSets := auth2.JwkCachedSets(authConfigs, jwkCache)
 
 	grpcLogger := interceptors.NewLogger(logger)
 	authMiddleware := interceptors.EnsureContextAuthenticated(jwkSets)
@@ -118,5 +141,17 @@ func validateVars() {
 	}
 	if serverPort < 80 {
 		panic("cannot listen on a port lower than 80. e.g.: --port 7701 or " + scorePortEnvVar + " environment variable")
+	}
+	if authProviderCsvList == "" || len(authConfigs) == 0 {
+		panic("no auth providers specified. e.g.: --auth google,github")
+	}
+
+	authProviders := strings.Split(authProviderCsvList, ",")
+	for _, provider := range authProviders {
+		if c, ok := knownAuthConfigs[provider]; ok {
+			authConfigs = append(authConfigs, c)
+			continue
+		}
+		panic("unknown auth provider: " + provider + "known auth providers" + strings.Join(maps.Keys(knownAuthConfigs), ", "))
 	}
 }
