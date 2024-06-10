@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -16,19 +18,19 @@ import (
 
 type IndexerServer struct {
 	index.IndexerServer
-	gitStore *persistence.GitFileStore
-	logger   *slog.Logger
-	indexer  persistence.Indexer
+	gitStore    *persistence.GitFileStore
+	logger      *slog.Logger
+	scoresIndex persistence.ScoresIndex
 }
 
 func NewIndexerServer(
 	logger *slog.Logger,
 	gitStore *persistence.GitFileStore,
-	indexer persistence.Indexer) *IndexerServer {
+	indexer persistence.ScoresIndex) *IndexerServer {
 	return &IndexerServer{
-		logger:   logger,
-		gitStore: gitStore,
-		indexer:  indexer,
+		logger:      logger,
+		gitStore:    gitStore,
+		scoresIndex: indexer,
 	}
 }
 
@@ -65,54 +67,25 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 		slog.Any("removed", removed))
 
 	for _, f := range append(newFiles, changed...) {
-		f := f
-		go func() {
+		go func(f *object.File) {
 			serv.logger.Info("indexing score", slog.String("file", f.Name))
-			id, err := persistence.ScoreIdFromPath(f.Name)
-			if err != nil {
-				serv.logger.Error("failed getting id from file name",
-					slog.String("file", f.Name),
-					slog.Any("error", err))
-			}
-			r, err := f.Reader()
-			if err != nil {
-				serv.logger.Error("failed to read file",
-					slog.String("file", f.Name),
-					slog.Any("error", err))
-			}
-			s, err := persistence.ParseScore(xml.NewDecoder(r))
-			if err != nil {
-				serv.logger.Error("failed to parse file",
-					slog.String("file", f.Name),
-					slog.Any("error", err))
-			}
-			err = serv.indexer.Index(s, id)
-			if err != nil {
+			if err := indexScore(serv.scoresIndex, f); err != nil {
 				serv.logger.Error("failed to index score",
 					slog.String("file", f.Name),
 					slog.Any("error", err))
-				panic(err)
 			}
-		}()
+		}(f)
 	}
 
 	for _, f := range removed {
-		f := f
-		go func() {
+		go func(f *object.File) {
 			serv.logger.Info("removing score", slog.String("file", f.Name))
-			id, err := persistence.ScoreIdFromPath(f.Name)
-			if err != nil {
-				serv.logger.Error("failed getting id from file name",
-					slog.String("file", f.Name),
-					slog.Any("error", err))
-			}
-			err = serv.indexer.Remove(id)
-			if err != nil {
+			if err := removeScore(serv.scoresIndex, f); err != nil {
 				serv.logger.Error("failed to remove score",
 					slog.String("file", f.Name),
 					slog.Any("error", err))
 			}
-		}()
+		}(f)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -132,4 +105,31 @@ func validateIndexScoreRequest(request *index.IndexScoresRequest) error {
 		return errors.New(builder.String())
 	}
 	return nil
+}
+
+func indexScore(index persistence.ScoresIndex, file *object.File) error {
+	r, err := file.Reader()
+	if err != nil {
+		return err
+	}
+
+	id, err := persistence.ScoreIdFromPath(file.Name)
+	if err != nil {
+		return fmt.Errorf("failed to get id from file name: %w", err)
+	}
+
+	s, err := persistence.ParseScore(xml.NewDecoder(r))
+	if err != nil {
+		return fmt.Errorf("failed to parse file: %w", err)
+	}
+
+	return index.AddScore(s, id)
+}
+
+func removeScore(index persistence.ScoresIndex, file *object.File) error {
+	id, err := persistence.ScoreIdFromPath(file.Name)
+	if err != nil {
+		return fmt.Errorf("failed to get id from file name: %w", err)
+	}
+	return index.RemoveScore(id)
 }

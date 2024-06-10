@@ -36,11 +36,11 @@ var serverPort int
 var authProviderCsvList string
 var authConfigs []auth2.Config
 var knownAuthConfigs = map[string]auth2.Config{
-	"google": auth2.GoogleConfig,
+	"google":   auth2.GoogleConfig,
+	"facebook": auth2.FacebookConfig,
 }
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-var indexer persistence.Indexer
 
 func init() {
 	scoresRepository = os.Getenv(scoresRepositoryEnvVar)
@@ -73,7 +73,7 @@ func init() {
 	}
 
 	flag.StringVar(&authProviderCsvList, "auth", "google",
-		"The allowed auth providers. Should be a comma separated list without spaces. E.g.: google,github. "+
+		"The allowed auth providers. Should be a comma separated list without spaces. E.g.: google,facebook "+
 			"Implemented providers are: "+strings.Join(maps.Keys(knownAuthConfigs), ", "))
 }
 
@@ -99,7 +99,11 @@ func main() {
 	jwkSets := auth2.JwkCachedSets(authConfigs, jwkCache)
 
 	grpcLogger := interceptors.NewLogger(logger)
-	authMiddleware := interceptors.EnsureContextAuthenticated(jwkSets)
+	authMiddleware, err := interceptors.EnsureContextAuthenticated(jwkSets)
+	if err != nil {
+		panic(err)
+	}
+
 	serv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			logging.UnaryServerInterceptor(grpcLogger),
@@ -112,18 +116,18 @@ func main() {
 	)
 
 	meiliClient := meili.NewClient(meiliConfig)
-	indexer = persistence.NewIndexer(logger, meiliClient)
-	gitStore := persistence.NewGitStore(logger, scoresRepository)
+	indexes := persistence.NewMeiliIndexes(logger, meiliClient)
+	gitStore := persistence.NewGitFileStore(logger, scoresRepository)
 
-	indexerServer := server.NewIndexerServer(logger, gitStore, indexer)
-	searchServer := server.NewSearcherServer(logger, meiliClient)
+	indexerServer := server.NewIndexerServer(logger, gitStore, indexes)
+	searchServer := server.NewSearcherServer(logger, indexes, meiliClient)
 
 	index.RegisterIndexerServer(serv, indexerServer)
 	search.RegisterSearcherServer(serv, searchServer)
 	reflection.Register(serv)
 
 	if err := serv.Serve(list); err != nil {
-		logger.Error("failed to serve score indexer",
+		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err),
 			slog.String("address", addr))
 	}
@@ -142,16 +146,25 @@ func validateVars() {
 	if serverPort < 80 {
 		panic("cannot listen on a port lower than 80. e.g.: --port 7701 or " + scorePortEnvVar + " environment variable")
 	}
-	if authProviderCsvList == "" || len(authConfigs) == 0 {
-		panic("no auth providers specified. e.g.: --auth google,github")
+	if authProviderCsvList == "" {
+		panic("no auth providers specified. e.g.: --auth google,facebook")
 	}
 
-	authProviders := strings.Split(authProviderCsvList, ",")
-	for _, provider := range authProviders {
-		if c, ok := knownAuthConfigs[provider]; ok {
-			authConfigs = append(authConfigs, c)
-			continue
+	if authProviderCsvList == "none" {
+		// This should only be used for debugging purposes!
+		interceptors.SkipJwtVerification = true
+	} else {
+		authProviders := strings.Split(authProviderCsvList, ",")
+		if len(authProviders) == 0 {
+			panic("no auth providers specified. e.g.: --auth google,facebook")
 		}
-		panic("unknown auth provider: " + provider + "known auth providers" + strings.Join(maps.Keys(knownAuthConfigs), ", "))
+
+		for _, provider := range authProviders {
+			if c, ok := knownAuthConfigs[provider]; ok {
+				authConfigs = append(authConfigs, c)
+				continue
+			}
+			panic("unknown auth provider: " + provider + "known auth providers" + strings.Join(maps.Keys(knownAuthConfigs), ", "))
+		}
 	}
 }

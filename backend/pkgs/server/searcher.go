@@ -2,32 +2,32 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"github.com/meilisearch/meilisearch-go"
 	"log/slog"
 	grpcsearch "score/backend/api/generated/github.com/wim07101993/score/search"
-	"score/backend/pkgs/interceptors"
 	"score/backend/pkgs/persistence"
 )
 
 type SearcherServer struct {
 	grpcsearch.SearcherServer
-	logger   *slog.Logger
-	searcher *meilisearch.Client
+	logger     *slog.Logger
+	searcher   *meilisearch.Client
+	usersIndex persistence.UsersIndex
 }
 
 func NewSearcherServer(
 	logger *slog.Logger,
+	usersIndex persistence.UsersIndex,
 	searcher *meilisearch.Client) *SearcherServer {
 	return &SearcherServer{
-		logger:   logger,
-		searcher: searcher,
+		logger:     logger,
+		searcher:   searcher,
+		usersIndex: usersIndex,
 	}
 }
 
-func (serv *SearcherServer) SearchScores(ctx context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
-	fmt.Println(ctx.Value(interceptors.TokenContextKey))
-	result, err := serv.searcher.Index(persistence.ScoresIndex).Search(
+func (serv *SearcherServer) SearchScores(_ context.Context, request *grpcsearch.SearchRequest) (*grpcsearch.SearchResponse, error) {
+	result, err := serv.searcher.Index(persistence.ScoresIndexName).Search(
 		request.Query,
 		&meilisearch.SearchRequest{
 			Offset: request.Offset,

@@ -6,23 +6,6 @@ import (
 	"score/backend/pkgs/musicxml"
 )
 
-type Score struct {
-	Title       string
-	Composers   []string
-	Lyricists   []string
-	Instruments []string
-}
-
-func (s *Score) ToDocument(id string) map[string]interface{} {
-	return map[string]interface{}{
-		"id":          id,
-		"title":       s.Title,
-		"composers":   s.Composers,
-		"lyricists":   s.Lyricists,
-		"instruments": s.Instruments,
-	}
-}
-
 func ParseScore(r xml.TokenReader) (*Score, error) {
 	root := xml.StartElement{Name: xml.Name{Local: "root"}}
 	var score *Score

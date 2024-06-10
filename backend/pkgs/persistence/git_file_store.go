@@ -23,7 +23,7 @@ type GitFileStore struct {
 	logger *slog.Logger
 }
 
-func NewGitStore(logger *slog.Logger, url string) *GitFileStore {
+func NewGitFileStore(logger *slog.Logger, url string) *GitFileStore {
 	logger.Info("initializing git repo")
 
 	repo, err := git.Clone(memory.NewStorage(), memfs.New(), &git.CloneOptions{

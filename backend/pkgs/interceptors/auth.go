@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -12,7 +13,28 @@ import (
 
 const TokenContextKey = "token"
 
-func EnsureContextAuthenticated(jwkSets map[string]jwk.Set) func(ctx context.Context) (context.Context, error) {
+var SkipJwtVerification bool
+
+func EnsureContextAuthenticated(jwkSets map[string]jwk.Set) (auth.AuthFunc, error) {
+	if SkipJwtVerification {
+		return func(ctx context.Context) (context.Context, error) {
+			stoken, err := auth.AuthFromMD(ctx, "bearer")
+			if err != nil {
+				return nil, err
+			}
+
+			token, err := jwt.Parse([]byte(stoken))
+			if err != nil {
+				return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("invalid token: %v", err.Error()))
+			}
+			return context.WithValue(ctx, TokenContextKey, token), nil
+		}, nil
+	}
+
+	if len(jwkSets) == 0 {
+		return nil, errors.New("no jwk sets provided. Cannot de auth without auth providers")
+	}
+
 	return func(ctx context.Context) (context.Context, error) {
 		stoken, err := auth.AuthFromMD(ctx, "bearer")
 		if err != nil {
@@ -44,5 +66,5 @@ func EnsureContextAuthenticated(jwkSets map[string]jwk.Set) func(ctx context.Con
 		}
 
 		return context.WithValue(ctx, TokenContextKey, token), nil
-	}
+	}, nil
 }
