@@ -64,7 +64,7 @@ func init() {
 		"The meili search server on which to index the score.")
 	flag.StringVar(&meiliConfig.APIKey, "apikey", "",
 		"The api key with which to connect to the meili server.")
-	flag.IntVar(&serverPort, "port", 7701,
+	flag.IntVar(&serverPort, "port", 7700,
 		"The port on which the server should listen. If omitted, stdin is used.")
 
 	knownAuthProviders := make([]string, 0, len(knownAuthConfigs))

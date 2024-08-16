@@ -6,6 +6,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/meilisearch/meilisearch-go v0.26.3
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
