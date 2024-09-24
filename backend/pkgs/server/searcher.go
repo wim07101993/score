@@ -10,19 +10,16 @@ import (
 
 type SearcherServer struct {
 	grpcsearch.SearcherServer
-	logger     *slog.Logger
-	searcher   *meilisearch.Client
-	usersIndex persistence.UsersIndex
+	logger   *slog.Logger
+	searcher *meilisearch.Client
 }
 
 func NewSearcherServer(
 	logger *slog.Logger,
-	usersIndex persistence.UsersIndex,
 	searcher *meilisearch.Client) *SearcherServer {
 	return &SearcherServer{
-		logger:     logger,
-		searcher:   searcher,
-		usersIndex: usersIndex,
+		logger:   logger,
+		searcher: searcher,
 	}
 }
 

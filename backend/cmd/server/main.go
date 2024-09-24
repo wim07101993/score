@@ -22,63 +22,11 @@ import (
 	"strings"
 )
 
-const (
-	meiliHostEnvVar        = "MEILI_HOST"
-	meiliApiKeyEnvVar      = "MEILI_API_KEY"
-	scoresRepositoryEnvVar = "SCORES_REPOSITORY"
-	scorePortEnvVar        = "SCORE_PORT"
-	authProvidersEnvVars   = "AUTH_PROVIDERS"
-)
-
-var scoresRepository string
-var meiliConfig meili.ClientConfig
-var serverPort int
-var authProviderCsvList string
-var authConfigs []auth2.Config
-var knownAuthConfigs = map[string]auth2.Config{
-	"google":   auth2.GoogleConfig,
-	"facebook": auth2.FacebookConfig,
-}
-
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-func init() {
-	scoresRepository = os.Getenv(scoresRepositoryEnvVar)
-	meiliConfig.Host = os.Getenv(meiliHostEnvVar)
-	meiliConfig.APIKey = os.Getenv(meiliApiKeyEnvVar)
-
-	sport := os.Getenv(scorePortEnvVar)
-	if sport != "" {
-		p, err := strconv.Atoi(os.Getenv(scorePortEnvVar))
-		if err != nil {
-			panic(err)
-		}
-		serverPort = p
-	}
-
-	authProviderCsvList = os.Getenv(authProvidersEnvVars)
-
-	flag.StringVar(&scoresRepository, "repo", "",
-		"The git repository on which the scores are stored. Ensure this server has read access to that repo.")
-	flag.StringVar(&meiliConfig.Host, "host", "http://localhost:7700",
-		"The meili search server on which to index the score.")
-	flag.StringVar(&meiliConfig.APIKey, "apikey", "",
-		"The api key with which to connect to the meili server.")
-	flag.IntVar(&serverPort, "port", 7700,
-		"The port on which the server should listen. If omitted, stdin is used.")
-
-	knownAuthProviders := make([]string, 0, len(knownAuthConfigs))
-	for k := range knownAuthConfigs {
-		knownAuthProviders = append(knownAuthProviders, k)
-	}
-
-	flag.StringVar(&authProviderCsvList, "auth", "google",
-		"The allowed auth providers. Should be a comma separated list without spaces. E.g.: google,facebook "+
-			"Implemented providers are: "+strings.Join(maps.Keys(knownAuthConfigs), ", "))
-}
 
 func main() {
 	flag.Parse()
+	parseEnvVars()
 	validateVars()
 
 	logger.Info("starting grpc server")
@@ -120,7 +68,7 @@ func main() {
 	gitStore := persistence.NewGitFileStore(logger, scoresRepository)
 
 	indexerServer := server.NewIndexerServer(logger, gitStore, indexes)
-	searchServer := server.NewSearcherServer(logger, indexes, meiliClient)
+	searchServer := server.NewSearcherServer(logger, meiliClient)
 
 	index.RegisterIndexerServer(serv, indexerServer)
 	search.RegisterSearcherServer(serv, searchServer)
@@ -130,6 +78,33 @@ func main() {
 		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err),
 			slog.String("address", addr))
+	}
+}
+
+func parseEnvVars() {
+	if scoresRepository == "" {
+		scoresRepository = os.Getenv(scoresRepositoryEnvVar)
+	}
+	if meiliConfig.Host == "" {
+		meiliConfig.Host = os.Getenv(meiliHostEnvVar)
+	}
+	if meiliConfig.APIKey == "" {
+		meiliConfig.APIKey = os.Getenv(meiliApiKeyEnvVar)
+	}
+
+	if serverPort == 0 {
+		sport := os.Getenv(scorePortEnvVar)
+		if sport != "" {
+			p, err := strconv.Atoi(os.Getenv(scorePortEnvVar))
+			if err != nil {
+				panic(err)
+			}
+			serverPort = p
+		}
+	}
+
+	if authProviderCsvList == "" {
+		authProviderCsvList = os.Getenv(authProvidersEnvVars)
 	}
 }
 

@@ -3,8 +3,8 @@
     <module name="score" />
     <working_directory value="$PROJECT_DIR$" />
     <envs>
-      <env name="MEILI_HOST" value="http://localhost:7700" />
       <env name="MEILI_API_KEY" value="masterKey" />
+      <env name="MEILI_HOST" value="http://localhost:7703" />
       <env name="SCORES_REPOSITORY" value="git@github.com:wim07101993/scores.git" />
     </envs>
     <kind value="DIRECTORY" />
