@@ -1,48 +1,44 @@
 package auth
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
+	"log/slog"
 	"net/http"
 )
 
 type AuthorizerServer struct {
+	logger *slog.Logger
 }
 
-func NewAuthorizerServer() *AuthorizerServer {
-	return &AuthorizerServer{}
+func NewAuthorizerServer(logger *slog.Logger) *AuthorizerServer {
+	return &AuthorizerServer{
+		logger: logger,
+	}
 }
 
-func (server *AuthorizerServer) RegisterRoutesOnRouter(r *gin.Engine) {
-	r.GET("/", server.home)
-	r.GET("/auth/:provider", server.signInWithProvider)
-	r.GET("/auth/:provider/callback", server.callback)
-	r.GET("/success", server.success)
+func (server *AuthorizerServer) RegisterRoutes() {
+	http.HandleFunc("/auth/google", server.signInWithProvider)
+	http.HandleFunc("/auth/google/callback", server.authCallback)
+	http.HandleFunc("/logout/google", server.logout)
 }
 
-func (server *AuthorizerServer) home(c *gin.Context) {
-
+func (server *AuthorizerServer) signInWithProvider(res http.ResponseWriter, req *http.Request) {
+	gothic.BeginAuthHandler(res, req)
 }
-func (server *AuthorizerServer) signInWithProvider(c *gin.Context) {
-	provider := c.Param("provider")
-	q := c.Request.URL.Query()
-	q.Add("provider", provider)
-	c.Request.URL.RawQuery = q.Encode()
 
-	gothic.BeginAuthHandler(c.Writer, c.Request)
-}
-func (server *AuthorizerServer) callback(c *gin.Context) {
-	provider := c.Param("provider")
-	q := c.Request.URL.Query()
-	q.Add("provider", provider)
-	c.Request.URL.RawQuery = q.Encode()
-
-	_, err := gothic.CompleteUserAuth(c.Writer, c.Request)
+func (server *AuthorizerServer) authCallback(res http.ResponseWriter, req *http.Request) {
+	_, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
-		_ = c.AbortWithError(http.StatusInternalServerError, err)
+		server.logger.Error("failed to complete user auth", slog.Any("error", err))
+		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	c.Redirect(http.StatusTemporaryRedirect, "/success")
+	res.WriteHeader(http.StatusOK)
 }
-func (server *AuthorizerServer) success(c *gin.Context) {}
+
+func (server *AuthorizerServer) logout(res http.ResponseWriter, req *http.Request) {
+	err := gothic.Logout(res, req)
+	if err != nil {
+		server.logger.Error("failed to logout", slog.Any("error", err))
+	}
+}
