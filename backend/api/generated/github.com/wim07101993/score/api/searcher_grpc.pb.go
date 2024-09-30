@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: searcher.proto
 
-package search
+package api
 
 import (
 	context "context"

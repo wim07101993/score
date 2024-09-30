@@ -1,4 +1,4 @@
-package persistence
+package search
 
 import (
 	"encoding/xml"
@@ -62,7 +62,10 @@ func parseScorePartwise(r xml.TokenReader, start xml.StartElement) (*Score, erro
 										if err != nil {
 											return err
 										}
-										score.Instruments = append(score.Instruments, instr)
+										if score.Instruments != "" {
+											score.Instruments += ", "
+										}
+										score.Instruments += instr
 										return nil
 									default:
 										return musicxml.ReadUntilClose(r, el4)
@@ -111,9 +114,15 @@ func parseCreatorIntoScore(r xml.TokenReader, start xml.StartElement, score *Sco
 		case "type":
 			switch attr.Value {
 			case "composer":
-				score.Composers = append(score.Composers, val)
+				if score.Composers != "" {
+					score.Composers += ", "
+				}
+				score.Composers += val
 			case "lyricist":
-				score.Lyricists = append(score.Lyricists, val)
+				if score.Lyricists != "" {
+					score.Lyricists += ", "
+				}
+				score.Lyricists = val
 			case "arranger":
 				// IGNORE ARRANGERS FOR THE SEARCH MODEL
 				break

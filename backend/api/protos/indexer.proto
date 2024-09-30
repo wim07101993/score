@@ -5,7 +5,7 @@ import "google/protobuf/timestamp.proto";
 
 package score;
 
-option go_package = "github.com/wim07101993/score/index";
+option go_package = "github.com/wim07101993/score/api";
 
 service Indexer {
   /// Starts the index of all changed files within a time-window.

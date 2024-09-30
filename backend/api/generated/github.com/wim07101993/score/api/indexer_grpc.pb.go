@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: indexer.proto
 
-package index
+package api
 
 import (
 	context "context"

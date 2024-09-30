@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package score;
 
-option go_package = "github.com/wim07101993/score/search";
+option go_package = "github.com/wim07101993/score/api";
 
 service Searcher {
   rpc SearchScores(SearchRequest) returns (SearchResponse);

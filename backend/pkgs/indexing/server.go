@@ -1,4 +1,4 @@
-package server
+package indexing
 
 import (
 	"context"
@@ -10,31 +10,32 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log/slog"
-	"score/backend/api/generated/github.com/wim07101993/score/index"
-	"score/backend/pkgs/persistence"
+	"score/backend/api/generated/github.com/wim07101993/score/api"
+	"score/backend/pkgs/blob"
+	"score/backend/pkgs/search"
 	"strings"
 	"time"
 )
 
 type IndexerServer struct {
-	index.IndexerServer
-	gitStore    *persistence.GitFileStore
-	logger      *slog.Logger
-	scoresIndex persistence.ScoresIndex
+	api.IndexerServer
+	gitStore *blob.GitFileStore
+	logger   *slog.Logger
+	scoresDb search.Db
 }
 
 func NewIndexerServer(
 	logger *slog.Logger,
-	gitStore *persistence.GitFileStore,
-	indexer persistence.ScoresIndex) *IndexerServer {
+	gitStore *blob.GitFileStore,
+	indexer search.Db) *IndexerServer {
 	return &IndexerServer{
-		logger:      logger,
-		gitStore:    gitStore,
-		scoresIndex: indexer,
+		logger:   logger,
+		gitStore: gitStore,
+		scoresDb: indexer,
 	}
 }
 
-func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexScoresRequest) (*emptypb.Empty, error) {
+func (serv *IndexerServer) IndexScores(_ context.Context, request *api.IndexScoresRequest) (*emptypb.Empty, error) {
 	if err := validateIndexScoreRequest(request); err != nil {
 		serv.logger.Debug("invalid index scores request", slog.Any("error", err))
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -69,7 +70,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 	for _, f := range append(newFiles, changed...) {
 		go func(f *object.File) {
 			serv.logger.Info("indexing score", slog.String("file", f.Name))
-			if err := indexScore(serv.scoresIndex, f); err != nil {
+			if err := indexScore(serv.scoresDb, f); err != nil {
 				serv.logger.Error("failed to index score",
 					slog.String("file", f.Name),
 					slog.Any("error", err))
@@ -80,7 +81,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 	for _, f := range removed {
 		go func(f *object.File) {
 			serv.logger.Info("removing score", slog.String("file", f.Name))
-			if err := removeScore(serv.scoresIndex, f); err != nil {
+			if err := removeScore(serv.scoresDb, f); err != nil {
 				serv.logger.Error("failed to remove score",
 					slog.String("file", f.Name),
 					slog.Any("error", err))
@@ -91,7 +92,7 @@ func (serv *IndexerServer) IndexScores(_ context.Context, request *index.IndexSc
 	return &emptypb.Empty{}, nil
 }
 
-func validateIndexScoreRequest(request *index.IndexScoresRequest) error {
+func validateIndexScoreRequest(request *api.IndexScoresRequest) error {
 	builder := strings.Builder{}
 	if request.Since == nil {
 		builder.WriteString("'since' field must be specified. ")
@@ -107,18 +108,18 @@ func validateIndexScoreRequest(request *index.IndexScoresRequest) error {
 	return nil
 }
 
-func indexScore(index persistence.ScoresIndex, file *object.File) error {
+func indexScore(index search.Db, file *object.File) error {
 	r, err := file.Reader()
 	if err != nil {
 		return err
 	}
 
-	id, err := persistence.ScoreIdFromPath(file.Name)
+	id, err := blob.ScoreIdFromPath(file.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get id from file name: %w", err)
 	}
 
-	s, err := persistence.ParseScore(xml.NewDecoder(r))
+	s, err := search.ParseScore(xml.NewDecoder(r))
 	if err != nil {
 		return fmt.Errorf("failed to parse file: %w", err)
 	}
@@ -126,8 +127,8 @@ func indexScore(index persistence.ScoresIndex, file *object.File) error {
 	return index.AddScore(s, id)
 }
 
-func removeScore(index persistence.ScoresIndex, file *object.File) error {
-	id, err := persistence.ScoreIdFromPath(file.Name)
+func removeScore(index search.Db, file *object.File) error {
+	id, err := blob.ScoreIdFromPath(file.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get id from file name: %w", err)
 	}
