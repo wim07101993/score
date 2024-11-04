@@ -1,10 +1,8 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 	_ "github.com/mattn/go-sqlite3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -21,11 +19,18 @@ import (
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+var cfg Config
 
 func main() {
-	flag.Parse()
-	parseEnvVars()
-	validateConfig()
+	if err := cfg.FromFile(); err != nil {
+		panic(err)
+	}
+	if err := cfg.FromEnv(); err != nil {
+		panic(err)
+	}
+	if err := cfg.Validate(); err != nil {
+		panic(err)
+	}
 
 	c := make(chan struct{}, 1)
 	go func() {
@@ -42,12 +47,19 @@ func main() {
 }
 
 func serveGrpc() {
-	gitStore := blob.NewGitFileStore(logger, scoresRepository)
+	logger.Info("starting gRPC server")
+	gitStore := blob.NewGitFileStore(logger, cfg.ScoresRepository)
 
 	_, searchDb := createDb()
 
 	indexerServer := indexing.NewIndexerServer(logger, gitStore, searchDb)
 	searchServer := search.NewSearcherServer(logger)
+
+	authConfigs, err := cfg.AuthConfigs()
+	if err != nil {
+		logger.Error("failed to load auth configs")
+		panic(err)
+	}
 
 	jwkCache, err := auth.CreateJwkCache(authConfigs)
 	if err != nil {
@@ -56,13 +68,32 @@ func serveGrpc() {
 	}
 
 	jwkSets := auth.JwkCachedSets(authConfigs, jwkCache)
-	serv := createGrpcServer(jwkSets)
+	authUnaryInterceptor, err := auth.AuthUnaryInterceptor(jwkSets)
+	if err != nil {
+		panic(err)
+	}
+
+	authStreamInterceptor, err := auth.AuthStreamInterceptor(jwkSets)
+	if err != nil {
+		panic(err)
+	}
+
+	serv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			logging.LoggingUnaryInterceptor(logger),
+			authUnaryInterceptor,
+		),
+		grpc.ChainStreamInterceptor(
+			logging.LoggingStreamInterceptor(logger),
+			authStreamInterceptor,
+		),
+	)
 
 	api.RegisterIndexerServer(serv, indexerServer)
 	api.RegisterSearcherServer(serv, searchServer)
 	reflection.Register(serv)
 
-	addr := fmt.Sprintf(":%d", serverPort)
+	addr := fmt.Sprintf(":%d", cfg.GrpcServerPort)
 	list, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.Error("failed to listen for requests",
@@ -87,37 +118,15 @@ func serveGrpc() {
 }
 
 func serveHttp() {
+	logger.Info("starting http server")
 	serv := auth.NewAuthorizerServer(logger)
 	serv.RegisterRoutes()
 
-	if err := http.ListenAndServe("1234", nil); err != nil {
+	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err))
 	}
-}
-
-func createGrpcServer(jwkSets map[string]jwk.Set) *grpc.Server {
-	authUnaryInterceptor, err := auth.AuthUnaryInterceptor(jwkSets)
-	if err != nil {
-		panic(err)
-	}
-
-	authStreamInterceptor, err := auth.AuthStreamInterceptor(jwkSets)
-	if err != nil {
-		panic(err)
-	}
-
-	return grpc.NewServer(
-		grpc.ChainUnaryInterceptor(
-			logging.LoggingUnaryInterceptor(logger),
-			authUnaryInterceptor,
-		),
-		grpc.ChainStreamInterceptor(
-			logging.LoggingStreamInterceptor(logger),
-			authStreamInterceptor,
-		),
-	)
-
 }
 
 func createDb() (auth.UsersDb, search.Db) {
@@ -129,8 +138,10 @@ func createDb() (auth.UsersDb, search.Db) {
 	userDb := auth.NewUsersDb(logger, db)
 	searchDb := search.NewDb(logger, db)
 
-	if err = userDb.EnsureUserAdmin(initialUserAdminEmailAddress); err != nil {
-		panic(err)
+	if cfg.InitialUserAdminEmailAddress != "" {
+		if err = userDb.EnsureUserAdmin(cfg.InitialUserAdminEmailAddress); err != nil {
+			panic(err)
+		}
 	}
 
 	return userDb, searchDb

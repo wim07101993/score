@@ -17,6 +17,7 @@
 ### Running
 
 ```bash
+$ source backend/scripts/set_env_vars.sh
 $ go run backend/cmd/server/*
 ```
 

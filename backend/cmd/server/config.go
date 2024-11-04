@@ -1,43 +1,96 @@
 package main
 
 import (
-	"flag"
+	"encoding/json"
+	"errors"
+	"github.com/kelseyhightower/envconfig"
 	"golang.org/x/exp/maps"
-	auth2 "score/backend/pkgs/auth"
+	"os"
+	"score/backend/pkgs/auth"
 	"strings"
 )
 
-const (
-	scoresRepositoryEnvVar         = "SCORES_REPOSITORY"
-	scorePortEnvVar                = "SCORE_PORT"
-	authProvidersEnvVars           = "AUTH_PROVIDERS"
-	initialAdminEmailAddressEnvVar = "INITIAL_ADMIN_EMAIL_ADDRESS"
-)
-
-var scoresRepository string
-var serverPort int
-var authProviderCsvList string
-var authConfigs []auth2.Config
-var knownAuthConfigs = map[string]auth2.Config{
-	"google":   auth2.GoogleConfig,
-	"facebook": auth2.FacebookConfig,
+var knownAuthConfigs = map[string]auth.Config{
+	"google":   auth.GoogleConfig,
+	"facebook": auth.FacebookConfig,
 }
-var initialUserAdminEmailAddress string
 
-func init() {
-	flag.StringVar(&scoresRepository, "repo", "",
-		"The git repository on which the scores are stored. Ensure this server has read access to that repo.")
-	flag.IntVar(&serverPort, "port", 7700,
-		"The port on which the server should listen. If omitted, stdin is used.")
-	flag.StringVar(&initialUserAdminEmailAddress, "initialUserAdminEmailAddress", "",
-		"The email address of the initial administrator. This email address will be added to the users table in the database (with admin access rights) if no admins are present.")
+type Config struct {
+	ScoresRepository             string   `envconfig:"SCORES_REPOSITORY" json:"scoresRepository"`
+	GrpcServerPort               int      `envconfig:"GRPC_SERVER_PORT" json:"grpcServerPort" default:"7000"`
+	HttpServerPort               int      `envconfig:"HTTP_SERVER_PORT" json:"httpServerPort" default:"7001"`
+	AuthProviders                []string `envconfig:"AUTH_PROVIDERS" json:"authProviders"`
+	InitialUserAdminEmailAddress string   `envconfig:"INITIAL_USER_ADMIN_EMAIL_ADDRESS" json:"initialUserAdminEmailAddress"`
+}
 
-	knownAuthProviders := make([]string, 0, len(knownAuthConfigs))
-	for k := range knownAuthConfigs {
-		knownAuthProviders = append(knownAuthProviders, k)
+func (cfg *Config) FromFile() error {
+	f, err := os.Open("config.json")
+	if err != nil {
+		return err
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(f)
+
+	decoder := json.NewDecoder(f)
+	err = decoder.Decode(cfg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (cfg *Config) FromEnv() error {
+	return envconfig.Process("", cfg)
+}
+
+func (cfg *Config) AuthConfigs() ([]auth.Config, error) {
+	configs := make([]auth.Config, len(cfg.AuthProviders))
+	for i, p := range cfg.AuthProviders {
+		if c, ok := knownAuthConfigs[p]; ok {
+			configs[i] = c
+			continue
+		}
+		return nil, errors.New("unknown auth provider: " + p + "known auth providers" + strings.Join(maps.Keys(knownAuthConfigs), ", "))
+	}
+	return configs, nil
+}
+
+func (cfg *Config) Validate() error {
+	logger.Info("validating config")
+
+	var errs []string
+
+	if cfg.ScoresRepository == "" {
+		errs = append(errs, "No ScoresRepository specified in configuration.")
+	}
+	if cfg.GrpcServerPort < 80 {
+		errs = append(errs, "Cannot listen on a port lower than 80 for listening for gRPC requests.")
+	}
+	if cfg.HttpServerPort < 80 {
+		errs = append(errs, "Cannot listen on a port lower than 80 for listening for http requests.")
+	}
+	if cfg.GrpcServerPort == cfg.HttpServerPort {
+		errs = append(errs, "Cannot for both http and gRPC requests on the same port.")
+	}
+	if len(cfg.AuthProviders) == 0 {
+		errs = append(errs, "no auth providers specified. Use --auth google,facebook")
+	}
+	if cfg.InitialUserAdminEmailAddress == "" {
+		logger.Warn("No initial admin email address specified. If there is no admin in the database, it will be impossible to perform operations which require admin rights")
 	}
 
-	flag.StringVar(&authProviderCsvList, "auth", "google",
-		"The allowed auth providers. Should be a comma separated list without spaces. E.g.: google,facebook "+
-			"Implemented providers are: "+strings.Join(maps.Keys(knownAuthConfigs), ", "))
+	for _, p := range cfg.AuthProviders {
+		if _, ok := knownAuthConfigs[p]; !ok {
+			errs = append(errs, "unknown auth provider: "+p+"known auth providers"+strings.Join(maps.Keys(knownAuthConfigs), ", "))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.New(strings.Join(errs, "; "))
+	}
+	return nil
 }
