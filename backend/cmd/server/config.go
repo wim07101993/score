@@ -26,6 +26,9 @@ type Config struct {
 func (cfg *Config) FromFile() error {
 	f, err := os.Open("config.json")
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 	defer func(f *os.File) {
