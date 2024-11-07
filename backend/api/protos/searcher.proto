@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package score;
+
+option go_package = "github.com/wim07101993/score/api";
+
+service Searcher {
+  rpc SearchScores(SearchRequest) returns (SearchResponse);
+}
+
+message SearchRequest {
+  string query = 1;
+  /// Number of scores to skip
+  int64 offset = 2;
+  /// Maximum number of documents returned
+  int64 limit = 3;
+}
+
+message SearchResponse {
+  repeated Score scores = 1;
+  int64 estimatedTotalHits = 2;
+}
+
+message Score {
+  string id = 1;
+  string title = 2;
+  repeated string composers = 3;
+  repeated string lyricists = 4;
+  repeated string instruments = 5;
+}
