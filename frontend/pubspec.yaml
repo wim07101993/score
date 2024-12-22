@@ -1,0 +1,27 @@
+name: score
+description: "An application to search through my sheet music."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.4 <4.0.0"
+
+dependencies:
+  ansicolor: ">=2.0.0 <3.0.0"
+  auto_route: ">=9.0.0 <10.0.0"
+  behaviour: ">=3.0.0 <4.0.0"
+  flutter:
+    sdk: flutter
+  flutter_fox_logging: ">=2.0.0 <3.0.0"
+  get_it: ">7.0.0 <=8.0.0"
+  oidc: ">0.0.0 <=1.0.0"
+
+dev_dependencies:
+  auto_route_generator:
+  build_runner:
+  flutter_test:
+    sdk: flutter
+  lint:
+
+flutter:
+  uses-material-design: true
