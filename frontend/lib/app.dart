@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/user.dart';
+import 'package:oidc/oidc.dart';
 import 'package:score/routing/app_router.dart';
 
 void registerApp() {
@@ -23,7 +24,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: router.config(
-        reevaluateListenable: GetIt.I<UserListenable>(),
+        reevaluateListenable: GetIt.I<ValueListenable<OidcUser?>>(),
       ),
     );
   }

@@ -1,28 +1,38 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:oidc/oidc.dart';
 import 'package:score/features/auth/behaviours/log_in.dart';
-import 'package:score/features/auth/google_user_manager.dart';
-import 'package:score/features/auth/user.dart';
+import 'package:score/shared/stream_listenable.dart';
 
 void registerAuthDependencies() {
   GetIt.I.registerLazySingletonAsync(() async {
-    final manager = GoogleUserManager.lazy(
-      // TODO: add correct client id
-      clientCredentials: const OidcClientAuthentication.none(clientId: 'score'),
+    final manager = OidcUserManager.lazy(
+      clientCredentials: const OidcClientAuthentication.none(
+        clientId: '299540604398927877',
+      ),
+      discoveryDocumentUri: Uri.parse(
+        'http://localhost:7003/.well-known/openid-configuration',
+      ),
       store: OidcMemoryStore(),
       settings: OidcUserManagerSettings(
-        // TODO: use correct redirect uri
-        redirectUri: Uri.parse('https://wimvanlaer.com/score/oauth-redirect'),
+        redirectUri: Uri.parse('http://localhost:0/auth/login-callback'),
+        postLogoutRedirectUri:
+            Uri.parse('http://localhost:0/auth/logout-callback'),
       ),
     );
     await manager.init();
     return manager;
   });
-  GetIt.I.registerFactory(
-    () => UserListenable(
-      googleUserManager: GetIt.I(),
+  GetIt.I.registerFactory<ValueListenable<OidcUser?>>(
+    () => StreamListenable.nullable<OidcUser?>(
+      stream: GetIt.I.get<OidcUserManager>().userChanges(),
     ),
   );
 
-  GetIt.I.registerFactory(() => LogIn(monitor: GetIt.I()));
+  GetIt.I.registerFactory(
+    () => LogIn(
+      monitor: GetIt.I(),
+      userManager: GetIt.I(),
+    ),
+  );
 }

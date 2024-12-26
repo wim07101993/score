@@ -2,9 +2,7 @@ import 'package:auto_route/annotations.dart';
 import 'package:behaviour/behaviour.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:oidc/oidc.dart';
 import 'package:score/features/auth/behaviours/log_in.dart';
-import 'package:score/features/auth/google_user_manager.dart';
 
 @RoutePage()
 class LogInScreen extends StatefulWidget {
@@ -22,12 +20,12 @@ class LogInScreen extends StatefulWidget {
 class _LogInScreenState extends State<LogInScreen> {
   bool isLoggingIn = false;
 
-  Future<void> logIn(OidcUserManager userManager) async {
+  Future<void> logIn() async {
     if (isLoggingIn) {
       return;
     }
     setState(() => isLoggingIn = true);
-    final exceptionOr = await GetIt.I.get<LogIn>()(userManager);
+    final exceptionOr = await GetIt.I.get<LogIn>()();
     if (!mounted) {
       return;
     }
@@ -49,8 +47,8 @@ class _LogInScreenState extends State<LogInScreen> {
           children: [
             Center(
               child: ElevatedButton(
-                onPressed: () => logIn(GetIt.I.get<GoogleUserManager>()),
-                child: const Text('LOG IN WITH GOOGLE'),
+                onPressed: () => logIn(),
+                child: const Text('LOG IN'),
               ),
             ),
           ],
