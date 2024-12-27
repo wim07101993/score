@@ -1,5 +1,6 @@
-import 'package:auto_route/annotations.dart';
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:score/routing/app_router.gr.dart';
 
 @RoutePage()
 class ScoreListScreen extends StatelessWidget {
@@ -7,6 +8,21 @@ class ScoreListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text('SCORES'),
+        actions: [
+          IconButton(
+            onPressed: () => AutoRouter.of(context).push(const UserInfoRoute()),
+            icon: const Icon(Icons.account_circle),
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [],
+      ),
+    );
   }
 }

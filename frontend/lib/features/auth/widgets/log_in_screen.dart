@@ -25,7 +25,8 @@ class _LogInScreenState extends State<LogInScreen> {
       return;
     }
     setState(() => isLoggingIn = true);
-    final exceptionOr = await GetIt.I.get<LogIn>()();
+    final login = await GetIt.I.getAsync<LogIn>();
+    final exceptionOr = await login();
     if (!mounted) {
       return;
     }

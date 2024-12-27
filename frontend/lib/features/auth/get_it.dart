@@ -2,13 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:oidc/oidc.dart';
 import 'package:score/features/auth/behaviours/log_in.dart';
+import 'package:score/features/auth/behaviours/log_out.dart';
 import 'package:score/shared/stream_listenable.dart';
 
 void registerAuthDependencies() {
   GetIt.I.registerLazySingletonAsync(() async {
     final manager = OidcUserManager.lazy(
       clientCredentials: const OidcClientAuthentication.none(
-        clientId: '299540604398927877',
+        clientId: '299986611922337795',
       ),
       discoveryDocumentUri: Uri.parse(
         'http://localhost:7003/.well-known/openid-configuration',
@@ -29,10 +30,16 @@ void registerAuthDependencies() {
     ),
   );
 
-  GetIt.I.registerFactory(
-    () => LogIn(
+  GetIt.I.registerFactoryAsync(
+    () async => LogIn(
       monitor: GetIt.I(),
-      userManager: GetIt.I(),
+      userManager: await GetIt.I.getAsync(),
+    ),
+  );
+  GetIt.I.registerFactoryAsync(
+    () async => LogOut(
+      monitor: GetIt.I(),
+      userManager: await GetIt.I.getAsync(),
     ),
   );
 }
