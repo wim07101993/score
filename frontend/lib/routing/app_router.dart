@@ -22,6 +22,7 @@ class AppRouter extends RootStackRouter {
       ),
       AutoRoute(page: LogInRoute.page, path: '/log-in'),
       AutoRoute(page: UserInfoRoute.page, path: '/user-info'),
+      AutoRoute(page: LogsRoute.page, path: '/developer/logs'),
     ];
   }
 }

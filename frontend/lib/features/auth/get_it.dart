@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:oidc/oidc.dart';
+import 'package:score/app_settings.dart';
 import 'package:score/features/auth/behaviours/log_in.dart';
 import 'package:score/features/auth/behaviours/log_out.dart';
 import 'package:score/shared/stream_listenable.dart';
@@ -8,17 +9,14 @@ import 'package:score/shared/stream_listenable.dart';
 void registerAuthDependencies() {
   GetIt.I.registerLazySingletonAsync(() async {
     final manager = OidcUserManager.lazy(
-      clientCredentials: const OidcClientAuthentication.none(
-        clientId: '299986611922337795',
+      clientCredentials: OidcClientAuthentication.none(
+        clientId: appSettings.auth.clientId,
       ),
-      discoveryDocumentUri: Uri.parse(
-        'http://localhost:7003/.well-known/openid-configuration',
-      ),
+      discoveryDocumentUri: appSettings.auth.discoveryDocumentUri,
       store: OidcMemoryStore(),
       settings: OidcUserManagerSettings(
-        redirectUri: Uri.parse('http://localhost:0/auth/login-callback'),
-        postLogoutRedirectUri:
-            Uri.parse('http://localhost:0/auth/logout-callback'),
+        redirectUri: appSettings.auth.loginRedirectUri,
+        postLogoutRedirectUri: appSettings.auth.postLogoutRedirectUri,
       ),
     );
     await manager.init();

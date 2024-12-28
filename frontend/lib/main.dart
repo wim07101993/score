@@ -17,7 +17,7 @@ Future<void> run() async {
   registerLogging();
 
   final logger = GetIt.I.logger('main');
-  final sink = GetIt.I.get<LogSink>();
+  final sink = GetIt.I<LogSink>();
   sink.listenTo(logger.onRecord);
 
   logger.info('registering dependencies');

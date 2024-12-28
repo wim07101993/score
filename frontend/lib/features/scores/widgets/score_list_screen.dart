@@ -17,6 +17,10 @@ class ScoreListScreen extends StatelessWidget {
             onPressed: () => AutoRouter.of(context).push(const UserInfoRoute()),
             icon: const Icon(Icons.account_circle),
           ),
+          IconButton(
+            onPressed: () => AutoRouter.of(context).push(const LogsRoute()),
+            icon: const Icon(Icons.developer_mode),
+          ),
         ],
       ),
       body: Column(

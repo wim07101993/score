@@ -18,13 +18,7 @@ class LogInScreen extends StatefulWidget {
 }
 
 class _LogInScreenState extends State<LogInScreen> {
-  bool isLoggingIn = false;
-
   Future<void> logIn() async {
-    if (isLoggingIn) {
-      return;
-    }
-    setState(() => isLoggingIn = true);
     final login = await GetIt.I.getAsync<LogIn>();
     final exceptionOr = await login();
     if (!mounted) {
@@ -34,7 +28,6 @@ class _LogInScreenState extends State<LogInScreen> {
       (exception) => throw exception, // TODO: handle exception
       (user) => widget.redirect(user != null),
     );
-    setState(() => isLoggingIn = false);
   }
 
   @override
