@@ -23,9 +23,8 @@ class ScoreListScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
+      body: const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [],
       ),
     );
   }

@@ -12,11 +12,13 @@ dependencies:
   behaviour: '>=3.0.0 <4.0.0'
   flutter:
     sdk: flutter
-#  flutter_fox_logging: '>=2.0.0 <3.0.0'
-  flutter_fox_logging:
-    path: ../../flutter_fox_logging
+  flutter_fox_logging: '>=2.0.0 <3.0.0'
+  flutter_localizations:
+    sdk: flutter
   get_it: '>7.0.0 <=8.0.0'
+  hive_ce:
   hive_ce_flutter: '>=2.0.0 <3.0.0'
+  intl:
   oidc: '>0.0.0 <=1.0.0'
 
 dev_dependencies:
@@ -28,4 +30,5 @@ dev_dependencies:
   lint:
 
 flutter:
+  generate: true
   uses-material-design: true

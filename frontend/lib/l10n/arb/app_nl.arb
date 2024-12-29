@@ -1,0 +1,7 @@
+{
+    "userInfoScreenTitle": "Gebruikers info",
+    "loginButtonText": "LOG IN",
+    "logoutButtonText": "LOG OUT",
+    "unknownErrorDialogTitle": "Er liep iets mis",
+    "unknownErrorDialogMessage": "Als dit blijft gebeuren, contacteer de ontwikelaars van de app."
+}

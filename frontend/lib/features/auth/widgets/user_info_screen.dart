@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:oidc/oidc.dart';
 import 'package:score/features/auth/behaviours/log_out.dart';
+import 'package:score/l10n/app_localizations.dart';
+import 'package:score/shared/widgets/exceptions.dart';
 
 @RoutePage()
 class UserInfoScreen extends StatefulWidget {
@@ -22,18 +24,15 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
     if (!mounted) {
       return;
     }
-    result.when(
-      (failure) => print(failure),
-      (_) {},
-    );
+    result.when((exception) => showUnknownError(), (_) {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        // TODO translate
-        title: const Text('User info'),
+        title: Text(s.userInfoScreenTitle),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -47,15 +46,13 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 8,
               children: [
-                // TODO translate
+                // TODO cleanup
                 const Text('USER INFO'),
                 for (final key in user.userInfo.keys)
                   Text('$key: ${user.userInfo[key]}'),
-                // TODO translate
                 const Text('ATTRIBUTES'),
                 for (final key in user.attributes.keys)
                   Text('$key: ${user.attributes[key]}'),
-                // TODO translate
                 const Text('AGGREGATED CLAIMS'),
                 for (final key in user.aggregatedClaims.keys)
                   Text('$key: ${user.aggregatedClaims[key]}'),
@@ -63,8 +60,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
                   alignment: Alignment.centerLeft,
                   child: ElevatedButton(
                     onPressed: logout,
-                    // TODO translate
-                    child: const Text('LOG OUT'),
+                    child: Text(s.logoutButtonText),
                   ),
                 ),
               ],

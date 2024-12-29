@@ -264,7 +264,14 @@
         <entry key="flutter_fox_logging">
           <value>
             <list>
-              <option value="$PROJECT_DIR$/../flutter_fox_logging/lib" />
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_fox_logging-2.1.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="flutter_localizations">
+          <value>
+            <list>
+              <option value="$PROJECT_DIR$/../flutter/packages/flutter_localizations/lib" />
             </list>
           </value>
         </entry>
@@ -356,6 +363,13 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/http_parser-4.1.1/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="intl">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/intl-0.19.0/lib" />
             </list>
           </value>
         </entry>
@@ -964,6 +978,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/fixnum-1.1.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_appauth-6.0.7/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_appauth_platform_interface-6.0.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_fox_logging-2.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/fox_logging-1.0.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/frontend_server_client-4.0.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/get_it-8.0.0/lib" />
@@ -975,6 +990,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/http-1.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/http_multi_server-3.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/http_parser-4.1.1/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/intl-0.19.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/io-1.0.5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/jose_plus-0.4.6/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/js-0.7.1/lib" />
@@ -1058,9 +1074,9 @@
       <root url="file://$PROJECT_DIR$/../flutter/bin/cache/dart-sdk/pkg/_macros/lib" />
       <root url="file://$PROJECT_DIR$/../flutter/bin/cache/pkg/sky_engine/lib" />
       <root url="file://$PROJECT_DIR$/../flutter/packages/flutter/lib" />
+      <root url="file://$PROJECT_DIR$/../flutter/packages/flutter_localizations/lib" />
       <root url="file://$PROJECT_DIR$/../flutter/packages/flutter_test/lib" />
       <root url="file://$PROJECT_DIR$/../flutter/packages/flutter_web_plugins/lib" />
-      <root url="file://$PROJECT_DIR$/../flutter_fox_logging/lib" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
