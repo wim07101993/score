@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package score;
+
+option go_package = "github.com/wim07101993/score/api";
+
+service Searcher {
+  rpc GetScores(GetScoresRequest) returns (stream ScoresPage);
+}
+
+message GetScoresRequest {
+  optional google.protobuf.Timestamp changed_since = 1;
+  optional bool only_favourites = 2;
+}
+
+message ScoresPage {
+  int64 total_hits = 1;
+  repeated Score scores = 2;
+}
+
+message Score {
+  string id = 1;
+  string title = 2;
+  repeated string composers = 3;
+  repeated string lyricists = 4;
+  repeated string instruments = 5;
+  bool isFavourite = 6;
+  google.protobuf.Timestamp last_change_timestamp = 7;
+}

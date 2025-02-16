@@ -4,7 +4,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 PROJECT_DIR="$SCRIPT_DIR/.."
 MIGRATIONS_DIR="$PROJECT_DIR"/db/migrations
+DATABASE_URL="postgres://postgres:postgres@localhost:7432/score?sslmode=disable"
 
-migrate \
-  -source "file://$MIGRATIONS_DIR" \
-  -database sqlite3://score.db up
+docker run -v "$MIGRATIONS_DIR":/migrations --network host migrate/migrate \
+    -path=/migrations/ \
+    -database "$DATABASE_URL" up

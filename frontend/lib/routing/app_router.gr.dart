@@ -10,13 +10,32 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:auto_route/auto_route.dart' as _i5;
 import 'package:flutter/material.dart' as _i6;
-import 'package:score/features/auth/widgets/log_in_screen.dart' as _i1;
+import 'package:score/features/auth/widgets/log_in_screen.dart' as _i2;
 import 'package:score/features/auth/widgets/user_info_screen.dart' as _i4;
-import 'package:score/features/logging/widgets/logs_screen.dart' as _i2;
-import 'package:score/features/scores/widgets/score_list_screen.dart' as _i3;
+import 'package:score/features/logging/widgets/logs_screen.dart' as _i3;
+import 'package:score/features/scores/widgets/home_screen.dart' as _i1;
 
 /// generated route for
-/// [_i1.LogInScreen]
+/// [_i1.HomeScreen]
+class HomeRoute extends _i5.PageRouteInfo<void> {
+  const HomeRoute({List<_i5.PageRouteInfo>? children})
+      : super(
+          HomeRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'HomeRoute';
+
+  static _i5.PageInfo page = _i5.PageInfo(
+    name,
+    builder: (data) {
+      return const _i1.HomeScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [_i2.LogInScreen]
 class LogInRoute extends _i5.PageRouteInfo<LogInRouteArgs> {
   LogInRoute({
     _i6.Key? key,
@@ -37,7 +56,7 @@ class LogInRoute extends _i5.PageRouteInfo<LogInRouteArgs> {
     name,
     builder: (data) {
       final args = data.argsAs<LogInRouteArgs>();
-      return _i1.LogInScreen(
+      return _i2.LogInScreen(
         key: args.key,
         redirect: args.redirect,
       );
@@ -62,7 +81,7 @@ class LogInRouteArgs {
 }
 
 /// generated route for
-/// [_i2.LogsScreen]
+/// [_i3.LogsScreen]
 class LogsRoute extends _i5.PageRouteInfo<void> {
   const LogsRoute({List<_i5.PageRouteInfo>? children})
       : super(
@@ -75,26 +94,7 @@ class LogsRoute extends _i5.PageRouteInfo<void> {
   static _i5.PageInfo page = _i5.PageInfo(
     name,
     builder: (data) {
-      return const _i2.LogsScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [_i3.ScoreListScreen]
-class ScoreListRoute extends _i5.PageRouteInfo<void> {
-  const ScoreListRoute({List<_i5.PageRouteInfo>? children})
-      : super(
-          ScoreListRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'ScoreListRoute';
-
-  static _i5.PageInfo page = _i5.PageInfo(
-    name,
-    builder: (data) {
-      return const _i3.ScoreListScreen();
+      return const _i3.LogsScreen();
     },
   );
 }

@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:get_it/get_it.dart';
+import 'package:oidc/oidc.dart';
 import 'package:score/app.dart';
 import 'package:score/features/auth/get_it.dart';
 import 'package:score/features/logging/get_it.dart';
@@ -27,7 +28,14 @@ Future<void> run() async {
   registerApp();
 
   logger.info('initializing app');
-  final app = await GetIt.I.getAsync<App>();
+  final App app;
+  try {
+    app = await GetIt.I.getAsync<App>();
+  } on OidcException catch (error, stacktrace) {
+    logger.wtf('error while creating app', error, stacktrace);
+    runApp(App.error(error: error));
+    return;
+  }
   logger.info('run app');
   runApp(app);
 }

@@ -3,8 +3,8 @@
     <module name="score" />
     <working_directory value="$PROJECT_DIR$" />
     <envs>
-      <env name="MEILI_API_KEY" value="masterKey" />
-      <env name="MEILI_HOST" value="http://localhost:7703" />
+      <env name="DB_CONNECTION_STRING" value="user=postgres password=postgres host=localhost port=7432 dbname=score pool_max_conns=10" />
+      <env name="JWT_ISSUER" value="http://localhost:7003" />
       <env name="SCORES_REPOSITORY" value="git@github.com:wim07101993/scores.git" />
     </envs>
     <kind value="DIRECTORY" />

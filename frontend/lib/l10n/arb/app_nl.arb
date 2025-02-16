@@ -1,4 +1,5 @@
 {
+    "couldNotFetchDiscoveryDocumentErrorMessage": "Failed to connect to authentication server. Are you connected to the internet?",
     "userInfoScreenTitle": "Gebruikers info",
     "loginButtonText": "LOG IN",
     "logoutButtonText": "LOG OUT",

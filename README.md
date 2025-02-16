@@ -7,8 +7,8 @@
 - GoLang version 1.21 
     - SDK to develop go applications
   - https://go.dev/dl/
-- Migrate
-  - Migration tool for migrating sql databases
+- Docker
+  - Tool for running software containers
   - `$ go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest`
 - Protoc
   - Tool for generating code from proto files
@@ -28,7 +28,7 @@ The database is an SQLite file.
 #### Add migrations
 
 ```bash
-$ migrate create -ext .sql -dir backend/db/migrations -seq $NAME_OF_YOUR_MIGRATION
+$ backend/scripts/create_migration.sh $NAME_OF_YOUR_MIGRATION
 ```
 
 #### Run migrations

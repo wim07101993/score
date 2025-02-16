@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  cbl_flutter_ce
   oidc_linux
   url_launcher_linux
   window_to_front

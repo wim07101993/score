@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"os"
-	"score/backend/pkgs/musicxml"
+	"score/backend/internal/musicxml"
 )
 
 var opts struct {

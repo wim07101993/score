@@ -1,9 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log/slog"
@@ -11,15 +12,17 @@ import (
 	"net/http"
 	"os"
 	"score/backend/api/generated/github.com/wim07101993/score/api"
-	"score/backend/pkgs/auth"
-	"score/backend/pkgs/blob"
-	"score/backend/pkgs/indexing"
-	"score/backend/pkgs/logging"
-	"score/backend/pkgs/search"
+	"score/backend/internal/auth"
+	"score/backend/internal/blob"
+	"score/backend/internal/database"
+	"score/backend/internal/indexing"
+	"score/backend/internal/logging"
+	"score/backend/internal/search"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 var cfg Config
+var pgPool *pgxpool.Pool
 
 func main() {
 	if err := cfg.FromFile(); err != nil {
@@ -29,6 +32,13 @@ func main() {
 		panic(err)
 	}
 	if err := cfg.Validate(); err != nil {
+		panic(err)
+	}
+	logger.Debug("starting application with config", slog.Any("config", cfg))
+
+	var err error
+	pgPool, err = pgxpool.New(context.Background(), cfg.DbConnectionString)
+	if err != nil {
 		panic(err)
 	}
 
@@ -48,32 +58,22 @@ func main() {
 
 func serveGrpc() {
 	logger.Info("starting gRPC server")
-	gitStore := blob.NewGitFileStore(logger, cfg.ScoresRepository)
 
-	_, searchDb := createDb()
-
-	indexerServer := indexing.NewIndexerServer(logger, gitStore, searchDb)
+	indexerServer := indexing.NewIndexerServer(logger, createGitBlobStore, createScoresDb)
 	searchServer := search.NewSearcherServer(logger)
 
-	authConfigs, err := cfg.AuthConfigs()
-	if err != nil {
-		logger.Error("failed to load auth configs")
-		panic(err)
-	}
-
-	jwkCache, err := auth.CreateJwkCache(authConfigs)
+	jwkSet, err := auth.CreateJwkCache(cfg.JwtIssuer)
 	if err != nil {
 		logger.Error("failed to create jwk cache")
 		panic(err)
 	}
 
-	jwkSets := auth.JwkCachedSets(authConfigs, jwkCache)
-	authUnaryInterceptor, err := auth.AuthUnaryInterceptor(jwkSets)
+	authUnaryInterceptor, err := auth.UnaryInterceptor(cfg.JwtIssuer, jwkSet)
 	if err != nil {
 		panic(err)
 	}
 
-	authStreamInterceptor, err := auth.AuthStreamInterceptor(jwkSets)
+	authStreamInterceptor, err := auth.StreamInterceptor(cfg.JwtIssuer, jwkSet)
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +108,7 @@ func serveGrpc() {
 		}
 	}()
 
-	logger.Info("start listening for gRPC requests")
+	logger.Info("start listening for grpc requests", slog.String("addr", addr))
 
 	if err := serv.Serve(list); err != nil {
 		logger.Error("failed to serve score scoresIndex",
@@ -123,26 +123,21 @@ func serveHttp() {
 	serv.RegisterRoutes()
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
+	logger.Info("start listening for http requests", slog.String("addr", addr))
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err))
 	}
 }
 
-func createDb() (auth.UsersDb, search.Db) {
-	db, err := sqlx.Connect("sqlite3", "score.db")
+func createGitBlobStore(ctx context.Context) (*blob.GitFileStore, error) {
+	return blob.NewGitFileStore(ctx, logger, cfg.ScoresRepository), nil
+}
+
+func createScoresDb(ctx context.Context) (*database.ScoresDB, error) {
+	pgConn, err := pgPool.Acquire(ctx)
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "failed to create database connection")
 	}
-
-	userDb := auth.NewUsersDb(logger, db)
-	searchDb := search.NewDb(logger, db)
-
-	if cfg.InitialUserAdminEmailAddress != "" {
-		if err = userDb.EnsureUserAdmin(cfg.InitialUserAdminEmailAddress); err != nil {
-			panic(err)
-		}
-	}
-
-	return userDb, searchDb
+	return database.NewScoresDB(logger, pgConn), nil
 }

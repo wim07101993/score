@@ -13,12 +13,11 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes {
     return [
-      RedirectRoute(path: '/', redirectTo: '/scores'),
       AutoRoute(
-        page: ScoreListRoute.page,
+        page: HomeRoute.page,
         guards: [loggedInGuard],
         initial: true,
-        path: '/scores',
+        path: '/',
       ),
       AutoRoute(page: LogInRoute.page, path: '/log-in'),
       AutoRoute(page: UserInfoRoute.page, path: '/user-info'),

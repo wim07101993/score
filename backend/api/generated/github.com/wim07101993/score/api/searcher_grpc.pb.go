@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SearcherClient interface {
-	SearchScores(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
+	GetScores(ctx context.Context, in *GetScoresRequest, opts ...grpc.CallOption) (Searcher_GetScoresClient, error)
 }
 
 type searcherClient struct {
@@ -33,20 +33,43 @@ func NewSearcherClient(cc grpc.ClientConnInterface) SearcherClient {
 	return &searcherClient{cc}
 }
 
-func (c *searcherClient) SearchScores(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
-	out := new(SearchResponse)
-	err := c.cc.Invoke(ctx, "/score.Searcher/SearchScores", in, out, opts...)
+func (c *searcherClient) GetScores(ctx context.Context, in *GetScoresRequest, opts ...grpc.CallOption) (Searcher_GetScoresClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Searcher_ServiceDesc.Streams[0], "/score.Searcher/GetScores", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &searcherGetScoresClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Searcher_GetScoresClient interface {
+	Recv() (*ScoresPage, error)
+	grpc.ClientStream
+}
+
+type searcherGetScoresClient struct {
+	grpc.ClientStream
+}
+
+func (x *searcherGetScoresClient) Recv() (*ScoresPage, error) {
+	m := new(ScoresPage)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // SearcherServer is the server API for Searcher service.
 // All implementations must embed UnimplementedSearcherServer
 // for forward compatibility
 type SearcherServer interface {
-	SearchScores(context.Context, *SearchRequest) (*SearchResponse, error)
+	GetScores(*GetScoresRequest, Searcher_GetScoresServer) error
 	mustEmbedUnimplementedSearcherServer()
 }
 
@@ -54,8 +77,8 @@ type SearcherServer interface {
 type UnimplementedSearcherServer struct {
 }
 
-func (UnimplementedSearcherServer) SearchScores(context.Context, *SearchRequest) (*SearchResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SearchScores not implemented")
+func (UnimplementedSearcherServer) GetScores(*GetScoresRequest, Searcher_GetScoresServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetScores not implemented")
 }
 func (UnimplementedSearcherServer) mustEmbedUnimplementedSearcherServer() {}
 
@@ -70,22 +93,25 @@ func RegisterSearcherServer(s grpc.ServiceRegistrar, srv SearcherServer) {
 	s.RegisterService(&Searcher_ServiceDesc, srv)
 }
 
-func _Searcher_SearchScores_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _Searcher_GetScores_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetScoresRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(SearcherServer).SearchScores(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/score.Searcher/SearchScores",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SearcherServer).SearchScores(ctx, req.(*SearchRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(SearcherServer).GetScores(m, &searcherGetScoresServer{stream})
+}
+
+type Searcher_GetScoresServer interface {
+	Send(*ScoresPage) error
+	grpc.ServerStream
+}
+
+type searcherGetScoresServer struct {
+	grpc.ServerStream
+}
+
+func (x *searcherGetScoresServer) Send(m *ScoresPage) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // Searcher_ServiceDesc is the grpc.ServiceDesc for Searcher service.
@@ -94,12 +120,13 @@ func _Searcher_SearchScores_Handler(srv interface{}, ctx context.Context, dec fu
 var Searcher_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "score.Searcher",
 	HandlerType: (*SearcherServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "SearchScores",
-			Handler:    _Searcher_SearchScores_Handler,
+			StreamName:    "GetScores",
+			Handler:       _Searcher_GetScores_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "searcher.proto",
 }

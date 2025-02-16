@@ -17,19 +17,55 @@ class App extends StatelessWidget {
   const App({
     super.key,
     required this.router,
-  });
+  }) : error = null;
 
-  final AppRouter router;
+  const App.error({
+    super.key,
+    required this.error,
+  }) : router = null;
+
+  final AppRouter? router;
+  final Object? error;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    const String title = 'Score';
+    final router = this.router;
+    if (router != null) {
+      return MaterialApp.router(
+        title: title,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: router.config(
+          reevaluateListenable: GetIt.I<ValueListenable<OidcUser?>>(),
+        ),
+      );
+    }
+
+    return MaterialApp(
       title: 'Score',
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: router.config(
-        reevaluateListenable: GetIt.I<ValueListenable<OidcUser?>>(),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Center(
+                child: buildError(AppLocalizations.of(context)!, error),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  Widget buildError(AppLocalizations s, Object? error) {
+    if (error is OidcException &&
+        error.message == "Couldn't fetch the discoveryDocument") {
+      return Text(s.couldNotFetchDiscoveryDocumentErrorMessage);
+    }
+    return Text(s.unknownErrorDialogMessage);
   }
 }

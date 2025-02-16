@@ -1,6 +1,10 @@
 import 'package:score/features/settings/app_settings.dart';
 
 final appSettings = AppSettings(
+  scoreApi: const ScoreApiSettings(
+    host: 'localhost',
+    port: 8900,
+  ),
   auth: AuthSettings(
     clientId: '299986611922337795',
     discoveryDocumentUri: Uri.parse(
