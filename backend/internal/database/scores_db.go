@@ -64,7 +64,18 @@ func (db *ScoresDB) AddScore(ctx context.Context, id string, score *musicxml.Sco
 			@movement_title, @movement_number, 
 			@creators_composers, @creators_lyricists, 
 			@languages, @instruments, 
-			@lastChangedAt, @tags)`
+			@lastChangedAt, @tags)
+		ON CONFLICT (id) DO UPDATE SET 
+			work_title = EXCLUDED.work_title,
+			work_number = EXCLUDED.work_number,
+			movement_title = EXCLUDED.movement_title,
+			movement_number = EXCLUDED.movement_number,
+			creators_composers = EXCLUDED.creators_composers,
+			creators_lyricists = EXCLUDED.creators_lyricists,
+			languages = EXCLUDED.languages,
+			instruments = EXCLUDED.instruments,
+			lastChangedAt = EXCLUDED.lastChangedAt,
+			tags = EXCLUDED.tags`
 
 	_, err := db.conn.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
 		"id":                 id,
