@@ -96,6 +96,10 @@ func StreamInterceptor(issuer string, jwkSet jwk.Set) (grpc.StreamServerIntercep
 		return nil, errors.New("no jwk sets provided. Cannot de auth without auth providers")
 	}
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if strings.Contains(info.FullMethod, "/grpc.reflection") {
+			return handler(srv, stream)
+		}
+
 		authCtx, err := authenticateContext(stream.Context(), issuer, jwkSet)
 		if err != nil {
 			return err

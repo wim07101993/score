@@ -20,15 +20,15 @@ import (
 
 type IndexerServer struct {
 	api.IndexerServer
-	gitStoreFactory func(ctx context.Context) (*blob.GitFileStore, error)
+	gitStoreFactory blob.GitFileStoreFactory
 	logger          *slog.Logger
-	scoresDb        func(ctx context.Context) (*database.ScoresDB, error)
+	scoresDb        database.ScoresDBFactory
 }
 
 func NewIndexerServer(
 	logger *slog.Logger,
-	gitStore func(ctx context.Context) (*blob.GitFileStore, error),
-	scoresDb func(ctx context.Context) (*database.ScoresDB, error)) *IndexerServer {
+	gitStore blob.GitFileStoreFactory,
+	scoresDb database.ScoresDBFactory) *IndexerServer {
 	return &IndexerServer{
 		logger:          logger,
 		gitStoreFactory: gitStore,

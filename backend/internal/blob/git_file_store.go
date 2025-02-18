@@ -19,6 +19,8 @@ var NoIdDelimiterFound = errors.New("no '---' found in file-name which indicate 
 var MultipleIdDelimitersFound = errors.New("multiple '---' found in filename which indicate the start of the id of the score")
 var NoSinceTimeSpecified = errors.New("no 'since' time specified")
 
+type GitFileStoreFactory func(ctx context.Context) (*GitFileStore, error)
+
 type GitFileStore struct {
 	repo   *git.Repository
 	logger *slog.Logger

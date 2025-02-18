@@ -60,7 +60,7 @@ func serveGrpc() {
 	logger.Info("starting gRPC server")
 
 	indexerServer := indexing.NewIndexerServer(logger, createGitBlobStore, createScoresDb)
-	searchServer := search.NewSearcherServer(logger)
+	searchServer := search.NewSearcherServer(logger, createScoresDb)
 
 	jwkSet, err := auth.CreateJwkCache(cfg.JwtIssuer)
 	if err != nil {
