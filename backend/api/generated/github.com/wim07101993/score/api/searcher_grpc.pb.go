@@ -24,7 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SearcherClient interface {
 	GetScore(ctx context.Context, in *GetScoreRequest, opts ...grpc.CallOption) (*Score, error)
-	GetScores(ctx context.Context, in *GetScoresRequest, opts ...grpc.CallOption) (Searcher_GetScoresClient, error)
+	GetAllScores(ctx context.Context, in *GetScoresRequest, opts ...grpc.CallOption) (Searcher_GetAllScoresClient, error)
 	GetFavourites(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Searcher_GetFavouritesClient, error)
 }
 
@@ -45,12 +45,12 @@ func (c *searcherClient) GetScore(ctx context.Context, in *GetScoreRequest, opts
 	return out, nil
 }
 
-func (c *searcherClient) GetScores(ctx context.Context, in *GetScoresRequest, opts ...grpc.CallOption) (Searcher_GetScoresClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Searcher_ServiceDesc.Streams[0], "/score.Searcher/GetScores", opts...)
+func (c *searcherClient) GetAllScores(ctx context.Context, in *GetScoresRequest, opts ...grpc.CallOption) (Searcher_GetAllScoresClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Searcher_ServiceDesc.Streams[0], "/score.Searcher/GetAllScores", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &searcherGetScoresClient{stream}
+	x := &searcherGetAllScoresClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -60,16 +60,16 @@ func (c *searcherClient) GetScores(ctx context.Context, in *GetScoresRequest, op
 	return x, nil
 }
 
-type Searcher_GetScoresClient interface {
+type Searcher_GetAllScoresClient interface {
 	Recv() (*ScoresPage, error)
 	grpc.ClientStream
 }
 
-type searcherGetScoresClient struct {
+type searcherGetAllScoresClient struct {
 	grpc.ClientStream
 }
 
-func (x *searcherGetScoresClient) Recv() (*ScoresPage, error) {
+func (x *searcherGetAllScoresClient) Recv() (*ScoresPage, error) {
 	m := new(ScoresPage)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (x *searcherGetFavouritesClient) Recv() (*FavouritesPage, error) {
 // for forward compatibility
 type SearcherServer interface {
 	GetScore(context.Context, *GetScoreRequest) (*Score, error)
-	GetScores(*GetScoresRequest, Searcher_GetScoresServer) error
+	GetAllScores(*GetScoresRequest, Searcher_GetAllScoresServer) error
 	GetFavourites(*emptypb.Empty, Searcher_GetFavouritesServer) error
 	mustEmbedUnimplementedSearcherServer()
 }
@@ -126,8 +126,8 @@ type UnimplementedSearcherServer struct {
 func (UnimplementedSearcherServer) GetScore(context.Context, *GetScoreRequest) (*Score, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetScore not implemented")
 }
-func (UnimplementedSearcherServer) GetScores(*GetScoresRequest, Searcher_GetScoresServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetScores not implemented")
+func (UnimplementedSearcherServer) GetAllScores(*GetScoresRequest, Searcher_GetAllScoresServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetAllScores not implemented")
 }
 func (UnimplementedSearcherServer) GetFavourites(*emptypb.Empty, Searcher_GetFavouritesServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetFavourites not implemented")
@@ -163,24 +163,24 @@ func _Searcher_GetScore_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Searcher_GetScores_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Searcher_GetAllScores_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(GetScoresRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(SearcherServer).GetScores(m, &searcherGetScoresServer{stream})
+	return srv.(SearcherServer).GetAllScores(m, &searcherGetAllScoresServer{stream})
 }
 
-type Searcher_GetScoresServer interface {
+type Searcher_GetAllScoresServer interface {
 	Send(*ScoresPage) error
 	grpc.ServerStream
 }
 
-type searcherGetScoresServer struct {
+type searcherGetAllScoresServer struct {
 	grpc.ServerStream
 }
 
-func (x *searcherGetScoresServer) Send(m *ScoresPage) error {
+func (x *searcherGetAllScoresServer) Send(m *ScoresPage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -219,8 +219,8 @@ var Searcher_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetScores",
-			Handler:       _Searcher_GetScores_Handler,
+			StreamName:    "GetAllScores",
+			Handler:       _Searcher_GetAllScores_Handler,
 			ServerStreams: true,
 		},
 		{
