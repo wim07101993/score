@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Score</title>
+    <script src="packages/tailwindcss.min.js"></script>
+    <!--suppress HtmlDeprecatedAttribute -->
+    <style type="text/tailwindcss">
+        @theme {
+            --color-clifford: #da373d;
+        }
+    </style>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+
+<div id="header">Header</div>
+
+<h1 class="text-3xl font-bold underline text-clifford">
+    Hello world!
+</h1>
+
+<input type="file" id="file-input"/>
+<output id="file-output"></output>
+
+<div id="musicxml-score"></div>
+
+<script src="index.js"></script>
+<script src="packages/open_sheet_music_display.min.js"></script>
+<script src="musicxml_viewer/musicxml_viewer.js"></script>
+</body>
+</html>
