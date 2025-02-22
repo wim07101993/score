@@ -3,7 +3,7 @@ import 'package:behaviour/behaviour.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/auth/behaviours/log_in.dart';
-import 'package:score/l10n/app_localizations.dart';
+import 'package:score/l10n/arb/app_localizations.dart';
 import 'package:score/shared/widgets/exceptions.dart';
 
 @RoutePage()

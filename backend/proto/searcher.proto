@@ -9,7 +9,7 @@ option go_package = "github.com/wim07101993/score/api";
 
 service Searcher {
   rpc GetScore(GetScoreRequest) returns (Score);
-  rpc GetAllScores(GetScoresRequest) returns (stream ScoresPage);
+  rpc GetScores(GetScoresRequest) returns (stream ScoresPage);
 
   rpc GetFavourites(google.protobuf.Empty) returns (stream FavouritesPage);
 }

@@ -6,15 +6,11 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <cbl_flutter_ce/cbl_flutter_ce.h>
 #include <oidc_linux/oidc_plugin.h>
 #include <url_launcher_linux/url_launcher_plugin.h>
 #include <window_to_front/window_to_front_plugin.h>
 
 void fl_register_plugins(FlPluginRegistry* registry) {
-  g_autoptr(FlPluginRegistrar) cbl_flutter_ce_registrar =
-      fl_plugin_registry_get_registrar_for_plugin(registry, "CblFlutterCe");
-  cbl_flutter_ce_register_with_registrar(cbl_flutter_ce_registrar);
   g_autoptr(FlPluginRegistrar) oidc_linux_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "OidcPlugin");
   oidc_plugin_register_with_registrar(oidc_linux_registrar);

@@ -6,7 +6,8 @@ import 'package:get_it/get_it.dart';
 import 'package:isolated/isolated.dart';
 import 'package:score/features/logging/get_it.dart';
 import 'package:score/features/scores/get_it.dart';
-import 'package:score/shared/api/generated/searcher.pb.dart';
+import 'package:score/shared/api/background/fetch_score_changes.dart';
+import 'package:score/shared/api/background/get_it.dart';
 
 const String isolateName = 'apiIsolate';
 
@@ -29,6 +30,7 @@ Future<void> _backgroundMain(IsolateBundleConfiguration config) async {
   logger.info('registering dependencies');
 
   registerScoreDependencies();
+  registerApi();
 
   logger.info('initializing background isolate loop');
   config.activateOnCurrentIsolate<Object>(
@@ -37,9 +39,10 @@ Future<void> _backgroundMain(IsolateBundleConfiguration config) async {
   );
 }
 
-Future<void> handleMessage(Object message) async {
+void handleMessage(Object message) {
   switch (message) {
-    case final GetScoresRequest getScoresRequest:
+    case final FetchScoreChangesParams fetchScoreMessageParams:
+      GetIt.I<FetchScoreChanges>()(fetchScoreMessageParams);
   }
 }
 

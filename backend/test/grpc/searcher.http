@@ -7,7 +7,7 @@ Authorization: bearer {{$auth.token("local")}}
 }
 
 ### Retrieves all scores from the api
-GRPC {{host}}/score.Searcher/GetAllScores
+GRPC {{host}}/score.Searcher/GetScores
 Authorization: bearer {{$auth.token("local")}}
 
 {

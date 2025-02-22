@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:score/l10n/app_localizations.dart';
+import 'package:score/l10n/arb/app_localizations.dart';
 
 Future<void> showUnknownErrorDialog(BuildContext context) {
   final s = AppLocalizations.of(context)!;

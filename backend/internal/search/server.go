@@ -41,7 +41,7 @@ func (serv *SearcherServer) GetScore(ctx context.Context, request *api.GetScoreR
 	return score, nil
 }
 
-func (serv *SearcherServer) GetAllScores(req *api.GetScoresRequest, srv api.Searcher_GetAllScoresServer) error {
+func (serv *SearcherServer) GetScores(req *api.GetScoresRequest, srv api.Searcher_GetScoresServer) error {
 	db, err := serv.db(srv.Context())
 	if err != nil {
 		serv.logger.Error("failed to connect to the database", slog.Any("error", err))

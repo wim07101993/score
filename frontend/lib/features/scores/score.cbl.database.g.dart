@@ -34,6 +34,30 @@ class ScoresDatabase extends $ScoresDatabase {
           path: ['type'],
         ),
       ),
+      TypedDocumentMetadata<Work, MutableWork>(
+        dartName: 'Work',
+        factory: ImmutableWork.internal,
+        mutableFactory: MutableWork.internal,
+        typeMatcher: const ValueTypeMatcher(
+          path: ['type'],
+        ),
+      ),
+      TypedDocumentMetadata<Movement, MutableMovement>(
+        dartName: 'Movement',
+        factory: ImmutableMovement.internal,
+        mutableFactory: MutableMovement.internal,
+        typeMatcher: const ValueTypeMatcher(
+          path: ['type'],
+        ),
+      ),
+      TypedDocumentMetadata<Creators, MutableCreators>(
+        dartName: 'Creators',
+        factory: ImmutableCreators.internal,
+        mutableFactory: MutableCreators.internal,
+        typeMatcher: const ValueTypeMatcher(
+          path: ['type'],
+        ),
+      ),
     ],
   );
 }

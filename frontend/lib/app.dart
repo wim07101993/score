@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:oidc/oidc.dart';
-import 'package:score/l10n/app_localizations.dart';
+import 'package:score/l10n/arb/app_localizations.dart';
 import 'package:score/routing/app_router.dart';
 
 void registerApp() {
