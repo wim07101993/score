@@ -60,32 +60,32 @@ func serveGrpc() {
 	logger.Info("starting gRPC server")
 
 	indexerServer := indexing.NewIndexerServer(logger, createGitBlobStore, createScoresDb)
-	searchServer := search.NewSearcherServer(logger, createScoresDb)
+	searchServer := search.NewSearcherGrpcServer(logger, createScoresDb)
 
-	jwkSet, err := auth.CreateJwkCache(cfg.JwtIssuer)
-	if err != nil {
-		logger.Error("failed to create jwk cache")
-		panic(err)
-	}
-
-	authUnaryInterceptor, err := auth.UnaryInterceptor(cfg.JwtIssuer, jwkSet)
-	if err != nil {
-		panic(err)
-	}
-
-	authStreamInterceptor, err := auth.StreamInterceptor(cfg.JwtIssuer, jwkSet)
-	if err != nil {
-		panic(err)
-	}
+	//jwkSet, err := auth.CreateJwkCache(cfg.JwtIssuer)
+	//if err != nil {
+	//	logger.Error("failed to create jwk cache")
+	//	panic(err)
+	//}
+	//
+	//authUnaryInterceptor, err := auth.UnaryInterceptor(cfg.JwtIssuer, jwkSet)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//authStreamInterceptor, err := auth.StreamInterceptor(cfg.JwtIssuer, jwkSet)
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	serv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			logging.LoggingUnaryInterceptor(logger),
-			authUnaryInterceptor,
+			//authUnaryInterceptor,
 		),
 		grpc.ChainStreamInterceptor(
 			logging.LoggingStreamInterceptor(logger),
-			authStreamInterceptor,
+			//authStreamInterceptor,
 		),
 	)
 
@@ -119,8 +119,11 @@ func serveGrpc() {
 
 func serveHttp() {
 	logger.Info("starting http server")
-	serv := auth.NewAuthorizerServer(logger)
-	serv.RegisterRoutes()
+	authServ := auth.NewAuthorizerServer(logger)
+	authServ.RegisterRoutes()
+
+	scoreServ := search.NewSearcherHttpServer(logger, createScoresDb)
+	scoreServ.RegisterRoutes()
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
 	logger.Info("start listening for http requests", slog.String("addr", addr))
