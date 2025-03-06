@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:behaviour/behaviour.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 
@@ -77,5 +79,14 @@ class BehaviourLogObject {
       'message': message,
       'attributes': attributes,
     };
+  }
+
+  @override
+  String toString() {
+    final attributes = this.attributes;
+    if (attributes == null || attributes.isEmpty) {
+      return message;
+    }
+    return '$message: ${jsonEncode(attributes)}';
   }
 }

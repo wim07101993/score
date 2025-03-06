@@ -13,35 +13,53 @@ void registerApp() {
   );
 }
 
-class App extends StatelessWidget {
-  const App({
-    super.key,
+// ignore: avoid_implementing_value_types
+abstract class App implements Widget {
+  factory App({
+    required AppRouter router,
+  }) {
+    return _App(
+      router: router,
+    );
+  }
+
+  factory App.error({
+    required Object? error,
+  }) {
+    return _ErrorApp(error: error);
+  }
+}
+
+class _App extends StatelessWidget implements App {
+  const _App({
     required this.router,
-  }) : error = null;
+  });
 
-  const App.error({
-    super.key,
-    required this.error,
-  }) : router = null;
-
-  final AppRouter? router;
-  final Object? error;
+  final AppRouter router;
 
   @override
   Widget build(BuildContext context) {
     const String title = 'Score';
-    final router = this.router;
-    if (router != null) {
-      return MaterialApp.router(
-        title: title,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        routerConfig: router.config(
-          reevaluateListenable: GetIt.I<ValueListenable<OidcUser?>>(),
-        ),
-      );
-    }
+    return MaterialApp.router(
+      title: title,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: router.config(
+        reevaluateListenable: GetIt.I<ValueListenable<OidcUser?>>(),
+      ),
+    );
+  }
+}
 
+class _ErrorApp extends StatelessWidget implements App {
+  const _ErrorApp({
+    required this.error,
+  });
+
+  final Object? error;
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Score',
       localizationsDelegates: AppLocalizations.localizationsDelegates,

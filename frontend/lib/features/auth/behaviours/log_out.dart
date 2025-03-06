@@ -12,5 +12,5 @@ class LogOut extends BehaviourWithoutInput<void> {
   final OidcUserManager userManager;
 
   @override
-  FutureOr<void> action(BehaviourTrack? track) => userManager.logout();
+  Future<void> action(BehaviourTrack? track) => userManager.logout();
 }

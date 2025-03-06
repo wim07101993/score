@@ -1,6 +1,7 @@
 name: score
 
 services:
+  # Default credentials for admin console: email: zitadel-admin@zitadel.localhost, password: Password1!
   zitadel:
     # The user should have the permission to write to ./machinekey
 #    user: "${UID:-1000}"

@@ -6,7 +6,7 @@ final appSettings = AppSettings(
     port: 8900,
   ),
   auth: AuthSettings(
-    clientId: '299986611922337795',
+    clientId: '309755485458857987',
     discoveryDocumentUri: Uri.parse(
       'http://localhost:7003/.well-known/openid-configuration',
     ),

@@ -22,9 +22,12 @@ void registerAuthDependencies() {
     await manager.init();
     return manager;
   });
-  GetIt.I.registerFactory<ValueListenable<OidcUser?>>(
+  GetIt.I.registerLazySingleton<ValueListenable<OidcUser?>>(
     () => StreamListenable.nullable<OidcUser?>(
-      stream: GetIt.I.get<OidcUserManager>().userChanges(),
+      stream: GetIt.I
+          .getAsync<OidcUserManager>()
+          .asStream()
+          .asyncExpand((user) => user.userChanges()),
     ),
   );
 

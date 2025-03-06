@@ -1,49 +1,53 @@
-import 'package:cbl/cbl.dart';
+class Score {
+  const Score({
+    required this.id,
+    required this.work,
+    required this.movement,
+    required this.creators,
+    required this.instruments,
+    required this.languages,
+    required this.tags,
+    required this.lastChangeTimestamp,
+    required this.isFavourite,
+  });
 
-export 'score.cbl.database.g.dart';
-
-part 'score.cbl.type.g.dart';
-
-@TypedDatabase(types: {Score, Work, Movement, Creators})
-abstract class $ScoresDatabase {}
-
-@TypedDocument()
-abstract class Score with _$Score {
-  factory Score({
-    @DocumentId() required String id,
-    required Work? work,
-    required Movement? movement,
-    required Creators creators,
-    required List<String> instruments,
-    required List<String> languages,
-    required List<String> tags,
-    required DateTime lastChangeTimestamp,
-    required bool isFavourite,
-  }) = MutableScore;
-
-  static const String lastChangeTimestampPropertyName = 'lastChangeTimestamp';
+  final String id;
+  final Work? work;
+  final Movement? movement;
+  final Creators creators;
+  final List<String> instruments;
+  final List<String> languages;
+  final List<String> tags;
+  final DateTime lastChangeTimestamp;
+  final bool isFavourite;
 }
 
-@TypedDocument()
-abstract class Work with _$Work {
-  factory Work({
-    required String title,
-    required String number,
-  }) = MutableWork;
+class Work {
+  const Work({
+    required this.title,
+    required this.number,
+  });
+
+  final String title;
+  final String number;
 }
 
-@TypedDocument()
-abstract class Movement with _$Movement {
-  factory Movement({
-    required String title,
-    required String number,
-  }) = MutableMovement;
+class Movement {
+  const Movement({
+    required this.title,
+    required this.number,
+  });
+
+  final String title;
+  final String number;
 }
 
-@TypedDocument()
-abstract class Creators with _$Creators {
-  factory Creators({
-    required List<String> composers,
-    required List<String> lyricists,
-  }) = MutableCreators;
+class Creators {
+  const Creators({
+    required this.composers,
+    required this.lyricists,
+  });
+
+  final List<String> composers;
+  final List<String> lyricists;
 }

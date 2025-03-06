@@ -14,13 +14,17 @@ class ScoreList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PagedListView(
-      pagingController: pagingController,
-      scrollDirection: scrollDirection,
-      builderDelegate: PagedChildBuilderDelegate(
-        itemBuilder: (context, item, index) {
-          return Text(index.toString());
-        },
+    return PagingListener(
+      controller: pagingController,
+      builder: (context, state, fetchNextPage) => PagedListView(
+        state: state,
+        scrollDirection: scrollDirection,
+        fetchNextPage: fetchNextPage,
+        builderDelegate: PagedChildBuilderDelegate(
+          itemBuilder: (context, item, index) {
+            return Text(index.toString());
+          },
+        ),
       ),
     );
   }

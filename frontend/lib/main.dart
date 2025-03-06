@@ -8,7 +8,9 @@ import 'package:oidc/oidc.dart';
 import 'package:score/app.dart';
 import 'package:score/features/auth/get_it.dart';
 import 'package:score/features/logging/get_it.dart';
+import 'package:score/features/scores/get_it.dart';
 import 'package:score/routing/get_it.dart';
+import 'package:score/shared/api/get_it.dart';
 
 void main() {
   runZonedGuarded(run, onError);
@@ -25,11 +27,14 @@ Future<void> run() async {
 
   registerAuthDependencies();
   registerRouterDependencies();
+  registerScoreDependencies();
+  registerApi();
   registerApp();
 
   logger.info('initializing app');
   final App app;
   try {
+    GetIt.I<ScoreSyncer>().start();
     app = await GetIt.I.getAsync<App>();
   } on OidcException catch (error, stacktrace) {
     logger.wtf('error while creating app', error, stacktrace);
@@ -40,7 +45,7 @@ Future<void> run() async {
   runApp(app);
 }
 
-FutureOr<void> onError(Object error, StackTrace stackTrace) {
+void onError(Object error, StackTrace stackTrace) {
   if (!GetIt.I.isRegistered<Logger>()) {
     log(
       'error in main',
@@ -48,7 +53,7 @@ FutureOr<void> onError(Object error, StackTrace stackTrace) {
       stackTrace: stackTrace,
       level: Level.SHOUT.value,
     );
-    return null;
+    return;
   }
 
   try {
