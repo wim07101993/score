@@ -37,7 +37,7 @@ func (db *ScoresDB) AddScore(ctx context.Context, id string, score *musicxml.Sco
 		}
 	}
 
-	const insertScoreQuery = `
+	const query = `
 		INSERT INTO scores (
 			id, 
 			work_title, work_number, 
@@ -64,7 +64,8 @@ func (db *ScoresDB) AddScore(ctx context.Context, id string, score *musicxml.Sco
 			lastChangedAt = EXCLUDED.lastChangedAt,
 			tags = EXCLUDED.tags`
 
-	_, err := db.conn.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
+	db.logger.Debug("Executing query", slog.String("query", query))
+	_, err := db.conn.Exec(ctx, query, pgx.NamedArgs{
 		"id":                 id,
 		"work_title":         score.Work.Title,
 		"work_number":        score.Work.Number,

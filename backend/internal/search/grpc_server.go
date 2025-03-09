@@ -50,6 +50,11 @@ func (serv *SearcherGrpcServer) GetScores(req *api.GetScoresRequest, srv api.Sea
 		return status.Error(codes.Internal, "failed to connect to database")
 	}
 
+	var pageSize int32 = 10
+	if req.PageSize != nil {
+		pageSize = *req.PageSize
+	}
+
 	var changedSince *time.Time
 	if req.ChangedSince != nil {
 		t := req.ChangedSince.AsTime()
@@ -62,13 +67,18 @@ func (serv *SearcherGrpcServer) GetScores(req *api.GetScoresRequest, srv api.Sea
 		return status.Error(codes.Internal, "failed to lookup score")
 	}
 
+	if pageSize == 0 {
+		// if no scores are requested, we do not need to go the database
+		return nil
+	}
+
 	results, err := db.GetAllScores(srv.Context(), 0, changedSince)
 	if err != nil {
 		serv.logger.Error("failed to query all scores", slog.Any("error", err))
 		return status.Error(codes.Internal, "failed to lookup score")
 	}
 
-	scores := make([]*api.Score, req.PageSize)
+	scores := make([]*api.Score, pageSize)
 	var i int32
 	for result := range results {
 		if result.Err != nil {
@@ -78,13 +88,13 @@ func (serv *SearcherGrpcServer) GetScores(req *api.GetScoresRequest, srv api.Sea
 
 		scores[i] = result.Score
 		i++
-		if i == math.MaxInt32 || i >= req.PageSize {
+		if i == math.MaxInt32 || i >= pageSize {
 			page := &api.ScoresPage{TotalHits: count, Scores: scores}
 			if err = srv.Send(page); err != nil {
 				serv.logger.Error("failed to respond scores page", slog.Any("error", err))
 				return status.Error(codes.Internal, "failed to respond scores page")
 			}
-			scores = make([]*api.Score, req.PageSize)
+			scores = make([]*api.Score, pageSize)
 			i = 0
 		}
 	}

@@ -7,6 +7,7 @@ import 'package:oidc/oidc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:score/features/logging/get_it.dart';
 import 'package:score/features/scores/behaviours/fetch_scores_if_old.dart';
+import 'package:score/features/scores/database_extensions.dart';
 
 void registerScoreDependencies() {
   GetIt.I.registerLazySingletonAsync(
@@ -29,6 +30,7 @@ void registerScoreDependencies() {
       final path = '${dir.path}/scores.db';
       final client = LibsqlClient(path);
       await client.connect();
+      await client.applyScoreMigrations();
       return client;
     },
     dispose: (database) => database.dispose(),

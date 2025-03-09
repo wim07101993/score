@@ -20,7 +20,7 @@ message GetScoreRequest{
 
 message GetScoresRequest {
   optional google.protobuf.Timestamp changed_since = 1;
-  int32 page_size = 2;
+  optional int32 page_size = 2;
 }
 
 message ScoresPage {

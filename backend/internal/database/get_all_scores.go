@@ -4,14 +4,16 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"iter"
+	"log/slog"
 	"score/backend/api/generated/github.com/wim07101993/score/api"
 	"strconv"
 	"time"
 )
 
 type ScoreResult struct {
-	Score *api.Score
-	Err   error
+	Score  *api.Score
+	Logger slog.Logger
+	Err    error
 }
 
 func (db *ScoresDB) GetScoresCount(
@@ -19,16 +21,17 @@ func (db *ScoresDB) GetScoresCount(
 	changedSince *time.Time) (int64, error) {
 	db.logger.Info("getting score count")
 
-	countQuery := `SELECT COUNT(*) FROM scores`
+	query := `SELECT COUNT(*) FROM scores AS score`
 	var params []any
 
 	if changedSince != nil {
-		countQuery += " WHERE score.lastchangedat >= $1 "
+		query += " WHERE score.lastchangedat >= $1 "
 		params = append(params, changedSince)
 	}
 
 	var count int64
-	err := db.conn.QueryRow(ctx, countQuery).Scan(&count)
+	db.logger.Debug("Executing query", slog.String("query", query))
+	err := db.conn.QueryRow(ctx, query, params...).Scan(&count)
 	return count, err
 }
 
@@ -40,19 +43,20 @@ func (db *ScoresDB) GetAllScores(
 
 	var rows pgx.Rows
 
-	scoresQuery := apiScoreSelect
+	query := apiScoreSelect
 	var params []any
 
 	if changedSince != nil {
-		scoresQuery += " WHERE score.lastchangedat >= $1 "
+		query += " WHERE score.lastchangedat >= $1 "
 		params = append(params, changedSince)
 	}
 	if skip != 0 {
-		scoresQuery += " SKIP " + strconv.Itoa(skip)
+		query += " SKIP " + strconv.Itoa(skip)
 	}
-	scoresQuery = scoresQuery + " ORDER BY lastChangedAt DESC "
+	query = query + " ORDER BY lastChangedAt DESC "
 
-	rows, err := db.conn.Query(ctx, scoresQuery, params...)
+	slog.Debug("Executing query", slog.String("query", query))
+	rows, err := db.conn.Query(ctx, query, params...)
 
 	if err != nil {
 		return nil, err

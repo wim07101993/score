@@ -18,9 +18,7 @@ class LoggedInGuard extends AutoRouteGuard {
       resolver.next();
     } else {
       logger.info('user not logged in, redirecting to log-in screen');
-      resolver.redirect(
-        LogInRoute(redirect: (success) => resolver.next(success)),
-      );
+      resolver.redirectUntil(const LogInRoute());
     }
   }
 }

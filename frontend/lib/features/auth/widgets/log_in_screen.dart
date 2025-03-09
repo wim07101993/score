@@ -10,10 +10,7 @@ import 'package:score/shared/widgets/exceptions.dart';
 class LogInScreen extends StatefulWidget {
   const LogInScreen({
     super.key,
-    required this.redirect,
   });
-
-  final Function(bool success) redirect;
 
   @override
   State<LogInScreen> createState() => _LogInScreenState();
@@ -29,7 +26,7 @@ class _LogInScreenState extends State<LogInScreen> {
     }
     exceptionOr.when(
       (exception) => showUnknownError(),
-      (user) => widget.redirect(user != null),
+      (user) {},
     );
   }
 

@@ -7,7 +7,7 @@ class Score {
     required this.instruments,
     required this.languages,
     required this.tags,
-    required this.lastChangeTimestamp,
+    required this.lastChangedAt,
     required this.isFavourite,
   });
 
@@ -18,7 +18,7 @@ class Score {
   final List<String> instruments;
   final List<String> languages;
   final List<String> tags;
-  final DateTime lastChangeTimestamp;
+  final DateTime lastChangedAt;
   final bool isFavourite;
 }
 
