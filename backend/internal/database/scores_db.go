@@ -6,16 +6,20 @@ import (
 	"log/slog"
 )
 
-type ScoresDBFactory func(ctx context.Context) (*ScoresDB, error)
+type ScoresDbFactory func(ctx context.Context) (*ScoresDb, error)
 
-type ScoresDB struct {
+type ScoresDb struct {
 	logger *slog.Logger
 	conn   *pgxpool.Conn
 }
 
-func NewScoresDB(logger *slog.Logger, conn *pgxpool.Conn) *ScoresDB {
-	return &ScoresDB{
+func NewScoresDb(logger *slog.Logger, conn *pgxpool.Conn) *ScoresDb {
+	return &ScoresDb{
 		logger: logger,
 		conn:   conn,
 	}
+}
+
+func (db *ScoresDb) ReleaseConnection() {
+	db.conn.Release()
 }

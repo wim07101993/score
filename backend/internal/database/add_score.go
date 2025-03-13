@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (db *ScoresDB) AddScore(ctx context.Context, id string, score *musicxml.ScorePartwise) error {
+func (db *ScoresDb) AddScore(ctx context.Context, id string, score *musicxml.ScorePartwise) error {
 	db.logger.Info("indexing score document",
 		slog.String("title", score.Work.Title),
 		slog.String("id", id))

@@ -6,7 +6,7 @@ import (
 	"log/slog"
 )
 
-func (db *ScoresDB) RemoveScore(ctx context.Context, id string) error {
+func (db *ScoresDb) RemoveScore(ctx context.Context, id string) error {
 	db.logger.Info("removing score document", slog.String("id", id))
 
 	const query = `DELETE FROM scores WHERE id = $id`

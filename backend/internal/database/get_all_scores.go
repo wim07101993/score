@@ -16,7 +16,7 @@ type ScoreResult struct {
 	Err    error
 }
 
-func (db *ScoresDB) GetScoresCount(
+func (db *ScoresDb) GetScoresCount(
 	ctx context.Context,
 	changedSince *time.Time) (int64, error) {
 	db.logger.Info("getting score count")
@@ -35,7 +35,7 @@ func (db *ScoresDB) GetScoresCount(
 	return count, err
 }
 
-func (db *ScoresDB) GetAllScores(
+func (db *ScoresDb) GetAllScores(
 	ctx context.Context,
 	skip int,
 	changedSince *time.Time) (iter.Seq[ScoreResult], error) {

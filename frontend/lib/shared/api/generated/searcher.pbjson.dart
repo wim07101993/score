@@ -30,18 +30,19 @@ const GetScoresRequest$json = {
   '1': 'GetScoresRequest',
   '2': [
     {'1': 'changed_since', '3': 1, '4': 1, '5': 11, '6': '.google.protobuf.Timestamp', '9': 0, '10': 'changedSince', '17': true},
-    {'1': 'page_size', '3': 2, '4': 1, '5': 5, '10': 'pageSize'},
+    {'1': 'page_size', '3': 2, '4': 1, '5': 5, '9': 1, '10': 'pageSize', '17': true},
   ],
   '8': [
     {'1': '_changed_since'},
+    {'1': '_page_size'},
   ],
 };
 
 /// Descriptor for `GetScoresRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getScoresRequestDescriptor = $convert.base64Decode(
     'ChBHZXRTY29yZXNSZXF1ZXN0EkQKDWNoYW5nZWRfc2luY2UYASABKAsyGi5nb29nbGUucHJvdG'
-    '9idWYuVGltZXN0YW1wSABSDGNoYW5nZWRTaW5jZYgBARIbCglwYWdlX3NpemUYAiABKAVSCHBh'
-    'Z2VTaXplQhAKDl9jaGFuZ2VkX3NpbmNl');
+    '9idWYuVGltZXN0YW1wSABSDGNoYW5nZWRTaW5jZYgBARIgCglwYWdlX3NpemUYAiABKAVIAVII'
+    'cGFnZVNpemWIAQFCEAoOX2NoYW5nZWRfc2luY2VCDAoKX3BhZ2Vfc2l6ZQ==');
 
 @$core.Deprecated('Use scoresPageDescriptor instead')
 const ScoresPage$json = {
@@ -85,28 +86,37 @@ final $typed_data.Uint8List scoreDescriptor = $convert.base64Decode(
 const Work$json = {
   '1': 'Work',
   '2': [
-    {'1': 'title', '3': 1, '4': 1, '5': 9, '10': 'title'},
-    {'1': 'number', '3': 2, '4': 1, '5': 9, '10': 'number'},
+    {'1': 'title', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'title', '17': true},
+    {'1': 'number', '3': 2, '4': 1, '5': 9, '9': 1, '10': 'number', '17': true},
+  ],
+  '8': [
+    {'1': '_title'},
+    {'1': '_number'},
   ],
 };
 
 /// Descriptor for `Work`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List workDescriptor = $convert.base64Decode(
-    'CgRXb3JrEhQKBXRpdGxlGAEgASgJUgV0aXRsZRIWCgZudW1iZXIYAiABKAlSBm51bWJlcg==');
+    'CgRXb3JrEhkKBXRpdGxlGAEgASgJSABSBXRpdGxliAEBEhsKBm51bWJlchgCIAEoCUgBUgZudW'
+    '1iZXKIAQFCCAoGX3RpdGxlQgkKB19udW1iZXI=');
 
 @$core.Deprecated('Use movementDescriptor instead')
 const Movement$json = {
   '1': 'Movement',
   '2': [
-    {'1': 'title', '3': 1, '4': 1, '5': 9, '10': 'title'},
-    {'1': 'number', '3': 2, '4': 1, '5': 9, '10': 'number'},
+    {'1': 'title', '3': 1, '4': 1, '5': 9, '9': 0, '10': 'title', '17': true},
+    {'1': 'number', '3': 2, '4': 1, '5': 9, '9': 1, '10': 'number', '17': true},
+  ],
+  '8': [
+    {'1': '_title'},
+    {'1': '_number'},
   ],
 };
 
 /// Descriptor for `Movement`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List movementDescriptor = $convert.base64Decode(
-    'CghNb3ZlbWVudBIUCgV0aXRsZRgBIAEoCVIFdGl0bGUSFgoGbnVtYmVyGAIgASgJUgZudW1iZX'
-    'I=');
+    'CghNb3ZlbWVudBIZCgV0aXRsZRgBIAEoCUgAUgV0aXRsZYgBARIbCgZudW1iZXIYAiABKAlIAV'
+    'IGbnVtYmVyiAEBQggKBl90aXRsZUIJCgdfbnVtYmVy');
 
 @$core.Deprecated('Use creatorsDescriptor instead')
 const Creators$json = {

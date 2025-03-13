@@ -22,13 +22,13 @@ type IndexerServer struct {
 	api.IndexerServer
 	gitStoreFactory blob.GitFileStoreFactory
 	logger          *slog.Logger
-	scoresDb        database.ScoresDBFactory
+	scoresDb        database.ScoresDbFactory
 }
 
 func NewIndexerServer(
 	logger *slog.Logger,
 	gitStore blob.GitFileStoreFactory,
-	scoresDb database.ScoresDBFactory) *IndexerServer {
+	scoresDb database.ScoresDbFactory) *IndexerServer {
 	return &IndexerServer{
 		logger:          logger,
 		gitStoreFactory: gitStore,
@@ -118,7 +118,7 @@ func validateIndexScoreRequest(request *api.IndexScoresRequest) error {
 	return nil
 }
 
-func indexScore(ctx context.Context, db *database.ScoresDB, file *object.File) error {
+func indexScore(ctx context.Context, db *database.ScoresDb, file *object.File) error {
 	r, err := file.Reader()
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func indexScore(ctx context.Context, db *database.ScoresDB, file *object.File) e
 	return db.AddScore(ctx, id, s)
 }
 
-func removeScore(ctx context.Context, db *database.ScoresDB, file *object.File) error {
+func removeScore(ctx context.Context, db *database.ScoresDb, file *object.File) error {
 	id, err := blob.ScoreIdFromPath(file.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get id from file name: %w", err)

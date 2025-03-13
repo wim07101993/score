@@ -137,10 +137,10 @@ func createGitBlobStore(ctx context.Context) (*blob.GitFileStore, error) {
 	return blob.NewGitFileStore(ctx, logger, cfg.ScoresRepository), nil
 }
 
-func createScoresDb(ctx context.Context) (*database.ScoresDB, error) {
+func createScoresDb(ctx context.Context) (*database.ScoresDb, error) {
 	pgConn, err := pgPool.Acquire(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create database connection")
 	}
-	return database.NewScoresDB(logger, pgConn), nil
+	return database.NewScoresDb(logger, pgConn), nil
 }

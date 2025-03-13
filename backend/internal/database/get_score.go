@@ -6,7 +6,7 @@ import (
 	"score/backend/api/generated/github.com/wim07101993/score/api"
 )
 
-func (db *ScoresDB) GetScore(ctx context.Context, scoreId string) (*api.Score, error) {
+func (db *ScoresDb) GetScore(ctx context.Context, scoreId string) (*api.Score, error) {
 	db.logger.Info("getting score")
 
 	const query = apiScoreSelect + `WHERE score.id = $1`

@@ -14,10 +14,10 @@ import (
 
 type SearcherHttpServer struct {
 	logger *slog.Logger
-	db     database.ScoresDBFactory
+	db     database.ScoresDbFactory
 }
 
-func NewSearcherHttpServer(logger *slog.Logger, db database.ScoresDBFactory) *SearcherHttpServer {
+func NewSearcherHttpServer(logger *slog.Logger, db database.ScoresDbFactory) *SearcherHttpServer {
 	return &SearcherHttpServer{
 		logger: logger,
 		db:     db,
@@ -56,6 +56,7 @@ func (serv *SearcherHttpServer) GetScore(res http.ResponseWriter, req *http.Requ
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
 		return
 	}
+	defer db.ReleaseConnection()
 
 	score, err := db.GetScore(req.Context(), scoreId)
 	if err != nil {
@@ -89,6 +90,7 @@ func (serv *SearcherHttpServer) GetScoresPage(res http.ResponseWriter, req *http
 		http.Error(res, "failed to get scores page", http.StatusInternalServerError)
 		return
 	}
+	defer db.ReleaseConnection()
 
 	pageIndex, err := getPageIndex(req)
 	if err != nil {

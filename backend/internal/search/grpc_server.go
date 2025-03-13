@@ -14,10 +14,10 @@ import (
 type SearcherGrpcServer struct {
 	api.SearcherServer
 	logger *slog.Logger
-	db     database.ScoresDBFactory
+	db     database.ScoresDbFactory
 }
 
-func NewSearcherGrpcServer(logger *slog.Logger, db database.ScoresDBFactory) *SearcherGrpcServer {
+func NewSearcherGrpcServer(logger *slog.Logger, db database.ScoresDbFactory) *SearcherGrpcServer {
 	return &SearcherGrpcServer{
 		logger: logger,
 		db:     db,
@@ -30,6 +30,7 @@ func (serv *SearcherGrpcServer) GetScore(ctx context.Context, request *api.GetSc
 		serv.logger.Error("failed to connect to the database", slog.String("error", err.Error()))
 		return nil, status.Error(codes.Internal, "failed to connect to database")
 	}
+	defer db.ReleaseConnection()
 
 	score, err := db.GetScore(ctx, request.ScoreId)
 	if err != nil {
@@ -49,6 +50,7 @@ func (serv *SearcherGrpcServer) GetScores(req *api.GetScoresRequest, srv api.Sea
 		serv.logger.Error("failed to connect to the database", slog.Any("error", err))
 		return status.Error(codes.Internal, "failed to connect to database")
 	}
+	defer db.ReleaseConnection()
 
 	var pageSize int32 = 10
 	if req.PageSize != nil {

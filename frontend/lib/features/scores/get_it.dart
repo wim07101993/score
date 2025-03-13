@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:behaviour/behaviour.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -28,6 +30,7 @@ void registerScoreDependencies() {
     () async {
       final dir = await getApplicationCacheDirectory();
       final path = '${dir.path}/scores.db';
+      log('database-path: $path');
       final client = LibsqlClient(path);
       await client.connect();
       await client.applyScoreMigrations();

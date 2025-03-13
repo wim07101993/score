@@ -40,13 +40,13 @@ message Score {
 }
 
 message Work {
-  string title = 1;
-  string number = 2;
+  optional string title = 1;
+  optional string number = 2;
 }
 
 message Movement {
-  string title = 1;
-  string number = 2;
+  optional string title = 1;
+  optional string number = 2;
 }
 
 message Creators {
