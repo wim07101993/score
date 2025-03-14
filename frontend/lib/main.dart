@@ -11,6 +11,7 @@ import 'package:score/features/logging/get_it.dart';
 import 'package:score/features/scores/get_it.dart';
 import 'package:score/routing/get_it.dart';
 import 'package:score/shared/api/get_it.dart';
+import 'package:score/shared/libsql/get_it.dart';
 
 void main() {
   runZonedGuarded(run, onError);
@@ -18,6 +19,7 @@ void main() {
 
 Future<void> run() async {
   registerLogging();
+  registerLibsqlDependencies();
 
   final logger = GetIt.I.logger('main');
   final sink = GetIt.I<LogSink>();

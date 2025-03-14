@@ -1,11 +1,12 @@
 import 'package:libsql_dart/libsql_dart.dart';
 import 'package:score/features/scores/score.dart';
+import 'package:score/shared/libsql/converters.dart';
 
-class Tables {
+abstract class Tables {
   static const String scores = 'scores';
 }
 
-class Columns {
+abstract class Columns {
   static const String id = 'id';
   static const String workTitle = 'work_title';
   static const String workNumber = 'work_number';
@@ -20,11 +21,7 @@ class Columns {
   static const String favouritedAt = 'favouritedAt';
 }
 
-extension ScoreMigrations on LibsqlClient {
-  Future<void> applyScoreMigrations() {
-    return _createScoresTable();
-  }
-
+extension ScoreDbExtensions on LibsqlClient {
   Future<DateTime> getLastSyncTime() async {
     final result = await query("""
       SELECT ${Columns.lastChangedAt} 
@@ -113,9 +110,13 @@ extension ScoreMigrations on LibsqlClient {
     );
   }
 
+  Future<void> applyScoreMigrations() {
+    return _createScoresTable();
+  }
+
   Future<void> _createScoresTable() {
     return execute("""
-      CREATE TABLE IF NOT EXISTS scores
+      CREATE TABLE IF NOT EXISTS ${Tables.scores}
       (
           ${Columns.id}                TEXT PRIMARY KEY NOT NULL,
           ${Columns.workTitle}         TEXT,
@@ -131,13 +132,5 @@ extension ScoreMigrations on LibsqlClient {
           ${Columns.favouritedAt}      TIMESTAMP
       );
     """);
-  }
-
-  DateTime sqlStringToDateTime(String str) {
-    return DateTime.parse(str.replaceAll(' ', 'T'));
-  }
-
-  String dateTimeToSqlDateTime(DateTime dt) {
-    return dt.toIso8601String().replaceAll('T', ' ');
   }
 }

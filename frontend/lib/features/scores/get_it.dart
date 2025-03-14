@@ -1,15 +1,10 @@
-import 'dart:developer';
-
 import 'package:behaviour/behaviour.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
-import 'package:libsql_dart/libsql_dart.dart';
 import 'package:oidc/oidc.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:score/features/logging/get_it.dart';
 import 'package:score/features/scores/behaviours/fetch_scores_if_old.dart';
-import 'package:score/features/scores/database_extensions.dart';
 
 void registerScoreDependencies() {
   GetIt.I.registerLazySingletonAsync(
@@ -25,18 +20,6 @@ void registerScoreDependencies() {
       user: GetIt.I(),
       bindings: WidgetsFlutterBinding.ensureInitialized(),
     ),
-  );
-  GetIt.I.registerLazySingletonAsync<LibsqlClient>(
-    () async {
-      final dir = await getApplicationCacheDirectory();
-      final path = '${dir.path}/scores.db';
-      log('database-path: $path');
-      final client = LibsqlClient(path);
-      await client.connect();
-      await client.applyScoreMigrations();
-      return client;
-    },
-    dispose: (database) => database.dispose(),
   );
 }
 
