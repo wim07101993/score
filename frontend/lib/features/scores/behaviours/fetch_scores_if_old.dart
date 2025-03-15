@@ -4,7 +4,7 @@ import 'package:behaviour/behaviour.dart';
 import 'package:flutter/foundation.dart';
 import 'package:libsql_dart/libsql_dart.dart';
 import 'package:oidc/oidc.dart';
-import 'package:score/features/scores/database_extensions.dart';
+import 'package:score/features/scores/db_extensions.dart';
 import 'package:score/features/scores/score.dart';
 import 'package:score/shared/api/generated/google/protobuf/timestamp.pb.dart';
 import 'package:score/shared/api/generated/searcher.pbgrpc.dart' as grpc;

@@ -1,9 +1,11 @@
 import 'package:libsql_dart/libsql_dart.dart';
 import 'package:score/features/scores/score.dart';
 import 'package:score/shared/libsql/converters.dart';
+import 'package:score/shared/libsql/db_extensions.dart';
 
 abstract class Tables {
   static const String scores = 'scores';
+  static const String scoresFTS = 'scores_full_text_search';
 }
 
 abstract class Columns {
@@ -110,8 +112,19 @@ extension ScoreDbExtensions on LibsqlClient {
     );
   }
 
+  Stream<Score> search(String query) {
+    return stream(
+      'SELECT * '
+      'FROM ${Tables.scoresFTS} '
+      'WHERE ${Tables.scoresFTS} MATCH ? '
+      'ORDER BY RANK',
+      positional: [query],
+    ).map((result) => Score.fromDatabase(result));
+  }
+
   Future<void> applyScoreMigrations() {
-    return _createScoresTable();
+    return _createScoresTable()
+        .then((_) => _createFullTextSearchVirtualTable());
   }
 
   Future<void> _createScoresTable() {
@@ -132,5 +145,27 @@ extension ScoreDbExtensions on LibsqlClient {
           ${Columns.favouritedAt}      TIMESTAMP
       );
     """);
+  }
+
+  Future<void> _createFullTextSearchVirtualTable() {
+    return execute(
+      """
+      CREATE VIRTUAL TABLE IF NOT EXISTS ${Tables.scoresFTS} 
+      USING fts5(
+          ${Columns.id},
+          ${Columns.workTitle},
+          ${Columns.workNumber},
+          ${Columns.movementTitle},
+          ${Columns.movementNumber},
+          ${Columns.creatorsComposers},
+          ${Columns.creatorsLyricists},
+          ${Columns.languages},
+          ${Columns.instruments},
+          ${Columns.lastChangedAt},
+          ${Columns.tags},
+          ${Columns.favouritedAt}
+      );
+      """,
+    );
   }
 }

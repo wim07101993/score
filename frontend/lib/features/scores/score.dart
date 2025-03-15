@@ -1,4 +1,4 @@
-import 'package:score/features/scores/database_extensions.dart';
+import 'package:score/features/scores/db_extensions.dart';
 import 'package:score/shared/api/generated/searcher.pb.dart' as grpc;
 
 class Score {

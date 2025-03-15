@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:libsql_dart/libsql_dart.dart';
 import 'package:score/shared/libsql/converters.dart';
+import 'package:score/shared/libsql/db_extensions.dart';
 
 abstract class Tables {
   static const String logs = 'logs';
@@ -50,28 +51,9 @@ extension LogsDbExtensions on LibsqlClient {
     );
   }
 
-  Stream<LogRecord> getLogs() async* {
-    const pageSize = 100;
-    const sql = 'SELECT * FROM ${Tables.logs} '
-        'ORDER BY ${Columns.time} DESC '
-        'LIMIT $pageSize '
-        'OFFSET ?';
-
-    var offset = 0;
-    var resultsFuture = query(sql, positional: [offset]);
-
-    while (true) {
-      final logsFuture = resultsFuture.then((results) {
-        return results.map((result) => _LogRecord.fromDatabase(result));
-      });
-
-      offset += pageSize;
-      resultsFuture = query(sql, positional: [offset]);
-
-      for (final log in await logsFuture) {
-        yield log;
-      }
-    }
+  Stream<LogRecord> getLogs() {
+    return stream('SELECT * FROM ${Tables.logs} ORDER BY ${Columns.time} DESC')
+        .map((result) => _LogRecord.fromDatabase(result));
   }
 
   Future<void> applyLogMigrations() {
