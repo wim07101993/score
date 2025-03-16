@@ -4,7 +4,6 @@ import 'package:score/shared/libsql/converters.dart';
 import 'package:score/shared/libsql/db_extensions.dart';
 
 abstract class Tables {
-  static const String scores = 'scores';
   static const String scoresFTS = 'scores_full_text_search';
 }
 
@@ -24,10 +23,10 @@ abstract class Columns {
 }
 
 extension ScoreDbExtensions on LibsqlClient {
-  Future<DateTime> getLastSyncTime() async {
+  Future<DateTime> getLastSyncedScoreChangedAt() async {
     final result = await query("""
       SELECT ${Columns.lastChangedAt} 
-      FROM ${Tables.scores}
+      FROM ${Tables.scoresFTS}
       ORDER BY ${Columns.lastChangedAt}
       LIMIT 1
     """);
@@ -40,7 +39,7 @@ extension ScoreDbExtensions on LibsqlClient {
   Future<Score?> getScore(String scoreId) {
     return query(
       'SELECT * '
-      'FROM ${Tables.scores} '
+      'FROM ${Tables.scoresFTS} '
       'WHERE ${Columns.id} = ?',
       positional: [scoreId],
     ).then(
@@ -64,7 +63,7 @@ extension ScoreDbExtensions on LibsqlClient {
     ];
     final lastChangedAt = dateTimeToSqlDateTime(score.lastChangedAt);
     return execute(
-      'INSERT INTO ${Tables.scores} (${columns.join(', ')}) '
+      'INSERT INTO ${Tables.scoresFTS} (${columns.join(', ')}) '
       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '$lastChangedAt', ?)",
       positional: [
         score.id,
@@ -84,7 +83,7 @@ extension ScoreDbExtensions on LibsqlClient {
   Future<void> updateScore(Score score) async {
     await execute(
       """
-      UPDATE ${Tables.scores} SET
+      UPDATE ${Tables.scoresFTS} SET
   			${Columns.workTitle} = ?, 
   			${Columns.workNumber} = ?,
   			${Columns.movementTitle} = ?,
@@ -123,28 +122,7 @@ extension ScoreDbExtensions on LibsqlClient {
   }
 
   Future<void> applyScoreMigrations() {
-    return _createScoresTable()
-        .then((_) => _createFullTextSearchVirtualTable());
-  }
-
-  Future<void> _createScoresTable() {
-    return execute("""
-      CREATE TABLE IF NOT EXISTS ${Tables.scores}
-      (
-          ${Columns.id}                TEXT PRIMARY KEY NOT NULL,
-          ${Columns.workTitle}         TEXT,
-          ${Columns.workNumber}        TEXT,
-          ${Columns.movementTitle}     TEXT,
-          ${Columns.movementNumber}    TEXT,
-          ${Columns.creatorsComposers} TEXT[],
-          ${Columns.creatorsLyricists} TEXT[],
-          ${Columns.languages}         TEXT[],
-          ${Columns.instruments}       TEXT[],
-          ${Columns.lastChangedAt}     TIMESTAMP NOT NULL,
-          ${Columns.tags}              TEXT[],
-          ${Columns.favouritedAt}      TIMESTAMP
-      );
-    """);
+    return _createFullTextSearchVirtualTable();
   }
 
   Future<void> _createFullTextSearchVirtualTable() {

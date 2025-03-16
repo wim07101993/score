@@ -6,9 +6,9 @@ import 'package:score/l10n/arb/app_localizations.dart';
 import 'package:score/routing/app_router.dart';
 
 void registerApp() {
-  GetIt.I.registerLazySingletonAsync(
-    () async => App(
-      router: await GetIt.I.getAsync<AppRouter>(),
+  GetIt.I.registerLazySingleton(
+    () => App(
+      router: GetIt.I.get<AppRouter>(),
     ),
   );
 }

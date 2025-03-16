@@ -9,6 +9,7 @@ import 'package:score/app.dart';
 import 'package:score/features/auth/get_it.dart';
 import 'package:score/features/logging/get_it.dart';
 import 'package:score/features/scores/get_it.dart';
+import 'package:score/features/scores/score_syncer.dart';
 import 'package:score/routing/get_it.dart';
 import 'package:score/shared/api/get_it.dart';
 import 'package:score/shared/libsql/get_it.dart';
@@ -36,8 +37,8 @@ Future<void> run() async {
   logger.info('initializing app');
   final App app;
   try {
-    GetIt.I<ScoreSyncer>().start();
-    app = await GetIt.I.getAsync<App>();
+    GetIt.I.getAsync<ScoreSyncer>().then((syncer) => syncer.start());
+    app = GetIt.I.get<App>();
   } on OidcException catch (error, stacktrace) {
     logger.wtf('error while creating app', error, stacktrace);
     runApp(App.error(error: error));
