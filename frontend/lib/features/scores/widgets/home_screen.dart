@@ -75,53 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: const Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 300,
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Placeholder(),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: 16,
-                  children: [
-                    SizedBox(
-                      height: 200,
-                      child: Placeholder(),
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: Placeholder(),
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: Placeholder(),
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: Placeholder(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      body: const AutoRouter(),
     );
   }
 }

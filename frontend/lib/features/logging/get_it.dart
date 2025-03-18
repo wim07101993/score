@@ -17,13 +17,7 @@ void registerLogging() {
   );
 
   GetIt.I.registerLazySingleton(
-    () => PrintSink(
-      LevelDependentFormatter(
-        defaultFormatter: SimpleFormatter(),
-        severe: PrettyFormatter(),
-        shout: PrettyFormatter(),
-      ),
-    ),
+    () => DevLogSink(),
     dispose: (sink) => sink.dispose(),
   );
 
@@ -44,7 +38,7 @@ void registerLogging() {
   GetIt.I.registerLazySingleton<LogSink>(
     () => MultiLogSink(
       [
-        GetIt.I<PrintSink>(),
+        GetIt.I<DevLogSink>(),
         GetIt.I<DbLogSink>(),
         GetIt.I<FutureLogsControllerLogSink>(),
       ],

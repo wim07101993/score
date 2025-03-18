@@ -25,4 +25,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get unknownErrorDialogMessage => 'Als dit blijft gebeuren, contacteer de ontwikelaars van de app.';
+
+  @override
+  String get scoreComposersLabel => 'Muziek';
+
+  @override
+  String get scoreLyricistsLabel => 'Text';
 }

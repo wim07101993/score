@@ -22,7 +22,8 @@ dependencies:
   libsql_dart: '>0.0.0 <1.0.0'
   oidc: '>0.0.0 <1.0.0'
   path_provider: '>=2.1.5 <3.0.0'
-  protobuf: '>3.0.0 <4.0.0'
+  protobuf: '>=3.0.0 <4.0.0'
+  webview_flutter: '>=4.0.0 <5.0.0'
 
 dev_dependencies:
   auto_route_generator:
@@ -33,3 +34,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/music_xml_viewer/

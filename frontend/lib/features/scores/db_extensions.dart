@@ -42,9 +42,7 @@ extension ScoreDbExtensions on LibsqlClient {
       'FROM ${Tables.scoresFTS} '
       'WHERE ${Columns.id} = ?',
       positional: [scoreId],
-    ).then(
-      (results) => results.isEmpty ? null : Score.fromDatabase(results[0]),
-    );
+    ).then((items) => items.isEmpty ? null : Score.fromDatabase(items[0]));
   }
 
   Future<void> insertScore(Score score) {

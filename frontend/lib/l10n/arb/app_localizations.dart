@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// In nl, this message translates to:
   /// **'Als dit blijft gebeuren, contacteer de ontwikelaars van de app.'**
   String get unknownErrorDialogMessage;
+
+  /// No description provided for @scoreComposersLabel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Muziek'**
+  String get scoreComposersLabel;
+
+  /// No description provided for @scoreLyricistsLabel.
+  ///
+  /// In nl, this message translates to:
+  /// **'Text'**
+  String get scoreLyricistsLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
