@@ -59,12 +59,12 @@ func scanApiScore(row pgx.Row) (*api.Score, error) {
 	return &api.Score{
 		Id: id,
 		Work: &api.Work{
-			Title:  workTitle,
-			Number: workNumber,
+			Title:  &workTitle,
+			Number: &workNumber,
 		},
 		Movement: &api.Movement{
-			Title:  movementTitle,
-			Number: movementNumber,
+			Title:  &movementTitle,
+			Number: &movementNumber,
 		},
 		Creators: &api.Creators{
 			Composers: creatorsComposers.Elements,

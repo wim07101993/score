@@ -1,4 +1,3 @@
-import 'package:score/features/scores/db_extensions.dart';
 import 'package:score/shared/api/generated/searcher.pb.dart' as grpc;
 
 class Score {
@@ -28,20 +27,6 @@ class Score {
     );
   }
 
-  factory Score.fromDatabase(Map<String, dynamic> map) {
-    return Score(
-      id: map[Columns.id] as String,
-      work: Work.fromDatabase(map),
-      movement: Movement.fromDatabase(map),
-      creators: Creators.fromDatabase(map),
-      instruments: map[Columns.instruments] as List<String>? ?? [],
-      languages: map[Columns.languages] as List<String>? ?? [],
-      tags: map[Columns.tags] as List<String>? ?? [],
-      lastChangedAt: DateTime.parse(map[Columns.lastChangedAt] as String),
-      favouritedAt: map[Columns.favouritedAt] as DateTime?,
-    );
-  }
-
   final String id;
   final Work? work;
   final Movement? movement;
@@ -68,14 +53,6 @@ class Work {
           );
   }
 
-  static Work? fromDatabase(Map<String, dynamic> map) {
-    final title = map[Columns.workTitle] as String?;
-    final number = map[Columns.workNumber] as String?;
-    return title == null && number == null
-        ? null
-        : Work(title: title, number: number);
-  }
-
   final String? title;
   final String? number;
 }
@@ -92,14 +69,6 @@ class Movement {
         : Movement(title: work.title, number: work.number);
   }
 
-  static Movement? fromDatabase(Map<String, dynamic> map) {
-    final title = map[Columns.movementTitle] as String?;
-    final number = map[Columns.movementNumber] as String?;
-    return title == null && number == null
-        ? null
-        : Movement(title: title, number: number);
-  }
-
   final String? title;
   final String? number;
 }
@@ -114,13 +83,6 @@ class Creators {
     return Creators(
       composers: creators.composers,
       lyricists: creators.lyricists,
-    );
-  }
-
-  factory Creators.fromDatabase(Map<String, dynamic> map) {
-    return Creators(
-      composers: map[Columns.creatorsComposers] as List<String>? ?? [],
-      lyricists: map[Columns.creatorsLyricists] as List<String>? ?? [],
     );
   }
 

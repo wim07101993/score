@@ -12,15 +12,15 @@ import 'package:score/features/scores/get_it.dart';
 import 'package:score/features/scores/score_syncer.dart';
 import 'package:score/routing/get_it.dart';
 import 'package:score/shared/api/get_it.dart';
-import 'package:score/shared/libsql/get_it.dart';
+import 'package:score/shared/hive/get_it.dart';
 
 void main() {
   runZonedGuarded(run, onError);
 }
 
 Future<void> run() async {
+  registerHive();
   registerLogging();
-  registerLibsqlDependencies();
 
   final logger = GetIt.I.logger('main');
   final sink = GetIt.I<LogSink>();

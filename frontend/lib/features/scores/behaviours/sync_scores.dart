@@ -1,8 +1,7 @@
 import 'package:behaviour/behaviour.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
-import 'package:libsql_dart/libsql_dart.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:oidc/oidc.dart';
-import 'package:score/features/scores/db_extensions.dart';
 import 'package:score/features/scores/score.dart';
 import 'package:score/shared/api/generated/google/protobuf/timestamp.pb.dart';
 import 'package:score/shared/api/generated/searcher.pbgrpc.dart' as grpc;
@@ -10,32 +9,36 @@ import 'package:score/shared/api/generated/searcher.pbgrpc.dart' as grpc;
 class SyncScores extends Behaviour<OidcUser, void> {
   SyncScores({
     required super.monitor,
-    required this.database,
+    required this.scoreBox,
+    required this.lastChangedAtBox,
     required this.searcherClient,
     required this.logger,
   });
 
-  final LibsqlClient database;
+  final LazyBox<Score> scoreBox;
+  final Box<DateTime> lastChangedAtBox;
   final grpc.SearcherClient searcherClient;
   final Logger logger;
 
   @override
   Future<void> action(OidcUser user, BehaviourTrack? track) async {
+    final lastChangedAt = lastChangedAtBox.values.firstOrNull;
     final responseStream = searcherClient.getScores(
       grpc.GetScoresRequest(
-        changedSince: Timestamp.fromDateTime(
-          await database.getLastSyncedScoreChangedAt(),
-        ),
+        changedSince: lastChangedAt == null
+            ? null
+            : Timestamp.fromDateTime(lastChangedAt),
       ),
     );
 
     await for (final page in responseStream) {
       for (final score in page.scores) {
-        final original = await database.getScore(score.id);
+        final original = await scoreBox.get(score.id);
         if (original == null) {
-          await database.insertScore(Score.fromGrpc(score));
+          await scoreBox.put(score.id, Score.fromGrpc(score));
         } else {
-          await database.updateScore(
+          await scoreBox.put(
+            score.id,
             Score(
               id: score.id,
               work: Work.fromGrpc(score.work),

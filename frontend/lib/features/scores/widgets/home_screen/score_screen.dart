@@ -1,8 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:libsql_dart/libsql_dart.dart';
-import 'package:score/features/scores/db_extensions.dart';
+import 'package:hive_ce/hive.dart';
+import 'package:score/features/scores/score.dart';
 import 'package:score/l10n/arb/app_localizations.dart';
 
 @RoutePage()
@@ -21,8 +21,8 @@ class ScoreScreen extends StatelessWidget {
     return SingleChildScrollView(
       child: FutureBuilder(
           future: GetIt.I
-              .getAsync<LibsqlClient>()
-              .then((database) => database.getScore(scoreId)),
+              .getAsync<Box<Score>>()
+              .then((database) => database.get(scoreId)),
           builder: (context, snapshot) {
             final score = snapshot.data;
             if (score == null) {
