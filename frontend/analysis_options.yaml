@@ -1,6 +1,0 @@
-include: package:lint/strict.yaml
-
-analyzer:
-  exclude:
-    - 'lib/shared/api/generated/**'
-    - '**.g.dart'
