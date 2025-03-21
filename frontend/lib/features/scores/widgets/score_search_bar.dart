@@ -16,6 +16,9 @@ class ScoreSearchBar extends StatefulWidget {
 
 class _ScoreSearchBarState extends State<ScoreSearchBar> {
   late Future<SearchScores> futureSearchScores = GetIt.I.getAsync();
+  final controller = SearchController();
+
+  List<Score> scores = [];
 
   Future<List<Score>> searchScores(String searchText) async {
     final searchScores = await futureSearchScores;
@@ -28,14 +31,34 @@ class _ScoreSearchBarState extends State<ScoreSearchBar> {
         showUnknownErrorDialog(context);
         return [];
       },
-      (scores) => scores,
+      (scores) {
+        this.scores = scores;
+        return scores;
+      },
     );
+  }
+
+  Future<void> navigateToSearchResults() async {
+    controller.closeView(null);
+    await AutoRouter.of(context).push(SearchResultsRoute(scores: scores));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SearchAnchor.bar(
+      searchController: controller,
+      onSubmitted: (searchText) => navigateToSearchResults(),
+      viewTrailing: [
+        IconButton(
+          onPressed: navigateToSearchResults,
+          icon: const Icon(Icons.search),
+        ),
+        IconButton(
+          onPressed: () => controller.clear(),
+          icon: const Icon(Icons.clear),
+        ),
+      ],
       suggestionsBuilder: (context, controller) async {
         final scores = await searchScores(controller.text);
         return scores.map((score) => _scoreSuggestion(context, theme, score));

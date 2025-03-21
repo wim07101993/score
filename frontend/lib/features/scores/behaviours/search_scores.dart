@@ -7,7 +7,7 @@ import 'package:score/features/scores/score.dart';
 
 class SearchScores extends Behaviour<String, List<Score>> {
   SearchScores({
-    required super.monitor,
+    super.monitor,
     required this.database,
   });
 

@@ -13,6 +13,7 @@ class AppRouter extends RootStackRouter {
         children: [
           AutoRoute(page: LandingRoute.page, path: '', initial: true),
           AutoRoute(page: ScoreRoute.page, path: 'score/:id'),
+          AutoRoute(page: SearchResultsRoute.page, path: 'scores'),
         ],
       ),
       AutoRoute(page: UserInfoRoute.page, path: '/user-info'),

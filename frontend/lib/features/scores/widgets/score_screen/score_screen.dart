@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:score/features/scores/score.dart';
+import 'package:score/features/scores/widgets/score_screen/music_xml_viewer.dart';
 import 'package:score/l10n/arb/app_localizations.dart';
 
 @RoutePage()
@@ -21,7 +22,7 @@ class ScoreScreen extends StatelessWidget {
     return SingleChildScrollView(
       child: FutureBuilder(
           future: GetIt.I
-              .getAsync<Box<Score>>()
+              .getAsync<LazyBox<Score>>()
               .then((database) => database.get(scoreId)),
           builder: (context, snapshot) {
             final score = snapshot.data;
@@ -50,6 +51,7 @@ class ScoreScreen extends StatelessWidget {
                     '${s.scoreLyricistsLabel}: ${score.creators.lyricists.join(', ')}',
                     textAlign: TextAlign.right,
                   ),
+                const MusicXmlViewer(),
               ],
             );
           }),

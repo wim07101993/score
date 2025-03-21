@@ -13,12 +13,14 @@ import 'package:auto_route/auto_route.dart' as _i7;
 import 'package:flutter/material.dart' as _i8;
 import 'package:score/features/auth/widgets/user_info_screen.dart' as _i6;
 import 'package:score/features/logging/widgets/logs_screen.dart' as _i3;
+import 'package:score/features/scores/score.dart' as _i9;
 import 'package:score/features/scores/widgets/home_screen.dart' as _i1;
-import 'package:score/features/scores/widgets/home_screen/landing_screen.dart'
+import 'package:score/features/scores/widgets/landing_screen/landing_screen.dart'
     as _i2;
-import 'package:score/features/scores/widgets/home_screen/score_screen.dart'
+import 'package:score/features/scores/widgets/score_screen/score_screen.dart'
+    as _i4;
+import 'package:score/features/scores/widgets/search_results_screen/search_results_screen.dart'
     as _i5;
-import 'package:score/features/scores/widgets/score_list_screen.dart' as _i4;
 
 /// generated route for
 /// [_i1.HomeScreen]
@@ -69,23 +71,7 @@ class LogsRoute extends _i7.PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [_i4.ScoreListScreen]
-class ScoreListRoute extends _i7.PageRouteInfo<void> {
-  const ScoreListRoute({List<_i7.PageRouteInfo>? children})
-    : super(ScoreListRoute.name, initialChildren: children);
-
-  static const String name = 'ScoreListRoute';
-
-  static _i7.PageInfo page = _i7.PageInfo(
-    name,
-    builder: (data) {
-      return const _i4.ScoreListScreen();
-    },
-  );
-}
-
-/// generated route for
-/// [_i5.ScoreScreen]
+/// [_i4.ScoreScreen]
 class ScoreRoute extends _i7.PageRouteInfo<ScoreRouteArgs> {
   ScoreRoute({
     _i8.Key? key,
@@ -107,7 +93,7 @@ class ScoreRoute extends _i7.PageRouteInfo<ScoreRouteArgs> {
       final args = data.argsAs<ScoreRouteArgs>(
         orElse: () => ScoreRouteArgs(scoreId: pathParams.getString('id')),
       );
-      return _i5.ScoreScreen(key: args.key, scoreId: args.scoreId);
+      return _i4.ScoreScreen(key: args.key, scoreId: args.scoreId);
     },
   );
 }
@@ -122,6 +108,43 @@ class ScoreRouteArgs {
   @override
   String toString() {
     return 'ScoreRouteArgs{key: $key, scoreId: $scoreId}';
+  }
+}
+
+/// generated route for
+/// [_i5.SearchResultsScreen]
+class SearchResultsRoute extends _i7.PageRouteInfo<SearchResultsRouteArgs> {
+  SearchResultsRoute({
+    _i8.Key? key,
+    required List<_i9.Score> scores,
+    List<_i7.PageRouteInfo>? children,
+  }) : super(
+         SearchResultsRoute.name,
+         args: SearchResultsRouteArgs(key: key, scores: scores),
+         initialChildren: children,
+       );
+
+  static const String name = 'SearchResultsRoute';
+
+  static _i7.PageInfo page = _i7.PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<SearchResultsRouteArgs>();
+      return _i5.SearchResultsScreen(key: args.key, scores: args.scores);
+    },
+  );
+}
+
+class SearchResultsRouteArgs {
+  const SearchResultsRouteArgs({this.key, required this.scores});
+
+  final _i8.Key? key;
+
+  final List<_i9.Score> scores;
+
+  @override
+  String toString() {
+    return 'SearchResultsRouteArgs{key: $key, scores: $scores}';
   }
 }
 

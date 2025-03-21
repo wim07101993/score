@@ -60,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         toolbarHeight: 96,
         title: const ScoreSearchBar(),
+        leading: const BackButton(),
         actions: [
           IconButton(
             onPressed: _syncScores,

@@ -39,7 +39,6 @@ void registerScoreDependencies() {
   );
   GetIt.I.registerLazySingletonAsync(
     () async => SearchScores(
-      monitor: GetIt.I(),
       database: await GetIt.I.getAsync(),
     ),
   );
