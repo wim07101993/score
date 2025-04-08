@@ -9,6 +9,7 @@ option go_package = "github.com/wim07101993/score/api";
 
 service Searcher {
   rpc GetScore(GetScoreRequest) returns (Score);
+  rpc GetScoreFile(GetScoreRequest) returns (stream FileChunk);
   rpc GetScores(GetScoresRequest) returns (stream ScoresPage);
 
   rpc GetFavourites(google.protobuf.Empty) returns (stream FavouritesPage);
@@ -62,4 +63,9 @@ message FavouritesPage {
 message Favourite {
   string score_id = 1;
   google.protobuf.Timestamp favourited_at = 2;
+}
+
+message FileChunk {
+  uint64 total_file_size = 1;
+  bytes data = 2;
 }

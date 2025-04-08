@@ -44,6 +44,10 @@ func (serv *SearcherGrpcServer) GetScore(ctx context.Context, request *api.GetSc
 	return score, nil
 }
 
+func (serv *SearcherGrpcServer) GetScoreFile(req *api.GetScoreRequest, srv api.Searcher_GetScoreFileServer) error {
+	return nil
+}
+
 func (serv *SearcherGrpcServer) GetScores(req *api.GetScoresRequest, srv api.Searcher_GetScoresServer) error {
 	db, err := serv.db(srv.Context())
 	if err != nil {

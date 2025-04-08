@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package score;
+
+option go_package = "github.com/wim07101993/score/api";
+
+service ScoreManager {
+  rpc Update(stream ScoreFileChunk) returns (google.protobuf.Empty);
+  rpc Remove(stream ScoreFileChunk) returns (google.protobuf.Empty);
+}
+
+message ScoreFileChunk {
+  string score_id = 1;
+  bytes file_chunk = 2;
+}
