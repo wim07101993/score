@@ -7,11 +7,12 @@ package score;
 option go_package = "github.com/wim07101993/score/api";
 
 service ScoreManager {
-  rpc Update(stream ScoreFileChunk) returns (google.protobuf.Empty);
-  rpc Remove(stream ScoreFileChunk) returns (google.protobuf.Empty);
+  rpc UpdateScore(stream ScoreFileChunk) returns (google.protobuf.Empty);
+  rpc RemoveScore(stream ScoreFileChunk) returns (google.protobuf.Empty);
 }
 
 message ScoreFileChunk {
   string score_id = 1;
-  bytes file_chunk = 2;
+  int64 total_file_size = 2;
+  bytes file_chunk = 3;
 }

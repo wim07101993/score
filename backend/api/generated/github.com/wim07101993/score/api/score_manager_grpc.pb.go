@@ -23,8 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ScoreManagerClient interface {
-	Update(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_UpdateClient, error)
-	Remove(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_RemoveClient, error)
+	UpdateScore(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_UpdateScoreClient, error)
+	RemoveScore(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_RemoveScoreClient, error)
 }
 
 type scoreManagerClient struct {
@@ -35,30 +35,30 @@ func NewScoreManagerClient(cc grpc.ClientConnInterface) ScoreManagerClient {
 	return &scoreManagerClient{cc}
 }
 
-func (c *scoreManagerClient) Update(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_UpdateClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ScoreManager_ServiceDesc.Streams[0], "/score.ScoreManager/Update", opts...)
+func (c *scoreManagerClient) UpdateScore(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_UpdateScoreClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ScoreManager_ServiceDesc.Streams[0], "/score.ScoreManager/UpdateScore", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &scoreManagerUpdateClient{stream}
+	x := &scoreManagerUpdateScoreClient{stream}
 	return x, nil
 }
 
-type ScoreManager_UpdateClient interface {
+type ScoreManager_UpdateScoreClient interface {
 	Send(*ScoreFileChunk) error
 	CloseAndRecv() (*emptypb.Empty, error)
 	grpc.ClientStream
 }
 
-type scoreManagerUpdateClient struct {
+type scoreManagerUpdateScoreClient struct {
 	grpc.ClientStream
 }
 
-func (x *scoreManagerUpdateClient) Send(m *ScoreFileChunk) error {
+func (x *scoreManagerUpdateScoreClient) Send(m *ScoreFileChunk) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *scoreManagerUpdateClient) CloseAndRecv() (*emptypb.Empty, error) {
+func (x *scoreManagerUpdateScoreClient) CloseAndRecv() (*emptypb.Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -69,30 +69,30 @@ func (x *scoreManagerUpdateClient) CloseAndRecv() (*emptypb.Empty, error) {
 	return m, nil
 }
 
-func (c *scoreManagerClient) Remove(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_RemoveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ScoreManager_ServiceDesc.Streams[1], "/score.ScoreManager/Remove", opts...)
+func (c *scoreManagerClient) RemoveScore(ctx context.Context, opts ...grpc.CallOption) (ScoreManager_RemoveScoreClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ScoreManager_ServiceDesc.Streams[1], "/score.ScoreManager/RemoveScore", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &scoreManagerRemoveClient{stream}
+	x := &scoreManagerRemoveScoreClient{stream}
 	return x, nil
 }
 
-type ScoreManager_RemoveClient interface {
+type ScoreManager_RemoveScoreClient interface {
 	Send(*ScoreFileChunk) error
 	CloseAndRecv() (*emptypb.Empty, error)
 	grpc.ClientStream
 }
 
-type scoreManagerRemoveClient struct {
+type scoreManagerRemoveScoreClient struct {
 	grpc.ClientStream
 }
 
-func (x *scoreManagerRemoveClient) Send(m *ScoreFileChunk) error {
+func (x *scoreManagerRemoveScoreClient) Send(m *ScoreFileChunk) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *scoreManagerRemoveClient) CloseAndRecv() (*emptypb.Empty, error) {
+func (x *scoreManagerRemoveScoreClient) CloseAndRecv() (*emptypb.Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -107,8 +107,8 @@ func (x *scoreManagerRemoveClient) CloseAndRecv() (*emptypb.Empty, error) {
 // All implementations must embed UnimplementedScoreManagerServer
 // for forward compatibility
 type ScoreManagerServer interface {
-	Update(ScoreManager_UpdateServer) error
-	Remove(ScoreManager_RemoveServer) error
+	UpdateScore(ScoreManager_UpdateScoreServer) error
+	RemoveScore(ScoreManager_RemoveScoreServer) error
 	mustEmbedUnimplementedScoreManagerServer()
 }
 
@@ -116,11 +116,11 @@ type ScoreManagerServer interface {
 type UnimplementedScoreManagerServer struct {
 }
 
-func (UnimplementedScoreManagerServer) Update(ScoreManager_UpdateServer) error {
-	return status.Errorf(codes.Unimplemented, "method Update not implemented")
+func (UnimplementedScoreManagerServer) UpdateScore(ScoreManager_UpdateScoreServer) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateScore not implemented")
 }
-func (UnimplementedScoreManagerServer) Remove(ScoreManager_RemoveServer) error {
-	return status.Errorf(codes.Unimplemented, "method Remove not implemented")
+func (UnimplementedScoreManagerServer) RemoveScore(ScoreManager_RemoveScoreServer) error {
+	return status.Errorf(codes.Unimplemented, "method RemoveScore not implemented")
 }
 func (UnimplementedScoreManagerServer) mustEmbedUnimplementedScoreManagerServer() {}
 
@@ -135,25 +135,25 @@ func RegisterScoreManagerServer(s grpc.ServiceRegistrar, srv ScoreManagerServer)
 	s.RegisterService(&ScoreManager_ServiceDesc, srv)
 }
 
-func _ScoreManager_Update_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ScoreManagerServer).Update(&scoreManagerUpdateServer{stream})
+func _ScoreManager_UpdateScore_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ScoreManagerServer).UpdateScore(&scoreManagerUpdateScoreServer{stream})
 }
 
-type ScoreManager_UpdateServer interface {
+type ScoreManager_UpdateScoreServer interface {
 	SendAndClose(*emptypb.Empty) error
 	Recv() (*ScoreFileChunk, error)
 	grpc.ServerStream
 }
 
-type scoreManagerUpdateServer struct {
+type scoreManagerUpdateScoreServer struct {
 	grpc.ServerStream
 }
 
-func (x *scoreManagerUpdateServer) SendAndClose(m *emptypb.Empty) error {
+func (x *scoreManagerUpdateScoreServer) SendAndClose(m *emptypb.Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *scoreManagerUpdateServer) Recv() (*ScoreFileChunk, error) {
+func (x *scoreManagerUpdateScoreServer) Recv() (*ScoreFileChunk, error) {
 	m := new(ScoreFileChunk)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -161,25 +161,25 @@ func (x *scoreManagerUpdateServer) Recv() (*ScoreFileChunk, error) {
 	return m, nil
 }
 
-func _ScoreManager_Remove_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ScoreManagerServer).Remove(&scoreManagerRemoveServer{stream})
+func _ScoreManager_RemoveScore_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ScoreManagerServer).RemoveScore(&scoreManagerRemoveScoreServer{stream})
 }
 
-type ScoreManager_RemoveServer interface {
+type ScoreManager_RemoveScoreServer interface {
 	SendAndClose(*emptypb.Empty) error
 	Recv() (*ScoreFileChunk, error)
 	grpc.ServerStream
 }
 
-type scoreManagerRemoveServer struct {
+type scoreManagerRemoveScoreServer struct {
 	grpc.ServerStream
 }
 
-func (x *scoreManagerRemoveServer) SendAndClose(m *emptypb.Empty) error {
+func (x *scoreManagerRemoveScoreServer) SendAndClose(m *emptypb.Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *scoreManagerRemoveServer) Recv() (*ScoreFileChunk, error) {
+func (x *scoreManagerRemoveScoreServer) Recv() (*ScoreFileChunk, error) {
 	m := new(ScoreFileChunk)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -196,13 +196,13 @@ var ScoreManager_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Update",
-			Handler:       _ScoreManager_Update_Handler,
+			StreamName:    "UpdateScore",
+			Handler:       _ScoreManager_UpdateScore_Handler,
 			ClientStreams: true,
 		},
 		{
-			StreamName:    "Remove",
-			Handler:       _ScoreManager_Remove_Handler,
+			StreamName:    "RemoveScore",
+			Handler:       _ScoreManager_RemoveScore_Handler,
 			ClientStreams: true,
 		},
 	},
