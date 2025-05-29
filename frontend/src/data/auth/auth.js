@@ -126,7 +126,6 @@ async function callTokenEndpoint(tokenEndpoint, authParams) {
     });
 
     const body = await response.json();
-    console.log(body);
 
     if (!response.ok) {
       console.log('Error while requesting token', body);

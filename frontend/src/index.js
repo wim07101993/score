@@ -1,9 +1,16 @@
-import {authorizationCodeQueryParamName, authorize} from './auth/auth.js';
-import {authConfig} from './auth/config.js';
-import {getDatabase} from "./database/database.js";
-import {startScoreFetchingBackgroundWorker} from "./score_fetcher/score_fetcher.js";
+import {authorizationCodeQueryParamName, authorize} from './data/auth/auth.js';
+import {authConfig} from './data/auth/config.js';
+import {getDatabase} from "./data/database/database.js";
+import {startScoreFetchingBackgroundWorker} from "./data/score-fetcher/score_fetcher.js";
+
+import {registerScoreList} from "./components/score-list/score-list.js";
+import {registerScoreListItem} from "./components/score-list-item/score-list-item.js";
+
+console.log('index.js');
 
 async function main() {
+  await registerScoreList();
+  registerScoreListItem();
   const urlParams = new URLSearchParams(window.location.search);
 
   const accessToken = await authorize(

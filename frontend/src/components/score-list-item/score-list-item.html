@@ -1,0 +1,26 @@
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="components/score-list-item/score-list-item.css">
+
+<div id="container">
+    <h2 id="title">
+        <slot name="title"></slot>
+    </h2>
+    <p id="creators" class="score-property">
+        <img src="assets/icons/artist.svg"
+             class="icon"
+             alt="Creators: "/>
+        <slot name="creators"></slot>
+    </p>
+    <p id="instruments" class="score-property">
+        <img src="assets/icons/instrument.svg"
+             class="icon"
+             alt="Instruments: "/>
+        <slot name="instruments"></slot>
+    </p>
+    <p id="tags" class="score-property">
+        <img src="assets/icons/tag.svg"
+             class="icon"
+             alt="Tags: "/>
+        <slot name="tags"></slot>
+    </p>
+</div>

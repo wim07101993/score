@@ -46,3 +46,30 @@ export async function getDatabase() {
     }
   });
 }
+
+/**
+ * @returns {Promise<Score[]>} returns a list of all the scores in the database.
+ */
+export async function getAllScores() {
+  console.log('getting all scores');
+  const request = await getDatabase()
+    .then((database) => database
+      .transaction([ObjectStoreName.Scores])
+      .objectStore(ObjectStoreName.Scores)
+      .getAll());
+
+  return await new Promise((resolve, reject) => {
+    request.onerror = (event) => {
+      console.log('failed to get scores', event);
+      reject(event.target.result);
+    };
+
+    request.onsuccess = (event) => {
+      /**
+       * @type {Score[]}
+       */
+      let scores = event.target.result
+      resolve(scores);
+    }
+  })
+}

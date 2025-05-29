@@ -20,7 +20,7 @@ export function startScoreFetchingBackgroundWorker() {
   };
 
   worker.onerror = (message) => {
-    console.log('worker error:', message)
+    console.log('worker error:', message, message.error, message.message);
   };
 
   worker.postMessage(new ScoreFetcherMessage(ScoreFetcherCommand.StartFetching));
