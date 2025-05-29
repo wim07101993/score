@@ -1,10 +1,8 @@
 import {getAllScores} from "../../data/database/database.js";
-import {buildScoreListItem} from "../score-list-item/score-list-item.js";
+import {buildScoreListItem} from "../score-list-item/score-list-item.component.js";
+import {template} from "./score-list.template.js";
 
 export async function registerScoreList() {
-  const template = await fetch('components/score-list/score-list.html')
-    .then(stream => stream.text());
-
   class ScoreList extends HTMLElement {
     constructor() {
       super();

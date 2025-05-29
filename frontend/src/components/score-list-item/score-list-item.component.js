@@ -1,20 +1,17 @@
 import {Score} from '../../data/database/models.js';
+import {template} from "./score-list-item.template.js";
 
-export function registerScoreListItem() {
-  fetch('components/score-list-item/score-list-item.html')
-    .then(stream => stream.text())
-    .then(template => {
-      class ScoreListItem extends HTMLElement {
-        constructor() {
-          super();
+export async function registerScoreListItem() {
+  class ScoreListItem extends HTMLElement {
+    constructor() {
+      super();
 
-          const shadowRoot = this.attachShadow({mode: 'open'});
-          shadowRoot.innerHTML = template;
-        }
-      }
+      const shadowRoot = this.attachShadow({mode: 'open'});
+      shadowRoot.innerHTML = template;
+    }
+  }
 
-      customElements.define('score-list-item', ScoreListItem)
-    });
+  customElements.define('score-list-item', ScoreListItem);
 }
 
 /**
@@ -34,7 +31,7 @@ export function buildScoreListItem(score) {
   `;
 
   element.onclick = () => {
-    window.location.href = `http://localhost:3000/detail?scoreId=${score.id}`;
+    window.location.href = `http://localhost:3000#/detail?scoreId=${score.id}`;
   }
   return element;
 }

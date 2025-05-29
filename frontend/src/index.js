@@ -3,14 +3,18 @@ import {authConfig} from './data/auth/config.js';
 import {getDatabase} from "./data/database/database.js";
 import {startScoreFetchingBackgroundWorker} from "./data/score-fetcher/score_fetcher.js";
 
-import {registerScoreList} from "./components/score-list/score-list.js";
-import {registerScoreListItem} from "./components/score-list-item/score-list-item.js";
+import {registerScoreList} from "./components/score-list/score-list.component.js";
+import {registerScoreListItem} from "./components/score-list-item/score-list-item.component.js";
+import {registerScoreListPage} from "./components/pages/score-list-page.component.js";
 
 console.log('index.js');
 
 async function main() {
-  await registerScoreList();
-  registerScoreListItem();
+  await Promise.all([
+    registerScoreList(),
+    registerScoreListItem(),
+    registerScoreListPage(),
+  ])
   const urlParams = new URLSearchParams(window.location.search);
 
   const accessToken = await authorize(

@@ -1,3 +1,4 @@
+export const template = `
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="components/score-list-item/score-list-item.css">
 
@@ -24,3 +25,4 @@
         <slot name="tags"></slot>
     </p>
 </div>
+`;

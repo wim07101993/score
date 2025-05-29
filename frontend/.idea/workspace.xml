@@ -4,31 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="local db works">
-      <change afterPath="$PROJECT_DIR$/src/assets/icons/artist.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/icons/instrument.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/icons/tag.svg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/score-list/score-list.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/score-list/score-list.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/components/score-list/score-list.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/detail.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/detail.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/theme.css" afterDir="false" />
+    <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="styling">
+      <change afterPath="$PROJECT_DIR$/src/components/pages/score-list-page.component.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/components/pages/score-list-page.template.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/auth/auth.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/auth/auth.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/auth/config.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/auth/config.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/database.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/database/database.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/models.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/database/models.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.template.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.component.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list/score-list.template.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list/score-list.component.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/detail.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/login/login-button.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/score_fetcher/message.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/score-fetcher/message.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/score_fetcher/score_fetcher.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/score-fetcher/score_fetcher.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/score_fetcher/worker.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/score-fetcher/worker.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,8 +29,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="HTML File" />
         <option value="CSS File" />
+        <option value="HTML File" />
         <option value="JavaScript File" />
       </list>
     </option>
@@ -98,11 +84,11 @@
       <recent name="$PROJECT_DIR$/scripts" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/components" />
       <recent name="$PROJECT_DIR$/src/assets/icons" />
       <recent name="$PROJECT_DIR$/src" />
       <recent name="$PROJECT_DIR$/src/components/score-list-item/assets" />
       <recent name="$PROJECT_DIR$/src/components/score-list-item" />
-      <recent name="$PROJECT_DIR$/src/components" />
     </key>
   </component>
   <component name="RunManager">
@@ -147,7 +133,7 @@
       <workItem from="1741112850957" duration="2381000" />
       <workItem from="1748010846410" duration="20463000" />
       <workItem from="1748279884073" duration="13050000" />
-      <workItem from="1748517954009" duration="903000" />
+      <workItem from="1748517954009" duration="3963000" />
     </task>
     <task id="LOCAL-00001" summary="delete flutter introduce html">
       <option name="closed" value="true" />
@@ -173,7 +159,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748030468792</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="styling">
+      <option name="closed" value="true" />
+      <created>1748519163152</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1748519163152</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -183,6 +177,7 @@
     <MESSAGE value="delete flutter introduce html" />
     <MESSAGE value="login works" />
     <MESSAGE value="local db works" />
-    <option name="LAST_COMMIT_MESSAGE" value="local db works" />
+    <MESSAGE value="styling" />
+    <option name="LAST_COMMIT_MESSAGE" value="styling" />
   </component>
 </project>
