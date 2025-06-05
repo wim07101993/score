@@ -1,5 +1,5 @@
-import {Score} from '../../data/database/models.js';
-import {getListProperty} from '../../data/html-functions.js';
+import {Score} from '../data/database/models.js';
+import {getListProperty} from '../data/html-functions.js';
 
 export function registerScoreListItem() {
   class ScoreListItem extends HTMLElement {
@@ -128,20 +128,46 @@ export function registerScoreListItem() {
  * @returns HTMLElement
  */
 export function buildScoreListItem(score) {
-  const element = document.createElement('div')
-  element.innerHTML = `
-    <score-list-item title="${score.work?.title ?? score.movement?.title}">
-      <creators>
-        <creator>hello</creator>
-        <creator>world</creator>
-      </creators>
-      
-      <instruments>
-        <instrument>guitar</instrument>
-      </instruments>
-    </score-list-item>
-  `;
+  const creatorElements = score.creators.map((val) => {
+    const creator = document.createElement('creator');
+    creator.innerText = val;
+    return creator;
+  });
 
+  const instrumentElements = score.instruments.map((val) => {
+    const instrument = document.createElement('instrument');
+    instrument.innerText = val;
+    return instrument;
+  });
+
+  const tagElements = score.tags.map((val) => {
+    const tag = document.createElement('tag');
+    tag.innerText = val;
+    return tag;
+  });
+
+  const creators = document.createElement('creators');
+  for (const creator of creatorElements) {
+    creators.appendChild(creator);
+  }
+
+  const instruments = document.createElement('instruments');
+  for (const instrument of instrumentElements) {
+    instruments.appendChild(instrument);
+  }
+
+  const tags = document.createElement('tags');
+  for (const tag of tagElements) {
+    tags.appendChild(tag);
+  }
+
+  const scoreListItem = document.createElement('score-list-item');
+  scoreListItem.appendChild(creators);
+  scoreListItem.appendChild(instruments);
+  scoreListItem.appendChild(tags);
+
+  const element = document.createElement('div');
+  element.appendChild(scoreListItem);
   element.onclick = () => {
     window.location.href = `http://localhost:3000#/scores/${score.id}`;
   }

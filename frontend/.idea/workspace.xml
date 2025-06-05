@@ -5,18 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="cleanup">
-      <change afterPath="$PROJECT_DIR$/src/data/html-functions.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/router.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/pages/score-list-page.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/pages/score-list-page.component.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/pages/score-list-page.template.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.component.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.template.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list/score-list.component.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/pages/score-detail-page.component.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.template.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/detail.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item.component.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list.component.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
     </list>
@@ -138,7 +129,7 @@
       <workItem from="1748010846410" duration="20463000" />
       <workItem from="1748279884073" duration="13050000" />
       <workItem from="1748517954009" duration="16120000" />
-      <workItem from="1748891076968" duration="9999000" />
+      <workItem from="1748891076968" duration="12274000" />
     </task>
     <task id="LOCAL-00001" summary="delete flutter introduce html">
       <option name="closed" value="true" />
@@ -180,7 +171,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748521947700</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1749147396557</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1749147396557</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

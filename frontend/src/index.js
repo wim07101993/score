@@ -3,8 +3,8 @@ import {authConfig} from './data/auth/config.js';
 import {getDatabase} from "./data/database/database.js";
 import {startScoreFetchingBackgroundWorker} from "./data/score-fetcher/score_fetcher.js";
 
-import {registerScoreList} from "./components/score-list/score-list.component.js";
-import {registerScoreListItem} from "./components/score-list-item/score-list-item.component.js";
+import {registerScoreList} from "./components/score-list.component.js";
+import {registerScoreListItem} from "./components/score-list-item.component.js";
 import {registerScoreListPage} from "./components/pages/score-list-page.component.js";
 import {loadPage} from "./router.js";
 
