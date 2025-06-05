@@ -8,8 +8,6 @@ import (
 )
 
 type Config struct {
-	ScoresRepository   string `envconfig:"SCORES_REPOSITORY" json:"scoresRepository"`
-	GrpcServerPort     int    `envconfig:"GRPC_SERVER_PORT" json:"grpcServerPort" default:"7000"`
 	HttpServerPort     int    `envconfig:"HTTP_SERVER_PORT" json:"httpServerPort" default:"7001"`
 	JwtIssuer          string `envconfig:"JWT_ISSUER" json:"jwtIssuer"`
 	DbConnectionString string `envconfig:"DB_CONNECTION_STRING" json:"dbConnectionString"`
@@ -47,17 +45,8 @@ func (cfg *Config) Validate() error {
 
 	var errs []error
 
-	if cfg.ScoresRepository == "" {
-		errs = append(errs, errors.New("no ScoresRepository specified in configuration"))
-	}
-	if cfg.GrpcServerPort < 80 {
-		errs = append(errs, errors.New("cannot listen on a port lower than 80 for listening for gRPC requests"))
-	}
 	if cfg.HttpServerPort < 80 {
 		errs = append(errs, errors.New("cannot listen on a port lower than 80 for listening for http requests"))
-	}
-	if cfg.GrpcServerPort == cfg.HttpServerPort {
-		errs = append(errs, errors.New("cannot for both http and gRPC requests on the same port"))
 	}
 	if cfg.JwtIssuer == "" {
 		errs = append(errs, errors.New("no jwt issuer specified in configuration"))
