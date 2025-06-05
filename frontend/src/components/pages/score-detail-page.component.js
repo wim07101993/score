@@ -1,21 +1,18 @@
-export function registerScoreListPage() {
-  class ScoreListPage extends HTMLElement {
+export function registerScoreDetailPage() {
+  class ScoreDetailPage extends HTMLElement {
     constructor() {
       super();
 
       const title = document.createElement('h1');
-      title.innerText = 'Scores';
+      title.innerText = 'Score detail';
 
       const header = document.createElement('header');
       header.appendChild(title);
 
-      const scoreList = document.createElement('score-list');
-
       const shadowRoot = this.attachShadow({mode: 'open'});
       shadowRoot.appendChild(header);
-      shadowRoot.appendChild(scoreList);
     }
   }
 
-  customElements.define('score-list-page', ScoreListPage);
+  customElements.define('score-detail-page', ScoreDetailPage)
 }

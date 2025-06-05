@@ -6,15 +6,25 @@ import {startScoreFetchingBackgroundWorker} from "./data/score-fetcher/score_fet
 import {registerScoreList} from "./components/score-list/score-list.component.js";
 import {registerScoreListItem} from "./components/score-list-item/score-list-item.component.js";
 import {registerScoreListPage} from "./components/pages/score-list-page.component.js";
+import {loadPage} from "./router.js";
 
 console.log('index.js');
+console.log(window.location.hash);
+let currentPage = '/'
 
 async function main() {
-  await Promise.all([
-    registerScoreList(),
-    registerScoreListItem(),
-    registerScoreListPage(),
-  ])
+  registerScoreList();
+  registerScoreListItem();
+  registerScoreListPage();
+
+  if (currentPage !== window.location.hash) {
+    // don't know why but without the string conversion, the page load fails
+    const route = window.location.hash + '';
+    document.getElementById('app').innerHTML = loadPage(route);
+    currentPage = window.location.hash;
+  }
+
+
   const urlParams = new URLSearchParams(window.location.search);
 
   const accessToken = await authorize(
@@ -28,9 +38,10 @@ async function main() {
   if (accessToken == null) {
     return;
   }
+  console.log('user is logged in');
 
   // remove the authorization code from the url params
-  window.history.replaceState(null, null, window.location.pathname);
+  // window.history.replaceState(null, null, window.location.pathname);
 
   await getDatabase();
 
