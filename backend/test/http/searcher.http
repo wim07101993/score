@@ -14,3 +14,8 @@ GET http://{{host}}/scores/0e415222-cd34-44d7-a6ff-3369a568583a
 Authorization: bearer {{$auth.token("local")}}
 
 
+### Get healthz
+GET http://{{host}}/healthz
+
+### Get not found
+GET http://{{host}}/notfound

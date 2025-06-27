@@ -47,8 +47,9 @@ func (serv *HttpServer) RegisterRoutes() {
 		}
 		return nil
 	}))
-	http.HandleFunc("/health", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+	http.HandleFunc("/healthz", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
 		res.WriteHeader(200)
+		_, _ = res.Write([]byte("OK"))
 		return nil
 	}))
 	http.HandleFunc("/", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
