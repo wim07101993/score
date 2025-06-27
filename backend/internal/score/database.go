@@ -28,8 +28,8 @@ func NewDatabase(logger *slog.Logger, conn *pgxpool.Conn) *Database {
 //	MUTATING FUNCTIONS
 // ------------------------------------
 
-func (db *Database) AddScore(ctx context.Context, id string, score *musicxml.ScorePartwise) error {
-	db.logger.Info("indexing score document",
+func (db *Database) AddOrUpdateScore(ctx context.Context, id string, score *musicxml.ScorePartwise) error {
+	db.logger.Info("adding/updating score document",
 		slog.String("title", score.Work.Title),
 		slog.String("id", id))
 
@@ -133,7 +133,7 @@ func (db *Database) GetScores(
 		return nil, err
 	}
 
-	var scores []*Score
+	var scores = make([]*Score, 0)
 
 	defer rows.Close()
 	for rows.Next() {

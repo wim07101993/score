@@ -2,11 +2,17 @@ package score
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"score/backend/internal/logging"
+	"score/backend/internal/musicxml"
 	"time"
 )
+
+const scoreIdQueryParam = "scoreId"
 
 type HttpServer struct {
 	logger *slog.Logger
@@ -21,110 +27,160 @@ func NewHttpServer(logger *slog.Logger, db DatabaseFactory) *HttpServer {
 }
 
 func (serv *HttpServer) RegisterRoutes() {
-	http.HandleFunc("/scores/{scoreId}", func(res http.ResponseWriter, req *http.Request) {
+	http.HandleFunc("/scores/{scoreId}", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
 		switch req.Method {
 		case http.MethodGet:
-			serv.GetScore(res, req)
+			return serv.GetScore(res, req)
+		case http.MethodPut:
+			return serv.PutScore(res, req)
+		default:
+			http.Error(res, "", http.StatusMethodNotAllowed)
+			return nil
+		}
+	}))
+	http.HandleFunc("/scores", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+		switch req.Method {
+		case http.MethodGet:
+			return serv.GetScoresPage(res, req)
 		default:
 			http.Error(res, "", http.StatusMethodNotAllowed)
 		}
-	})
-	http.HandleFunc("/scores", func(res http.ResponseWriter, req *http.Request) {
-		switch req.Method {
-		case http.MethodGet:
-			serv.GetScoresPage(res, req)
-		default:
-			http.Error(res, "", http.StatusMethodNotAllowed)
-		}
-	})
+		return nil
+	}))
+	http.HandleFunc("/health", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+		res.WriteHeader(200)
+		return nil
+	}))
+	http.HandleFunc("/", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+		http.NotFound(res, req)
+		return nil
+	}))
 }
 
-func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) {
+func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
-	scoreId := req.PathValue("scoreId")
+	scoreId := req.PathValue(scoreIdQueryParam)
 	if scoreId == "" {
 		http.NotFound(res, req)
-		return
+		return nil
 	}
 
 	// DO QUERY
 	db, err := serv.db(req.Context())
 	if err != nil {
-		serv.logger.Error("failed to connect to the database", slog.Any("error", err))
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to connect to the database: %v", err)
 	}
 
 	score, err := db.GetApiScore(req.Context(), scoreId)
 	if err != nil {
-		serv.logger.Error("failed to lookup score", slog.Any("error", err))
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to lookup score: %v", err)
 	}
 
 	// RETURN RESULT
 	if score == nil {
 		http.NotFound(res, req)
-		return
+		return nil
 	}
 
 	bs, err := json.Marshal(score)
 	if err != nil {
-		serv.logger.Error("failed to serialize score", slog.Any("error", err))
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to serialize score: %v", err)
 	}
 
 	res.WriteHeader(http.StatusOK)
 	if _, err = res.Write(bs); err != nil {
-		serv.logger.Error("respond score", slog.Any("error", err))
-		return
+		return fmt.Errorf("failed to respond score: %v", err)
 	}
+
+	return nil
 }
 
-func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request) {
+func (serv *HttpServer) PutScore(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
-	changesSince, err := getChangesSinceParam(req)
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
+	scoreId := req.PathValue(scoreIdQueryParam)
+	if scoreId == "" {
+		http.NotFound(res, req)
+		return nil
 	}
-	changesUntil, err := getChangesUntilParam(req)
+
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "application/vnd.recordare.musicxml" &&
+		contentType != "application/vnd.recordare.musicxml+xml" {
+		http.Error(res, "content-type not supported", http.StatusUnsupportedMediaType)
+		return nil
+	}
+
+	score, err := musicxml.DeserializeMusicXml(xml.NewDecoder(req.Body))
 	if err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
+		serv.logger.Info("invalid musicxml", slog.Any("error", err))
+		http.Error(res, fmt.Sprintf("invalid musicxml: %s", err), http.StatusBadRequest)
+		return fmt.Errorf("invalid musicxml: %v", err)
 	}
 
 	// DO QUERY
 	db, err := serv.db(req.Context())
 	if err != nil {
 		serv.logger.Error("failed to connect to the database", slog.Any("error", err))
+		http.Error(res, "failed to save score", http.StatusInternalServerError)
+		return fmt.Errorf("failed to connect to the database: %v", err)
+	}
+
+	err = db.AddOrUpdateScore(req.Context(), scoreId, score)
+	if err != nil {
+		http.Error(res, "failed to save score", http.StatusInternalServerError)
+		return fmt.Errorf("failed to save score to the database: %v", err)
+	}
+
+	// RETURN RESULT
+	res.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request) error {
+	// VALIDATE INPUT
+	changesSince, err := getChangesSinceParam(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return err
+	}
+	changesUntil, err := getChangesUntilParam(req)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return err
+	}
+
+	// DO QUERY
+	db, err := serv.db(req.Context())
+	if err != nil {
 		http.Error(res, "failed to get scores page", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to connect to the database: %v", err)
 	}
 
 	scores, err := db.GetScores(req.Context(), changesSince, changesUntil)
 
 	if err != nil {
-		serv.logger.Error("failed to query all scores", slog.Any("error", err))
 		http.Error(res, "failed to get scores page", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to query all scores: %v", err)
 	}
 
 	// RETURN RESULT
 
 	bs, err := json.Marshal(scores)
 	if err != nil {
-		serv.logger.Error("failed to serialize scores page", slog.Any("error", err))
 		http.Error(res, "failed to get scores page", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to serialize scores page: %v", err)
 	}
 
 	res.WriteHeader(http.StatusOK)
 	if _, err = res.Write(bs); err != nil {
 		serv.logger.Error("respond scores page", slog.Any("error", err))
-		return
+		return fmt.Errorf("failed respond scores page: %v", err)
 	}
+
+	return nil
 }
 
 func getChangesSinceParam(req *http.Request) (time.Time, error) {
@@ -133,12 +189,12 @@ func getChangesSinceParam(req *http.Request) (time.Time, error) {
 		return time.Time{}, errors.New("a Changes-Since query param must be provided")
 	}
 
-	t, err := time.Parse("2006-01-02T15:04:05-0700", s)
+	t, err := time.Parse("20060102T150405", s)
 	if err != nil {
 		return time.Time{}, errors.New("failed to parse Changes-Since as date-time (ISO8601)")
 	}
-	if t.Nanosecond() == 0 {
-		return time.Time{}, errors.New("a Changes-Since query param must be provided")
+	if t.UnixNano() == 0 {
+		return time.Time{}, errors.New("a Changes-Since query param cannot be empty")
 	}
 	return t, nil
 }
@@ -149,12 +205,12 @@ func getChangesUntilParam(req *http.Request) (time.Time, error) {
 		return time.Time{}, errors.New("a Changes-Until query param must be provided")
 	}
 
-	t, err := time.Parse("2006-01-02T15:04:05-0700", s)
+	t, err := time.Parse("20060102T150405", s)
 	if err != nil {
 		return time.Time{}, errors.New("failed to parse Changes-Until as date-time (ISO8601)")
 	}
-	if t.Nanosecond() == 0 {
-		return time.Time{}, errors.New("a Changes-Until query param must be provided")
+	if t.UnixNano() == 0 {
+		return time.Time{}, errors.New("a Changes-Until query param cannot be empty")
 	}
 	return t, nil
 }

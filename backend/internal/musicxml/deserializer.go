@@ -61,8 +61,8 @@ func scorePartwise(r xml.TokenReader, element xml.StartElement) (score *ScorePar
 		func(attr xml.Attr) error {
 			switch attr.Name.Local {
 			case "version":
-				if attr.Value != "4.0" && attr.Value != "3.0" {
-					return fmt.Errorf("expected musicxml version 4.0")
+				if attr.Value != "4.0" && attr.Value != "3.0" && attr.Value != "3.1" {
+					return fmt.Errorf("expected musicxml version 4.0, 3.1 or 3.0")
 				}
 				return nil
 			default:

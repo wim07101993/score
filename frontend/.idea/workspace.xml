@@ -5,11 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="cleanup">
+      <change afterPath="$PROJECT_DIR$/../backend/internal/auth/middleware.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/internal/score/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/database.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/internal/score/http.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/http.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/test/grpc/searcher.http" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/test/grpc/searcher.http" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list-item/score-list-item.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item.component.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/score-list/score-list.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list.component.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/../go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/../go.sum" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,7 +112,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-WS-251.25410.117" />
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-WS-251.26927.40" />
       </set>
     </attachedChunks>
   </component>
@@ -129,7 +131,8 @@
       <workItem from="1748010846410" duration="20463000" />
       <workItem from="1748279884073" duration="13050000" />
       <workItem from="1748517954009" duration="16120000" />
-      <workItem from="1748891076968" duration="12274000" />
+      <workItem from="1748891076968" duration="12721000" />
+      <workItem from="1751031481125" duration="610000" />
     </task>
     <task id="LOCAL-00001" summary="delete flutter introduce html">
       <option name="closed" value="true" />
@@ -179,7 +182,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749147396557</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1749150093916</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1749150093916</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -1,0 +1,16 @@
+### Create new score
+PUT http://{{host}}/scores/42e2e0df-0258-4fa7-a475-0b64d6e64a90
+Authorization: bearer {{$auth.token("local")}}
+Content-Type: application/vnd.recordare.musicxml
+
+< ../example_data/BeetAnGeSample.musicxml
+
+### Retrieves all scores from the api
+GET http://{{host}}/scores?Changes-Since={{changesSince}}&Changes-Until={{changesUntil}}
+Authorization: bearer {{$auth.token("local")}}
+
+### Retrieves a single score from the api
+GET http://{{host}}/scores/0e415222-cd34-44d7-a6ff-3369a568583a
+Authorization: bearer {{$auth.token("local")}}
+
+
