@@ -5,13 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="cleanup">
-      <change afterPath="$PROJECT_DIR$/../backend/internal/auth/middleware.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/internal/score/database.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/database.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/internal/logging/middleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/logging/middleware.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../backend/internal/score/http.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/http.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/test/grpc/searcher.http" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/test/grpc/searcher.http" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/../go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/../go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list-item.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item.component.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/score-fetcher/message.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/score-fetcher/message.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/score-fetcher/score_fetcher.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/score-fetcher/score_fetcher.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/score-fetcher/worker.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/score-fetcher/worker.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,7 +133,7 @@
       <workItem from="1748279884073" duration="13050000" />
       <workItem from="1748517954009" duration="16120000" />
       <workItem from="1748891076968" duration="12721000" />
-      <workItem from="1751031481125" duration="610000" />
+      <workItem from="1751031481125" duration="4815000" />
     </task>
     <task id="LOCAL-00001" summary="delete flutter introduce html">
       <option name="closed" value="true" />

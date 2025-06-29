@@ -8,7 +8,7 @@ import (
 	"score/backend/internal"
 )
 
-func Wrap(l *slog.Logger, handler func(res http.ResponseWriter, req *http.Request) error) func(res http.ResponseWriter, req *http.Request) {
+func Wrap(l *slog.Logger, handler func(res http.ResponseWriter, req *http.Request) error) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		correlation := uuid.New().String()
 		l.Info("handle http request",

@@ -1,6 +1,6 @@
 import {ScoreFetcherCommand} from "./message.js";
 import {getDatabase, ObjectStoreName} from "../database/database.js";
-import {Score, Work} from "../database/models.js";
+import {Score} from "../database/models.js";
 
 self.onmessage = async (event) => {
   /**
@@ -8,9 +8,9 @@ self.onmessage = async (event) => {
    */
   const message = event.data;
   switch (message.command) {
-    case ScoreFetcherCommand.StartFetching:
+    case ScoreFetcherCommand.StartUpdatingScores:
       console.log('Start fetching scores');
-      await fetchScores()
+      await updateScores()
       break;
 
     default:
@@ -19,12 +19,40 @@ self.onmessage = async (event) => {
   }
 }
 
+async function updateScores() {
+  const scores = await getScoresFromApi();
+  await saveScores(scores);
+}
+
 /**
  * @returns {Promise<Score[]>}
  */
-async function fetchScores() {
-  // TODO actually fetch scores and save them to the database.
+async function getScoresFromApi() {
+  const changesSince = '20000101T000000';
+  const today = new Date();
+  const changesUntil = today.toISOString()
+    .replaceAll('-', '')
+    .replaceAll(':', '')
+    .split('.')[0];
 
+  /**
+   * @type Response
+   */
+  const response = await fetch(`http://localhost:7001/scores?Changes-Since=${changesSince}&Changes-Until=${changesUntil}`)
+  if (response.status >= 500) {
+    throw `failed to fetch scores (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
+  } else if (response.status >= 400) {
+    throw `failed to fetch scores: ${response.status} ${response.statusText}: ${await response.text()}`;
+  }
+
+  return await response.json();
+}
+
+/**
+ * @param {Score[]} scores the scores to save in the database
+ * @returns {Promise<void>}
+ */
+async function saveScores(scores) {
   const db = await getDatabase();
   const transaction = await db.transaction(ObjectStoreName.Scores, 'readwrite');
   const store = transaction.objectStore(ObjectStoreName.Scores);
@@ -35,7 +63,7 @@ async function fetchScores() {
     };
 
     transaction.onerror = (event) => {
-      console.log('DB transaction failed:', event);
+      console.error('DB transaction failed:', event);
       reject(event);
     };
 
@@ -45,17 +73,10 @@ async function fetchScores() {
     };
   });
 
-  store.put(new Score(
-    'id',
-    new Work('Hello world', null),
-    null,
-    ['John doe'],
-    ['nl'],
-    ['guitar'],
-    new Date(2003, 2, 1),
-    ['funny', 'demo']
-  ));
+  for (const score of scores) {
+    console.log(score);
+    store.put(score);
+  }
 
   await transactionCompletePromise;
 }
-

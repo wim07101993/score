@@ -27,35 +27,39 @@ func NewHttpServer(logger *slog.Logger, db DatabaseFactory) *HttpServer {
 }
 
 func (serv *HttpServer) RegisterRoutes() {
-	http.HandleFunc("/scores/{scoreId}", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
-		switch req.Method {
-		case http.MethodGet:
-			return serv.GetScore(res, req)
-		case http.MethodPut:
-			return serv.PutScore(res, req)
-		default:
-			http.Error(res, "", http.StatusMethodNotAllowed)
+	http.HandleFunc("/scores/{scoreId}", cors(
+		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+			switch req.Method {
+			case http.MethodGet:
+				return serv.GetScore(res, req)
+			case http.MethodPut:
+				return serv.PutScore(res, req)
+			default:
+				http.Error(res, "", http.StatusMethodNotAllowed)
+				return nil
+			}
+		})))
+	http.HandleFunc("/scores", cors(
+		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+			switch req.Method {
+			case http.MethodGet:
+				return serv.GetScoresPage(res, req)
+			default:
+				http.Error(res, "", http.StatusMethodNotAllowed)
+			}
 			return nil
-		}
-	}))
-	http.HandleFunc("/scores", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
-		switch req.Method {
-		case http.MethodGet:
-			return serv.GetScoresPage(res, req)
-		default:
-			http.Error(res, "", http.StatusMethodNotAllowed)
-		}
-		return nil
-	}))
-	http.HandleFunc("/healthz", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
-		res.WriteHeader(200)
-		_, _ = res.Write([]byte("OK"))
-		return nil
-	}))
-	http.HandleFunc("/", logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
-		http.NotFound(res, req)
-		return nil
-	}))
+		})))
+	http.HandleFunc("/healthz", cors(
+		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+			res.WriteHeader(200)
+			_, _ = res.Write([]byte("OK"))
+			return nil
+		})))
+	http.HandleFunc("/", cors(
+		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+			http.NotFound(res, req)
+			return nil
+		})))
 }
 
 func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) error {
@@ -192,7 +196,7 @@ func getChangesSinceParam(req *http.Request) (time.Time, error) {
 
 	t, err := time.Parse("20060102T150405", s)
 	if err != nil {
-		return time.Time{}, errors.New("failed to parse Changes-Since as date-time (ISO8601)")
+		return time.Time{}, errors.New("failed to parse Changes-Since as date-time (YYMMDDThhmmss)")
 	}
 	if t.UnixNano() == 0 {
 		return time.Time{}, errors.New("a Changes-Since query param cannot be empty")
@@ -208,10 +212,17 @@ func getChangesUntilParam(req *http.Request) (time.Time, error) {
 
 	t, err := time.Parse("20060102T150405", s)
 	if err != nil {
-		return time.Time{}, errors.New("failed to parse Changes-Until as date-time (ISO8601)")
+		return time.Time{}, errors.New("failed to parse Changes-Until as date-time (YYMMDDThhmmss)")
 	}
 	if t.UnixNano() == 0 {
 		return time.Time{}, errors.New("a Changes-Until query param cannot be empty")
 	}
 	return t, nil
+}
+
+func cors(handler http.HandlerFunc) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Access-Control-Allow-Origin", "*")
+		handler(res, req)
+	}
 }

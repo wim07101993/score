@@ -8,8 +8,6 @@ import {registerScoreListItem} from "./components/score-list-item.component.js";
 import {registerScoreListPage} from "./components/pages/score-list-page.component.js";
 import {loadPage} from "./router.js";
 
-console.log('index.js');
-console.log(window.location.hash);
 let currentPage = '/'
 
 async function main() {

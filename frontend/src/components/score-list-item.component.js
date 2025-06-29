@@ -52,11 +52,10 @@ export function registerScoreListItem() {
     }
 
     buildInstruments() {
-      const icon = this.buildIcon('assets/icons/instruments.svg', 'Instruments: ')
+      const icon = this.buildIcon('assets/icons/instrument.svg', 'Instruments: ')
 
       const instrumentsSpan = document.createElement('span');
       instrumentsSpan.innerText = getListProperty(this, 'instruments', 'instrument').join(' ,');
-      console.log(instrumentsSpan.innerText);
 
       const instruments = document.createElement('p');
       instruments.id = 'instruments';

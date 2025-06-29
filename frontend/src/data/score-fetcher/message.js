@@ -1,5 +1,5 @@
 export const ScoreFetcherCommand = Object.freeze({
-  StartFetching: 'start-fetching'
+  StartUpdatingScores: 'start-updating-scores'
 })
 
 export class ScoreFetcherMessage {
