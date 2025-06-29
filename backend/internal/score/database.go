@@ -185,17 +185,17 @@ const getScoreQuery = `
 
 func scanScore(row pgx.Row) (*Score, error) {
 	var (
-		id                string
-		workTitle         string
-		workNumber        string
-		movementTitle     string
-		movementNumber    string
-		lastChangedAt     time.Time
-		creatorsComposers pgtype.Array[string]
-		creatorsLyricists pgtype.Array[string]
-		languages         pgtype.Array[string]
-		instruments       pgtype.Array[string]
-		tags              pgtype.Array[string]
+		id                   string
+		workTitle            string
+		workNumber           string
+		movementTitle        string
+		movementNumber       string
+		lastChangedAt        time.Time
+		creatorsComposersArr pgtype.Array[string]
+		creatorsLyricistsArr pgtype.Array[string]
+		languagesArr         pgtype.Array[string]
+		instrumentsArr       pgtype.Array[string]
+		tagsArr              pgtype.Array[string]
 	)
 
 	err := row.Scan(
@@ -205,14 +205,36 @@ func scanScore(row pgx.Row) (*Score, error) {
 		&movementTitle,
 		&movementNumber,
 		&lastChangedAt,
-		&creatorsComposers,
-		&creatorsLyricists,
-		&languages,
-		&instruments,
-		&tags)
+		&creatorsComposersArr,
+		&creatorsLyricistsArr,
+		&languagesArr,
+		&instrumentsArr,
+		&tagsArr)
 
 	if err != nil {
 		return nil, err
+	}
+
+	creatorsComposers := creatorsComposersArr.Elements
+	creatorsLyricists := creatorsLyricistsArr.Elements
+	languages := languagesArr.Elements
+	instruments := instrumentsArr.Elements
+	tags := tagsArr.Elements
+
+	if creatorsComposers == nil {
+		creatorsComposers = make([]string, 0)
+	}
+	if creatorsLyricists == nil {
+		creatorsLyricists = make([]string, 0)
+	}
+	if languages == nil {
+		languages = make([]string, 0)
+	}
+	if instruments == nil {
+		instruments = make([]string, 0)
+	}
+	if tags == nil {
+		tags = make([]string, 0)
 	}
 
 	return &Score{
@@ -226,12 +248,12 @@ func scanScore(row pgx.Row) (*Score, error) {
 			Number: movementNumber,
 		},
 		Creators: Creators{
-			Composers: creatorsComposers.Elements,
-			Lyricists: creatorsLyricists.Elements,
+			Composers: creatorsComposers,
+			Lyricists: creatorsLyricists,
 		},
-		Languages:     languages.Elements,
-		Instruments:   instruments.Elements,
+		Languages:     languages,
+		Instruments:   instruments,
 		LastChangedAt: lastChangedAt,
-		Tags:          tags.Elements,
+		Tags:          tags,
 	}, nil
 }

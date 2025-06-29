@@ -74,7 +74,6 @@ async function saveScores(scores) {
   });
 
   for (const score of scores) {
-    console.log(score);
     store.put(score);
   }
 
