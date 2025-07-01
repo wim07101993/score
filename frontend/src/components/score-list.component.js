@@ -3,18 +3,39 @@ import {buildScoreListItem} from "./score-list-item.component.js";
 
 export function registerScoreList() {
   class ScoreList extends HTMLElement {
+    static containerId = 'container';
+
     constructor() {
       super();
 
-      const shadowRoot = this.attachShadow({mode: 'open'});
-      getAllScores().then(scores => {
-        for (let i = 0; i < scores.length; i++) {
-          const score = scores[i];
+      this.shadow = this.attachShadow({mode: 'open'});
 
+      const container = document.createElement('div');
+      container.id = ScoreList.containerId;
+
+      getAllScores().then(scores => {
+        for (const score of scores) {
           const listItem = buildScoreListItem(score);
-          shadowRoot.appendChild(listItem);
+          container.appendChild(listItem);
         }
-      })
+      });
+
+      this.shadow.appendChild(this.buildStyle());
+      this.shadow.appendChild(container);
+    }
+
+    function
+
+    buildStyle() {
+      const style = document.createElement('style')
+      style.textContent = `
+        #container {
+          display: grid;
+          grid-auto-flow: row;
+          grid-row-gap: 8px;
+        }
+        `;
+      return style;
     }
   }
 
