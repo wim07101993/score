@@ -15,13 +15,15 @@ async function main() {
   registerScoreListItem();
   registerScoreListPage();
 
+  onhashchange = () => updatePage();
+  updatePage();
+
   if (currentPage !== window.location.hash) {
     // don't know why but without the string conversion, the page load fails
     const route = window.location.hash + '';
     document.getElementById('app').innerHTML = loadPage(route);
     currentPage = window.location.hash;
   }
-
 
   const urlParams = new URLSearchParams(window.location.search);
 
@@ -48,6 +50,16 @@ async function main() {
   } else {
     alert("background workers are not supported, application won't work...");
   }
+}
+
+function updatePage() {
+  if (currentPage === window.location.hash) {
+    return;
+  }
+  // don't know why but without the string conversion, the page load fails
+  const route = window.location.hash + '';
+  document.getElementById('app').innerHTML = loadPage(route);
+  currentPage = window.location.hash;
 }
 
 await main();

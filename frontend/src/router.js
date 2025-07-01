@@ -1,4 +1,4 @@
-const scoreDetailPageRegex = new RegExp('^#/scores/[A-Za-z0-9]+$');
+const scoreDetailPageRegex = new RegExp('^#/scores/[A-Za-z0-9\-]+$');
 
 /**
  * @param route {string} the route to load
@@ -14,6 +14,3 @@ export function loadPage(route) {
   return `<score-list-page></score-list-page>`;
 }
 
-class Router {
-
-}
