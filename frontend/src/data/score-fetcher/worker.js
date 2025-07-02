@@ -1,4 +1,4 @@
-import {ScoreFetcherCommand} from "./message.js";
+import {ScoreFetcherCommand, ScoreFetcherMessage, ScoresEvent} from "./message.js";
 import {getDatabase, ObjectStoreName} from "../database/database.js";
 import {Score} from "../database/models.js";
 
@@ -10,7 +10,8 @@ self.onmessage = async (event) => {
   switch (message.command) {
     case ScoreFetcherCommand.StartUpdatingScores:
       console.log('Start fetching scores');
-      await updateScores()
+      await updateScores();
+      self.postMessage(new ScoreFetcherMessage(ScoresEvent.ScoresFetched));
       break;
 
     default:

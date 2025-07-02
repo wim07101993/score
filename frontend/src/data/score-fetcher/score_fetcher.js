@@ -1,27 +1,52 @@
-import {ScoreFetcherCommand, ScoreFetcherMessage} from "./message.js";
+import {ScoreFetcherCommand, ScoreFetcherMessage, ScoresEvent} from "./message.js";
 
 /**
- * @type {Worker|null}
+ * @callback messageCallback
+ * @param {ScoreFetcherMessage} message is the message received from the worker
  */
-let worker = null;
+/**
+ * @callback scoresUpdatedCallback
+ */
 
-export function startScoreFetchingBackgroundWorker() {
-  if (worker != null) {
-    worker.terminate();
+export class ScoreFetcher {
+  constructor() {
+    this.worker = new Worker(new URL('worker.js', import.meta.url), {type: 'module'});
+
+    /** @type {messageCallback[]} */
+    this.messageListeners = [];
+
+    this.worker.onmessage = (event) => {
+      console.log('from worker:', event);
+      /** @type {ScoreFetcherMessage} */
+      const message = event.data;
+      for (let listener of this.messageListeners) {
+        listener(message);
+      }
+    };
+
+    this.worker.onmessageerror = (message) => {
+      console.error('worker message error:', message);
+    };
+
+    this.worker.onerror = (message) => {
+      console.error('worker error:', message, message.error, message.message);
+    };
   }
-  worker = new Worker(new URL('worker.js', import.meta.url), {type: 'module'});
 
-  worker.onmessage = (message) => {
-    console.log('from worker:', message);
-  };
+  updatingScores() {
+    this.worker.postMessage(new ScoreFetcherMessage(ScoreFetcherCommand.StartUpdatingScores));
+  }
 
-  worker.onmessageerror = (message) => {
-    console.error('worker message error:', message);
-  };
-
-  worker.onerror = (message) => {
-    console.error('worker error:', message, message.error, message.message);
-  };
-
-  worker.postMessage(new ScoreFetcherMessage(ScoreFetcherCommand.StartUpdatingScores));
+  /**
+   * @param {scoresUpdatedCallback} callback
+   */
+  listenForScoresUpdated(callback) {
+    this.messageListeners.push(function (message) {
+      if (message.command === ScoresEvent.ScoresFetched) {
+        callback();
+      }
+    });
+  }
 }
+
+export const scoreFetcher = new ScoreFetcher();

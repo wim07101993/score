@@ -1,12 +1,13 @@
 import {authorizationCodeQueryParamName, authorize} from './data/auth/auth.js';
 import {authConfig} from './data/auth/config.js';
 import {getDatabase} from "./data/database/database.js";
-import {startScoreFetchingBackgroundWorker} from "./data/score-fetcher/score_fetcher.js";
+import {scoreFetcher} from "./data/score-fetcher/score_fetcher.js";
 
 import {registerScoreList} from "./components/score-list.component.js";
 import {registerScoreListItem} from "./components/score-list-item.component.js";
 import {registerScoreListPage} from "./components/pages/score-list-page.component.js";
 import {loadPage} from "./router.js";
+import {registerScoreDetailPage} from "./components/pages/score-detail-page.component.js";
 
 let currentPage = '/'
 
@@ -14,6 +15,13 @@ async function main() {
   registerScoreList();
   registerScoreListItem();
   registerScoreListPage();
+  registerScoreDetailPage();
+
+  if (window.Worker) {
+    scoreFetcher.updatingScores();
+  } else {
+    alert("background workers are not supported, application won't work...");
+  }
 
   onhashchange = () => updatePage();
   updatePage();
@@ -44,15 +52,10 @@ async function main() {
   // window.history.replaceState(null, null, window.location.pathname);
 
   await getDatabase();
-
-  if (window.Worker) {
-    startScoreFetchingBackgroundWorker();
-  } else {
-    alert("background workers are not supported, application won't work...");
-  }
 }
 
 function updatePage() {
+  console.log('updating page');
   if (currentPage === window.location.hash) {
     return;
   }
