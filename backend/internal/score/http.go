@@ -76,6 +76,7 @@ func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) err
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
 		return fmt.Errorf("failed to connect to the database: %v", err)
 	}
+	defer db.Dispose()
 
 	score, err := db.GetApiScore(req.Context(), scoreId)
 	if err != nil {
@@ -132,6 +133,7 @@ func (serv *HttpServer) PutScore(res http.ResponseWriter, req *http.Request) err
 		http.Error(res, "failed to save score", http.StatusInternalServerError)
 		return fmt.Errorf("failed to connect to the database: %v", err)
 	}
+	defer db.Dispose()
 
 	err = db.AddOrUpdateScore(req.Context(), scoreId, score)
 	if err != nil {
@@ -163,6 +165,7 @@ func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request
 		http.Error(res, "failed to get scores page", http.StatusInternalServerError)
 		return fmt.Errorf("failed to connect to the database: %v", err)
 	}
+	defer db.Dispose()
 
 	scores, err := db.GetScores(req.Context(), changesSince, changesUntil)
 

@@ -24,6 +24,10 @@ func NewDatabase(logger *slog.Logger, conn *pgxpool.Conn) *Database {
 	}
 }
 
+func (db *Database) Dispose() {
+	db.conn.Release()
+}
+
 // ------------------------------------
 //	MUTATING FUNCTIONS
 // ------------------------------------
