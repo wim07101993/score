@@ -73,3 +73,16 @@ export async function getAllScores() {
     }
   })
 }
+
+/**
+ * @param {String} scoreId
+ * @returns {Promise<void>}
+ */
+export async function getScore(scoreId) {
+  console.log(`getting score with id ${scoreId}`);
+  const request = await getDatabase().then((database) => database
+    .transaction([ObjectStoreName.Scores])
+    .objectStore(ObjectStoreName.Scores)
+    .get(scoreId));
+
+}

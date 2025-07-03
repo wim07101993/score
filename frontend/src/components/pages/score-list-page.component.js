@@ -3,17 +3,13 @@ export function registerScoreListPage() {
     constructor() {
       super();
 
-      const title = document.createElement('h1');
-      title.innerText = 'Scores';
-
-      const header = document.createElement('header');
-      header.appendChild(title);
-
-      const scoreList = document.createElement('score-list');
-
       const shadowRoot = this.attachShadow({mode: 'open'});
-      shadowRoot.appendChild(header);
-      shadowRoot.appendChild(scoreList);
+      shadowRoot.innerHTML = `
+      <header>
+        <h1>Scores</h1>
+      </header>
+      <score-list></score-list>
+      `;
     }
   }
 

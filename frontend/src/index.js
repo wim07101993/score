@@ -8,12 +8,14 @@ import {registerScoreListItem} from "./components/score-list-item.component.js";
 import {registerScoreListPage} from "./components/pages/score-list-page.component.js";
 import {loadPage} from "./router.js";
 import {registerScoreDetailPage} from "./components/pages/score-detail-page.component.js";
+import {registerScoreDetail} from "./components/score-detail.component.js";
 
 let currentPage = '/'
 
 async function main() {
   registerScoreList();
   registerScoreListItem();
+  registerScoreDetail();
   registerScoreListPage();
   registerScoreDetailPage();
 

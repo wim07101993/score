@@ -4,18 +4,21 @@ import {scoreFetcher} from "../data/score-fetcher/score_fetcher.js";
 
 export function registerScoreList() {
   class ScoreList extends HTMLElement {
-    static containerId = 'container';
-
     constructor() {
       super();
 
       this.shadow = this.attachShadow({mode: 'open'});
-
-      const container = document.createElement('div');
-      container.id = ScoreList.containerId;
-
-      this.shadow.appendChild(this.buildStyle());
-      this.shadow.appendChild(container);
+      this.shadow.innerHTML = `
+      <style>
+        #container {
+          display: grid;
+          grid-auto-flow: row;
+          grid-row-gap: 8px;
+        }
+      </style>
+      <div id="container">
+      </div>
+      `;
 
       const list = this;
       scoreFetcher.listenForScoresUpdated(() => {
@@ -25,25 +28,13 @@ export function registerScoreList() {
     }
 
     buildScoreListItems() {
-      const container = this.shadow.getElementById(ScoreList.containerId);
+      const container = this.shadow.getElementById('container');
       getAllScores().then(scores => {
         for (const score of scores) {
           const listItem = buildScoreListItem(score);
           container.appendChild(listItem);
         }
       });
-    }
-
-    buildStyle() {
-      const style = document.createElement('style')
-      style.textContent = `
-        #container {
-          display: grid;
-          grid-auto-flow: row;
-          grid-row-gap: 8px;
-        }
-        `;
-      return style;
     }
   }
 

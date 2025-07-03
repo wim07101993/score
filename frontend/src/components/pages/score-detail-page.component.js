@@ -3,14 +3,15 @@ export function registerScoreDetailPage() {
     constructor() {
       super();
 
-      const title = document.createElement('h1');
-      title.innerText = 'Score detail';
-
-      const header = document.createElement('header');
-      header.appendChild(title);
+      const scoreId = location.hash.replace('#/scores/', '');
 
       const shadowRoot = this.attachShadow({mode: 'open'});
-      shadowRoot.appendChild(header);
+      shadowRoot.innerHTML = `
+      <header>
+        <h1>Score detail</h1>
+        <score-detail score-id="${scoreId}"></score-detail>
+      </header>
+      `;
     }
   }
 
