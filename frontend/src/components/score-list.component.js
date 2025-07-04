@@ -1,6 +1,5 @@
-import {getAllScores} from "../data/database/database.js";
 import {buildScoreListItem} from "./score-list-item.component.js";
-import {scoreFetcher} from "../data/score-fetcher/score_fetcher.js";
+import {appState} from "../app-state.js";
 
 export function registerScoreList() {
   class ScoreList extends HTMLElement {
@@ -21,20 +20,17 @@ export function registerScoreList() {
       `;
 
       const list = this;
-      scoreFetcher.listenForScoresUpdated(() => {
-        list.buildScoreListItems();
-      })
-      this.buildScoreListItems();
+      appState.database.addScoreChangesListener(() => list._buildScoreListItems());
+      this._buildScoreListItems();
     }
 
-    buildScoreListItems() {
+    async _buildScoreListItems() {
       const container = this.shadow.getElementById('container');
-      getAllScores().then(scores => {
-        for (const score of scores) {
-          const listItem = buildScoreListItem(score);
-          container.appendChild(listItem);
-        }
-      });
+      await appState.initialization;
+      for (const score of appState.database.scores) {
+        const listItem = buildScoreListItem(score);
+        container.appendChild(listItem);
+      }
     }
   }
 

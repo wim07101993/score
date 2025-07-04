@@ -2,7 +2,6 @@ import {Score} from '../data/database/models.js';
 import {getListProperty} from '../data/html-functions.js';
 import {getInstrumentName} from "../data/instrument-names.js";
 
-
 export function registerScoreListItem() {
   class ScoreListItem extends HTMLElement {
     static titleAttributeName = 'title';

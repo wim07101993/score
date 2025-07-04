@@ -1,7 +1,5 @@
 import {authorizationCodeQueryParamName, authorize} from './data/auth/auth.js';
 import {authConfig} from './data/auth/config.js';
-import {getDatabase} from "./data/database/database.js";
-import {scoreFetcher} from "./data/score-fetcher/score_fetcher.js";
 
 import {registerScoreList} from "./components/score-list.component.js";
 import {registerScoreListItem} from "./components/score-list-item.component.js";
@@ -9,6 +7,7 @@ import {registerScoreListPage} from "./components/pages/score-list-page.componen
 import {loadPage} from "./router.js";
 import {registerScoreDetailPage} from "./components/pages/score-detail-page.component.js";
 import {registerScoreDetail} from "./components/score-detail.component.js";
+import {appState} from "./app-state.js";
 
 let currentPage = '/'
 
@@ -19,11 +18,9 @@ async function main() {
   registerScoreListPage();
   registerScoreDetailPage();
 
-  if (window.Worker) {
-    scoreFetcher.updatingScores();
-  } else {
-    alert("background workers are not supported, application won't work...");
-  }
+  appState.initialization
+    .then((appState) => appState.api.getScores(new Date(2000), new Date()))
+    .then((scores) => appState.database.addScores(scores))
 
   onhashchange = () => updatePage();
   updatePage();
@@ -52,8 +49,6 @@ async function main() {
 
   // remove the authorization code from the url params
   // window.history.replaceState(null, null, window.location.pathname);
-
-  await getDatabase();
 }
 
 function updatePage() {

@@ -7,10 +7,7 @@ export function registerScoreDetailPage() {
 
       const shadowRoot = this.attachShadow({mode: 'open'});
       shadowRoot.innerHTML = `
-      <header>
-        <h1>Score detail</h1>
         <score-detail score-id="${scoreId}"></score-detail>
-      </header>
       `;
     }
   }
