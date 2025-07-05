@@ -151,7 +151,8 @@ export function buildScoreListItem(score) {
   scoreListItem.setAttribute('title', score.work.title ?? score.movement.title);
 
   scoreListItem.onclick = () => {
-    window.location.href = `http://localhost:3000#/scores/${score.id}`;
+    window.location.search = new URLSearchParams({'id': score.id}).toString();
+    window.location.pathname = `scores/detail`;
   }
 
   return scoreListItem;

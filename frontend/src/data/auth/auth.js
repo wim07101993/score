@@ -1,10 +1,11 @@
+import {authConfig, defaultScopes} from "./config.js";
+
 const pkceCodeVerifierSessionStorageKey = 'pkce_code_verifier';
 const idTokenSessionStorageKey = 'id_token';
 
 const refreshTokenLocalStorageKey = 'refresh_token';
 
 export const authorizationCodeQueryParamName = 'code';
-export const defaultScopes = ['openid', 'email', 'profile', 'offline_access'];
 
 /**
  * The last received access token.
@@ -13,45 +14,27 @@ export const defaultScopes = ['openid', 'email', 'profile', 'offline_access'];
 let tokenResponse = null;
 
 /**
- * @param clientId {string} is the client_id with which the application should
- * be authenticated.
- *
- * @param redirectUri {URL} is the uri to which the IDP should redirect to after
- * completing the authorization request.
- *
- * @param authorizationEndpoint {URL} is endpoint from which the authorization
- * code can be requested.
- *
- * @param tokenEndpoint {URL} is endpoint from which a token can be requested
- * once an authorization code has been retrieved.
- *
- * @param authorizationCode {string|null} is the code received from a previous
- * authorization code request. This should be present in the query parameters
- * of the redirect URI with the name 'code'
- *
- * @param scope {string[]} is the scope which should be requested from the IDP.
- * If not provided, a default scope is sent ([openid, email, profile])
- *
  * @returns {Promise<string>}
  */
-export async function authorize(
-  clientId,
-  redirectUri,
-  authorizationEndpoint,
-  tokenEndpoint,
-  authorizationCode,
-  scope = defaultScopes
-) {
+export async function authorize() {
   if (tokenResponse !== null) {
     return tokenResponse.access_token;
   }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const authorizationCode = urlParams.get(authorizationCodeQueryParamName);
 
   const codeVerifier = sessionStorage.getItem(pkceCodeVerifierSessionStorageKey);
   if (codeVerifier !== null && authorizationCode !== null && authorizationCode.length !== 0) {
     console.log('exchange authorization code for token');
     tokenResponse = await callTokenEndpoint(
-      tokenEndpoint,
-      TokenRequestParams.authorizationCode(clientId, 'authorization_code', redirectUri, authorizationCode, codeVerifier)
+      authConfig.tokenEndpoint,
+      TokenRequestParams.authorizationCode(
+        authConfig.clientId,
+        'authorization_code',
+        authConfig.redirectUri,
+        authorizationCode,
+        codeVerifier)
     );
     if (tokenResponse !== null) {
       return tokenResponse.access_token;
@@ -62,15 +45,26 @@ export async function authorize(
   if (refreshToken !== null) {
     console.log('refresh access token');
     tokenResponse = await callTokenEndpoint(
-      tokenEndpoint,
-      TokenRequestParams.refreshToken(clientId, 'refresh_token', redirectUri, scope, refreshToken)
+      authConfig.tokenEndpoint,
+      TokenRequestParams.refreshToken(
+        authConfig.clientId,
+        'refresh_token',
+        authConfig.redirectUri,
+        defaultScopes,
+        refreshToken
+      )
     );
     if (tokenResponse !== null) {
       return tokenResponse.access_token;
     }
   }
 
-  await startAuthorizationCodeFlow(clientId, redirectUri, authorizationEndpoint, scope);
+  await startAuthorizationCodeFlow(
+    authConfig.clientId,
+    authConfig.redirectUri,
+    authConfig.authorizationEndpoint,
+    defaultScopes
+  );
   return null;
 }
 

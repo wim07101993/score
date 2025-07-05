@@ -1,5 +1,7 @@
-#score-list * {
-    margin-bottom: 16px;
+#score-list {
+    display: grid;
+    grid-auto-flow: row;
+    grid-row-gap: 8px;
 }
 
 @media screen and (min-width: 60rem) {

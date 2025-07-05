@@ -4,3 +4,4 @@ export const authConfig = {
   authorizationEndpoint: new URL('http://localhost:7003/oauth/v2/authorize'),
   tokenEndpoint: new URL('http://localhost:7003/oauth/v2/token')
 };
+export const defaultScopes = ['openid', 'email', 'profile', 'offline_access'];
