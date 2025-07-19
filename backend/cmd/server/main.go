@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"score/backend/internal/auth"
 	"score/backend/internal/score"
 )
 
@@ -39,7 +40,9 @@ func main() {
 func serveHttp() {
 	logger.Info("starting http server")
 
-	scoreServ := score.NewHttpServer(logger, createScoresDb)
+	authMiddleware := auth.NewMiddleware(cfg.TokenIntrospectionUrl, cfg.TokenIntrospectionClientId, cfg.TokenIntrospectionClientSecret)
+
+	scoreServ := score.NewHttpServer(logger, createScoresDb, authMiddleware)
 	scoreServ.RegisterRoutes()
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)

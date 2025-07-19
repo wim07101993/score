@@ -4,9 +4,10 @@ export class ScoresApi {
   /**
    * @param changesSince {Date}
    * @param changesUntil {Date}
+   * @param authToken {String}
    * @returns {Promise<Score[]>}
    */
-  async getScores(changesSince, changesUntil) {
+  async getScores(changesSince, changesUntil, authToken) {
     const params = new URLSearchParams({
       'Changes-Since': _formatDate(changesSince),
       'Changes-Until': _formatDate(changesUntil),
@@ -15,7 +16,11 @@ export class ScoresApi {
     /**
      * @type Response
      */
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      }
+    });
     if (response.status >= 500) {
       throw `failed to fetch scores (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
     } else if (response.status >= 400) {
@@ -26,15 +31,20 @@ export class ScoresApi {
   }
 
   /**
-   * @param scoreId
+   * @param scoreId {String}
+   * @param authToken {String}
    * @returns {Promise<Score|null>}
    */
-  async getScore(scoreId) {
+  async getScore(scoreId, authToken) {
     const url = `${this.baseUrl}/scores/${scoreId}`;
     /**
      * @type Response
      */
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: {
+        "Authorization": `Bearer ${authToken}`
+      }
+    });
     if (response.status >= 500) {
       throw `failed to fetch score (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
     } else if (response.status >= 400) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"score/backend/internal/auth"
 	"score/backend/internal/logging"
 	"score/backend/internal/musicxml"
 	"time"
@@ -15,20 +16,22 @@ import (
 const scoreIdQueryParam = "scoreId"
 
 type HttpServer struct {
-	logger *slog.Logger
-	db     DatabaseFactory
+	logger         *slog.Logger
+	db             DatabaseFactory
+	authMiddleware *auth.Middleware
 }
 
-func NewHttpServer(logger *slog.Logger, db DatabaseFactory) *HttpServer {
+func NewHttpServer(logger *slog.Logger, db DatabaseFactory, auth *auth.Middleware) *HttpServer {
 	return &HttpServer{
-		logger: logger,
-		db:     db,
+		logger:         logger,
+		db:             db,
+		authMiddleware: auth,
 	}
 }
 
 func (serv *HttpServer) RegisterRoutes() {
 	http.HandleFunc("/scores/{scoreId}", cors(
-		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+		logging.Wrap(serv.logger, serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
 			switch req.Method {
 			case http.MethodGet:
 				return serv.GetScore(res, req)
@@ -38,9 +41,9 @@ func (serv *HttpServer) RegisterRoutes() {
 				http.Error(res, "", http.StatusMethodNotAllowed)
 				return nil
 			}
-		})))
+		}))))
 	http.HandleFunc("/scores", cors(
-		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
+		logging.Wrap(serv.logger, serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
 			switch req.Method {
 			case http.MethodGet:
 				return serv.GetScoresPage(res, req)
@@ -48,7 +51,7 @@ func (serv *HttpServer) RegisterRoutes() {
 				http.Error(res, "", http.StatusMethodNotAllowed)
 			}
 			return nil
-		})))
+		}))))
 	http.HandleFunc("/healthz", cors(
 		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
 			res.WriteHeader(200)
@@ -226,6 +229,11 @@ func getChangesUntilParam(req *http.Request) (time.Time, error) {
 func cors(handler http.HandlerFunc) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Access-Control-Allow-Origin", "*")
+		res.Header().Set("Access-Control-Allow-Headers", "*")
+		if req.Method == http.MethodOptions {
+			_, _ = res.Write([]byte("OK"))
+			return
+		}
 		handler(res, req)
 	}
 }

@@ -1,61 +1,86 @@
 package auth
 
 import (
-	"context"
-	"github.com/lestrrat-go/jwx/v2/jwk"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"encoding/json"
+	"github.com/pkg/errors"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
-const tokenContextKey = "authorization_token"
+type IntrospectionResponse struct {
+	IsActive bool `json:"active"`
+}
 
-func Authenticate(
-	issuer string,
-	jwkSet jwk.Set,
-	handler func(res http.ResponseWriter, req *http.Request)) func(res http.ResponseWriter, req *http.Request) {
-	if jwkSet == nil {
-		panic("no jwk set declared")
-	}
+type Middleware struct {
+	IntrospectionUrl string
+	ClientId         string
+	ClientSecret     string
+}
 
-	return func(res http.ResponseWriter, req *http.Request) {
-		header := req.Header.Get("authorization")
-		if header == "" {
-			http.Error(res, "no authorization header", http.StatusUnauthorized)
-			return
-		}
-
-		scheme, stoken, exists := strings.Cut(header, " ")
-		if !exists {
-			http.Error(res, "authorization header was malformed", http.StatusUnauthorized)
-			return
-		}
-		if scheme != "bearer" {
-			http.Error(res, "invalid authorization header scheme", http.StatusUnauthorized)
-			return
-		}
-
-		set := jwt.WithKeySet(jwkSet)
-		token, parseError := jwt.Parse([]byte(stoken), set)
-		if parseError != nil {
-			http.Error(res, "failed to parse jwt", http.StatusUnauthorized)
-			return
-		}
-
-		validateError := jwt.Validate(token, jwt.WithIssuer(issuer))
-		if validateError != nil {
-			http.Error(res, "token was not issued by expected issuer", http.StatusUnauthorized)
-			return
-		}
-
-		handler(res, req.WithContext(context.WithValue(req.Context(), tokenContextKey, token)))
+func NewMiddleware(introspectionUrl string, clientId string, clientSecret string) *Middleware {
+	return &Middleware{
+		IntrospectionUrl: introspectionUrl,
+		ClientId:         clientId,
+		ClientSecret:     clientSecret,
 	}
 }
 
-func FromContext(ctx context.Context) jwt.Token {
-	val := ctx.Value(tokenContextKey)
-	if val == nil {
-		return nil
+func (m *Middleware) Authenticate(handler func(res http.ResponseWriter, req *http.Request) error) func(res http.ResponseWriter, req *http.Request) error {
+	return func(res http.ResponseWriter, req *http.Request) error {
+		header := req.Header.Get("Authorization")
+		if header == "" {
+			http.Error(res, "no authorization header", http.StatusUnauthorized)
+			return errors.New("no authorization header")
+		}
+
+		split := strings.Split(header, " ")
+		scheme := split[0]
+		if len(split) != 2 || scheme != "Bearer" {
+			http.Error(res, "authorization header is malformed. Expected 'Bearer {token}'", http.StatusUnauthorized)
+			return errors.New("authorization header is malformed. Expected 'Bearer {token}'")
+		}
+		token := split[1]
+
+		isValid, err := introspectToken(m.IntrospectionUrl, m.ClientId, m.ClientSecret, token)
+		if err != nil {
+			http.Error(res, "failed to introspect token", http.StatusInternalServerError)
+			return err
+		}
+		if !isValid {
+			http.Error(res, "token not valid", http.StatusUnauthorized)
+			return errors.New("token not valid")
+		}
+
+		return handler(res, req)
 	}
-	return val.(jwt.Token)
+}
+
+func introspectToken(endpoint string, clientId string, clientSecret string, token string) (bool, error) {
+	data := url.Values{}
+
+	data.Set("token", token)
+	req, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
+	if err != nil {
+		return false, errors.Wrap(err, "failed to create token introspection request")
+	}
+	req.SetBasicAuth(clientId, clientSecret)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to do token introspection request")
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return false, errors.Wrap(err, "failed to do token introspection because of authentication reasons")
+	}
+
+	var result IntrospectionResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return false, errors.Wrap(err, "could not read response from introspection request")
+	}
+	return result.IsActive, nil
 }
