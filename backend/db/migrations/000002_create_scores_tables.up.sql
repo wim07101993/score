@@ -1,3 +1,9 @@
+CREATE TABLE IF NOT EXISTS score_files
+(
+    id UUID PRIMARY KEY,
+    content TEXT
+);
+
 CREATE TABLE IF NOT EXISTS scores
 (
     id                 UUID PRIMARY KEY,
@@ -10,5 +16,8 @@ CREATE TABLE IF NOT EXISTS scores
     languages          TEXT[],
     instruments        INSTRUMENT[],
     lastChangedAt      TIMESTAMP,
-    tags               TEXT[]
+    tags               TEXT[],
+    FOREIGN KEY (id)
+        REFERENCES score_files(id)
+        ON DELETE CASCADE
 );

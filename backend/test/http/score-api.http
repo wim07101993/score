@@ -1,5 +1,5 @@
 ### Create new score
-PUT http://{{host}}/scores/42e2e0df-0258-4fa7-a475-0b64d6e64a90
+PUT http://{{host}}/scores/{{scoreId}}
 Authorization: bearer {{$auth.token("local")}}
 Content-Type: application/vnd.recordare.musicxml
 
@@ -10,9 +10,13 @@ GET http://{{host}}/scores?Changes-Since={{changesSince}}&Changes-Until={{change
 Authorization: bearer {{$auth.token("local")}}
 
 ### Retrieves a single score from the api
-GET http://{{host}}/scores/42e2e0df-0258-4fa7-a475-0b64d6e64a90
+GET http://{{host}}/scores/{{scoreId}}
 Authorization: bearer {{$auth.token("local")}}
 
+### Retrieves a music-xml file from the api
+GET http://{{host}}/scores/{{scoreId}}
+Accept: application/vnd.recordare.musicxml
+Authorization: bearer {{$auth.token("local")}}
 
 ### Get healthz
 GET http://{{host}}/healthz

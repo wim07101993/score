@@ -29,42 +29,51 @@ func NewHttpServer(logger *slog.Logger, db DatabaseFactory, auth *auth.Middlewar
 }
 
 func (serv *HttpServer) RegisterRoutes() {
-	http.HandleFunc("/scores/{scoreId}", cors(
-		logging.Wrap(serv.logger, serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
+	serv.handleFunc("/scores/{scoreId}",
+		serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
 			switch req.Method {
 			case http.MethodGet:
-				return serv.GetScore(res, req)
+				accepts := req.Header.Get("Accept")
+				if accepts == "application/vnd.recordare.musicxml" ||
+					accepts == "application/vnd.recordare.musicxml+xml" {
+					return serv.GetScoreMusicxml(res, req)
+				}
+				return serv.GetScoreMetadata(res, req)
 			case http.MethodPut:
 				return serv.PutScore(res, req)
 			default:
 				http.Error(res, "", http.StatusMethodNotAllowed)
 				return nil
 			}
-		}))))
-	http.HandleFunc("/scores", cors(
-		logging.Wrap(serv.logger, serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
-			switch req.Method {
-			case http.MethodGet:
-				return serv.GetScoresPage(res, req)
-			default:
-				http.Error(res, "", http.StatusMethodNotAllowed)
-			}
-			return nil
-		}))))
-	http.HandleFunc("/healthz", cors(
+		}))
+	serv.handleFunc("/scores", serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
+		switch req.Method {
+		case http.MethodGet:
+			return serv.GetScoresPage(res, req)
+		default:
+			http.Error(res, "", http.StatusMethodNotAllowed)
+		}
+		return nil
+	}))
+	serv.handleFunc("/healthz", func(res http.ResponseWriter, req *http.Request) error {
+		res.WriteHeader(200)
+		_, _ = res.Write([]byte("OK"))
+		return nil
+	})
+	serv.handleFunc("/", func(res http.ResponseWriter, req *http.Request) error {
+		http.NotFound(res, req)
+		return nil
+	})
+}
+
+func (serv *HttpServer) handleFunc(pattern string, handler func(http.ResponseWriter, *http.Request) error) {
+	http.HandleFunc(pattern, cors(
 		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
-			res.WriteHeader(200)
-			_, _ = res.Write([]byte("OK"))
-			return nil
-		})))
-	http.HandleFunc("/", cors(
-		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
-			http.NotFound(res, req)
-			return nil
+			return handler(res, req)
 		})))
 }
 
-func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) error {
+func (serv *HttpServer) GetScoreMetadata(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
 	scoreId := req.PathValue(scoreIdQueryParam)
 	if scoreId == "" {
@@ -91,11 +100,6 @@ func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) err
 	}
 
 	// RETURN RESULT
-	if score == nil {
-		http.NotFound(res, req)
-		return nil
-	}
-
 	bs, err := json.Marshal(score)
 	if err != nil {
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
@@ -107,6 +111,40 @@ func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) err
 		return fmt.Errorf("failed to respond score: %v", err)
 	}
 
+	return nil
+}
+
+func (serv *HttpServer) GetScoreMusicxml(res http.ResponseWriter, req *http.Request) error {
+	// VALIDATE INPUT
+	scoreId := req.PathValue(scoreIdQueryParam)
+	if scoreId == "" {
+		http.NotFound(res, req)
+		return nil
+	}
+
+	// DO QUERY
+	db, err := serv.db(req.Context())
+	if err != nil {
+		http.Error(res, "failed to get score", http.StatusInternalServerError)
+		return fmt.Errorf("failed to connect to the database: %v", err)
+	}
+	defer db.Dispose()
+
+	mxml, err := db.GetScoreMusicXml(req.Context(), scoreId)
+	if err != nil {
+		if errors.Is(err, ErrScoreNotFound) {
+			http.Error(res, "no score found with the given id", http.StatusNotFound)
+			return err
+		}
+		http.Error(res, "failed to get score", http.StatusInternalServerError)
+		return fmt.Errorf("failed to lookup score: %v", err)
+	}
+
+	res.WriteHeader(http.StatusOK)
+	res.Header().Set("Content-Type", "application/vnd.recordare.musicxml")
+	if _, err = res.Write([]byte(mxml)); err != nil {
+		return fmt.Errorf("failed to respond score: %v", err)
+	}
 	return nil
 }
 

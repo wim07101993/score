@@ -139,7 +139,7 @@ func (db *Database) RemoveScore(ctx context.Context, id string) error {
 // ------------------------------------
 
 func (db *Database) GetApiScore(ctx context.Context, scoreId string) (*Score, error) {
-	db.logger.Info("getting score")
+	db.logger.Info("getting score", slog.String("scoreId", scoreId))
 
 	row := db.conn.QueryRow(ctx, getScoreQuery, scoreId)
 	score, err := scanScore(row)
@@ -151,6 +151,27 @@ func (db *Database) GetApiScore(ctx context.Context, scoreId string) (*Score, er
 	}
 
 	return score, nil
+}
+
+func (db *Database) GetScoreMusicXml(ctx context.Context, scoreId string) (string, error) {
+	db.logger.Info("getting music-xml", slog.String("scoreId", scoreId))
+
+	row := db.conn.QueryRow(ctx, getScoreMusicXmlQuery, scoreId)
+
+	var (
+		id      string
+		content string
+	)
+
+	err := row.Scan(&id, &content)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrScoreNotFound
+		}
+		return "", err
+	}
+
+	return content, nil
 }
 
 func (db *Database) GetScores(
@@ -212,6 +233,14 @@ const getScoreQuery = `
 		score.instruments,
 		score.tags
 	FROM scores AS score
+	WHERE score.id = $1
+`
+
+const getScoreMusicXmlQuery = `
+	SELECT
+		score.id,
+		score.content
+	FROM score_files AS score
 	WHERE score.id = $1
 `
 
