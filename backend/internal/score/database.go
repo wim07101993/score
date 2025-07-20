@@ -2,11 +2,14 @@ package score
 
 import (
 	"context"
+	"encoding/xml"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 	"log/slog"
 	"score/backend/internal/musicxml"
+	"strings"
 	"time"
 )
 
@@ -32,10 +35,27 @@ func (db *Database) Dispose() {
 //	MUTATING FUNCTIONS
 // ------------------------------------
 
-func (db *Database) AddOrUpdateScore(ctx context.Context, id string, score *musicxml.ScorePartwise) error {
+func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string) error {
 	db.logger.Info("adding/updating score document",
-		slog.String("title", score.Work.Title),
 		slog.String("id", id))
+
+	reader := strings.NewReader(mxml)
+	score, err := musicxml.DeserializeMusicXml(xml.NewDecoder(reader))
+	if err != nil {
+		return &ErrInvalidMusicXml{Cause: err}
+	}
+
+	const upsertScoreFileQuery = `
+		INSERT INTO score_files (id, content) 
+		VALUES (@id, @content)
+		ON CONFLICT (id) DO UPDATE SET 
+			content = EXCLUDED.content
+	`
+
+	_, err = db.conn.Exec(ctx, upsertScoreFileQuery, pgx.NamedArgs{
+		"id":      id,
+		"content": mxml,
+	})
 
 	var composers []string
 	var lyricists []string
@@ -88,7 +108,7 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, score *musi
 			lastChangedAt = EXCLUDED.lastChangedAt,
 			tags = EXCLUDED.tags`
 
-	_, err := db.conn.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
+	_, err = db.conn.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
 		"id":                 id,
 		"work_title":         score.Work.Title,
 		"work_number":        score.Work.Number,
@@ -107,9 +127,9 @@ func (db *Database) RemoveScore(ctx context.Context, id string) error {
 	db.logger.Info("removing score document", slog.String("id", id))
 
 	const query = `
-		DELETE FROM scores AS score
+		DELETE FROM score_files AS score
 		WHERE score.id = $id
-`
+	`
 	_, err := db.conn.Exec(ctx, query, pgx.NamedArgs{"id": id})
 	return err
 }
@@ -122,7 +142,15 @@ func (db *Database) GetApiScore(ctx context.Context, scoreId string) (*Score, er
 	db.logger.Info("getting score")
 
 	row := db.conn.QueryRow(ctx, getScoreQuery, scoreId)
-	return scanScore(row)
+	score, err := scanScore(row)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrScoreNotFound
+		}
+		return nil, err
+	}
+
+	return score, nil
 }
 
 func (db *Database) GetScores(

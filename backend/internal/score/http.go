@@ -2,14 +2,13 @@ package score
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"score/backend/internal/auth"
 	"score/backend/internal/logging"
-	"score/backend/internal/musicxml"
 	"time"
 )
 
@@ -83,6 +82,10 @@ func (serv *HttpServer) GetScore(res http.ResponseWriter, req *http.Request) err
 
 	score, err := db.GetApiScore(req.Context(), scoreId)
 	if err != nil {
+		if errors.Is(err, ErrScoreNotFound) {
+			http.Error(res, "no score found with the given id", http.StatusNotFound)
+			return err
+		}
 		http.Error(res, "failed to get score", http.StatusInternalServerError)
 		return fmt.Errorf("failed to lookup score: %v", err)
 	}
@@ -112,34 +115,38 @@ func (serv *HttpServer) PutScore(res http.ResponseWriter, req *http.Request) err
 	scoreId := req.PathValue(scoreIdQueryParam)
 	if scoreId == "" {
 		http.NotFound(res, req)
-		return nil
+		return errors.New("no score-id")
 	}
 
 	contentType := req.Header.Get("Content-Type")
 	if contentType != "application/vnd.recordare.musicxml" &&
 		contentType != "application/vnd.recordare.musicxml+xml" {
 		http.Error(res, "content-type not supported", http.StatusUnsupportedMediaType)
-		return nil
-	}
-
-	score, err := musicxml.DeserializeMusicXml(xml.NewDecoder(req.Body))
-	if err != nil {
-		serv.logger.Info("invalid musicxml", slog.Any("error", err))
-		http.Error(res, fmt.Sprintf("invalid musicxml: %s", err), http.StatusBadRequest)
-		return fmt.Errorf("invalid musicxml: %v", err)
+		return errors.New("content-type not supported")
 	}
 
 	// DO QUERY
 	db, err := serv.db(req.Context())
 	if err != nil {
-		serv.logger.Error("failed to connect to the database", slog.Any("error", err))
 		http.Error(res, "failed to save score", http.StatusInternalServerError)
 		return fmt.Errorf("failed to connect to the database: %v", err)
 	}
 	defer db.Dispose()
 
-	err = db.AddOrUpdateScore(req.Context(), scoreId, score)
+	mxml, err := io.ReadAll(req.Body)
 	if err != nil {
+		http.Error(res, "failed to read request body", http.StatusInternalServerError)
+		return fmt.Errorf("failed to read request body: %v", err)
+	}
+
+	err = db.AddOrUpdateScore(req.Context(), scoreId, string(mxml))
+	if err != nil {
+		invalidMxmlError := &ErrInvalidMusicXml{}
+		if errors.As(err, &invalidMxmlError) {
+			http.Error(res, fmt.Sprintf("invalid music xml: %s", err), http.StatusBadRequest)
+			return fmt.Errorf("invalid music xml: %s", err)
+		}
+
 		http.Error(res, "failed to save score", http.StatusInternalServerError)
 		return fmt.Errorf("failed to save score to the database: %v", err)
 	}
@@ -187,7 +194,6 @@ func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request
 
 	res.WriteHeader(http.StatusOK)
 	if _, err = res.Write(bs); err != nil {
-		serv.logger.Error("respond scores page", slog.Any("error", err))
 		return fmt.Errorf("failed respond scores page: %v", err)
 	}
 

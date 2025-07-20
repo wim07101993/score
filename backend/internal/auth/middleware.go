@@ -36,7 +36,7 @@ func (m *Middleware) Authenticate(handler func(res http.ResponseWriter, req *htt
 
 		split := strings.Split(header, " ")
 		scheme := split[0]
-		if len(split) != 2 || scheme != "Bearer" {
+		if len(split) != 2 || strings.ToLower(scheme) != "bearer" {
 			http.Error(res, "authorization header is malformed. Expected 'Bearer {token}'", http.StatusUnauthorized)
 			return errors.New("authorization header is malformed. Expected 'Bearer {token}'")
 		}
