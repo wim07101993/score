@@ -153,7 +153,7 @@ func (i Tone) toStepAndAlter(context Fifths) (step Step, alter float32, err erro
 		}
 		return "F", 1, nil
 	default:
-		return "", 0, fmt.Errorf("unable to convert tone to harmony (tone %v, key %v)", i, key)
+		return "", 0, fmt.Errorf("unable to convert tone to harmony (tone %v, key %v)", i, context)
 	}
 }
 

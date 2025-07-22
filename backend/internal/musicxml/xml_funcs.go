@@ -45,6 +45,9 @@ func ReadObject(
 
 	if onAttribute != nil {
 		for _, attr := range start.Attr {
+			if ignoreLayoutAttribute(attr) {
+				continue
+			}
 			if err := onAttribute(attr); err != nil {
 				return err
 			}
@@ -54,7 +57,7 @@ func ReadObject(
 	return IterateOverTokens(r, func(t xml.Token) (stop bool, err error) {
 		switch e := t.(type) {
 		case xml.StartElement:
-			if onElement == nil {
+			if onElement == nil || ignoreLayoutElements(e) {
 				err = ReadUntilClose(r, e)
 			} else {
 				err = onElement(e)

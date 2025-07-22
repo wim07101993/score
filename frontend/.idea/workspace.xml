@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="cleanup">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list-item.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item.component.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/api/scores-api.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/api/scores-api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scores/detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/scores/detail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scores/detail.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/scores/detail.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager">
+    <option name="groupingKeys">
+      <option value="directory" />
+    </option>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="CSS File" />
+        <option value="HTML File" />
+        <option value="JavaScript File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/.." value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2tP06muQaL5X1HKqLeCaiOFuSUM" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Docker.../docker-compose-dev.yml: Compose Deployment.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "html-js-instead-of-flutter",
+    "last_opened_file_path": "/home/wim/Downloads/src",
+    "list.type.of.created.stylesheet": "CSS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_interpreter_path": "/home/wim/.nvm/versions/node/v22.14.0/bin/node",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/assets" />
+      <recent name="$PROJECT_DIR$/scripts" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/scores" />
+      <recent name="$PROJECT_DIR$/src/scores/detail" />
+      <recent name="$PROJECT_DIR$/src/data" />
+      <recent name="$PROJECT_DIR$/src/components" />
+      <recent name="$PROJECT_DIR$/src/assets/icons" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="../docker-compose-dev.yml: Compose Deployment" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
+      <deployment type="docker-compose.yml">
+        <settings>
+          <option name="sourceFilePath" value="../docker-compose-dev.yml" />
+        </settings>
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
+      <deployment type="docker-compose.yml">
+        <settings />
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Docker.../docker-compose-dev.yml: Compose Deployment" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-WS-251.26927.40" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="" />
+      <created>1740238230516</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1740238230516</updated>
+      <workItem from="1740238232094" duration="15807000" />
+      <workItem from="1740494691285" duration="5315000" />
+      <workItem from="1741032995208" duration="2463000" />
+      <workItem from="1741112850957" duration="2381000" />
+      <workItem from="1748010846410" duration="20463000" />
+      <workItem from="1748279884073" duration="13050000" />
+      <workItem from="1748517954009" duration="16120000" />
+      <workItem from="1748891076968" duration="12721000" />
+      <workItem from="1751031481125" duration="45703000" />
+      <workItem from="1751716876649" duration="13440000" />
+      <workItem from="1752609775522" duration="6997000" />
+      <workItem from="1752774482343" duration="17000" />
+      <workItem from="1752776535376" duration="606000" />
+      <workItem from="1752849912347" duration="6582000" />
+    </task>
+    <task id="LOCAL-00001" summary="delete flutter introduce html">
+      <option name="closed" value="true" />
+      <created>1740250499269</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1740250499269</updated>
+    </task>
+    <task id="LOCAL-00002" summary="login works">
+      <option name="closed" value="true" />
+      <created>1747944421051</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1747944421051</updated>
+    </task>
+    <task id="LOCAL-00003" summary="local db works">
+      <option name="closed" value="true" />
+      <created>1748030468792</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1748030468792</updated>
+    </task>
+    <task id="LOCAL-00004" summary="styling">
+      <option name="closed" value="true" />
+      <created>1748519163152</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1748519163152</updated>
+    </task>
+    <task id="LOCAL-00005" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1748521947700</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1748521947700</updated>
+    </task>
+    <task id="LOCAL-00006" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1749147396557</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1749147396557</updated>
+    </task>
+    <task id="LOCAL-00007" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1749150093916</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1749150093916</updated>
+    </task>
+    <task id="LOCAL-00008" summary="cors + js fixes">
+      <option name="closed" value="true" />
+      <created>1751199125527</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1751199125527</updated>
+    </task>
+    <task id="LOCAL-00009" summary="fix null ref">
+      <option name="closed" value="true" />
+      <created>1751223150814</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1751223150814</updated>
+    </task>
+    <task id="LOCAL-00010" summary="list works">
+      <option name="closed" value="true" />
+      <created>1751392986788</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1751392986788</updated>
+    </task>
+    <task id="LOCAL-00011" summary="fix navigation">
+      <option name="closed" value="true" />
+      <created>1751393566535</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1751393566535</updated>
+    </task>
+    <task id="LOCAL-00012" summary="fix db pool">
+      <option name="closed" value="true" />
+      <created>1751476304814</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1751476304814</updated>
+    </task>
+    <task id="LOCAL-00013" summary="listen for db changes">
+      <option name="closed" value="true" />
+      <created>1751476329688</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1751476329688</updated>
+    </task>
+    <task id="LOCAL-00014" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1751571899802</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1751571899802</updated>
+    </task>
+    <task id="LOCAL-00015" summary="detail first">
+      <option name="closed" value="true" />
+      <created>1751660846425</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1751660846425</updated>
+    </task>
+    <task id="LOCAL-00016" summary="cleanup">
+      <option name="closed" value="true" />
+      <created>1751728534867</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1751728534867</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="delete flutter introduce html" />
+    <MESSAGE value="login works" />
+    <MESSAGE value="local db works" />
+    <MESSAGE value="styling" />
+    <MESSAGE value="cors + js fixes" />
+    <MESSAGE value="fix null ref" />
+    <MESSAGE value="list works" />
+    <MESSAGE value="fix navigation" />
+    <MESSAGE value="fix db pool" />
+    <MESSAGE value="listen for db changes" />
+    <MESSAGE value="detail first" />
+    <MESSAGE value="cleanup" />
+    <option name="LAST_COMMIT_MESSAGE" value="cleanup" />
+  </component>
+</project>

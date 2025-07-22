@@ -1,0 +1,11 @@
+* {
+    font-family: sans-serif;
+}
+
+:root {
+    --primary-color: #5b64b9;
+    --secondary-color: #dfbdea;
+    --accent-color: #e8abbc;
+    --background: #cce0fa;
+    --second-background: #c0c7ed
+}
