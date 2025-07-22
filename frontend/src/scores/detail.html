@@ -20,13 +20,9 @@
 </div>
 
 <script src="../packages/open_sheet_music_display.1.8.9.min.js"></script>
+<script src="detail.js" type="module"></script>
+
 <div id="score-musicxml" style="width: 100%"></div>
-<script>
-    console.log('here');
-    const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
-    osmd.load('../assets/BrookeWestSample.musicxml').then(() => osmd.render())
-        .then(() => 'rendered');
-</script>
 
 </body>
 </html>

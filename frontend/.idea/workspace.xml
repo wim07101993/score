@@ -5,18 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="cleanup">
-      <change beforePath="$PROJECT_DIR$/../.idea/runConfigurations/server.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/runConfigurations/server.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/cmd/server/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/cmd/server/config.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/cmd/server/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/cmd/server/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/internal/auth/middleware.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/auth/middleware.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/internal/score/http.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/http.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/test/http/http-client.env.json" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/test/http/http-client.env.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/generate_clients.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/score-list-item.component.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/score-list-item.component.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data/api/scores-api.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/api/scores-api.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/../go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/../go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scores/detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/scores/detail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scores/detail.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/scores/detail.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,7 +137,7 @@
       <workItem from="1752609775522" duration="6997000" />
       <workItem from="1752774482343" duration="17000" />
       <workItem from="1752776535376" duration="606000" />
-      <workItem from="1752849912347" duration="2903000" />
+      <workItem from="1752849912347" duration="6582000" />
     </task>
     <task id="LOCAL-00001" summary="delete flutter introduce html">
       <option name="closed" value="true" />

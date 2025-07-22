@@ -1,5 +1,5 @@
 export class ScoresApi {
-  baseUrl =  'http://localhost:7001';
+  baseUrl = 'http://localhost:7001';
 
   /**
    * @param changesSince {Date}
@@ -42,7 +42,8 @@ export class ScoresApi {
      */
     const response = await fetch(url, {
       headers: {
-        "Authorization": `Bearer ${authToken}`
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/json'
       }
     });
     if (response.status >= 500) {
@@ -51,6 +52,30 @@ export class ScoresApi {
       throw `failed to fetch score: ${response.status} ${response.statusText}: ${await response.text()}`;
     }
     return await response.json();
+  }
+
+  /**
+   * @param scoreId
+   * @param authToken
+   * @returns {Promise<String|null>}
+   */
+  async getScoreMusicxml(scoreId, authToken) {
+    const url = `${this.baseUrl}/scores/${scoreId}`;
+    /**
+     * @type Response
+     */
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/vnd.recordare.musicxml'
+      }
+    });
+    if (response.status >= 500) {
+      throw `failed to fetch score musicxml (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
+    } else if (response.status >= 400) {
+      throw `failed to fetch score musicxml: ${response.status} ${response.statusText}: ${await response.text()}`;
+    }
+    return await response.text();
   }
 }
 
