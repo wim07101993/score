@@ -36,11 +36,3 @@ $ backend/scripts/create_migration.sh $NAME_OF_YOUR_MIGRATION
 ```bash
 $ backend/scripts/run_migrations.sh
 ```
-
-### gRPC
-
-#### Generate servers
-
-```bash
-$ backend/scripts/run_migrations.sh
-```
