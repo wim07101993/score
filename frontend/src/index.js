@@ -11,16 +11,15 @@ async function main() {
     return;
   }
 
-  appState.initialization
-    .then((appState) => appState.api.getScores(new Date(2000), new Date(), accessToken))
-    .then((scores) => appState.database.addScores(scores))
-
   appState.database.addScoreChangesListener(() => _buildScoreListItems());
-  _buildScoreListItems().then(() => console.log('built score list items'));
+
+  appState.fetchScoreUpdates().then(() => {});
+  _buildScoreListItems().then(() => {});
 }
 
 async function _buildScoreListItems() {
   const container = document.getElementById('score-list');
+  container.innerHTML = '';
   await appState.initialization;
   for (const score of appState.database.scores) {
     const listItem = buildScoreListItem(score);

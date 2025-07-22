@@ -1,4 +1,4 @@
-export class Score {
+export class ScoreDto {
   /**
    * @param {string} id
    * @param {Work|null} work
@@ -6,7 +6,7 @@ export class Score {
    * @param {Creators} creators
    * @param {string[]} languages
    * @param {string[]} instruments
-   * @param {Date} last_changed_at
+   * @param {string} last_changed_at
    * @param {string[]} tags
    */
   constructor(id,
@@ -28,7 +28,7 @@ export class Score {
   }
 }
 
-export class Movement {
+export class MovementDto {
   /**
    * @param {string|null} title
    * @param {bigint|null} number
@@ -39,7 +39,7 @@ export class Movement {
   }
 }
 
-export class Work {
+export class WorkDto {
   /**
    * @param {string|null} title
    * @param {bigint|null} number
@@ -50,7 +50,7 @@ export class Work {
   }
 }
 
-export class Creators {
+export class CreatorsDto {
   /**
    * @param {string[]} composers
    * @param {string[]} lyricists

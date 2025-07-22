@@ -106,6 +106,7 @@ func (serv *HttpServer) GetScoreMetadata(res http.ResponseWriter, req *http.Requ
 		return fmt.Errorf("failed to serialize score: %v", err)
 	}
 
+	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	if _, err = res.Write(bs); err != nil {
 		return fmt.Errorf("failed to respond score: %v", err)
@@ -140,8 +141,8 @@ func (serv *HttpServer) GetScoreMusicxml(res http.ResponseWriter, req *http.Requ
 		return fmt.Errorf("failed to lookup score: %v", err)
 	}
 
-	res.WriteHeader(http.StatusOK)
 	res.Header().Set("Content-Type", "application/vnd.recordare.musicxml")
+	res.WriteHeader(http.StatusOK)
 	if _, err = res.Write([]byte(mxml)); err != nil {
 		return fmt.Errorf("failed to respond score: %v", err)
 	}
@@ -230,6 +231,7 @@ func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request
 		return fmt.Errorf("failed to serialize scores page: %v", err)
 	}
 
+	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 	if _, err = res.Write(bs); err != nil {
 		return fmt.Errorf("failed respond scores page: %v", err)

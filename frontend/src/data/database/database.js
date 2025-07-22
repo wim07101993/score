@@ -51,7 +51,7 @@ export class Database {
   async addScores(scores) {
     for (let score of scores) {
       const existing = this._scores[score.id];
-      if (existing != null && existing.last_changed_timestamp > score.last_changed_timestamp) {
+      if (existing != null && existing.last_changed_at > score.last_changed_at) {
         continue;
       }
       this._scores[score.id] = score;

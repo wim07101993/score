@@ -9,7 +9,7 @@ type Score struct {
 	Creators      Creators  `json:"creators"`
 	Languages     []string  `json:"languages"`
 	Instruments   []string  `json:"instruments"`
-	LastChangedAt time.Time `json:"lastChangedAt"`
+	LastChangedAt time.Time `json:"last_changed_at"`
 	Tags          []string  `json:"tags"`
 }
 
