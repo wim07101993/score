@@ -4,16 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="cleanup">
-      <change afterPath="$PROJECT_DIR$/src/data/api/dtos.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/internal/score/http.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/http.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../backend/internal/score/model.go" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/internal/score/model.go" afterDir="false" />
+    <list default="true" id="463e0de1-9523-49e9-aad6-6058a4543a14" name="Changes" comment="feat: added cache">
+      <change afterPath="$PROJECT_DIR$/src/data/database/storage.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/app-state.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/app-state.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data/api/scores-api.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/api/scores-api.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data/database/database.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/database/database.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data/database/models.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/database/models.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scores/detail.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/scores/detail.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,7 +73,7 @@
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_interpreter_path": "/home/wim/.nvm/versions/node/v22.14.0/bin/node",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.selected.configurable": "preferences.sourceCode.JavaScript",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -278,7 +277,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753196887293</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="feat: added cache">
+      <option name="closed" value="true" />
+      <created>1753206982821</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1753206982821</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -308,6 +315,7 @@
     <MESSAGE value="listen for db changes" />
     <MESSAGE value="detail first" />
     <MESSAGE value="cleanup" />
-    <option name="LAST_COMMIT_MESSAGE" value="cleanup" />
+    <MESSAGE value="feat: added cache" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added cache" />
   </component>
 </project>

@@ -61,6 +61,22 @@ export class Database {
   }
 
   /**
+   * Adds the given score to the database. If it already exists, it is only saved if the change date is after the
+   * existing score's change date.
+   *
+   * @param score {Score}
+   */
+  async addScore(score) {
+    const existing = this._scores[score.id];
+    if (existing != null && existing.last_changed_at > score.last_changed_at) {
+      return;
+    }
+    this._scores[score.id] = score;
+    await _addScoreToDb(this._database, score);
+    this._notifyScoresChangesListeners();
+  }
+
+  /**
    * Retrieves a score from the database. If there is no score with the given id, null is returned.
    *
    * @param id {String}
@@ -151,6 +167,26 @@ async function _addScoresToDb(database, scores) {
   for (const score of scores) {
     store.put(score);
   }
+
+  await transactionCompletePromise;
+}
+
+/**
+ * @param {IDBDatabase} database
+ * @param {Score} score
+ * @returns {Promise<void>}
+ * @private
+ */
+async function _addScoreToDb(database, score) {
+  const transaction = await database.transaction(ObjectStoreName.Scores, 'readwrite');
+  const store = transaction.objectStore(ObjectStoreName.Scores);
+  const transactionCompletePromise = new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = (event) => reject(event);
+    transaction.onabort = (event) => reject(event);
+  });
+
+  store.put(score);
 
   await transactionCompletePromise;
 }

@@ -8,6 +8,7 @@ export class Score {
    * @param {string[]} instruments
    * @param {Date} last_changed_at
    * @param {string[]} tags
+   * @param {Date|null} last_fetched_file_at
    */
   constructor(id,
               work,
@@ -16,7 +17,8 @@ export class Score {
               languages,
               instruments,
               last_changed_at,
-              tags) {
+              tags,
+              last_fetched_file_at) {
     this.id = id;
     this.work = work;
     this.movement = movement;
@@ -25,6 +27,7 @@ export class Score {
     this.instruments = instruments;
     this.last_changed_at = last_changed_at;
     this.tags = tags;
+    this.last_fetched_file_at = last_fetched_file_at;
   }
 }
 

@@ -11,6 +11,8 @@ async function main() {
     return;
   }
 
+  await appState.initialization;
+
   appState.database.addScoreChangesListener(() => _buildScoreListItems());
 
   appState.fetchScoreUpdates().then(() => {});
