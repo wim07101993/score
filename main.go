@@ -8,12 +8,13 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"score/backend/internal/auth"
-	"score/backend/internal/score"
+	"score/config"
+	"score/internal/auth"
+	"score/internal/score"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-var cfg Config
+var cfg config.Config
 var pgPool *pgxpool.Pool
 
 func main() {
@@ -23,7 +24,7 @@ func main() {
 	if err := cfg.FromEnv(); err != nil {
 		panic(err)
 	}
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.Validate(logger); err != nil {
 		panic(err)
 	}
 	logger.Debug("starting application with config", slog.Any("config", cfg))

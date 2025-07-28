@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
-	"score/backend/internal"
+	"score/internal"
 )
 
 func Wrap(l *slog.Logger, handler func(res http.ResponseWriter, req *http.Request) error) http.HandlerFunc {

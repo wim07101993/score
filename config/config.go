@@ -1,10 +1,11 @@
-package main
+package config
 
 import (
 	"encoding/json"
 	"errors"
 	"github.com/kelseyhightower/envconfig"
 	errorspkg "github.com/pkg/errors"
+	"log/slog"
 	"net/url"
 	"os"
 )
@@ -44,7 +45,7 @@ func (cfg *Config) FromEnv() error {
 	return envconfig.Process("", cfg)
 }
 
-func (cfg *Config) Validate() error {
+func (cfg *Config) Validate(logger *slog.Logger) error {
 	logger.Info("validating config")
 
 	var errs []error

@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"log/slog"
-	"score/backend/internal/musicxml"
+	"score/internal/musicxml"
 	"strings"
 	"time"
 )

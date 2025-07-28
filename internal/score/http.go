@@ -7,8 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"score/backend/internal/auth"
-	"score/backend/internal/logging"
+	"score/internal/auth"
+	"score/internal/logging"
 	"time"
 )
 
