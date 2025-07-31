@@ -34,10 +34,3 @@ func readTypedText(r xml.TokenReader, element xml.StartElement) (text *TypedText
 	err = ReadUntilClose(r, element)
 	return text, err
 }
-
-func writeTypedText(w *xml.Encoder, name string, text *TypedText) (err error) {
-	return WriteString(w, name,
-		text.Value,
-		[]xml.Attr{{Name: xml.Name{Local: "type"}, Value: text.Type}},
-	)
-}

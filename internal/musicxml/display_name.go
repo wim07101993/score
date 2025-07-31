@@ -59,23 +59,3 @@ func readDisplayName(r xml.TokenReader, element xml.StartElement) (name *Display
 	}
 	return name, err
 }
-
-func writeDisplayName(w *xml.Encoder, name string, display *DisplayName) (err error) {
-	return WriteObject(w, name, nil,
-		func() error {
-			def := DisplayNameItem{}
-			for _, item := range display.Items {
-				if item.DisplayText != def.DisplayText {
-					if err = WriteString(w, "display-text", item.DisplayText, nil); err != nil {
-						return err
-					}
-				}
-				if item.AccidentalText != def.AccidentalText {
-					if err = WriteString(w, "readAccidental-text", item.AccidentalText, nil); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
-		})
-}

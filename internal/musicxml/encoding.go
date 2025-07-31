@@ -31,10 +31,3 @@ func readEncoding(r xml.TokenReader, element xml.StartElement) (encoding *Encodi
 		})
 	return encoding, err
 }
-
-func writeEncoding(w *xml.Encoder, name string) (err error) {
-	return WriteObject(w, name, nil,
-		func() error {
-			return WriteString(w, "encoding-date", time.Now().UTC().Format("2006-01-02"), nil)
-		})
-}

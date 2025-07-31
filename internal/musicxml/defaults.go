@@ -27,17 +27,6 @@ func readDefaults(r xml.TokenReader, element xml.StartElement) (defaults *Defaul
 	return defaults, err
 }
 
-func writeDefaults(w *xml.Encoder, name string, defaults *Defaults) (err error) {
-	def := Defaults{}
-	return WriteObject(w, name, nil,
-		func() error {
-			if defaults.LyricLanguage != def.LyricLanguage {
-				return writeLanguage(w, "lyric-language", defaults.LyricLanguage)
-			}
-			return nil
-		})
-}
-
 func readLanguage(r xml.TokenReader, element xml.StartElement) (lang string, err error) {
 	err = ReadObject(r, element,
 		func(attr xml.Attr) error {
@@ -53,10 +42,4 @@ func readLanguage(r xml.TokenReader, element xml.StartElement) (lang string, err
 			return &UnknownElement{element, el}
 		})
 	return lang, err
-}
-
-func writeLanguage(w *xml.Encoder, name string, language string) error {
-	return WriteObject(w, name,
-		[]xml.Attr{{Name: xml.Name{Local: "xml:lang"}, Value: language}},
-	)
 }

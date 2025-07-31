@@ -15,7 +15,7 @@ var layoutAttrs = []string{
 }
 
 var layoutElements = []string{
-	"display-step", "display-octave",
+	"display-step", "display-octave", "part",
 }
 
 func ignoreLayoutAttribute(attr xml.Attr) bool {

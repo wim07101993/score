@@ -2,7 +2,6 @@ package musicxml
 
 import (
 	"fmt"
-	"slices"
 )
 
 type PartFinder func(part *ScorePart) bool
@@ -37,17 +36,5 @@ func (score *ScorePartwise) RemoveParts(finder PartFinder) {
 		}
 
 		score.PartList = append(score.PartList[:start], score.PartList[end+1:]...)
-	}
-
-	if len(ids) == 0 {
-		return
-	}
-
-	for i := 0; i < len(score.Parts); i++ {
-		if slices.Contains(ids, score.Parts[i].Id) {
-			score.Parts[i] = score.Parts[len(score.Parts)-1]
-			score.Parts = score.Parts[:len(score.Parts)-1]
-			i--
-		}
 	}
 }

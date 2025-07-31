@@ -41,18 +41,3 @@ func readPartGroup(r xml.TokenReader, element xml.StartElement) (group *PartGrou
 		})
 	return group, err
 }
-
-func writePartGroup(w *xml.Encoder, name string, group *PartGroup) (err error) {
-	def := PartGroup{}
-	return WriteObject(w, name,
-		[]xml.Attr{
-			{Name: xml.Name{Local: "type"}, Value: group.Type},
-			{Name: xml.Name{Local: "number"}, Value: strconv.Itoa(group.Number)},
-		},
-		func() error {
-			if group.Symbol != def.Symbol {
-				return WriteString(w, "group-symbol", group.Symbol, nil)
-			}
-			return nil
-		})
-}

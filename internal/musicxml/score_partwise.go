@@ -10,7 +10,6 @@ type ScorePartwise struct {
 	Identification *Identification
 	Defaults       *Defaults
 	PartList       []PartListItem
-	Parts          []*Part
 	MovementNumber string
 	MovementTitle  string
 }
@@ -63,12 +62,6 @@ func scorePartwise(r xml.TokenReader, element xml.StartElement) (score *ScorePar
 					return &FieldAlreadySet{element, el}
 				}
 				score.PartList, err = readPartList(r, el)
-			case "part":
-				part, err := readPart(r, el)
-				if err != nil {
-					return err
-				}
-				score.Parts = append(score.Parts, part)
 			default:
 				err = &UnknownElement{element, el}
 			}

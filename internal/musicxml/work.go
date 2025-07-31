@@ -32,20 +32,3 @@ func readWork(r xml.TokenReader, element xml.StartElement) (work *Work, err erro
 		})
 	return work, err
 }
-
-func writeWork(w *xml.Encoder, name string, work *Work) (err error) {
-	def := Work{}
-	return WriteObject(w, name, nil,
-		func() error {
-			if work.Title == def.Title {
-				return nil
-			}
-			return WriteString(w, "work-title", work.Title, nil)
-		},
-		func() error {
-			if work.Number == def.Number {
-				return nil
-			}
-			return WriteString(w, "work-number", work.Number, nil)
-		})
-}

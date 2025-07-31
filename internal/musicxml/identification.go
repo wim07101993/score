@@ -53,37 +53,3 @@ func readIdentification(r xml.TokenReader, element xml.StartElement) (id *Identi
 	}
 	return id, err
 }
-
-func writeIdentification(w *xml.Encoder, name string, identification *Identification) (err error) {
-	return WriteObject(w, name, nil,
-		func() error {
-			for _, creator := range identification.Creators {
-				if err = writeTypedText(w, "creator", creator); err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-		func() error {
-			for _, rights := range identification.Rights {
-				if err = writeTypedText(w, "rights", rights); err != nil {
-					return nil
-				}
-			}
-			return nil
-		},
-		func() error {
-			if identification.Encoding != nil {
-				return writeEncoding(w, "encoding")
-			}
-			return nil
-		},
-		func() error {
-			for _, relation := range identification.Relation {
-				if err = writeTypedText(w, "relation", relation); err != nil {
-					return nil
-				}
-			}
-			return nil
-		})
-}

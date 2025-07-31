@@ -29,22 +29,3 @@ func readPartList(r xml.TokenReader, element xml.StartElement) (list []PartListI
 		})
 	return list, err
 }
-
-func writePartList(w *xml.Encoder, name string, partList []PartListItem) (err error) {
-	return WriteObject(w, name, nil,
-		func() error {
-			for _, item := range partList {
-				if item.PartGroup != nil {
-					if err = writePartGroup(w, "part-group", item.PartGroup); err != nil {
-						return err
-					}
-				}
-				if item.ScorePart != nil {
-					if err = writeScorePart(w, "score-part", item.ScorePart); err != nil {
-						return err
-					}
-				}
-			}
-			return nil
-		})
-}

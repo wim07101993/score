@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -118,72 +117,10 @@ func ReadString(r xml.TokenReader, start xml.StartElement) (string, error) {
 	}
 }
 
-func ReadInt(r xml.TokenReader, start xml.StartElement) (int, error) {
-	s, err := ReadString(r, start)
-	if err != nil {
-		return 0, err
-	}
-	return strconv.Atoi(s)
-}
-
-func ReadFloat32(r xml.TokenReader, start xml.StartElement) (float32, error) {
-	s, err := ReadString(r, start)
-	if err != nil {
-		return 0, err
-	}
-	value, err := strconv.ParseFloat(s, 32)
-	if err != nil {
-		return 0, err
-	}
-	return float32(value), nil
-}
-
-func ReadFloat64(r xml.TokenReader, start xml.StartElement) (float64, error) {
-	s, err := ReadString(r, start)
-	if err != nil {
-		return 0, err
-	}
-	return strconv.ParseFloat(s, 64)
-}
-
 func ReadTime(r xml.TokenReader, start xml.StartElement) (time.Time, error) {
 	s, err := ReadString(r, start)
 	if err != nil {
 		return time.Time{}, err
 	}
 	return time.Parse("2006-01-02", s)
-}
-
-func WriteObject(w *xml.Encoder, name string, attrs []xml.Attr, writeChildren ...func() error) (err error) {
-	xmlName := xml.Name{Local: name}
-	start := xml.StartElement{Name: xmlName, Attr: attrs}
-
-	err = w.EncodeToken(start)
-	if err != nil {
-		return
-	}
-
-	for _, f := range writeChildren {
-		err = f()
-		if err != nil {
-			return
-		}
-	}
-
-	return w.EncodeToken(xml.EndElement{Name: xmlName})
-}
-
-func WriteString(w *xml.Encoder, name string, value string, attrs []xml.Attr) (err error) {
-	xmlName := xml.Name{Local: name}
-	start := xml.StartElement{Name: xmlName, Attr: attrs}
-
-	if err = w.EncodeToken(start); err != nil {
-		return
-	}
-
-	if err = w.EncodeToken(xml.CharData(value)); err != nil {
-		return
-	}
-
-	return w.EncodeToken(xml.EndElement{Name: xmlName})
 }
