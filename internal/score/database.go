@@ -3,14 +3,15 @@ package score
 import (
 	"context"
 	"encoding/xml"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 	"log/slog"
 	"score/internal/musicxml"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 )
 
 type DatabaseFactory func(ctx context.Context) (*Database, error)

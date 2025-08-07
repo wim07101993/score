@@ -2,10 +2,11 @@ package auth
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type IntrospectionResponse struct {

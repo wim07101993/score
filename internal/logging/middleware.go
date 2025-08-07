@@ -2,10 +2,11 @@ package logging
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"score/internal"
+
+	"github.com/google/uuid"
 )
 
 func Wrap(l *slog.Logger, handler func(res http.ResponseWriter, req *http.Request) error) http.HandlerFunc {

@@ -3,11 +3,12 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"github.com/kelseyhightower/envconfig"
-	errorspkg "github.com/pkg/errors"
 	"log/slog"
 	"net/url"
 	"os"
+
+	"github.com/kelseyhightower/envconfig"
+	errorspkg "github.com/pkg/errors"
 )
 
 type Config struct {
