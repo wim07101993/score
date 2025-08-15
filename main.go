@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
 	"log/slog"
@@ -20,16 +21,29 @@ import (
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-var cfg config.Config
+var cfg = &config.Config{}
 var pgPool *pgxpool.Pool
 
+var configPath string
+
 func main() {
-	if err := cfg.FromFile(); err != nil {
-		log.Fatalf("failed to read config file: %v", err)
-	}
-	if err := cfg.FromEnv(); err != nil {
+	flag.StringVar(&configPath, "config", "", "Specifies the file from which config should be read. If none is provided, only environment variables are read.")
+	flag.Parse()
+
+	fromEnv, err := config.FromEnv()
+	if err != nil {
 		log.Fatalf("failed to read config from env: %v", err)
 	}
+	cfg.CopyFrom(fromEnv)
+
+	if configPath != "" {
+		fromFile, err := config.FromFile(configPath)
+		if err != nil {
+			log.Fatalf("failed to get config from file: %v", err)
+		}
+		cfg.CopyFrom(fromFile)
+	}
+
 	logger.Info("validating config")
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config invalid: %v", err)
@@ -38,7 +52,6 @@ func main() {
 
 	runMigrations()
 
-	var err error
 	pgPool, err = pgxpool.New(context.Background(), cfg.DbConnectionString)
 	if err != nil {
 		log.Fatalf("failed to obtain db-connection pool: %v", err)

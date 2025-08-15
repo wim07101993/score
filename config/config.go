@@ -18,13 +18,10 @@ type Config struct {
 	TokenIntrospectionClientSecret string `envconfig:"TOKEN_INTROSPECTION_CLIENT_SECRET" json:"tokenIntrospectionClientSecret"`
 }
 
-func (cfg *Config) FromFile() error {
-	f, err := os.Open("config.json")
+func FromFile(configPath string) (*Config, error) {
+	f, err := os.Open(configPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
+		return nil, errorspkg.Wrap(err, "failed to open config file")
 	}
 	defer func(f *os.File) {
 		err := f.Close()
@@ -33,16 +30,40 @@ func (cfg *Config) FromFile() error {
 		}
 	}(f)
 
+	cfg := &Config{}
 	decoder := json.NewDecoder(f)
 	err = decoder.Decode(cfg)
 	if err != nil {
-		return err
+		return nil, errorspkg.Wrap(err, "failed to parse config file")
 	}
-	return nil
+	return cfg, nil
 }
 
-func (cfg *Config) FromEnv() error {
-	return envconfig.Process("", cfg)
+func FromEnv() (*Config, error) {
+	cfg := &Config{}
+	err := envconfig.Process("", cfg)
+	if err != nil {
+		return nil, errorspkg.Wrap(err, "failed to parse environment variables")
+	}
+	return cfg, nil
+}
+
+func (cfg *Config) CopyFrom(other *Config) {
+	if other.DbConnectionString != "" {
+		cfg.DbConnectionString = other.DbConnectionString
+	}
+	if other.HttpServerPort != 0 {
+		cfg.HttpServerPort = other.HttpServerPort
+	}
+	if other.TokenIntrospectionClientId != "" {
+		cfg.TokenIntrospectionClientId = other.TokenIntrospectionClientId
+	}
+	if other.TokenIntrospectionClientSecret != "" {
+		cfg.TokenIntrospectionClientSecret = other.TokenIntrospectionClientSecret
+	}
+	if other.TokenIntrospectionUrl != "" {
+		cfg.TokenIntrospectionUrl = other.TokenIntrospectionUrl
+	}
 }
 
 func (cfg *Config) Validate() error {
