@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/url"
 	"os"
 
@@ -46,9 +45,7 @@ func (cfg *Config) FromEnv() error {
 	return envconfig.Process("", cfg)
 }
 
-func (cfg *Config) Validate(logger *slog.Logger) error {
-	logger.Info("validating config")
-
+func (cfg *Config) Validate() error {
 	var errs []error
 
 	if cfg.HttpServerPort < 80 {

@@ -3,7 +3,7 @@
     <module name="score" />
     <working_directory value="$PROJECT_DIR$" />
     <envs>
-      <env name="DB_CONNECTION_STRING" value="user=postgres password=postgres host=localhost port=7432 dbname=score pool_max_conns=10" />
+      <env name="DB_CONNECTION_STRING" value="user=postgres password=postgres host=localhost port=7432 dbname=score sslmode=disable" />
       <env name="TOKEN_INTROSPECTION_CLIENT_ID" value="329559487100813315" />
       <env name="TOKEN_INTROSPECTION_CLIENT_SECRET" value="Nuyb8xKnQK5ABTR7m5rSMhgUWHnPYJnpPqbctAOJubxheSEdrC47yQN4BS7GWTBn" />
       <env name="TOKEN_INTROSPECTION_URL" value="http://localhost:7003/oauth/v2/introspect" />

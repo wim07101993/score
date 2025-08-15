@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,6 +12,9 @@ import (
 	"score/internal/auth"
 	"score/internal/score"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 )
@@ -20,23 +25,58 @@ var pgPool *pgxpool.Pool
 
 func main() {
 	if err := cfg.FromFile(); err != nil {
-		panic(err)
+		log.Fatalf("failed to read config file: %v", err)
 	}
 	if err := cfg.FromEnv(); err != nil {
-		panic(err)
+		log.Fatalf("failed to read config from env: %v", err)
 	}
-	if err := cfg.Validate(logger); err != nil {
-		panic(err)
+	logger.Info("validating config")
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("config invalid: %v", err)
 	}
 	logger.Debug("starting application with config", slog.Any("config", cfg))
+
+	runMigrations()
 
 	var err error
 	pgPool, err = pgxpool.New(context.Background(), cfg.DbConnectionString)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to obtain db-connection pool: %v", err)
 	}
 
 	serveHttp()
+}
+
+func runMigrations() {
+	logger.Info("running migrations")
+	db, err := sql.Open("postgres", cfg.DbConnectionString)
+	if err != nil {
+		log.Fatalf("failed to open database for migrations: %v", err)
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://db/migrations",
+		"postgres",
+		driver)
+	if err != nil {
+		log.Fatalf("failed to create migration runner: %v", err)
+	}
+
+	if err := m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			logger.Info("migrations already up-to-date")
+			return
+		}
+
+		log.Fatalf("failed to run migrations: %v", err)
+	}
+
+	logger.Info("migrated successfully")
 }
 
 func serveHttp() {

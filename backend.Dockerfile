@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 FROM golang:1.24 AS build
 
 WORKDIR /
@@ -13,5 +11,6 @@ RUN go build -o bin/score-backend .
 
 
 FROM scratch AS package
-COPY --from=build bin/score-backend /bin/score-backend
-CMD ["/bin/score-backend"]
+COPY db/migrations /db/migrations
+COPY --from=build bin/score-backend score-backend
+CMD ["score-backend"]
