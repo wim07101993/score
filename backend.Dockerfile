@@ -7,10 +7,10 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o bin/score-backend .
+# diable dependency on glibc
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/score-backend .
 
-
-FROM scratch AS package
+FROM scratch
 COPY db/migrations /db/migrations
-COPY --from=build bin/score-backend score-backend
-ENTRYPOINT ["score-backend"]
+COPY --from=build /bin/score-backend /bin/score-backend
+CMD ["/bin/score-backend"]
