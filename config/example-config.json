@@ -1,0 +1,7 @@
+{
+  "httpServerPort": "7001",
+  "dbConnectionString": "user=postgres password=postgres host=localhost port=7432 dbname=score sslmode=disable",
+  "tokenIntrospectionUrl": "http://localhost:7003/oauth/v2/introspect",
+  "tokenIntrospectionClientId": "<your-client-id>",
+  "tokenIntrospectionClientSecret": "<your-client-secret>"
+}

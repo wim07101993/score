@@ -13,4 +13,4 @@ RUN go build -o bin/score-backend .
 FROM scratch AS package
 COPY db/migrations /db/migrations
 COPY --from=build bin/score-backend score-backend
-CMD ["score-backend"]
+ENTRYPOINT ["score-backend"]
