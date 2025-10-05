@@ -13,4 +13,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/score-backend .
 FROM scratch
 COPY db/migrations /db/migrations
 COPY --from=build /bin/score-backend /bin/score-backend
-CMD ["/bin/score-backend"]
+ENTRYPOINT ["/bin/score-backend"]
