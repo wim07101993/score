@@ -90,3 +90,13 @@ func (cfg *Config) Validate() error {
 	}
 	return nil
 }
+
+func (cfg *Config) Redacted() Config {
+	return Config{
+		HttpServerPort:                 cfg.HttpServerPort,
+		DbConnectionString:             "********",
+		TokenIntrospectionUrl:          cfg.TokenIntrospectionUrl,
+		TokenIntrospectionClientId:     cfg.TokenIntrospectionClientId,
+		TokenIntrospectionClientSecret: "********",
+	}
+}

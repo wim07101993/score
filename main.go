@@ -34,6 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to read config from env: %v", err)
 	}
+	logger.Debug("env config", slog.Any("config", fromEnv.Redacted()))
 	cfg.CopyFrom(fromEnv)
 
 	if configPath != "" {
@@ -41,15 +42,16 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to get config from file: %v", err)
 		}
+		logger.Debug("file config", slog.Any("config", fromEnv.Redacted()))
 		cfg.CopyFrom(fromFile)
 	}
-
-	logConfig(*cfg)
 
 	logger.Info("validating config")
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config invalid: %v", err)
 	}
+
+	logger.Info("starting application with config", slog.Any("config", cfg.Redacted()))
 
 	runMigrations()
 
@@ -59,13 +61,6 @@ func main() {
 	}
 
 	serveHttp()
-}
-
-func logConfig(cfg config.Config) {
-	// obfuscate secrets
-	cfg.TokenIntrospectionClientSecret = "********"
-	cfg.DbConnectionString = "********"
-	logger.Info("starting application with config", slog.Any("config", cfg))
 }
 
 func runMigrations() {
