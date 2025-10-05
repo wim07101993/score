@@ -48,7 +48,7 @@ func main() {
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config invalid: %v", err)
 	}
-	logger.Debug("starting application with config", slog.Any("config", cfg))
+	logConfig(*cfg)
 
 	runMigrations()
 
@@ -58,6 +58,13 @@ func main() {
 	}
 
 	serveHttp()
+}
+
+func logConfig(cfg config.Config) {
+	// obfuscate secrets
+	cfg.TokenIntrospectionClientSecret = "********"
+	cfg.DbConnectionString = "********"
+	logger.Info("starting application with config", slog.Any("config", cfg))
 }
 
 func runMigrations() {
