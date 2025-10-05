@@ -44,11 +44,12 @@ func main() {
 		cfg.CopyFrom(fromFile)
 	}
 
+	logConfig(*cfg)
+
 	logger.Info("validating config")
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config invalid: %v", err)
 	}
-	logConfig(*cfg)
 
 	runMigrations()
 
