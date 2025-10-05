@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . ./
 
-# diable dependency on glibc
+# disable dependency on glibc
 RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/score-backend .
 
 FROM scratch
