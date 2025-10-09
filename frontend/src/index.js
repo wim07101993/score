@@ -2,6 +2,7 @@ import {authorize} from './data/auth/auth.js';
 
 import {buildScoreListItem, registerScoreListItem} from "./components/score-list-item.component.js";
 import {appState} from "./app-state.js";
+import "./config.js";
 
 async function main() {
   registerScoreListItem();

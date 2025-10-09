@@ -1,17 +1,43 @@
-import {authConfig, defaultScopes} from "./config.js";
-
 const pkceCodeVerifierSessionStorageKey = 'pkce_code_verifier';
 const idTokenSessionStorageKey = 'id_token';
 
 const refreshTokenLocalStorageKey = 'refresh_token';
+const scopes = ['openid', 'email', 'profile', 'offline_access'];
 
 export const authorizationCodeQueryParamName = 'code';
+
+export class AuthConfig {
+  /**
+   * @param clientId {string}
+   * @param redirectUri {URL}
+   * @param authorizationEndpoint {URL}
+   * @param tokenEndpoint {URL}
+   */
+  constructor(clientId, redirectUri, authorizationEndpoint, tokenEndpoint) {
+    this.clientId = clientId;
+    this.redirectUri = redirectUri;
+    this.authorizationEndpoint = authorizationEndpoint;
+    this.tokenEndpoint = tokenEndpoint;
+  }
+}
 
 /**
  * The last received access token.
  * @type {TokenResponse|null} string
  */
 let tokenResponse = null;
+
+/**
+ * @type {AuthConfig}
+ */
+let authConfig = null;
+
+/**
+ * @param config {AuthConfig}
+ */
+export function setAuthConfig(config) {
+  authConfig = config
+}
 
 /**
  * @returns {Promise<string>}
@@ -50,7 +76,7 @@ export async function authorize() {
         authConfig.clientId,
         'refresh_token',
         authConfig.redirectUri,
-        defaultScopes,
+        scopes,
         refreshToken
       )
     );
@@ -63,7 +89,7 @@ export async function authorize() {
     authConfig.clientId,
     authConfig.redirectUri,
     authConfig.authorizationEndpoint,
-    defaultScopes
+    scopes
   );
   return null;
 }
