@@ -8,7 +8,7 @@ RUN go mod download
 COPY . ./
 
 # disable dependency on glibc
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/score-backend .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /bin/score-backend .
 
 FROM scratch
 COPY db/migrations /db/migrations
