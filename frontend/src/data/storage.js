@@ -22,7 +22,7 @@ export async function saveMusicxml(id, musicxml) {
 export async function musicxmlExists(id) {
   await navigator.storage.persist();
   const dir = await navigator.storage.getDirectory();
-  for await (const [key, value] of dir.entries()) {
+  for await (const [_, value] of dir.entries()) {
     if (value.name === `${id}.musicxml`) {
       return true;
     }
