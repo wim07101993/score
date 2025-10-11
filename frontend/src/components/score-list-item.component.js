@@ -155,7 +155,7 @@ export function buildScoreListItem(score) {
     console.log(window.location);
     const search = new URLSearchParams({'id': score.id}).toString();
 
-    window.location = `${currentUrl.protocol}//${currentUrl.host}/scores/detail?${search}`;
+    window.location = `${currentUrl.protocol}//${currentUrl.host}/scores/detail.html?${search}`;
   }
 
   return scoreListItem;
