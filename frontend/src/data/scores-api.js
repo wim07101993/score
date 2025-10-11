@@ -30,7 +30,7 @@ export class ScoresApi {
       'Changes-Since': _formatDate(changesSince),
       'Changes-Until': _formatDate(changesUntil),
     });
-    const url = `${this.config.baseUrl}/scores?${params.toString()}`;
+    const url = `${this.config.baseUrl}scores?${params.toString()}`;
     /**
      * @type Response
      */
@@ -54,7 +54,7 @@ export class ScoresApi {
    * @returns {Promise<Score|null>}
    */
   async getScore(scoreId, authToken) {
-    const url = `${this.config.baseUrl}/scores/${scoreId}`;
+    const url = `${this.config.baseUrl}scores/${scoreId}`;
     /**
      * @type Response
      */
@@ -78,7 +78,7 @@ export class ScoresApi {
    * @returns {Promise<String>}
    */
   async getScoreMusicxml(scoreId, authToken) {
-    const url = `${this.config.baseUrl}/scores/${scoreId}`;
+    const url = `${this.config.baseUrl}scores/${scoreId}`;
     /**
      * @type Response
      */

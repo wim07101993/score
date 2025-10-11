@@ -9,5 +9,5 @@ export const authConfig = new AuthConfig(
 );
 
 export const apiConfig = new ApiConfig(
-  new URL('https://plop.home:7001')
+  new URL('http://plop.home:7001')
 );
