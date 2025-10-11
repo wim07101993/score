@@ -1,7 +1,7 @@
-import {authorize} from '../data/auth/auth.js';
-import {getMusicxml, musicxmlExists, saveMusicxml} from '../data/database/storage.js';
+import {getMusicxml, musicxmlExists, saveMusicxml} from '../data/storage.js';
 
-import {appState} from "../app-state.js";
+import {api, authService} from "../globals";
+import {fetchScoreUpdates, initializeScoreApp} from "../score-domain.js";
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 
@@ -15,12 +15,12 @@ async function loadMusicxml(scoreId) {
   if (musicxmlExists(scoreId)) {
     musicxml = await getMusicxml(scoreId)
   } else {
-    const accessToken = await authorize();
+    const accessToken = await authService.authorize();
     if (accessToken == null) {
       return;
     }
 
-    musicxml = await appState.api.getScoreMusicxml(scoreId, accessToken);
+    musicxml = await api.getScoreMusicxml(scoreId, accessToken);
     await saveMusicxml(scoreId, musicxml);
   }
 
@@ -34,7 +34,7 @@ async function loadMusicxml(scoreId) {
 }
 
 async function main() {
-  const accessToken = await authorize();
+  const accessToken = await authService.authorize();
   if (accessToken == null) {
     return;
   }
@@ -45,8 +45,8 @@ async function main() {
     return;
   }
 
-  await appState.initialization;
-  appState.fetchScoreUpdates().then(() => loadMusicxml(scoreId));
+  await initializeScoreApp();
+  fetchScoreUpdates().then(() => loadMusicxml(scoreId));
 
   await loadMusicxml(scoreId);
 }

@@ -1,30 +1,30 @@
-import {authorize} from './data/auth/auth.js';
-
 import {buildScoreListItem, registerScoreListItem} from "./components/score-list-item.component.js";
-import {appState} from "./app-state.js";
-import "./config.js";
+import {fetchScoreUpdates, initializeScoreApp} from "./score-domain.js";
+import {authService, database} from "./globals.js";
 
 async function main() {
   registerScoreListItem();
 
-  const accessToken = await authorize();
+  const accessToken = await authService.authorize();
   if (accessToken == null) {
     return;
   }
 
-  await appState.initialization;
+  await initializeScoreApp();
 
-  appState.database.addScoreChangesListener(() => _buildScoreListItems());
+  database.addScoreChangesListener(() => _buildScoreListItems());
 
-  appState.fetchScoreUpdates().then(() => {});
-  _buildScoreListItems().then(() => {});
+  fetchScoreUpdates().then(() => {
+  });
+  _buildScoreListItems().then(() => {
+  });
 }
 
 async function _buildScoreListItems() {
   const container = document.getElementById('score-list');
   container.innerHTML = '';
-  await appState.initialization;
-  for (const score of appState.database.scores) {
+  await initializeScoreApp();
+  for (const score of database.scores) {
     const listItem = buildScoreListItem(score);
     container.appendChild(listItem);
   }

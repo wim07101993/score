@@ -1,6 +1,6 @@
-import {Score} from '../data/database/models.js';
+import {Score} from '../data/database.js';
 import {getListProperty} from '../data/html-functions.js';
-import {getInstrumentName} from "../data/instrument-names.js";
+import {getInstrumentName} from "../data/translations.js";
 
 export function registerScoreListItem() {
   class ScoreListItem extends HTMLElement {

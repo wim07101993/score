@@ -1,8 +1,13 @@
-import {setAuthConfig} from "./data/auth/auth.js";
+import {AuthConfig} from "./data/auth.js";
+import {ApiConfig} from "./data/scores-api.js";
 
-setAuthConfig({
-  clientId: '340579470668791812',
-  redirectUri: new URL('http://localhost:3000/'),
-  authorizationEndpoint: new URL('https://auth.wvl.app/oauth/v2/authorize'),
-  tokenEndpoint: new URL('https://auth.wvl.app/oauth/v2/token')
-});
+export const authConfig = new AuthConfig(
+  '340579470668791812',
+  new URL('http://localhost:3000/'),
+  new URL('https://auth.wvl.app/oauth/v2/authorize'),
+  new URL('https://auth.wvl.app/oauth/v2/token')
+);
+
+export const apiConfig = new ApiConfig(
+  new URL('https://plop.home:7001')
+);

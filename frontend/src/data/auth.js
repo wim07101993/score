@@ -1,10 +1,9 @@
-const pkceCodeVerifierSessionStorageKey = 'pkce_code_verifier';
+const pkceCodeVerifierSessionStorageKey = 'oauth_pkce_code_verifier';
+const stateSessionStorageKey = 'oauth_state';
 const idTokenSessionStorageKey = 'id_token';
 
 const refreshTokenLocalStorageKey = 'refresh_token';
 const scopes = ['openid', 'email', 'profile', 'offline_access'];
-
-export const authorizationCodeQueryParamName = 'code';
 
 export class AuthConfig {
   /**
@@ -21,78 +20,92 @@ export class AuthConfig {
   }
 }
 
-/**
- * The last received access token.
- * @type {TokenResponse|null} string
- */
-let tokenResponse = null;
+// ----------------------------------------------------------------------------
+// SERVICE
+// ----------------------------------------------------------------------------
 
-/**
- * @type {AuthConfig}
- */
-let authConfig = null;
+export class AuthorizationService {
+  /**
+   * @param config {AuthConfig}
+   */
+  constructor(config) {
+    this.config = config;
+  }
 
-/**
- * @param config {AuthConfig}
- */
-export function setAuthConfig(config) {
-  authConfig = config
+  /**
+   * The last received access token.
+   * @type {TokenResponse|null} string
+   */
+  tokenResponse = null;
+
+  /**
+   * @returns {Promise<string>}
+   */
+  async authorize() {
+    if (this.tokenResponse !== null) {
+      return this.tokenResponse.access_token;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const authorizationCode = urlParams.get('code');
+    const receivedState = urlParams.get('state');
+
+    const codeVerifier = sessionStorage.getItem(pkceCodeVerifierSessionStorageKey);
+    const createdState = sessionStorage.getItem(stateSessionStorageKey);
+    if (codeVerifier !== null
+      && authorizationCode !== null && authorizationCode.length !== 0
+      && createdState !== null && createdState === receivedState) {
+      console.log('exchange authorization code for token');
+      this.tokenResponse = await callTokenEndpoint(
+        this.config.tokenEndpoint,
+        TokenRequestParams.authorizationCode(
+          this.config.clientId,
+          'authorization_code',
+          this.config.redirectUri,
+          authorizationCode,
+          codeVerifier)
+      );
+      if (this.tokenResponse !== null) {
+        sessionStorage.removeItem(pkceCodeVerifierSessionStorageKey);
+        sessionStorage.removeItem(stateSessionStorageKey);
+        return this.tokenResponse.access_token;
+      }
+    }
+
+    const refreshToken = localStorage.getItem(refreshTokenLocalStorageKey);
+    if (refreshToken !== null) {
+      console.log('refresh access token');
+      this.tokenResponse = await callTokenEndpoint(
+        this.config.tokenEndpoint,
+        TokenRequestParams.refreshToken(
+          this.config.clientId,
+          'refresh_token',
+          this.config.redirectUri,
+          scopes,
+          refreshToken
+        )
+      );
+      if (this.tokenResponse !== null) {
+        return this.tokenResponse.access_token;
+      } else {
+        localStorage.removeItem(refreshTokenLocalStorageKey);
+      }
+    }
+
+    await startAuthorizationCodeFlow(
+      this.config.clientId,
+      this.config.redirectUri,
+      this.config.authorizationEndpoint,
+      scopes
+    );
+    return null;
+  }
+
 }
 
-/**
- * @returns {Promise<string>}
- */
-export async function authorize() {
-  if (tokenResponse !== null) {
-    return tokenResponse.access_token;
-  }
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const authorizationCode = urlParams.get(authorizationCodeQueryParamName);
-
-  const codeVerifier = sessionStorage.getItem(pkceCodeVerifierSessionStorageKey);
-  if (codeVerifier !== null && authorizationCode !== null && authorizationCode.length !== 0) {
-    console.log('exchange authorization code for token');
-    tokenResponse = await callTokenEndpoint(
-      authConfig.tokenEndpoint,
-      TokenRequestParams.authorizationCode(
-        authConfig.clientId,
-        'authorization_code',
-        authConfig.redirectUri,
-        authorizationCode,
-        codeVerifier)
-    );
-    if (tokenResponse !== null) {
-      return tokenResponse.access_token;
-    }
-  }
-
-  const refreshToken = localStorage.getItem(refreshTokenLocalStorageKey);
-  if (refreshToken !== null) {
-    console.log('refresh access token');
-    tokenResponse = await callTokenEndpoint(
-      authConfig.tokenEndpoint,
-      TokenRequestParams.refreshToken(
-        authConfig.clientId,
-        'refresh_token',
-        authConfig.redirectUri,
-        scopes,
-        refreshToken
-      )
-    );
-    if (tokenResponse !== null) {
-      return tokenResponse.access_token;
-    }
-  }
-
-  await startAuthorizationCodeFlow(
-    authConfig.clientId,
-    authConfig.redirectUri,
-    authConfig.authorizationEndpoint,
-    scopes
-  );
-  return null;
-}
+// ----------------------------------------------------------------------------
+// FUNCTIONS
+// ----------------------------------------------------------------------------
 
 /**
  * Starts the authorization code flow. This means this function will redirect the
@@ -108,8 +121,10 @@ async function startAuthorizationCodeFlow(clientId, redirectUri, authorizationEn
   console.log('start authorization code flow');
   const codeVerifier = generateRandomString(56);
   const codeChallenge = await createCodeChallenge(codeVerifier);
+  const state = generateRandomString(16);
 
   sessionStorage.setItem(pkceCodeVerifierSessionStorageKey, codeVerifier);
+  sessionStorage.setItem(stateSessionStorageKey, state);
 
   const authParams = new URLSearchParams({
     client_id: clientId,
@@ -118,7 +133,7 @@ async function startAuthorizationCodeFlow(clientId, redirectUri, authorizationEn
     response_type: 'code',
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
-    state: 'my-random-state-string'
+    state: state
   })
 
   const authUrl = `${authorizationEndpoint.protocol}//${authorizationEndpoint.host}${authorizationEndpoint.pathname}?${authParams.toString()}`;
@@ -196,6 +211,36 @@ async function createCodeChallenge(verifier) {
     .replace(/=+$/, '');
 }
 
+// ----------------------------------------------------------------------------
+// MODELS
+// ----------------------------------------------------------------------------
+
+/**
+ * Response from the token endpoint after requesting a token from the IDP.
+ */
+class TokenResponse {
+  /**
+   * @param access_token {string}
+   * @param refresh_token {string|null}
+   * @param expires_in {number}
+   * @param id_token {string}
+   * @param token_type {string}
+   */
+  constructor(
+    access_token,
+    refresh_token,
+    expires_in,
+    id_token,
+    token_type,
+  ) {
+    this.access_token = access_token;
+    this.refresh_token = refresh_token;
+    this.expires_in = expires_in;
+    this.id_token = id_token;
+    this.token_type = token_type;
+  }
+}
+
 /**
  * Request with which a token can be requested from the IDP.
  */
@@ -258,31 +303,5 @@ class TokenRequestParams {
       code: this.code,
       code_verifier: this.codeVerifier,
     });
-  }
-}
-
-/**
- * Response from the token endpoint after requesting a token from the IDP.
- */
-class TokenResponse {
-  /**
-   * @param access_token {string}
-   * @param refresh_token {string|null}
-   * @param expires_in {number}
-   * @param id_token {string}
-   * @param token_type {string}
-   */
-  constructor(
-    access_token,
-    refresh_token,
-    expires_in,
-    id_token,
-    token_type,
-  ) {
-    this.access_token = access_token;
-    this.refresh_token = refresh_token;
-    this.expires_in = expires_in;
-    this.id_token = id_token;
-    this.token_type = token_type;
   }
 }
