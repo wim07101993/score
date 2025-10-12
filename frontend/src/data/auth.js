@@ -218,11 +218,11 @@ async function createCodeChallenge(verifier) {
  * @return {Promise<string>}
  */
 async function sha256(input) {
-  // if (isSecureContext) {
-  //   const buffer = new TextEncoder().encode(input);
-  //   const hashBuff = await crypto.subtle.digest('SHA-256', buffer);
-  //   return String.fromCharCode(...new Uint8Array(hashBuff));
-  // }
+  if (isSecureContext) {
+    const buffer = new TextEncoder().encode(input);
+    const hashBuff = await crypto.subtle.digest('SHA-256', buffer);
+    return String.fromCharCode(...new Uint8Array(hashBuff));
+  }
 
   console.warn('Running in insecure context. Using CryptoJS instead of browser built-in');
   if (!window.CryptoJS) {
