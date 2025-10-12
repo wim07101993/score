@@ -22,14 +22,14 @@ jobs:
           password: ${{ secrets.DOCKER_PAT }}
 
       - name: Build and Push backend image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6.18.0
         with:
           file: backend.Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score:dev-latest
 
       - name: Build and Push frondend
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6.18.0
         with:
           file: frontend/frontend.Dockerfile
           push: true
