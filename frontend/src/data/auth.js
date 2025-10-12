@@ -138,7 +138,7 @@ async function startAuthorizationCodeFlow(clientId, redirectUri, authorizationEn
 
   const authUrl = `${authorizationEndpoint.protocol}//${authorizationEndpoint.host}${authorizationEndpoint.pathname}?${authParams.toString()}`;
   console.log(`navigating for auth: ${authUrl}`);
-  // window.location.href = authUrl;
+  window.location.href = authUrl;
 
   // return false needs to be here to make the redirect work...
   return false;
@@ -218,15 +218,23 @@ async function createCodeChallenge(verifier) {
  * @return {Promise<string>}
  */
 async function sha256(input) {
-  const buffer = new TextEncoder().encode(input);
-  if (isSecureContext) {
-    const hashBuff = await crypto.subtle.digest('SHA-256', buffer);
-    return String.fromCharCode(...new Uint8Array(hashBuff));
-  }
+  // if (isSecureContext) {
+  //   const buffer = new TextEncoder().encode(input);
+  //   const hashBuff = await crypto.subtle.digest('SHA-256', buffer);
+  //   return String.fromCharCode(...new Uint8Array(hashBuff));
+  // }
 
   console.warn('Running in insecure context. Using CryptoJS instead of browser built-in');
-  await import('https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js');
-  return CryptoJS.SHA256("hello world").toString(CryptoJS.enc.Hex);
+  if (!window.CryptoJS) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return CryptoJS.SHA256(input).toString(CryptoJS.enc.Hex);
 }
 
 // ----------------------------------------------------------------------------
