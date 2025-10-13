@@ -193,7 +193,7 @@ function generateRandomString(length) {
   crypto.getRandomValues(array);
   return Array
     .from(array, n => chars[n % chars.length])
-    .join();
+    .join('');
 }
 
 /**
