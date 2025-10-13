@@ -27,6 +27,9 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score:dev-latest
 
+      - name: Set config
+        run: cp frontend/src/config.dev.js frontend/src/config.js
+        
       - name: Build and Push frondend
         uses: docker/build-push-action@v6
         with:
