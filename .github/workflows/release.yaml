@@ -39,7 +39,7 @@ jobs:
         with:
           file: frontend/frontend.Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/score:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
       
 
       - name: Create release
