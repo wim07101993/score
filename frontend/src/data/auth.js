@@ -193,7 +193,7 @@ function generateRandomString(length) {
   crypto.getRandomValues(array);
   return Array
     .from(array, n => chars[n % chars.length])
-    .join();
+    .join('');
 }
 
 /**
@@ -201,14 +201,40 @@ function generateRandomString(length) {
  * @returns {Promise<string>} The SHA256 hashed input.
  */
 async function createCodeChallenge(verifier) {
-  const messageBuffer = new TextEncoder().encode(verifier);
-  const hashBuff = await crypto.subtle.digest('SHA-256', messageBuffer);
-  const hashStr = String.fromCharCode(...new Uint8Array(hashBuff));
+  const verifierHash = await sha256(verifier)
 
-  return btoa(hashStr) // base64 encode
+  return btoa(verifierHash) // base64 encode
     .replace(/\+/g, '-')
     .replace(/\//g, '-')
     .replace(/=+$/, '');
+}
+
+/**
+ * Hashes a given input string as a SHA256. This function exists because the
+ * crypto functionality of a browser does not exist inside an "insecure context"
+ * like our dev-evn.
+ *
+ * @param input {string}
+ * @return {Promise<string>}
+ */
+async function sha256(input) {
+  if (isSecureContext) {
+    const buffer = new TextEncoder().encode(input);
+    const hashBuff = await crypto.subtle.digest('SHA-256', buffer);
+    return String.fromCharCode(...new Uint8Array(hashBuff));
+  }
+
+  console.warn('Running in insecure context. Using CryptoJS instead of browser built-in');
+  if (!window.CryptoJS) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return CryptoJS.SHA256(input).toString(CryptoJS.enc.Hex);
 }
 
 // ----------------------------------------------------------------------------
