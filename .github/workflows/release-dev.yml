@@ -33,6 +33,7 @@ jobs:
       - name: Build and Push frondend
         uses: docker/build-push-action@v6
         with:
+          contex: .
           file: frontend/frontend.Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:dev-latest       
