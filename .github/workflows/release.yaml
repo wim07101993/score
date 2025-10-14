@@ -35,12 +35,13 @@ jobs:
 
       - name: See config
         run: |
-          ls
+          ls frontend/src/
           cat frontend/src/config.js
 
       - name: Build and Push frondend
         uses: docker/build-push-action@v2
         with:
+          context: .
           file: frontend/frontend.Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
