@@ -38,9 +38,9 @@ func (serv *HttpServer) RegisterRoutes() {
 					accepts == "application/vnd.recordare.musicxml+xml" {
 					return serv.GetScoreMusicxml(res, req)
 				}
-				return serv.GetScoreMetadata(res, req)
+				return serv.authMiddleware.RequireRole(auth.RoleScoreViewer, serv.GetScoreMetadata)(res, req)
 			case http.MethodPut:
-				return serv.PutScore(res, req)
+				return serv.authMiddleware.RequireRole(auth.RoleScoreEditor, serv.PutScore)(res, req)
 			default:
 				http.Error(res, "", http.StatusMethodNotAllowed)
 				return nil
@@ -49,7 +49,7 @@ func (serv *HttpServer) RegisterRoutes() {
 	serv.handleFunc("/scores", serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
 		switch req.Method {
 		case http.MethodGet:
-			return serv.GetScoresPage(res, req)
+			return serv.authMiddleware.RequireRole(auth.RoleScoreViewer, serv.GetScoresPage)(res, req)
 		default:
 			http.Error(res, "", http.StatusMethodNotAllowed)
 		}
