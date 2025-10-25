@@ -28,12 +28,20 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/score:dev-latest
 
       - name: Set config
-        run: cp frontend/src/config.dev.js frontend/src/config.js
+        run: mv frontend/src/config.dev.js frontend/src/config.js
+
+      - name: Remove dev config
+        run: rm frontend/src/config.prod.js
+
+      - name: See config
+        run: |
+          ls frontend/src/
+          cat frontend/src/config.js
         
       - name: Build and Push frondend
         uses: docker/build-push-action@v6
         with:
-          contex: .
+          context: .
           file: frontend/frontend.Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:dev-latest       

@@ -1,5 +1,13 @@
 # Score
 
+Application to manage sheet-music.
+
+## Authentication
+
+Authentication can be done using any OIDC provider. We use Zitadel in the 
+docker-compose file but any OIDC server. Roles are checked using getting the 
+user-info from the idp. 
+
 ## Development
 
 ### Requirements

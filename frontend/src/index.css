@@ -1,3 +1,13 @@
+header {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+}
+
+#upload-button {
+    place-self: center;
+}
+
 #score-list {
     display: grid;
     grid-auto-flow: row;

@@ -16,6 +16,8 @@ type Config struct {
 	TokenIntrospectionUrl          string `envconfig:"TOKEN_INTROSPECTION_URL" json:"tokenIntrospectionUrl"`
 	TokenIntrospectionClientId     string `envconfig:"TOKEN_INTROSPECTION_CLIENT_ID" json:"tokenIntrospectionClientId"`
 	TokenIntrospectionClientSecret string `envconfig:"TOKEN_INTROSPECTION_CLIENT_SECRET" json:"tokenIntrospectionClientSecret"`
+	UserInfoUrl                    string `envconfig:"USER_INFO_URL" json:"userInfoUrl"`
+	RolesKey                       string `envconfig:"ROLES_KEY" json:"rolesKey"`
 }
 
 func FromFile(configPath string) (*Config, error) {
@@ -64,6 +66,12 @@ func (cfg *Config) CopyFrom(other *Config) {
 	if other.TokenIntrospectionUrl != "" {
 		cfg.TokenIntrospectionUrl = other.TokenIntrospectionUrl
 	}
+	if other.UserInfoUrl != "" {
+		cfg.UserInfoUrl = other.UserInfoUrl
+	}
+	if other.RolesKey != "" {
+		cfg.RolesKey = other.RolesKey
+	}
 }
 
 func (cfg *Config) Validate() error {
@@ -72,6 +80,7 @@ func (cfg *Config) Validate() error {
 	if cfg.HttpServerPort < 80 {
 		errs = append(errs, errors.New("cannot listen on a port lower than 80 for listening for http requests"))
 	}
+
 	if cfg.TokenIntrospectionUrl == "" {
 		errs = append(errs, errors.New("no token introspection endpoint specified in configuration"))
 	} else if _, err := url.ParseRequestURI(cfg.TokenIntrospectionUrl); err != nil {
@@ -81,8 +90,19 @@ func (cfg *Config) Validate() error {
 	if cfg.TokenIntrospectionClientId == "" {
 		errs = append(errs, errors.New("no client id to use as auth for token introspection"))
 	}
+
 	if cfg.TokenIntrospectionClientSecret == "" {
 		errs = append(errs, errors.New("no client secret to use as auth for token introspection"))
+	}
+
+	if cfg.UserInfoUrl == "" {
+		errs = append(errs, errors.New("no user info url"))
+	} else if _, err := url.ParseRequestURI(cfg.UserInfoUrl); err != nil {
+		errs = append(errs, errors.New("the given user info url is not a valid url"))
+	}
+
+	if cfg.RolesKey == "" {
+		errs = append(errs, errors.New("no roles key"))
 	}
 
 	if len(errs) > 0 {
@@ -98,5 +118,7 @@ func (cfg *Config) Redacted() Config {
 		TokenIntrospectionUrl:          cfg.TokenIntrospectionUrl,
 		TokenIntrospectionClientId:     cfg.TokenIntrospectionClientId,
 		TokenIntrospectionClientSecret: "********",
+		UserInfoUrl:                    cfg.UserInfoUrl,
+		RolesKey:                       cfg.RolesKey,
 	}
 }

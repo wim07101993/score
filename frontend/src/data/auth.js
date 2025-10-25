@@ -11,12 +11,22 @@ export class AuthConfig {
    * @param redirectUri {URL}
    * @param authorizationEndpoint {URL}
    * @param tokenEndpoint {URL}
+   * @param userInfoEndpoint {URL}
+   * @param rolesKey {string}
    */
-  constructor(clientId, redirectUri, authorizationEndpoint, tokenEndpoint) {
+  constructor(
+    clientId,
+    redirectUri,
+    authorizationEndpoint,
+    tokenEndpoint,
+    userInfoEndpoint,
+    rolesKey) {
     this.clientId = clientId;
     this.redirectUri = redirectUri;
     this.authorizationEndpoint = authorizationEndpoint;
     this.tokenEndpoint = tokenEndpoint;
+    this.userInfoEndpoint = userInfoEndpoint;
+    this.rolesKey = rolesKey;
   }
 }
 
@@ -101,6 +111,15 @@ export class AuthorizationService {
     return null;
   }
 
+  /**
+   * @return {Promise<UserInfoResponse|null>}
+   */
+  async getUserInfo() {
+    return await callUserInfoEndpoint(
+      this.config.userInfoEndpoint,
+      this.tokenResponse.access_token,
+      this.config.rolesKey);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -180,6 +199,30 @@ async function callTokenEndpoint(tokenEndpoint, authParams) {
     return null;
   } finally {
     sessionStorage.removeItem(pkceCodeVerifierSessionStorageKey);
+  }
+}
+
+/**
+ * @param userInfoEndpoint {URL}
+ * @param accessToken {string}
+ * @param rolesKey {string}
+ * @return {Promise<UserInfoResponse|null>}
+ */
+async function callUserInfoEndpoint(userInfoEndpoint, accessToken, rolesKey) {
+  try {
+    const response  =await fetch(userInfoEndpoint,{
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    const body = await response.json();
+
+    return UserInfoResponse.fromResponse(body, rolesKey);
+  } catch (error) {
+    console.log('Error while getting user info', error)
+    return null;
   }
 }
 
@@ -329,5 +372,42 @@ class TokenRequestParams {
       code: this.code,
       code_verifier: this.codeVerifier,
     });
+  }
+}
+
+export class UserInfoResponse {
+  /**
+   * @param name {string}
+   * @param subject {string}
+   * @param roles {Object}
+   */
+  constructor(name, subject, roles){
+    this.name = name;
+    this.subject = subject;
+    this.roles = roles;
+  }
+
+  /**
+   * @return {boolean}
+   */
+  get isScoreEditor()  {
+    return this.roles != null && this.roles['score_editor'] != null;
+  }
+
+  get isScoreViewer() {
+    return this.roles != null && this.roles['score_viewer'] != null;
+  }
+
+  /**
+   * @param response {Object}
+   * @param rolesKey {string}
+   * @return {UserInfoResponse}
+   */
+  static fromResponse(response, rolesKey) {
+    return new UserInfoResponse(
+      response['name'] + '',
+      response['sub'] + '',
+      response[rolesKey]
+    );
   }
 }

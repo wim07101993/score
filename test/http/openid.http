@@ -1,0 +1,3 @@
+### Get user info
+GET https://auth.wvl.app/oidc/v1/userinfo
+Authorization: Bearer {{$auth.token("local")}}

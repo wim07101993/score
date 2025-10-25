@@ -22,7 +22,12 @@
 <script src="../packages/open_sheet_music_display.1.8.9.min.js"></script>
 <script src="detail.js" type="module"></script>
 
-<div id="score-musicxml" style="width: 100%"></div>
+<form id='upload-form' hidden>
+    <input type='file' id='file-input' name='file'/>
+    <button type='submit' id="upload-button" disabled>Upload</button>
+</form>
+
+<div id='score-musicxml' style='width: 100%' hidden></div>
 
 </body>
 </html>

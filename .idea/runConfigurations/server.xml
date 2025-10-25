@@ -2,7 +2,7 @@
   <configuration default="false" name="server" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="score" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="-config config.txt" />
+    <parameters value="-config .env/local-config.json" />
     <envs>
       <env name="DB_CONNECTION_STRING" value="user=postgres password=postgres host=localhost port=7432 dbname=score sslmode=disable" />
       <env name="TOKEN_INTROSPECTION_CLIENT_ID" value="329559487100813315" />

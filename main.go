@@ -99,7 +99,12 @@ func runMigrations() {
 func serveHttp() {
 	logger.Info("starting http server")
 
-	authMiddleware := auth.NewMiddleware(cfg.TokenIntrospectionUrl, cfg.TokenIntrospectionClientId, cfg.TokenIntrospectionClientSecret)
+	authMiddleware := auth.NewMiddleware(
+		cfg.TokenIntrospectionUrl,
+		cfg.UserInfoUrl,
+		cfg.TokenIntrospectionClientId,
+		cfg.TokenIntrospectionClientSecret,
+		cfg.RolesKey)
 
 	scoreServ := score.NewHttpServer(logger, createScoresDb, authMiddleware)
 	scoreServ.RegisterRoutes()
