@@ -10,19 +10,30 @@ async function main() {
     return;
   }
 
-  const userInfo = await authService.getUserInfo();
-  document.getElementById('upload-button').hidden = userInfo == null
-    || userInfo.roles == null
-    || userInfo.roles['score_viewer'] == null;
+  const user = await authService.getUserInfo();
 
   await initializeScoreApp();
 
   database.addScoreChangesListener(() => _buildScoreListItems());
 
-  fetchScoreUpdates().then(() => {
-  });
-  _buildScoreListItems().then(() => {
-  });
+
+  if (user?.isScoreEditor === true){
+    document.getElementById('upload-button').hidden = false;
+  } else {
+    document.getElementById('upload-button').hidden = true;
+    console.log('not score editor');
+  }
+
+  if (user?.isScoreViewer === true) {
+    document.getElementById('score-list').hidden = false;
+    fetchScoreUpdates().then(() => {
+    });
+    _buildScoreListItems().then(() => {
+    });
+  } else {
+    document.getElementById('score-list').hidden = true;
+    console.log('not score viewer');
+  }
 }
 
 async function _buildScoreListItems() {

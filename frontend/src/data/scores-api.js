@@ -94,7 +94,7 @@ export class ScoresApi {
    * @return {Promise<void>}
    */
   async putScore(scoreId, authToken, musicXml) {
-    const url = `${this.config.baseUrl}score/${scoreId}`;
+    const url = `${this.config.baseUrl}scores/${scoreId}`;
     const response = await fetch(url,  {
       method: 'PUT',
       headers: {

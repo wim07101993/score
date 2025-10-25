@@ -388,6 +388,17 @@ export class UserInfoResponse {
   }
 
   /**
+   * @return {boolean}
+   */
+  get isScoreEditor()  {
+    return this.roles != null && this.roles['score_editor'] != null;
+  }
+
+  get isScoreViewer() {
+    return this.roles != null && this.roles['score_viewer'] != null;
+  }
+
+  /**
    * @param response {Object}
    * @param rolesKey {string}
    * @return {UserInfoResponse}

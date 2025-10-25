@@ -91,6 +91,8 @@ async function main() {
     return;
   }
 
+  const user = await authService.getUserInfo();
+
   fileInput.addEventListener('change', onFileSelected);
   uploadForm.addEventListener('submit', onSubmitScore);
 
@@ -105,6 +107,20 @@ async function main() {
   fetchScoreUpdates().then(() => loadMusicxml(scoreId));
 
   await loadMusicxml(scoreId);
+
+  if (user?.isScoreEditor === true){
+    document.getElementById('upload-form').hidden = false;
+  } else {
+    document.getElementById('upload-form').hidden = true;
+    console.log('not score editor');
+  }
+
+  if (user?.isScoreViewer === true) {
+    document.getElementById('score-musicxml').hidden = false;
+  } else {
+    document.getElementById('score-musicxml').hidden = true;
+    console.log('not score viewer');
+  }
 }
 
 await main();
