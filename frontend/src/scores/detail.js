@@ -5,6 +5,17 @@ import {fetchScoreUpdates, initializeScoreApp} from "../score-domain.js";
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 
+const fileInput = document.getElementById('file-input');
+const uploadForm = document.getElementById('upload-form');
+const uploadButton = document.getElementById('upload-button');
+
+/**
+ * @type {string}
+ */
+let musicXml;
+let scoreId;
+let accessToken;
+
 /**
  * @param scoreId {String}
  * @returns {Promise<void>}
@@ -25,7 +36,7 @@ async function loadMusicxml(scoreId) {
   }
 
   if (musicxml == null) {
-    // TODO show user something
+    alert('failed to load music xml');
     return;
   }
 
@@ -33,15 +44,60 @@ async function loadMusicxml(scoreId) {
     .then(() => osmd.render());
 }
 
-async function main() {
-  const accessToken = await authService.authorize();
-  if (accessToken == null) {
+/**
+ * @param event {Event}
+ * @return {Promise<void>}
+ */
+async function onFileSelected(event) {
+  console.log('selected file');
+  if (event.target.files.length === 0) {
+    uploadButton.disabled = true;
+    osmd.clear();
+    console.log('no files');
     return;
   }
 
+  const file = event.target.files[0];
+
+  if (!file.name.match('.*\.musicxml')) {
+    uploadButton.disabled = true;
+    alert('You selected a non-xml file. Please select only music xml files.');
+    return;
+  }
+
+  uploadButton.disabled = false;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    musicXml = e.target.result;
+    osmd.load(musicXml)
+      .then(() => osmd.render());
+  };
+  reader.readAsText(file);
+}
+
+/**
+ * @param event {Event}
+ */
+async function onSubmitScore(event) {
+  event.preventDefault();
+  await api.putScore(scoreId, accessToken, musicXml);
+  window.location = `detail.html?id=${scoreId}`;
+}
+
+async function main() {
+  accessToken = await authService.authorize();
+  if (accessToken == null) {
+    alert('you are not logged in');
+    return;
+  }
+
+  fileInput.addEventListener('change', onFileSelected);
+  uploadForm.addEventListener('submit', onSubmitScore);
+
   const urlParams = new URLSearchParams(window.location.search);
-  const scoreId = urlParams.get('id');
+  scoreId = urlParams.get('id');
   if (scoreId == null) {
+    scoreId = crypto.randomUUID()
     return;
   }
 

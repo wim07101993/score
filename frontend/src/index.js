@@ -10,6 +10,11 @@ async function main() {
     return;
   }
 
+  const userInfo = await authService.getUserInfo();
+  document.getElementById('upload-button').hidden = userInfo == null
+    || userInfo.roles == null
+    || userInfo.roles['score_viewer'] == null;
+
   await initializeScoreApp();
 
   database.addScoreChangesListener(() => _buildScoreListItems());

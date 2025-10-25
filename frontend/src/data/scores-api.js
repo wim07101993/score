@@ -31,9 +31,6 @@ export class ScoresApi {
       'Changes-Until': _formatDate(changesUntil),
     });
     const url = `${this.config.baseUrl}scores?${params.toString()}`;
-    /**
-     * @type Response
-     */
     const response = await fetch(url, {
       headers: {
         "Authorization": `Bearer ${authToken}`
@@ -55,9 +52,6 @@ export class ScoresApi {
    */
   async getScore(scoreId, authToken) {
     const url = `${this.config.baseUrl}scores/${scoreId}`;
-    /**
-     * @type Response
-     */
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -79,9 +73,6 @@ export class ScoresApi {
    */
   async getScoreMusicxml(scoreId, authToken) {
     const url = `${this.config.baseUrl}scores/${scoreId}`;
-    /**
-     * @type Response
-     */
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -94,6 +85,29 @@ export class ScoresApi {
       throw `failed to fetch score musicxml: ${response.status} ${response.statusText}: ${await response.text()}`;
     }
     return await response.text();
+  }
+
+  /**
+   * @param scoreId {string}
+   * @param authToken {string}
+   * @param musicXml {string}
+   * @return {Promise<void>}
+   */
+  async putScore(scoreId, authToken, musicXml) {
+    const url = `${this.config.baseUrl}score/${scoreId}`;
+    const response = await fetch(url,  {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/vnd.recordare.musicxml'
+      },
+      body: musicXml
+    });
+    if (response.status >= 500) {
+      throw `failed to update score (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
+    } else if (response.status >= 400) {
+      throw `failed to update score:  ${response.status} ${response.statusText}: ${await response.text()}`;
+    }
   }
 }
 
