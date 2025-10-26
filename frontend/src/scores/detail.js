@@ -95,19 +95,6 @@ async function main() {
 
   fileInput.addEventListener('change', onFileSelected);
   uploadForm.addEventListener('submit', onSubmitScore);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  scoreId = urlParams.get('id');
-  if (scoreId == null) {
-    scoreId = crypto.randomUUID()
-    return;
-  }
-
-  await initializeScoreApp();
-  fetchScoreUpdates().then(() => loadMusicxml(scoreId));
-
-  await loadMusicxml(scoreId);
-
   if (user?.isScoreEditor === true){
     document.getElementById('upload-form').hidden = false;
   } else {
@@ -121,6 +108,18 @@ async function main() {
     document.getElementById('score-musicxml').hidden = true;
     console.log('not score viewer');
   }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  scoreId = urlParams.get('id');
+  if (scoreId == null) {
+    scoreId = crypto.randomUUID()
+    return;
+  }
+
+  await initializeScoreApp();
+  fetchScoreUpdates().then(() => loadMusicxml(scoreId));
+
+  await loadMusicxml(scoreId);
 }
 
 await main();
