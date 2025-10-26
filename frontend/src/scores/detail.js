@@ -10,7 +10,7 @@ const uploadForm = document.getElementById('upload-form');
 const uploadButton = document.getElementById('upload-button');
 
 /**
- * @type {string}
+ * @type {string|null}
  */
 let musicXml;
 let scoreId;
@@ -18,7 +18,7 @@ let accessToken;
 
 /**
  * @param scoreId {String}
- * @returns {Promise<void>}
+ * @returns {Promise<string>}
  */
 async function loadMusicxml(scoreId) {
   let musicxml = null;
@@ -37,11 +37,23 @@ async function loadMusicxml(scoreId) {
 
   if (musicxml == null) {
     alert('failed to load music xml');
-    return;
   }
+  return musicxml;
+}
 
-  await osmd.load(musicxml)
-    .then(() => osmd.render());
+function downloadMusicXmlFile() {
+  const blob = new Blob([musicXml], {type: 'application/vnd.recordare.musicxml'});
+  const url = window.URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${scoreId}.musicxml`;
+  document.body.appendChild(link);
+  link.click();
+
+  // Clean up
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 
 /**
@@ -95,7 +107,7 @@ async function main() {
 
   fileInput.addEventListener('change', onFileSelected);
   uploadForm.addEventListener('submit', onSubmitScore);
-  if (user?.isScoreEditor === true){
+  if (user?.isScoreEditor === true) {
     document.getElementById('upload-form').hidden = false;
   } else {
     document.getElementById('upload-form').hidden = true;
@@ -119,7 +131,14 @@ async function main() {
   await initializeScoreApp();
   fetchScoreUpdates().then(() => loadMusicxml(scoreId));
 
-  await loadMusicxml(scoreId);
+  musicXml = await loadMusicxml(scoreId);
+
+  const downloadButton = document.getElementById('download-button');
+  downloadButton.hidden = false;
+  downloadButton.onclick = downloadMusicXmlFile;
+
+  await osmd.load(musicXml)
+    .then(() => osmd.render());
 }
 
 await main();
