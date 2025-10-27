@@ -42,6 +42,8 @@ func readIdentification(r xml.TokenReader, element xml.StartElement) (id *Identi
 				id.Relation = append(id.Relation, relation)
 			case "miscellaneous":
 				err = ReadUntilClose(r, el) // IGNORE
+			case "source":
+				err = ReadUntilClose(r, el)
 			default:
 				err = &UnknownElement{element, el}
 			}

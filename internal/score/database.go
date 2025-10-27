@@ -82,6 +82,11 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		}
 	}
 
+	var languages []string
+	if score.Defaults != nil && score.Defaults.LyricLanguage != "" {
+		languages = []string{score.Defaults.LyricLanguage}
+	}
+
 	const insertScoreQuery = `
 		INSERT INTO scores (
 			id, 
@@ -117,7 +122,7 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		"movement_number":    score.MovementNumber,
 		"creators_composers": composers,
 		"creators_lyricists": lyricists,
-		"languages":          []string{score.Defaults.LyricLanguage},
+		"languages":          languages,
 		"instruments":        instruments,
 		"lastChangedAt":      time.Now().UTC(),
 	})

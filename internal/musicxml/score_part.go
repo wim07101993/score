@@ -46,6 +46,9 @@ func readScorePart(r xml.TokenReader, element xml.StartElement) (part *ScorePart
 					return err
 				}
 				part.Instruments = append(part.Instruments, instr)
+			case "midi-device":
+				slog.Log(context.Background(), slog.LevelWarn, "midi devices are not supported right now, we might in the future")
+				err = ReadUntilClose(r, el)
 			case "midi-instrument":
 				slog.Log(context.Background(), slog.LevelWarn, "midi instruments are not supported right now, we might in the future")
 				err = ReadUntilClose(r, el)
