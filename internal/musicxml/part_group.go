@@ -11,9 +11,10 @@ const (
 )
 
 type PartGroup struct {
-	Type   string
-	Number int
-	Symbol string
+	Type         string
+	Number       int
+	Symbol       string
+	GroupBarline bool
 }
 
 func readPartGroup(r xml.TokenReader, element xml.StartElement) (group *PartGroup, err error) {
@@ -34,6 +35,10 @@ func readPartGroup(r xml.TokenReader, element xml.StartElement) (group *PartGrou
 			switch el.Name.Local {
 			case "group-symbol":
 				group.Symbol, err = ReadString(r, el)
+			case "group-barline":
+				var groupBarline string
+				groupBarline, err = ReadString(r, el)
+				group.GroupBarline = groupBarline == "yes"
 			default:
 				err = &UnknownElement{element, el}
 			}
