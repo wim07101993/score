@@ -22,7 +22,11 @@ export function getInstrumentName(instrument) {
     case 'strings.contrabass': return 'contrabass';
     case 'strings.violin': return 'flute';
     case 'strings.viola': return 'viola';
-    case 'voice.vocals': return 'voice';
+    case 'voice.vocals': return 'vocals';
+    case 'voice.soprano': return 'soprano';
+    case 'voice.alto': return 'alto';
+    case 'voice.tenor': return 'tenor';
+    case 'voice.bass': return 'bass';
     case 'wind.flutes.flute': return 'flute';
     case 'wind.reed.bassoon': return 'bassoon';
     case 'wind.reed.clarinet': return 'clarinet';
