@@ -60,12 +60,14 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 
 	var composers []string
 	var lyricists []string
-	for _, creator := range score.Identification.Creators {
-		switch creator.Type {
-		case "composer":
-			composers = append(composers, creator.Value)
-		case "lyricist":
-			composers = append(lyricists, creator.Value)
+	if score.Identification != nil && score.Identification.Creators != nil {
+		for _, creator := range score.Identification.Creators {
+			switch creator.Type {
+			case "composer":
+				composers = append(composers, creator.Value)
+			case "lyricist":
+				composers = append(lyricists, creator.Value)
+			}
 		}
 	}
 
