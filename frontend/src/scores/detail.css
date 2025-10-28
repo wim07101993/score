@@ -1,0 +1,44 @@
+body {
+    margin: 0;
+}
+
+header {
+    position: fixed;
+    width: 100%;
+    display: grid;
+    background-color: var(--second-background);
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto;
+    grid-template-areas: "home-button upload-form download-button";
+    grid-column-gap: 4px;
+    z-index: 100;
+}
+header > *{
+    align-content: center;
+}
+
+#home-button {
+    grid-area: home-button;
+    justify-self: left;
+    margin-left: 4px;
+}
+
+#upload-form {
+    grid-area: upload-form;
+    justify-self: center;
+}
+
+#download-button {
+    grid-area: download-button;
+    justify-self: right;
+    background: transparent;
+    border: transparent;
+    margin-right: 4px;
+}
+#download-button:hover > svg {
+    fill: #444444;
+}
+
+#score-musicxml * {
+    font-family: serif;
+}
