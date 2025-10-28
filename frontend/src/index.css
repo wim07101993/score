@@ -6,6 +6,10 @@ header {
 
 #upload-button {
     place-self: center;
+    margin-right: 8px;
+}
+#upload-button:hover > svg {
+    fill: #444444;
 }
 
 #score-list {

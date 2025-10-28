@@ -3,29 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <title>Score detail</title>
+    <link rel="stylesheet" href="../theme.css">
+    <link rel="stylesheet" href="detail.css">
 </head>
 
 <body>
 <header>
-    <h1 id="title"></h1>
+    <a id="home-button" href="/">Back to the list</a>
+    <form id='upload-form' hidden>
+        <input type='file' id='file-input' name='file'/>
+        <button type='submit' id="upload-button" disabled>
+            Upload
+        </button>
+    </form>
+    <button id="download-button" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="20px"
+             height="20px"
+             viewBox="0 0 20 20">
+            <path d="M13 8V2H7v6H2l8 8l8-8h-5zM0 18h20v2H0v-2z"/>
+        </svg>
+    </button>
 </header>
-
-<div>
-    <p id="lyricists"></p>
-    <p id="composers"></p>
-    <p id="instruments"></p>
-    <p id="languages"></p>
-    <p id="tags"></p>
-    <p id="last-changed-timestamp"></p>
-</div>
 
 <script src="../packages/open_sheet_music_display.1.8.9.min.js"></script>
 <script src="detail.js" type="module"></script>
-
-<form id='upload-form' hidden>
-    <input type='file' id='file-input' name='file'/>
-    <button type='submit' id="upload-button" disabled>Upload</button>
-</form>
 
 <div id='score-musicxml' style='width: 100%' hidden></div>
 

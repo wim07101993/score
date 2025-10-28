@@ -60,12 +60,14 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 
 	var composers []string
 	var lyricists []string
-	for _, creator := range score.Identification.Creators {
-		switch creator.Type {
-		case "composer":
-			composers = append(composers, creator.Value)
-		case "lyricist":
-			composers = append(lyricists, creator.Value)
+	if score.Identification != nil && score.Identification.Creators != nil {
+		for _, creator := range score.Identification.Creators {
+			switch creator.Type {
+			case "composer":
+				composers = append(composers, creator.Value)
+			case "lyricist":
+				composers = append(lyricists, creator.Value)
+			}
 		}
 	}
 
@@ -80,6 +82,11 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 			}
 			instruments = append(instruments, instrument.Sound)
 		}
+	}
+
+	var languages []string
+	if score.Defaults != nil && score.Defaults.LyricLanguage != "" {
+		languages = []string{score.Defaults.LyricLanguage}
 	}
 
 	const insertScoreQuery = `
@@ -117,7 +124,7 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		"movement_number":    score.MovementNumber,
 		"creators_composers": composers,
 		"creators_lyricists": lyricists,
-		"languages":          []string{score.Defaults.LyricLanguage},
+		"languages":          languages,
 		"instruments":        instruments,
 		"lastChangedAt":      time.Now().UTC(),
 	})
