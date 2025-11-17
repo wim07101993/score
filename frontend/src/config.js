@@ -1,7 +1,7 @@
-import {AuthConfig} from "./data/auth.js";
+import {OidcConfig} from "./data/oidc.js";
 import {ApiConfig} from "./data/scores-api.js";
 
-export const authConfig = new AuthConfig(
+export const oidcConfig = new OidcConfig(
   '321160767120408579',
   new URL('http://localhost:3000/'),
   new URL('http://localhost:7003/oauth/v2/authorize'),

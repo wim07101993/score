@@ -1,6 +1,6 @@
 import {Creators, Movement, Score, Work} from "./data/database.js";
 import {saveMusicxml} from "./data/storage.js";
-import {api, authService, database} from "./globals.js";
+import {scoresApi, oidcService, database} from "./globals.js";
 
 
 /**
@@ -32,11 +32,11 @@ async function updateScoreDb() {
   }
   const lastFetchDate = newestScore?.last_changed_at ?? new Date(2000);
 
-  const accessToken = await authService.authorize();
+  const accessToken = await oidcService.authorize();
   if (accessToken == null) {
     return;
   }
-  const newScoreDtos = await api.getScores(lastFetchDate, new Date(), accessToken);
+  const newScoreDtos = await scoresApi.getScores(lastFetchDate, new Date(), accessToken);
   const newScores = newScoreDtos.map((score) => new Score(
     score.id,
     score.work == null ? null : new Work(score.work.title, score.work.number),
@@ -71,11 +71,11 @@ async function updateScoreFiles() {
       continue;
     }
 
-    const accessToken = await authService.authorize();
+    const accessToken = await oidcService.authorize();
     if (accessToken == null) {
       return;
     }
-    const musicxml = await api.getScoreMusicxml(scoreId, accessToken);
+    const musicxml = await scoresApi.getScoreMusicxml(scoreId, accessToken);
     await saveMusicxml(scoreId, musicxml);
     score.last_fetched_file_at = new Date();
 

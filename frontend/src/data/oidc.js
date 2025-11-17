@@ -5,7 +5,7 @@ const idTokenSessionStorageKey = 'id_token';
 const refreshTokenLocalStorageKey = 'refresh_token';
 const scopes = ['openid', 'email', 'profile', 'offline_access'];
 
-export class AuthConfig {
+export class OidcConfig {
   /**
    * @param clientId {string}
    * @param redirectUri {URL}
@@ -34,9 +34,9 @@ export class AuthConfig {
 // SERVICE
 // ----------------------------------------------------------------------------
 
-export class AuthorizationService {
+export class OidcService {
   /**
-   * @param config {AuthConfig}
+   * @param config {OidcConfig}
    */
   constructor(config) {
     this.config = config;

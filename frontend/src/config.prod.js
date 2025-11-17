@@ -1,7 +1,7 @@
-import {AuthConfig} from "./data/auth.js";
+import {OidcConfig} from "./data/oidc.js";
 import {ApiConfig} from "./data/scores-api.js";
 
-export const authConfig = new AuthConfig(
+export const oidcConfig = new OidcConfig(
   '342055608129748996',
   new URL('https://score.wvl.app/'),
   new URL('https://auth.wvl.app/oauth/v2/authorize'),
