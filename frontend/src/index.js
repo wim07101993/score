@@ -1,45 +1,50 @@
 import {buildScoreListItem, registerScoreListItem} from "./components/score-list-item.component.js";
-import {fetchScoreUpdates, initializeScoreApp} from "./score-domain.js";
-import {database, updateAuth, user} from "./globals.js";
+import {App} from "./app.js";
 
 const uploadButton = document.getElementById('upload-button');
 const scoreList = document.getElementById('score-list');
 
-async function _buildScoreListItems() {
+const app = new App('config.json');
+
+function _buildScoreListItems() {
   scoreList.innerHTML = '';
-  await initializeScoreApp();
-  for (const score of database.scores) {
+  for (const score of app.scoreRepository.scores) {
     const listItem = buildScoreListItem(score);
     scoreList.appendChild(listItem);
   }
 }
 
+function _initScoreEditor() {
+  if (app.user?.isScoreEditor !== true) {
+    uploadButton.hidden = true;
+    console.log('no score editor');
+    return
+  }
+
+  uploadButton.hidden = false;
+}
+
+async function _initScoreViewer() {
+  if (app.user?.isScoreViewer !== true) {
+    scoreList.hidden = true;
+    console.log('no score viewer');
+    return;
+  }
+
+  scoreList.hidden = false;
+  _buildScoreListItems();
+  await app.updateScores();
+}
+
 async function main() {
   registerScoreListItem();
 
-  await updateAuth();
+  await app.initialize();
 
-  await initializeScoreApp();
+  app.scoreRepository.addScoreChangesListener(() => _buildScoreListItems());
 
-  database.addScoreChangesListener(() => _buildScoreListItems());
-
-  if (user?.isScoreEditor === true) {
-    uploadButton.hidden = false;
-  } else {
-    uploadButton.hidden = true;
-    console.log('not score editor');
-  }
-
-  if (user?.isScoreViewer === true) {
-    scoreList.hidden = false;
-    fetchScoreUpdates().then(() => {
-    });
-    _buildScoreListItems().then(() => {
-    });
-  } else {
-    scoreList.hidden = true;
-    console.log('not score viewer');
-  }
+  _initScoreEditor();
+  await _initScoreViewer();
 }
 
 await main();

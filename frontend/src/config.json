@@ -1,0 +1,14 @@
+{
+  "oidc": {
+    "clientId": "321160767120408579",
+    "redirectUri": "http://localhost:3000/",
+    "authorizationEndpoint": "http://localhost:7003/oauth/v2/authorize",
+    "tokenEndpoint": "http://localhost:7003/oauth/v2/token",
+    "userInfoEndpoint": "http://localhost:7003/oidc/v1/userinfo",
+    "healthzEndpoint": "http://localhost:7003/auth/v1/healthz",
+    "rolesKey": "urn:zitadel:iam:org:project:roles"
+  },
+  "api": {
+    "baseUrl": "http://localhost:7001"
+  }
+}

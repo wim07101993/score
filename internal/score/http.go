@@ -250,9 +250,6 @@ func getChangesSinceParam(req *http.Request) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, errors.New("failed to parse Changes-Since as date-time (YYMMDDThhmmss)")
 	}
-	if t.UnixNano() == 0 {
-		return time.Time{}, errors.New("a Changes-Since query param cannot be empty")
-	}
 	return t, nil
 }
 

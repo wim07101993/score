@@ -1,0 +1,14 @@
+{
+  "oidc": {
+    "clientId": "342055608129748996",
+    "redirectUri": "https://score.wvl.app/",
+    "authorizationEndpoint": "https://auth.wvl.app/oauth/v2/authorize",
+    "tokenEndpoint": "https://auth.wvl.app/oauth/v2/token",
+    "userInfoEndpoint": "https://auth.wvl.app/oidc/v1/userinfo",
+    "healthzEndpoint": "https://auth.wvl.app/auth/v1/healthz",
+    "rolesKey": "urn:zitadel:iam:org:project:roles"
+  },
+  "api": {
+    "baseUrl": "https://score-api.wvl.app"
+  }
+}

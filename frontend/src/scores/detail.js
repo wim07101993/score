@@ -1,7 +1,4 @@
-import {getMusicxml, musicxmlExists, saveMusicxml} from '../data/storage.js';
-
-import {accessToken, scoresApi, updateAuth, user} from "../globals.js";
-import {fetchScoreUpdates, initializeScoreApp} from "../score-domain.js";
+import {App} from "../app.js";
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 
@@ -11,32 +8,13 @@ const uploadButton = document.getElementById('upload-button');
 const downloadButton = document.getElementById('download-button');
 const scoreMusicXml = document.getElementById('score-musicxml');
 
+const app = new App('../config.json');
+
 /**
  * @type {string|null}
  */
 let musicXml;
 let scoreId;
-
-/**
- * @param scoreId {String}
- */
-async function loadMusicxml(scoreId) {
-  let musicxml;
-
-  if (await musicxmlExists(scoreId)) {
-    musicxml = await getMusicxml(scoreId)
-  } else {
-    await updateAuth();
-
-    musicxml = await scoresApi.getScoreMusicxml(scoreId, accessToken);
-    await saveMusicxml(scoreId, musicxml);
-  }
-
-  if (musicxml == null) {
-    alert('failed to load music xml');
-  }
-  return musicxml;
-}
 
 /**
  * @param event {Event}
@@ -73,11 +51,21 @@ async function onFileSelected(event) {
  */
 async function onUploadFormSubmit(event) {
   event.preventDefault();
-  await scoresApi.putScore(scoreId, accessToken, musicXml);
+  const user = await app.updateAuth();
+  if (await user?.isScoreEditor !== true) {
+    return;
+  }
+  const accessToken = await app.oidcApi.getActiveAccessToken();
+  await app.scoresApi.putScore(scoreId, accessToken, musicXml);
   window.location = `detail.html?id=${scoreId}`;
 }
 
-function onDownloadButtonClicked() {
+async function onDownloadButtonClicked() {
+  const user = await app.updateAuth();
+  if (await user?.isScoreViewer !== true) {
+    return;
+  }
+
   const blob = new Blob([musicXml], {type: 'application/vnd.recordare.musicxml'});
   const url = window.URL.createObjectURL(blob);
 
@@ -92,28 +80,44 @@ function onDownloadButtonClicked() {
   window.URL.revokeObjectURL(url);
 }
 
+function _initScoreEditor() {
+  if (app.user?.isScoreViewer !== true) {
+    fileInput.hidden = true;
+    uploadButton.hidden = true;
+    uploadForm.hidden = true;
+    console.log('no score editor');
+    return;
+  }
+
+  fileInput.hidden = false;
+  uploadButton.hidden = false;
+  uploadForm.hidden = false;
+}
+
+async function _initScoreViewer() {
+  if (app.user?.isScoreViewer !== true) {
+    downloadButton.hidden = true;
+    scoreMusicXml.hidden = true;
+    console.log('no score viewer');
+    return;
+  }
+
+  downloadButton.hidden = false;
+  scoreMusicXml.hidden = false;
+
+  musicXml = await app.scoreRepository.getMusicXml(scoreId);
+  if (musicXml != null) {
+    await osmd.load(musicXml).then(() => osmd.render());
+  }
+  await app.updateScores();
+}
+
 async function main() {
-  await updateAuth();
+  await app.initialize();
 
   fileInput.addEventListener('change', onFileSelected);
   uploadForm.addEventListener('submit', onUploadFormSubmit);
   downloadButton.addEventListener('click', onDownloadButtonClicked);
-
-  if (user?.isScoreEditor === true) {
-    uploadForm.hidden = false;
-  } else {
-    uploadForm.hidden = true;
-    console.log('not score editor');
-  }
-
-  if (user?.isScoreViewer === true) {
-    scoreMusicXml.hidden = false;
-    downloadButton.hidden = false;
-  } else {
-    scoreMusicXml.hidden = true;
-    downloadButton.hidden = true;
-    console.log('not score viewer');
-  }
 
   const urlParams = new URLSearchParams(window.location.search);
   scoreId = urlParams.get('id');
@@ -121,13 +125,8 @@ async function main() {
     scoreId = crypto.randomUUID()
   }
 
-  await initializeScoreApp();
-  fetchScoreUpdates().then(() => loadMusicxml(scoreId));
-
-  musicXml = await loadMusicxml(scoreId);
-
-  await osmd.load(musicXml)
-    .then(() => osmd.render());
+  _initScoreEditor();
+  await _initScoreViewer();
 }
 
 await main();
