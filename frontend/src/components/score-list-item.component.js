@@ -1,5 +1,4 @@
-import {Score} from '../data/database.js';
-import {getListProperty} from '../data/html-functions.js';
+import {getListProperty} from '../data/helper-functions.js';
 import {getInstrumentName} from "../data/translations.js";
 
 export function registerScoreListItem() {

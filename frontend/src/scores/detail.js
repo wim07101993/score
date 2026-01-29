@@ -1,64 +1,23 @@
-import {getMusicxml, musicxmlExists, saveMusicxml} from '../data/storage.js';
-
-import {api, authService} from "../globals.js";
-import {fetchScoreUpdates, initializeScoreApp} from "../score-domain.js";
+import {App} from "../app.js";
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 
 const fileInput = document.getElementById('file-input');
 const uploadForm = document.getElementById('upload-form');
 const uploadButton = document.getElementById('upload-button');
+const downloadButton = document.getElementById('download-button');
+const scoreMusicXml = document.getElementById('score-musicxml');
+
+const app = new App('../config.json');
 
 /**
  * @type {string|null}
  */
 let musicXml;
 let scoreId;
-let accessToken;
-
-/**
- * @param scoreId {String}
- * @returns {Promise<string>}
- */
-async function loadMusicxml(scoreId) {
-  let musicxml = null;
-
-  if (await musicxmlExists(scoreId)) {
-    musicxml = await getMusicxml(scoreId)
-  } else {
-    const accessToken = await authService.authorize();
-    if (accessToken == null) {
-      return;
-    }
-
-    musicxml = await api.getScoreMusicxml(scoreId, accessToken);
-    await saveMusicxml(scoreId, musicxml);
-  }
-
-  if (musicxml == null) {
-    alert('failed to load music xml');
-  }
-  return musicxml;
-}
-
-function downloadMusicXmlFile() {
-  const blob = new Blob([musicXml], {type: 'application/vnd.recordare.musicxml'});
-  const url = window.URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${scoreId}.musicxml`;
-  document.body.appendChild(link);
-  link.click();
-
-  // Clean up
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-}
 
 /**
  * @param event {Event}
- * @return {Promise<void>}
  */
 async function onFileSelected(event) {
   console.log('selected file');
@@ -90,55 +49,84 @@ async function onFileSelected(event) {
 /**
  * @param event {Event}
  */
-async function onSubmitScore(event) {
+async function onUploadFormSubmit(event) {
   event.preventDefault();
-  await api.putScore(scoreId, accessToken, musicXml);
+  const user = await app.updateAuth();
+  if (await user?.isScoreEditor !== true) {
+    return;
+  }
+  const accessToken = await app.oidcApi.getActiveAccessToken();
+  await app.scoresApi.putScore(scoreId, accessToken, musicXml);
   window.location = `detail.html?id=${scoreId}`;
 }
 
-async function main() {
-  accessToken = await authService.authorize();
-  if (accessToken == null) {
-    alert('you are not logged in');
+async function onDownloadButtonClicked() {
+  const user = await app.updateAuth();
+  if (await user?.isScoreViewer !== true) {
     return;
   }
 
-  const user = await authService.getUserInfo();
+  const blob = new Blob([musicXml], {type: 'application/vnd.recordare.musicxml'});
+  const url = window.URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${scoreId}.musicxml`;
+  document.body.appendChild(link);
+  link.click();
+
+  // Clean up
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+function _initScoreEditor() {
+  if (app.user?.isScoreViewer !== true) {
+    fileInput.hidden = true;
+    uploadButton.hidden = true;
+    uploadForm.hidden = true;
+    console.log('no score editor');
+    return;
+  }
+
+  fileInput.hidden = false;
+  uploadButton.hidden = false;
+  uploadForm.hidden = false;
+}
+
+async function _initScoreViewer() {
+  if (app.user?.isScoreViewer !== true) {
+    downloadButton.hidden = true;
+    scoreMusicXml.hidden = true;
+    console.log('no score viewer');
+    return;
+  }
+
+  downloadButton.hidden = false;
+  scoreMusicXml.hidden = false;
+
+  musicXml = await app.scoreRepository.getMusicXml(scoreId);
+  if (musicXml != null) {
+    await osmd.load(musicXml).then(() => osmd.render());
+  }
+  await app.updateScores();
+}
+
+async function main() {
+  await app.initialize();
 
   fileInput.addEventListener('change', onFileSelected);
-  uploadForm.addEventListener('submit', onSubmitScore);
-  if (user?.isScoreEditor === true) {
-    document.getElementById('upload-form').hidden = false;
-  } else {
-    document.getElementById('upload-form').hidden = true;
-    console.log('not score editor');
-  }
-
-  if (user?.isScoreViewer === true) {
-    document.getElementById('score-musicxml').hidden = false;
-  } else {
-    document.getElementById('score-musicxml').hidden = true;
-    console.log('not score viewer');
-  }
+  uploadForm.addEventListener('submit', onUploadFormSubmit);
+  downloadButton.addEventListener('click', onDownloadButtonClicked);
 
   const urlParams = new URLSearchParams(window.location.search);
   scoreId = urlParams.get('id');
   if (scoreId == null) {
     scoreId = crypto.randomUUID()
-    return;
   }
 
-  await initializeScoreApp();
-  fetchScoreUpdates().then(() => loadMusicxml(scoreId));
-
-  musicXml = await loadMusicxml(scoreId);
-
-  const downloadButton = document.getElementById('download-button');
-  downloadButton.hidden = false;
-  downloadButton.onclick = downloadMusicXmlFile;
-
-  await osmd.load(musicXml)
-    .then(() => osmd.render());
+  _initScoreEditor();
+  await _initScoreViewer();
 }
 
 await main();

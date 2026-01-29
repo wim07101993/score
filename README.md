@@ -46,7 +46,7 @@ $ backend/scripts/run_migrations.sh
 
 ### Frontend
 
-Ensure [config.js](frontend/src/config.js) is modified to contain the correct
+Ensure [config.json](frontend/src/config.json) is modified to contain the correct
 client-id and uri's.
 
 Client must be configured to use an Authorization code grant with PKCE with 

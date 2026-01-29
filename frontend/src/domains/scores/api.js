@@ -27,8 +27,8 @@ export class ScoresApi {
    */
   async getScores(changesSince, changesUntil, authToken) {
     const params = new URLSearchParams({
-      'Changes-Since': _formatDate(changesSince),
-      'Changes-Until': _formatDate(changesUntil),
+      'Changes-Since': _formatDate(changesSince ?? new Date(0)),
+      'Changes-Until': _formatDate(changesUntil ?? new Date()),
     });
     const url = `${this.config.baseUrl}scores?${params.toString()}`;
     const response = await fetch(url, {
@@ -42,27 +42,6 @@ export class ScoresApi {
       throw `failed to fetch scores: ${response.status} ${response.statusText}: ${await response.text()}`;
     }
 
-    return await response.json();
-  }
-
-  /**
-   * @param scoreId {String}
-   * @param authToken {String}
-   * @returns {Promise<Score|null>}
-   */
-  async getScore(scoreId, authToken) {
-    const url = `${this.config.baseUrl}scores/${scoreId}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Accept': 'application/json'
-      }
-    });
-    if (response.status >= 500) {
-      throw `failed to fetch score (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
-    } else if (response.status >= 400) {
-      throw `failed to fetch score: ${response.status} ${response.statusText}: ${await response.text()}`;
-    }
     return await response.json();
   }
 
@@ -109,6 +88,11 @@ export class ScoresApi {
       throw `failed to update score:  ${response.status} ${response.statusText}: ${await response.text()}`;
     }
   }
+
+  async canBeReached() {
+    const response = await fetch(`${this.config.baseUrl}healthz`);
+    return response.ok;
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -139,7 +123,7 @@ export class ScoreDto {
    * @param {Creators} creators
    * @param {string[]} languages
    * @param {string[]} instruments
-   * @param {string} last_changed_at
+   * @param {Date} last_changed_at
    * @param {string[]} tags
    */
   constructor(id,
