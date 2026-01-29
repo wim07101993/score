@@ -43,7 +43,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to get config from file: %v", err)
 		}
-		logger.Debug("file config", slog.Any("config", fromEnv.Redacted()))
+		logger.Debug("file config", slog.Any("config", fromFile.Redacted()))
 		cfg.CopyFrom(fromFile)
 	}
 
