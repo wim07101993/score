@@ -28,10 +28,10 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/score:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score:latest
 
       - name: Set config
-        run: mv frontend/src/config.prod.js frontend/src/config.js
+        run: mv frontend/src/config.prod.json frontend/src/config.json
 
       - name: Remove dev config
-        run: rm frontend/src/config.dev.js
+        run: rm frontend/src/config.dev.json
 
       - name: See config
         run: |
