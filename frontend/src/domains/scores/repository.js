@@ -20,10 +20,10 @@ export class ScoresRepository {
   }
 
   /**
-   * @type {Object<String, Score>}
+   * @type {Map<String, Score>}
    * @private
    */
-  _scores = {};
+  _scores = new Map();
 
   /**
    * @type {ScoresChangedCallback[]}
