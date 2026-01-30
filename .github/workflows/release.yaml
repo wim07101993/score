@@ -36,7 +36,7 @@ jobs:
       - name: See config
         run: |
           ls frontend/src/
-          cat frontend/src/config.js
+          cat frontend/src/config.json
 
       - name: Build and Push frondend
         uses: docker/build-push-action@v2
