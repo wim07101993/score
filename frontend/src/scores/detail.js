@@ -105,10 +105,13 @@ async function _initScoreViewer() {
   downloadButton.hidden = false;
   scoreMusicXml.hidden = false;
 
-  musicXml = await app.scoreRepository.getMusicXml(scoreId);
-  if (musicXml != null) {
-    await osmd.load(musicXml).then(() => osmd.render());
+  if (scoreId != null) {
+    musicXml = await app.scoreRepository.getMusicXml(scoreId);
+    if (musicXml != null) {
+      await osmd.load(musicXml).then(() => osmd.render());
+    }
   }
+
   await app.updateScores();
 }
 
@@ -121,12 +124,14 @@ async function main() {
 
   const urlParams = new URLSearchParams(window.location.search);
   scoreId = urlParams.get('id');
-  if (scoreId == null) {
-    scoreId = crypto.randomUUID()
-  }
-
   _initScoreEditor();
   await _initScoreViewer();
+
+  if (scoreId == null) {
+    scoreId = crypto.randomUUID()
+  } else {
+    await app.scoreRepository.updateScoreLastViewedAt(scoreId);
+  }
 }
 
 await main();

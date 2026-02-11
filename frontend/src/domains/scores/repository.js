@@ -71,7 +71,8 @@ export class ScoresRepository {
         score.last_changed_at,
         score.tags,
         new Date(),
-        this._scores[score.id]?.last_fetched_file_at
+        this._scores[score.id]?.last_fetched_file_at,
+        null
       );
     });
 
@@ -113,7 +114,7 @@ export class ScoresRepository {
       return;
     }
 
-    await this._database.addScores(toSave);
+    await this._database.saveScores(toSave);
     this._notifyScoresChangesListeners();
   }
 
@@ -130,7 +131,7 @@ export class ScoresRepository {
       return musicxml
     }
 
-    if (!await this._api.canBeReached() || !await this._oidc.canBeReached()){
+    if (!await this._api.canBeReached() || !await this._oidc.canBeReached()) {
       return null;
     }
 
@@ -142,10 +143,31 @@ export class ScoresRepository {
     }
 
     let score = this._scores[scoreId];
+    if (score == null) {
+      await this.syncWithApi();
+    }
+
+    score = this._scores[scoreId];
     score.last_fetched_file_at = new Date();
-    await this._database.addScore(score);
+    await this._database.saveScore(score);
     await MusicXmlStorage.save(scoreId, musicxml);
     return musicxml;
+  }
+
+  /**
+   * Sets the `lastViewedAt` to "now" for the score with the given id. If the score doesn't exist, an error is thrown.
+   *
+   * @param scoreId {String}
+   * @returns {Promise<void>}
+   */
+  async updateScoreLastViewedAt(scoreId) {
+    for (let score of this.scores) {
+      if (score.id === scoreId) {
+        score.last_viewed_at = new Date();
+        await this._database.saveScore(score);
+        return;
+      }
+    }
   }
 
   /** @param listener {ScoresChangedCallback} */
