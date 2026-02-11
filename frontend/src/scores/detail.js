@@ -128,9 +128,13 @@ async function main() {
   await _initScoreViewer();
 
   if (scoreId == null) {
-    scoreId = crypto.randomUUID()
+    scoreId = crypto.randomUUID();
   } else {
-    await app.scoreRepository.updateScoreLastViewedAt(scoreId);
+    try {
+      await app.scoreRepository.updateScoreLastViewedAt(scoreId);
+    } catch (error) {
+      console.error('Failed to update score last viewed timestamp for scoreId:', scoreId, error);
+    }
   }
 }
 

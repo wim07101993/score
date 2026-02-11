@@ -148,7 +148,7 @@ export class ScoresRepository {
     }
 
     score = this._scores[scoreId];
-    if (score == null){
+    if (score == null) {
       alert('Could not find a score but did find a musicxml. This should not happen');
       return musicxml;
     }
@@ -165,15 +165,13 @@ export class ScoresRepository {
    * @returns {Promise<void>}
    */
   async updateScoreLastViewedAt(scoreId) {
-    for (let score of this.scores) {
-      if (score.id === scoreId) {
-        score.last_viewed_at = new Date();
-        await this._database.saveScore(score);
-        this._notifyScoresChangesListeners();
-        return;
-      }
+    const score = this._scores[scoreId];
+    if (score == null) {
+      throw new Error(`Score with id '${scoreId}' not found`)
     }
-    throw new Error(`Score with id '${scoreId}' not found`)
+    score.last_viewed_at = new Date();
+    await this._database.saveScore(score);
+    this._notifyScoresChangesListeners();
   }
 
   /** @param listener {ScoresChangedCallback} */
