@@ -72,7 +72,7 @@ export class ScoresRepository {
         score.tags,
         new Date(),
         this._scores[score.id]?.last_fetched_file_at,
-        null
+        this._scores[score.id]?.last_viewed_at,
       );
     });
 
@@ -148,6 +148,10 @@ export class ScoresRepository {
     }
 
     score = this._scores[scoreId];
+    if (score == null){
+      alert('Could not find a score but did find a musicxml. This should not happen');
+      return musicxml;
+    }
     score.last_fetched_file_at = new Date();
     await this._database.saveScore(score);
     await MusicXmlStorage.save(scoreId, musicxml);
@@ -165,9 +169,11 @@ export class ScoresRepository {
       if (score.id === scoreId) {
         score.last_viewed_at = new Date();
         await this._database.saveScore(score);
+        this._notifyScoresChangesListeners();
         return;
       }
     }
+    throw new Error(`Score with id '${scoreId}' not found`)
   }
 
   /** @param listener {ScoresChangedCallback} */
