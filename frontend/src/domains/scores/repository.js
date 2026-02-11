@@ -170,7 +170,7 @@ export class ScoresRepository {
     this._assertValidScoreId(scoreId);
     const score = this._scores[scoreId];
     if (score == null) {
-      throw new Error(`Score with id '${scoreId}' not found.`)
+      throw new Error(`Score with id '${scoreId}' not found.`);
     }
     score.last_viewed_at = new Date();
     await this._database.saveScore(score);
