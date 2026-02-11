@@ -56,6 +56,9 @@ async function onUploadFormSubmit(event) {
     return;
   }
   const accessToken = await app.oidcApi.getActiveAccessToken();
+  if (scoreId == null){
+    scoreId = crypto.randomUUID();
+  }
   await app.scoresApi.putScore(scoreId, accessToken, musicXml);
   window.location = `detail.html?id=${scoreId}`;
 }
@@ -110,6 +113,11 @@ async function _initScoreViewer() {
     if (musicXml != null) {
       await osmd.load(musicXml).then(() => osmd.render());
     }
+    try {
+      await app.scoreRepository.updateScoreLastViewedAt(scoreId);
+    } catch (error) {
+      console.error('Failed to update score last viewed timestamp for scoreId:', scoreId, error);
+    }
   }
 
   await app.updateScores();
@@ -126,16 +134,6 @@ async function main() {
   scoreId = urlParams.get('id');
   _initScoreEditor();
   await _initScoreViewer();
-
-  if (scoreId == null) {
-    scoreId = crypto.randomUUID();
-  } else {
-    try {
-      await app.scoreRepository.updateScoreLastViewedAt(scoreId);
-    } catch (error) {
-      console.error('Failed to update score last viewed timestamp for scoreId:', scoreId, error);
-    }
-  }
 }
 
 await main();

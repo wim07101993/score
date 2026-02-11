@@ -160,7 +160,7 @@ export class ScoresRepository {
   }
 
   /**
-   * Sets the `lastViewedAt` to "now" for the score with the given id. If the score doesn't exist, an error is thrown.
+   * Sets the `last_viewed_at` to "now" for the score with the given id. If the score doesn't exist, an error is thrown.
    *
    * @param scoreId {String}
    * @returns {Promise<void>}
