@@ -151,7 +151,7 @@ export class ScoresRepository {
 
     score = this._scores[scoreId];
     if (score == null) {
-      alert('Could not find a score but did find a musicxml. This should not happen');
+      alert('Could not find a score but did find a musicxml. This should not happen.');
       return musicxml;
     }
     score.last_fetched_file_at = new Date();
@@ -170,7 +170,7 @@ export class ScoresRepository {
     this._assertValidScoreId(scoreId);
     const score = this._scores[scoreId];
     if (score == null) {
-      throw new Error(`Score with id '${scoreId}' not found`)
+      throw new Error(`Score with id '${scoreId}' not found.`)
     }
     score.last_viewed_at = new Date();
     await this._database.saveScore(score);
@@ -199,7 +199,7 @@ export class ScoresRepository {
       throw new Error("Score id must not be null or undefined");
     }
     if (scoreId === "__proto__" || scoreId === "prototype" || scoreId === "constructor") {
-      throw new Error(`Invalid score id '${scoreId}'`);
+      throw new Error(`Invalid score id '${scoreId}'.`);
     }
   }
 }

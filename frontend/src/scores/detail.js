@@ -56,7 +56,7 @@ async function onUploadFormSubmit(event) {
     return;
   }
   const accessToken = await app.oidcApi.getActiveAccessToken();
-  if (scoreId == null){
+  if (scoreId == null) {
     scoreId = crypto.randomUUID();
   }
   await app.scoresApi.putScore(scoreId, accessToken, musicXml);
