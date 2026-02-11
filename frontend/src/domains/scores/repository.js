@@ -55,7 +55,7 @@ export class ScoresRepository {
       }
     }
     const authToken = await this._oidc.getActiveAccessToken();
-    const fromApi = await this._api.getScores(lastSyncDate, new Date(), authToken)
+    const fromApi = await this._api.getScores(lastSyncDate, new Date(), authToken);
     if (fromApi.length === 0) {
       return;
     }
