@@ -122,6 +122,7 @@ export class ScoresRepository {
    * @param scoreId
    */
   async getMusicXml(scoreId) {
+    this._assertValidScoreId(scoreId);
     let musicxml;
 
     if (await MusicXmlStorage.exists(scoreId)) {
@@ -165,6 +166,7 @@ export class ScoresRepository {
    * @returns {Promise<void>}
    */
   async updateScoreLastViewedAt(scoreId) {
+    this._assertValidScoreId(scoreId);
     const score = this._scores[scoreId];
     if (score == null) {
       throw new Error(`Score with id '${scoreId}' not found`)
@@ -182,6 +184,21 @@ export class ScoresRepository {
   _notifyScoresChangesListeners() {
     for (let listener of this._scoresChangesListeners) {
       listener();
+    }
+  }
+
+  /**
+   * Validates that the given score id is safe to use as an object key.
+   *
+   * @param scoreId {string}
+   * @private
+   */
+  _assertValidScoreId(scoreId) {
+    if (scoreId == null) {
+      throw new Error("Score id must not be null or undefined");
+    }
+    if (scoreId === "__proto__" || scoreId === "prototype" || scoreId === "constructor") {
+      throw new Error(`Invalid score id '${scoreId}'`);
     }
   }
 }
