@@ -64,7 +64,8 @@ async function onUploadFormSubmit(event) {
 }
 
 async function onDownloadButtonClicked() {
-  if (scoreId == null) {
+  if (scoreId == null || musicXml == null) {
+    alert('This score cannot be downloaded because it has not been loaded or saved yet.');
     return;
   }
   const user = await app.updateAuth();
