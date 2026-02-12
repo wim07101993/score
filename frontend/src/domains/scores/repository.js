@@ -140,7 +140,7 @@ export class ScoresRepository {
     musicxml = await this._api.getScoreMusicxml(scoreId, accessToken);
     if (musicxml == null) {
       alert('failed to load music xml');
-      return;
+      return null;
     }
 
     let score = this._scores.get(scoreId);
