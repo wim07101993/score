@@ -8,7 +8,8 @@ const app = new App('config.json');
 
 function _buildScoreListItems() {
   scoreList.innerHTML = '';
-  for (const score of app.scoreRepository.scores) {
+  const sortedScores = app.scoreRepository.scores.sort((a, b) => (b.last_viewed_at ?? 0) - (a.last_viewed_at ?? 0));
+  for (const score of sortedScores) {
     const listItem = buildScoreListItem(score);
     scoreList.appendChild(listItem);
   }

@@ -56,11 +56,18 @@ async function onUploadFormSubmit(event) {
     return;
   }
   const accessToken = await app.oidcApi.getActiveAccessToken();
+  if (scoreId == null) {
+    scoreId = crypto.randomUUID();
+  }
   await app.scoresApi.putScore(scoreId, accessToken, musicXml);
   window.location = `detail.html?id=${scoreId}`;
 }
 
 async function onDownloadButtonClicked() {
+  if (scoreId == null || musicXml == null) {
+    alert('This score cannot be downloaded because it has not been loaded or saved yet.');
+    return;
+  }
   const user = await app.updateAuth();
   if (await user?.isScoreViewer !== true) {
     return;
@@ -105,10 +112,18 @@ async function _initScoreViewer() {
   downloadButton.hidden = false;
   scoreMusicXml.hidden = false;
 
-  musicXml = await app.scoreRepository.getMusicXml(scoreId);
-  if (musicXml != null) {
-    await osmd.load(musicXml).then(() => osmd.render());
+  if (scoreId != null) {
+    musicXml = await app.scoreRepository.getMusicXml(scoreId);
+    if (musicXml != null) {
+      await osmd.load(musicXml).then(() => osmd.render());
+      try {
+        await app.scoreRepository.updateScoreLastViewedAt(scoreId);
+      } catch (error) {
+        console.error('Failed to update score last viewed timestamp for scoreId:', scoreId, error);
+      }
+    }
   }
+
   await app.updateScores();
 }
 
@@ -121,10 +136,6 @@ async function main() {
 
   const urlParams = new URLSearchParams(window.location.search);
   scoreId = urlParams.get('id');
-  if (scoreId == null) {
-    scoreId = crypto.randomUUID()
-  }
-
   _initScoreEditor();
   await _initScoreViewer();
 }

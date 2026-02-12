@@ -55,7 +55,7 @@ export class ScoreDatabase {
    * @param {Score[]} scores
    * @returns {Promise<void>}
    */
-  async addScores(scores) {
+  async saveScores(scores) {
     const transaction = await this.database.transaction(ObjectStoreName.Scores, 'readwrite');
     const store = transaction.objectStore(ObjectStoreName.Scores);
     const transactionCompletePromise = new Promise((resolve, reject) => {
@@ -75,7 +75,7 @@ export class ScoreDatabase {
    * @param {Score} score
    * @returns {Promise<void>}
    */
-  async addScore(score) {
+  async saveScore(score) {
     const transaction = await this.database.transaction(ObjectStoreName.Scores, 'readwrite');
     const store = transaction.objectStore(ObjectStoreName.Scores);
     const transactionCompletePromise = new Promise((resolve, reject) => {
@@ -106,6 +106,7 @@ export class Score {
    * @param {string[]} tags
    * @param {Date|null} last_synced_at
    * @param {Date|null} last_fetched_file_at
+   * @param {Date|null} last_viewed_at
    */
   constructor(id,
               work,
@@ -116,7 +117,8 @@ export class Score {
               last_changed_at,
               tags,
               last_synced_at,
-              last_fetched_file_at) {
+              last_fetched_file_at,
+              last_viewed_at) {
     this.id = id;
     this.work = work;
     this.movement = movement;
@@ -127,6 +129,7 @@ export class Score {
     this.tags = tags;
     this.last_synced_at = last_synced_at;
     this.last_fetched_file_at = last_fetched_file_at;
+    this.last_viewed_at = last_viewed_at;
   }
 }
 

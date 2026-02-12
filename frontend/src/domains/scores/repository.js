@@ -33,20 +33,20 @@ export class ScoresRepository {
 
   /** @type {Score[]} */
   get scores() {
-    return Object.values(this._scores);
+    return Array.from(this._scores.values());
   }
 
   async init() {
     const scores = await this._database.fetchScores();
     for (let score of scores) {
-      this._scores[score.id] = score;
+      this._scores.set(score.id, score);
     }
   }
 
   async syncWithApi() {
     console.log('syncing api scores with local scores')
     let lastSyncDate = null;
-    for (let score of Object.values(this._scores)) {
+    for (let score of this._scores.values()) {
       if (lastSyncDate == null) {
         lastSyncDate = score.last_synced_at;
       }
@@ -55,12 +55,13 @@ export class ScoresRepository {
       }
     }
     const authToken = await this._oidc.getActiveAccessToken();
-    const fromApi = await this._api.getScores(lastSyncDate, new Date(), authToken)
+    const fromApi = await this._api.getScores(lastSyncDate, new Date(), authToken);
     if (fromApi.length === 0) {
       return;
     }
 
     const toUpdate = fromApi.map((score) => {
+      const existing = this._scores.get(score.id);
       return new Score(
         score.id,
         score.work == null ? null : new Work(score.work.title, score.work.number),
@@ -71,7 +72,8 @@ export class ScoresRepository {
         score.last_changed_at,
         score.tags,
         new Date(),
-        this._scores[score.id]?.last_fetched_file_at
+        existing?.last_fetched_file_at,
+        existing?.last_viewed_at,
       );
     });
 
@@ -101,19 +103,19 @@ export class ScoresRepository {
     let toSave = [];
 
     for (let score of scores) {
-      const existing = this._scores[score.id];
+      const existing = this._scores.get(score.id);
       if (existing != null && existing.last_changed_at > score.last_changed_at) {
         continue;
       }
       toSave.push(score);
-      this._scores[score.id] = score;
+      this._scores.set(score.id, score);
     }
 
     if (toSave.length === 0) {
       return;
     }
 
-    await this._database.addScores(toSave);
+    await this._database.saveScores(toSave);
     this._notifyScoresChangesListeners();
   }
 
@@ -130,7 +132,7 @@ export class ScoresRepository {
       return musicxml
     }
 
-    if (!await this._api.canBeReached() || !await this._oidc.canBeReached()){
+    if (!await this._api.canBeReached() || !await this._oidc.canBeReached()) {
       return null;
     }
 
@@ -138,14 +140,39 @@ export class ScoresRepository {
     musicxml = await this._api.getScoreMusicxml(scoreId, accessToken);
     if (musicxml == null) {
       alert('failed to load music xml');
-      return;
+      return null;
     }
 
-    let score = this._scores[scoreId];
+    let score = this._scores.get(scoreId);
+    if (score == null) {
+      await this.syncWithApi();
+    }
+
+    score = this._scores.get(scoreId);
+    if (score == null) {
+      alert('Could not find a score but did find a musicxml. This should not happen.');
+      return musicxml;
+    }
     score.last_fetched_file_at = new Date();
-    await this._database.addScore(score);
+    await this._database.saveScore(score);
     await MusicXmlStorage.save(scoreId, musicxml);
     return musicxml;
+  }
+
+  /**
+   * Sets the `last_viewed_at` to "now" for the score with the given id. If the score doesn't exist, an error is thrown.
+   *
+   * @param scoreId {String}
+   * @returns {Promise<void>}
+   */
+  async updateScoreLastViewedAt(scoreId) {
+    const score = this._scores.get(scoreId);
+    if (score == null) {
+      throw new Error(`Score with id '${scoreId}' not found.`);
+    }
+    score.last_viewed_at = new Date();
+    await this._database.saveScore(score);
+    this._notifyScoresChangesListeners();
   }
 
   /** @param listener {ScoresChangedCallback} */
