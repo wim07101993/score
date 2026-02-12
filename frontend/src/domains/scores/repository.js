@@ -33,20 +33,20 @@ export class ScoresRepository {
 
   /** @type {Score[]} */
   get scores() {
-    return Object.values(this._scores);
+    return Array.from(this._scores.values());
   }
 
   async init() {
     const scores = await this._database.fetchScores();
     for (let score of scores) {
-      this._scores[score.id] = score;
+      this._scores.set(score.id, score);
     }
   }
 
   async syncWithApi() {
     console.log('syncing api scores with local scores')
     let lastSyncDate = null;
-    for (let score of Object.values(this._scores)) {
+    for (let score of this._scores.values()) {
       if (lastSyncDate == null) {
         lastSyncDate = score.last_synced_at;
       }
@@ -61,6 +61,7 @@ export class ScoresRepository {
     }
 
     const toUpdate = fromApi.map((score) => {
+      const existing = this._scores.get(score.id);
       return new Score(
         score.id,
         score.work == null ? null : new Work(score.work.title, score.work.number),
@@ -71,8 +72,8 @@ export class ScoresRepository {
         score.last_changed_at,
         score.tags,
         new Date(),
-        this._scores[score.id]?.last_fetched_file_at,
-        this._scores[score.id]?.last_viewed_at,
+        existing?.last_fetched_file_at,
+        existing?.last_viewed_at,
       );
     });
 
@@ -102,13 +103,12 @@ export class ScoresRepository {
     let toSave = [];
 
     for (let score of scores) {
-      this._assertValidScoreId(score.id);
-      const existing = this._scores[score.id];
+      const existing = this._scores.get(score.id);
       if (existing != null && existing.last_changed_at > score.last_changed_at) {
         continue;
       }
       toSave.push(score);
-      this._scores[score.id] = score;
+      this._scores.set(score.id, score);
     }
 
     if (toSave.length === 0) {
@@ -123,7 +123,6 @@ export class ScoresRepository {
    * @param scoreId
    */
   async getMusicXml(scoreId) {
-    this._assertValidScoreId(scoreId);
     let musicxml;
 
     if (await MusicXmlStorage.exists(scoreId)) {
@@ -144,12 +143,12 @@ export class ScoresRepository {
       return;
     }
 
-    let score = this._scores[scoreId];
+    let score = this._scores.get(scoreId);
     if (score == null) {
       await this.syncWithApi();
     }
 
-    score = this._scores[scoreId];
+    score = this._scores.get(scoreId);
     if (score == null) {
       alert('Could not find a score but did find a musicxml. This should not happen.');
       return musicxml;
@@ -167,8 +166,7 @@ export class ScoresRepository {
    * @returns {Promise<void>}
    */
   async updateScoreLastViewedAt(scoreId) {
-    this._assertValidScoreId(scoreId);
-    const score = this._scores[scoreId];
+    const score = this._scores.get(scoreId);
     if (score == null) {
       throw new Error(`Score with id '${scoreId}' not found.`);
     }
@@ -185,21 +183,6 @@ export class ScoresRepository {
   _notifyScoresChangesListeners() {
     for (let listener of this._scoresChangesListeners) {
       listener();
-    }
-  }
-
-  /**
-   * Validates that the given score id is safe to use as an object key.
-   *
-   * @param scoreId {string}
-   * @private
-   */
-  _assertValidScoreId(scoreId) {
-    if (scoreId == null) {
-      throw new Error("Score id must not be null or undefined");
-    }
-    if (scoreId === "__proto__" || scoreId === "prototype" || scoreId === "constructor") {
-      throw new Error(`Invalid score id '${scoreId}'.`);
     }
   }
 }
