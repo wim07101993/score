@@ -64,6 +64,9 @@ async function onUploadFormSubmit(event) {
 }
 
 async function onDownloadButtonClicked() {
+  if (scoreId == null) {
+    return;
+  }
   const user = await app.updateAuth();
   if (await user?.isScoreViewer !== true) {
     return;
@@ -112,11 +115,11 @@ async function _initScoreViewer() {
     musicXml = await app.scoreRepository.getMusicXml(scoreId);
     if (musicXml != null) {
       await osmd.load(musicXml).then(() => osmd.render());
-    }
-    try {
-      await app.scoreRepository.updateScoreLastViewedAt(scoreId);
-    } catch (error) {
-      console.error('Failed to update score last viewed timestamp for scoreId:', scoreId, error);
+      try {
+        await app.scoreRepository.updateScoreLastViewedAt(scoreId);
+      } catch (error) {
+        console.error('Failed to update score last viewed timestamp for scoreId:', scoreId, error);
+      }
     }
   }
 
