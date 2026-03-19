@@ -44,7 +44,7 @@ self.addEventListener("fetch", (event) => {
       // don't cache anything from the idp.
       const url = new URL(event.request.url);
       const oidcHost = new URL(config.oidc.healthzEndpoint);
-      if (url.host === oidcHost.host || url.pathname.endsWith('healthz')) {
+      if (event.request.method !== 'GET' || url.host === oidcHost.host || url.pathname.endsWith('healthz')) {
         return await fetch(event.request);
       }
 
@@ -70,7 +70,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 async function fetchConfig() {
-  const response= await fetch('config.json');
+  const response = await fetch('config.json');
   if (response.status >= 500) {
     throw `failed to fetch config (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
   } else if (response.status >= 400) {
