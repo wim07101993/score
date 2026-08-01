@@ -1,0 +1,9 @@
+{
+  "name": "score-frontend",
+  "private": true,
+  "type": "module",
+  "description": "The frontend is served as plain ES modules; this manifest only exists so node can run the tests.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

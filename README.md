@@ -26,6 +26,35 @@ $ source backend/scripts/set_env_vars.sh
 $ go run backend/cmd/server/*
 ```
 
+### Testing
+
+Unit tests need nothing but a Go toolchain:
+
+```bash
+$ go test ./...
+```
+
+The integration tests drive the real API over HTTP against a real database, and
+are behind a build tag:
+
+```bash
+$ go test -tags integration ./test/...
+```
+
+They start a throwaway `postgres:16-alpine` container, so docker has to be
+running. To use a database of your own instead:
+
+```bash
+$ SCORE_TEST_DATABASE_URL=postgres://user:password@localhost:7432/score?sslmode=disable \
+    go test -tags integration ./test/...
+```
+
+The frontend tests run on node without a build step or any dependency:
+
+```bash
+$ cd frontend && node --test
+```
+
 ### Database
 
 The database is an SQLite file.
