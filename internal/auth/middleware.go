@@ -126,8 +126,10 @@ func introspectToken(endpoint string, clientId string, clientSecret string, toke
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		return false, errors.Wrap(err, "failed to do token introspection because of authentication reasons")
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return false, errors.Errorf(
+			"token introspection failed with status %v: %s", resp.StatusCode, string(b))
 	}
 
 	var result IntrospectionResponse

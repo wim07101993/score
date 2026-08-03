@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS favourites
+DROP TABLE IF EXISTS favourites;

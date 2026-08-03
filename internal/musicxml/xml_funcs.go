@@ -70,7 +70,7 @@ func ReadObject(
 			}
 		case xml.CharData:
 			data := string(e)
-			if len(strings.Trim(data, " \n\r")) > 0 {
+			if len(strings.TrimSpace(data)) > 0 {
 				return false, &UnexpectedTokenError{start, t}
 			}
 			return false, nil

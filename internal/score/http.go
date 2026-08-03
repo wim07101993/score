@@ -10,9 +10,9 @@ import (
 	"score/internal/auth"
 	"score/internal/logging"
 	"time"
-)
 
-const scoreIdQueryParam = "scoreId"
+	"github.com/google/uuid"
+)
 
 type HttpServer struct {
 	logger         *slog.Logger
@@ -36,7 +36,7 @@ func (serv *HttpServer) RegisterRoutes() {
 				accepts := req.Header.Get("Accept")
 				if accepts == "application/vnd.recordare.musicxml" ||
 					accepts == "application/vnd.recordare.musicxml+xml" {
-					return serv.GetScoreMusicxml(res, req)
+					return serv.authMiddleware.RequireRole(auth.RoleScoreViewer, serv.GetScoreMusicxml)(res, req)
 				}
 				return serv.authMiddleware.RequireRole(auth.RoleScoreViewer, serv.GetScoreMetadata)(res, req)
 			case http.MethodPut:
@@ -75,10 +75,9 @@ func (serv *HttpServer) handleFunc(pattern string, handler func(http.ResponseWri
 
 func (serv *HttpServer) GetScoreMetadata(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
-	scoreId := req.PathValue(scoreIdQueryParam)
-	if scoreId == "" {
-		http.NotFound(res, req)
-		return nil
+	scoreId, err := getScoreIdFromPath(res, req)
+	if err != nil {
+		return err
 	}
 
 	// DO QUERY
@@ -117,10 +116,9 @@ func (serv *HttpServer) GetScoreMetadata(res http.ResponseWriter, req *http.Requ
 
 func (serv *HttpServer) GetScoreMusicxml(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
-	scoreId := req.PathValue(scoreIdQueryParam)
-	if scoreId == "" {
-		http.NotFound(res, req)
-		return nil
+	scoreId, err := getScoreIdFromPath(res, req)
+	if err != nil {
+		return err
 	}
 
 	// DO QUERY
@@ -151,10 +149,9 @@ func (serv *HttpServer) GetScoreMusicxml(res http.ResponseWriter, req *http.Requ
 
 func (serv *HttpServer) PutScore(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
-	scoreId := req.PathValue(scoreIdQueryParam)
-	if scoreId == "" {
-		http.NotFound(res, req)
-		return errors.New("no score-id")
+	scoreId, err := getScoreIdFromPath(res, req)
+	if err != nil {
+		return err
 	}
 
 	contentType := req.Header.Get("Content-Type")
@@ -238,6 +235,19 @@ func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request
 	}
 
 	return nil
+}
+
+func getScoreIdFromPath(res http.ResponseWriter, req *http.Request) (string, error) {
+	id := req.PathValue("scoreId")
+	if id == "" {
+		http.NotFound(res, req)
+		return "", errors.New("no score-id")
+	}
+	if _, err := uuid.Parse(id); err != nil {
+		http.Error(res, "the score id is not a valid uuid", http.StatusBadRequest)
+		return "", fmt.Errorf("malformed score-id %q: %v", id, err)
+	}
+	return id, nil
 }
 
 func getChangesSinceParam(req *http.Request) (time.Time, error) {

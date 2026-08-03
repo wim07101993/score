@@ -9,10 +9,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 )
+
+// pgErrInvalidTextRepresentation is the postgres error code for a value that
+// does not parse as the type of the column it is written to, such as a uuid or
+// an enum member that does not exist.
+const pgErrInvalidTextRepresentation = "22P02"
 
 type DatabaseFactory func(ctx context.Context) (*Database, error)
 
@@ -46,17 +52,26 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		return &ErrInvalidMusicXml{Cause: err}
 	}
 
+	tx, err := db.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
 	const upsertScoreFileQuery = `
-		INSERT INTO score_files (id, content) 
+		INSERT INTO score_files (id, content)
 		VALUES (@id, @content)
-		ON CONFLICT (id) DO UPDATE SET 
+		ON CONFLICT (id) DO UPDATE SET
 			content = EXCLUDED.content
 	`
 
-	_, err = db.conn.Exec(ctx, upsertScoreFileQuery, pgx.NamedArgs{
+	_, err = tx.Exec(ctx, upsertScoreFileQuery, pgx.NamedArgs{
 		"id":      id,
 		"content": mxml,
 	})
+	if err != nil {
+		return err
+	}
 
 	var composers []string
 	var lyricists []string
@@ -66,7 +81,7 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 			case "composer":
 				composers = append(composers, creator.Value)
 			case "lyricist":
-				composers = append(lyricists, creator.Value)
+				lyricists = append(lyricists, creator.Value)
 			}
 		}
 	}
@@ -89,22 +104,28 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		languages = []string{score.Defaults.LyricLanguage}
 	}
 
+	var workTitle, workNumber string
+	if score.Work != nil {
+		workTitle = score.Work.Title
+		workNumber = score.Work.Number
+	}
+
 	const insertScoreQuery = `
 		INSERT INTO scores (
-			id, 
-			work_title, work_number, 
-			movement_title, movement_number, 
-			creators_composers, creators_lyricists, 
-			languages, instruments, 
-			lastChangedAt, tags) 
+			id,
+			work_title, work_number,
+			movement_title, movement_number,
+			creators_composers, creators_lyricists,
+			languages, instruments,
+			lastChangedAt)
 		VALUES (
-			@id, 
-			@work_title, @work_number, 
-			@movement_title, @movement_number, 
-			@creators_composers, @creators_lyricists, 
-			@languages, @instruments, 
-			@lastChangedAt, @tags)
-		ON CONFLICT (id) DO UPDATE SET 
+			@id,
+			@work_title, @work_number,
+			@movement_title, @movement_number,
+			@creators_composers, @creators_lyricists,
+			@languages, @instruments,
+			@lastChangedAt)
+		ON CONFLICT (id) DO UPDATE SET
 			work_title = EXCLUDED.work_title,
 			work_number = EXCLUDED.work_number,
 			movement_title = EXCLUDED.movement_title,
@@ -113,13 +134,12 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 			creators_lyricists = EXCLUDED.creators_lyricists,
 			languages = EXCLUDED.languages,
 			instruments = EXCLUDED.instruments,
-			lastChangedAt = EXCLUDED.lastChangedAt,
-			tags = EXCLUDED.tags`
+			lastChangedAt = EXCLUDED.lastChangedAt`
 
-	_, err = db.conn.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
+	_, err = tx.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
 		"id":                 id,
-		"work_title":         score.Work.Title,
-		"work_number":        score.Work.Number,
+		"work_title":         workTitle,
+		"work_number":        workNumber,
 		"movement_title":     score.MovementTitle,
 		"movement_number":    score.MovementNumber,
 		"creators_composers": composers,
@@ -128,7 +148,15 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		"instruments":        instruments,
 		"lastChangedAt":      time.Now().UTC(),
 	})
-	return err
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgErrInvalidTextRepresentation {
+			return &ErrInvalidMusicXml{Cause: errors.New(pgErr.Message)}
+		}
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (db *Database) RemoveScore(ctx context.Context, id string) error {
@@ -136,7 +164,7 @@ func (db *Database) RemoveScore(ctx context.Context, id string) error {
 
 	const query = `
 		DELETE FROM score_files AS score
-		WHERE score.id = $id
+		WHERE score.id = @id
 	`
 	_, err := db.conn.Exec(ctx, query, pgx.NamedArgs{"id": id})
 	return err
@@ -271,8 +299,8 @@ func scanScore(row pgx.Row) (*Score, error) {
 		&id,
 		&workTitle,
 		&workNumber,
-		&movementTitle,
 		&movementNumber,
+		&movementTitle,
 		&lastChangedAt,
 		&creatorsComposersArr,
 		&creatorsLyricistsArr,

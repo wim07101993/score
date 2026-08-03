@@ -1,1 +1,2 @@
 DROP TABLE IF EXISTS scores;
+DROP TABLE IF EXISTS score_files;

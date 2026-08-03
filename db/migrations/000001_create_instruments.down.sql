@@ -1,1 +1,1 @@
-DROP TYPE IF EXISTS Instruments
+DROP TYPE IF EXISTS Instrument;

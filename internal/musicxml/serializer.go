@@ -2,11 +2,11 @@ package musicxml
 
 import (
 	"encoding/xml"
+	"errors"
 )
 
 func DeserializeMusicXml(r xml.TokenReader) (score *ScorePartwise, err error) {
 	root := xml.StartElement{Name: xml.Name{Local: "root"}}
-	score = &ScorePartwise{}
 	err = ReadObject(r, root,
 		func(attr xml.Attr) error {
 			return &UnknownAttribute{root, attr}
@@ -20,6 +20,12 @@ func DeserializeMusicXml(r xml.TokenReader) (score *ScorePartwise, err error) {
 			}
 			return err
 		})
+	if err != nil {
+		return nil, err
+	}
+	if score == nil {
+		return nil, errors.New("document does not contain a score-partwise element")
+	}
 
-	return score, err
+	return score, nil
 }
