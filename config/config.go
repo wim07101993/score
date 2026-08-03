@@ -81,6 +81,10 @@ func (cfg *Config) Validate() error {
 		errs = append(errs, errors.New("cannot listen on a port lower than 80 for listening for http requests"))
 	}
 
+	if cfg.DbConnectionString == "" {
+		errs = append(errs, errors.New("no database connection string specified in configuration"))
+	}
+
 	if cfg.TokenIntrospectionUrl == "" {
 		errs = append(errs, errors.New("no token introspection endpoint specified in configuration"))
 	} else if _, err := url.ParseRequestURI(cfg.TokenIntrospectionUrl); err != nil {

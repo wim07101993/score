@@ -21,9 +21,41 @@ user-info from the idp.
 
 ### Running
 
+The dependencies (a PostgreSQL server on port 7432 and a Zitadel instance on
+port 7003) come from the docker-compose file. The compose file brings up the
+server but not the application's own database, so create that once:
+
 ```bash
-$ source backend/scripts/set_env_vars.sh
-$ go run backend/cmd/server/*
+$ docker compose -f docker-compose-dev.yml up -d
+$ docker compose -f docker-compose-dev.yml exec db createdb -U postgres score
+```
+
+The server is configured from environment variables, from a JSON file, or from
+both — the file wins over the environment:
+
+```bash
+$ export DB_CONNECTION_STRING=postgres://postgres:postgres@localhost:7432/score?sslmode=disable
+$ export TOKEN_INTROSPECTION_URL=http://localhost:7003/oauth/v2/introspect
+$ export TOKEN_INTROSPECTION_CLIENT_ID=...
+$ export TOKEN_INTROSPECTION_CLIENT_SECRET=...
+$ export USER_INFO_URL=http://localhost:7003/oidc/v1/userinfo
+$ export ROLES_KEY=urn:zitadel:iam:org:project:roles
+$ go run .
+```
+
+```bash
+$ go run . -config ./config.json
+```
+
+`HTTP_SERVER_PORT` (`httpServerPort` in the file) defaults to 7001. Every other
+setting is required and the server refuses to start without it. The server runs
+the migrations itself on start-up, so `db/migrations` has to be reachable from
+the working directory.
+
+The frontend is served by a static file server of its own:
+
+```bash
+$ cd frontend && go run frontend.go
 ```
 
 ### Testing
@@ -57,18 +89,20 @@ $ cd frontend && node --test
 
 ### Database
 
-The database is an SQLite file.
+The database is PostgreSQL. The schema lives in [db/migrations](db/migrations)
+and is applied by the server itself on start-up; the scripts below are for
+working on the migrations by hand.
 
 #### Add migrations
 
 ```bash
-$ backend/scripts/create_migration.sh $NAME_OF_YOUR_MIGRATION
+$ scripts/create_migration.sh $NAME_OF_YOUR_MIGRATION
 ```
 
 #### Run migrations
 
 ```bash
-$ backend/scripts/run_migrations.sh
+$ scripts/run_migrations.sh
 ```
 
 ## Deployment
