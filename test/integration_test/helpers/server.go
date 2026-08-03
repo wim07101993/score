@@ -22,13 +22,12 @@ func (h *Harness) EnsureApiServer(t *testing.T) *httptest.Server {
 	defer h.apiServer.mutex.Unlock()
 
 	if h.apiServer.value == nil {
-		// RegisterRoutes registers on http.DefaultServeMux, so that is what is
-		// served here.
-		h.EnsureHttpServer(t)
+		mux := http.NewServeMux()
+		h.EnsureHttpServer(t).RegisterRoutes(mux)
 
 		// Not closed on test cleanup: the harness builds it once and every
 		// later test reuses it, so it lives as long as the test binary.
-		h.apiServer.value = httptest.NewServer(http.DefaultServeMux)
+		h.apiServer.value = httptest.NewServer(mux)
 	}
 	return h.apiServer.value
 }
@@ -52,10 +51,6 @@ func (h *Harness) EnsureHttpServer(t *testing.T) *score.HttpServer {
 				return score.NewDatabase(logger, conn), nil
 			},
 			h.EnsureAuthMiddleware(t))
-
-		// Routes land on the default mux and can only be registered once per
-		// process, which the lazy construction here guarantees.
-		h.httpServer.value.RegisterRoutes()
 	}
 	return h.httpServer.value
 }

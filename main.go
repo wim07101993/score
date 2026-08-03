@@ -106,12 +106,13 @@ func serveHttp() {
 		cfg.TokenIntrospectionClientSecret,
 		cfg.RolesKey)
 
+	mux := http.NewServeMux()
 	scoreServ := score.NewHttpServer(logger, createScoresDb, authMiddleware)
-	scoreServ.RegisterRoutes()
+	scoreServ.RegisterRoutes(mux)
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
 	logger.Info("start listening for http requests", slog.String("addr", addr))
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err))
 	}

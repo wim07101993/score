@@ -99,7 +99,7 @@ func ReadUntilClose(r xml.TokenReader, start xml.StartElement) error {
 func ReadString(r xml.TokenReader, start xml.StartElement) (string, error) {
 	t, err := r.Token()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	switch e := t.(type) {

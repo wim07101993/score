@@ -159,17 +159,6 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 	return tx.Commit(ctx)
 }
 
-func (db *Database) RemoveScore(ctx context.Context, id string) error {
-	db.logger.Info("removing score document", slog.String("id", id))
-
-	const query = `
-		DELETE FROM score_files AS score
-		WHERE score.id = @id
-	`
-	_, err := db.conn.Exec(ctx, query, pgx.NamedArgs{"id": id})
-	return err
-}
-
 // ------------------------------------
 //	QUERY FUNCTIONS
 // ------------------------------------

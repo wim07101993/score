@@ -61,7 +61,6 @@ export class OidcApi {
           OidcStorage.refreshToken = null;
         } finally {
           OidcStorage.oidcFlowState = null;
-          sessionStorage.removeItem(oidcFlowStateSessionStorageKey);
         }
       }
     }
@@ -369,9 +368,12 @@ export class TokenRequestParams {
 
 export class UserInfoResponse {
   /**
-   * @param name {string}
-   * @param subject {string}
-   * @param roles {Object}
+   * Which claims a user-info response carries is up to the provider, so every
+   * one of these can be absent.
+   *
+   * @param name {string|null}
+   * @param subject {string|null}
+   * @param roles {Object|null}
    */
   constructor(name, subject, roles) {
     this.name = name;
@@ -396,32 +398,50 @@ export class UserInfoResponse {
    * @return {UserInfoResponse}
    */
   static fromResponse(response, rolesKey) {
+    // A claim the provider did not send is absent, not the text "undefined",
+    // which is what concatenating an empty string onto it would produce.
     return new UserInfoResponse(
-      response['name'] + '',
-      response['sub'] + '',
-      response[rolesKey]
+      response['name'] ?? null,
+      response['sub'] ?? null,
+      response[rolesKey] ?? null
     );
   }
 }
 
 const oidcFlowStateSessionStorageKey = 'auth_oidc_flow_state';
 const tokenResponseSessionStorageKey = 'auth_token_response';
-const refreshTokenLocalStorageKey = 'auth_refresh_token';
+const refreshTokenSessionStorageKey = 'auth_refresh_token';
 
-class OidcStorage {
+/**
+ * Writes a value to the session storage, or clears the key when there is no
+ * value. Storing null is not the same as clearing: setItem stringifies, so it
+ * would leave the string "null" behind for the next reader to trip over.
+ *
+ * @param key {string}
+ * @param value {string|null|undefined}
+ */
+function setOrRemove(key, value) {
+  if (value == null) {
+    sessionStorage.removeItem(key);
+    return;
+  }
+  sessionStorage.setItem(key, value);
+}
+
+export class OidcStorage {
 
   /**
    * @param value {TokenResponse|null}
    */
   static set tokenResponse(value) {
-    sessionStorage.setItem(tokenResponseSessionStorageKey, JSON.stringify(value))
+    setOrRemove(tokenResponseSessionStorageKey, value == null ? null : JSON.stringify(value));
     if (value != null && value.expires_in !== 0) {
       setTimeout(function () {
         const tokenResponse = OidcStorage.tokenResponse;
         if (tokenResponse != null && tokenResponse.access_token === value.access_token) {
           OidcStorage.tokenResponse = null;
         }
-      }, value.expires_in);
+      }, value.expires_in * 1000);
     }
   }
 
@@ -440,7 +460,7 @@ class OidcStorage {
    * @param value {OidcFlowState|null}
    */
   static set oidcFlowState(value) {
-    sessionStorage.setItem(oidcFlowStateSessionStorageKey, JSON.stringify(value))
+    setOrRemove(oidcFlowStateSessionStorageKey, value == null ? null : JSON.stringify(value));
   }
 
   /**
@@ -458,13 +478,13 @@ class OidcStorage {
    * @param value {string|null}
    */
   static set refreshToken(value) {
-    sessionStorage.setItem(refreshTokenLocalStorageKey, value);
+    setOrRemove(refreshTokenSessionStorageKey, value);
   }
 
   /**
    * @return {string|null}
    */
   static get refreshToken() {
-    return sessionStorage.getItem(refreshTokenLocalStorageKey);
+    return sessionStorage.getItem(refreshTokenSessionStorageKey);
   }
 }

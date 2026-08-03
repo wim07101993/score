@@ -28,8 +28,8 @@ func NewHttpServer(logger *slog.Logger, db DatabaseFactory, auth *auth.Middlewar
 	}
 }
 
-func (serv *HttpServer) RegisterRoutes() {
-	serv.handleFunc("/scores/{scoreId}",
+func (serv *HttpServer) RegisterRoutes(mux *http.ServeMux) {
+	serv.handleFunc(mux, "/scores/{scoreId}",
 		serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
 			switch req.Method {
 			case http.MethodGet:
@@ -46,7 +46,7 @@ func (serv *HttpServer) RegisterRoutes() {
 				return nil
 			}
 		}))
-	serv.handleFunc("/scores", serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
+	serv.handleFunc(mux, "/scores", serv.authMiddleware.Authenticate(func(res http.ResponseWriter, req *http.Request) error {
 		switch req.Method {
 		case http.MethodGet:
 			return serv.authMiddleware.RequireRole(auth.RoleScoreViewer, serv.GetScoresPage)(res, req)
@@ -55,19 +55,19 @@ func (serv *HttpServer) RegisterRoutes() {
 		}
 		return nil
 	}))
-	serv.handleFunc("/healthz", func(res http.ResponseWriter, req *http.Request) error {
+	serv.handleFunc(mux, "/healthz", func(res http.ResponseWriter, req *http.Request) error {
 		res.WriteHeader(200)
 		_, _ = res.Write([]byte("OK"))
 		return nil
 	})
-	serv.handleFunc("/", func(res http.ResponseWriter, req *http.Request) error {
+	serv.handleFunc(mux, "/", func(res http.ResponseWriter, req *http.Request) error {
 		http.NotFound(res, req)
 		return nil
 	})
 }
 
-func (serv *HttpServer) handleFunc(pattern string, handler func(http.ResponseWriter, *http.Request) error) {
-	http.HandleFunc(pattern, cors(
+func (serv *HttpServer) handleFunc(mux *http.ServeMux, pattern string, handler func(http.ResponseWriter, *http.Request) error) {
+	mux.HandleFunc(pattern, cors(
 		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
 			return handler(res, req)
 		})))
@@ -272,9 +272,6 @@ func getChangesUntilParam(req *http.Request) (time.Time, error) {
 	t, err := time.Parse("20060102T150405", s)
 	if err != nil {
 		return time.Time{}, errors.New("failed to parse Changes-Until as date-time (YYMMDDThhmmss)")
-	}
-	if t.UnixNano() == 0 {
-		return time.Time{}, errors.New("a Changes-Until query param cannot be empty")
 	}
 	return t, nil
 }
