@@ -28,7 +28,7 @@ export class ScoresApi {
   async getScores(changesSince, changesUntil, authToken) {
     const params = new URLSearchParams({
       'Changes-Since': _formatDate(changesSince ?? new Date(0)),
-      'Changes-Until': _formatDate(changesUntil ?? new Date()),
+      'Changes-Until': _formatDate(_ceilToSecond(changesUntil ?? new Date())),
     });
     const url = `${this.config.baseUrl}scores?${params.toString()}`;
     const response = await fetch(url, {
@@ -100,6 +100,9 @@ export class ScoresApi {
 // ----------------------------------------------------------------------------
 
 /**
+ * Writes a moment the way the API reads it, which is to the second. Anything
+ * finer is dropped, so this rounds down.
+ *
  * @param date {Date}
  * @returns {string}
  * @private
@@ -109,6 +112,23 @@ function _formatDate(date) {
     .replaceAll('-', '')
     .replaceAll(':', '')
     .split('.')[0];
+}
+
+/**
+ * The first whole second at or after the given moment.
+ *
+ * This is what the end of a change window needs, because the API keeps
+ * everything that changed up to and including the moment it is given. Rounding
+ * the end down instead leaves out whatever changed during the second that is
+ * still running, which is exactly what a client that has just uploaded a score
+ * is asking after.
+ *
+ * @param date {Date}
+ * @returns {Date}
+ * @private
+ */
+function _ceilToSecond(date) {
+  return new Date(Math.ceil(date.getTime() / 1000) * 1000);
 }
 
 // ----------------------------------------------------------------------------
