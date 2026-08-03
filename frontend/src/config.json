@@ -1,11 +1,11 @@
 {
   "oidc": {
-    "clientId": "321160767120408579",
+    "clientId": "364673880666734596",
     "redirectUri": "http://localhost:3000/",
-    "authorizationEndpoint": "http://localhost:7003/oauth/v2/authorize",
-    "tokenEndpoint": "http://localhost:7003/oauth/v2/token",
-    "userInfoEndpoint": "http://localhost:7003/oidc/v1/userinfo",
-    "healthzEndpoint": "http://localhost:7003/auth/v1/healthz",
+    "authorizationEndpoint": "https://auth.wvl.app/oauth/v2/authorize",
+    "tokenEndpoint": "https://auth.wvl.app/oauth/v2/token",
+    "userInfoEndpoint": "https://auth.wvl.app/oidc/v1/userinfo",
+    "healthzEndpoint": "https://auth.wvl.app/auth/v1/healthz",
     "rolesKey": "urn:zitadel:iam:org:project:roles"
   },
   "api": {

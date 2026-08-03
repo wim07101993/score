@@ -21,13 +21,11 @@ user-info from the idp.
 
 ### Running
 
-The dependencies (a PostgreSQL server on port 7432 and a Zitadel instance on
-port 7003) come from the docker-compose file. The compose file brings up the
-server but not the application's own database, so create that once:
+The dependencies (a PostgreSQL server on port 7432 with a `score` database on
+it, and a Zitadel instance on port 7003) come from the docker-compose file:
 
 ```bash
 $ docker compose -f docker-compose-dev.yml up -d
-$ docker compose -f docker-compose-dev.yml exec db createdb -U postgres score
 ```
 
 The server is configured from environment variables, from a JSON file, or from

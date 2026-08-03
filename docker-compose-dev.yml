@@ -38,6 +38,7 @@ services:
     environment:
       PGUSER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: score
     ports:
       - "7432:5432"
     networks:

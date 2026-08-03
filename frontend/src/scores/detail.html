@@ -24,6 +24,37 @@
             <path d="M13 8V2H7v6H2l8 8l8-8h-5zM0 18h20v2H0v-2z"/>
         </svg>
     </button>
+
+    <!-- Changes here only affect what is on screen. The score itself is left
+         exactly as it was uploaded. -->
+    <details id="score-view-controls" hidden>
+        <summary>View</summary>
+
+        <div id="score-view-panel">
+            <fieldset id="transposition">
+                <legend>Transpose</legend>
+                <label for="transposition-input">semitones</label>
+                <input type="range" id="transposition-input"
+                       min="-12" max="12" step="1" value="0"
+                       list="transposition-steps"/>
+                <datalist id="transposition-steps">
+                    <option value="-12"></option>
+                    <option value="0"></option>
+                    <option value="12"></option>
+                </datalist>
+                <output id="transposition-output" for="transposition-input">0</output>
+            </fieldset>
+
+            <fieldset id="parts">
+                <legend>Parts</legend>
+                <div id="parts-list"></div>
+            </fieldset>
+
+            <button type="button" id="reset-view-button" disabled>
+                Show as written
+            </button>
+        </div>
+    </details>
 </header>
 
 <script src="../packages/open_sheet_music_display.1.8.9.min.js"></script>
