@@ -210,7 +210,8 @@ function generateRandomString(length) {
  * like our dev-evn.
  *
  * @param input {string}
- * @return {Promise<string>}
+ * @return {Promise<string>} the digest as a binary string, one character per
+ *   byte, which is what btoa expects.
  */
 async function sha256(input) {
   if (isSecureContext) {
@@ -229,7 +230,7 @@ async function sha256(input) {
       document.head.appendChild(s);
     });
   }
-  return window.CryptoJS.SHA256(input).toString(CryptoJS.enc.Hex);
+  return window.CryptoJS.SHA256(input).toString(window.CryptoJS.enc.Latin1);
 }
 
 
@@ -272,7 +273,7 @@ export class OidcFlowState {
 
     return btoa(verifierHash) // base64 encode
       .replace(/\+/g, '-')
-      .replace(/\//g, '-')
+      .replace(/\//g, '_')
       .replace(/=+$/, '');
   }
 }
