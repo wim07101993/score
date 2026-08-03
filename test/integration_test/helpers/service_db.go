@@ -21,7 +21,7 @@ func (h *Harness) TruncateScores(t *testing.T) {
 	t.Helper()
 
 	_, err := h.EnsureDatabase(t).Exec(context.Background(),
-		"TRUNCATE favourites, scores, score_files CASCADE")
+		"TRUNCATE scores, score_files CASCADE")
 	require.NoError(t, err, "failed to truncate the score tables")
 }
 
