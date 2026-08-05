@@ -1,30 +1,31 @@
-// Package server puts the API together.
+// Package server is the API: every operation of the openapi document, and
+// everything it takes to answer one over http.
 //
-// The generated server calls one Handler for every operation of the openapi
-// document, but the operations themselves belong to the slices that implement
-// them — one per part of that document. This is where those slices are joined
-// back into the one handler ogen asks for, and where what belongs to no single
-// one of them is settled: how a failure is answered, what is logged, and the
-// headers a browser needs.
+// This is the only layer that knows this application is served over http at
+// all. There is a file per operation, holding what that operation reads out of
+// the request and what it answers with; what belongs to no single one of them
+// is settled here and in errors.go: how a failure is answered, what is logged,
+// and the headers a browser needs.
+//
+// What the operations do to the stored music — every query, and the model of a
+// score they read back — is in internal/score, which knows nothing about any
+// of this.
 package server
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
 	"score/internal/api"
 	"score/internal/auth"
-	"score/internal/health"
 	"score/internal/logging"
 	"score/internal/score"
 )
 
-// handler is the whole API: every slice of it, side by side.
+// handler is the whole API: every operation of the openapi document, served
+// off the one store they all share.
 type handler struct {
-	scores *score.Handler
-	health *health.Handler
-
+	db     score.DatabaseFactory
 	logger *slog.Logger
 }
 
@@ -36,8 +37,7 @@ func New(
 	db score.DatabaseFactory,
 	security *auth.SecurityHandler) (http.Handler, error) {
 	h := &handler{
-		scores: score.NewHandler(db),
-		health: health.NewHandler(),
+		db:     db,
 		logger: logger,
 	}
 
@@ -45,32 +45,12 @@ func New(
 		api.WithErrorHandler(h.handleError),
 		api.WithNotFound(h.handleNotFound),
 		api.WithMethodNotAllowed(h.handleMethodNotAllowed),
-		api.WithMiddleware(score.RememberAccept))
+		api.WithMiddleware(setAcceptHeaderToContextMiddleware))
 	if err != nil {
 		return nil, err
 	}
 
 	return cors(logging.Wrap(logger, generated)), nil
-}
-
-// The operations, each handed to the slice it belongs to. Written out rather
-// than embedded, so that this reads as what it is: the table of contents of the
-// API, saying which part of the code answers which part of the document.
-
-func (h *handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
-	return h.scores.GetScore(ctx, params)
-}
-
-func (h *handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.PutScoreParams) (api.PutScoreRes, error) {
-	return h.scores.PutScore(ctx, req, params)
-}
-
-func (h *handler) ListScores(ctx context.Context, params api.ListScoresParams) (api.ListScoresRes, error) {
-	return h.scores.ListScores(ctx, params)
-}
-
-func (h *handler) Healthz(ctx context.Context) (api.HealthzRes, error) {
-	return h.health.Healthz(ctx)
 }
 
 // cors answers a browser that asks whether it may talk to us, and tells every

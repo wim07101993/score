@@ -4,14 +4,10 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
-	"io"
 	"log/slog"
-	"net/http"
 	"strings"
 	"time"
 
-	"score/internal/api"
-	"score/internal/httperror"
 	"score/internal/musicxml"
 
 	"github.com/jackc/pgx/v5"
@@ -23,49 +19,6 @@ import (
 // does not parse as the type of the column it is written to, such as a uuid or
 // an enum member that does not exist.
 const pgErrInvalidTextRepresentation = "22P02"
-
-// PutScore stores a music-xml document and the metadata extracted from it.
-func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.PutScoreParams) (api.PutScoreRes, error) {
-	var document io.Reader
-	switch body := req.(type) {
-	case *api.PutScoreReqApplicationVndRecordareMusicxml:
-		document = body.Data
-	case *api.PutScoreReqApplicationVndRecordareMusicxmlXML:
-		document = body.Data
-	default:
-		return nil, httperror.New(http.StatusUnsupportedMediaType,
-			api.ProblemDetailsErrorCodeUnsupportedMediaType, "content-type not supported")
-	}
-
-	mxml, err := io.ReadAll(document)
-	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to read request body")
-	}
-
-	db, err := h.db(ctx)
-	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to save score")
-	}
-	defer db.Dispose()
-
-	if err := db.AddOrUpdateScore(ctx, params.ScoreId.String(), string(mxml)); err != nil {
-		invalidMxmlError := &ErrInvalidMusicXml{}
-		if errors.As(err, &invalidMxmlError) {
-			return nil, httperror.Wrap(err, http.StatusBadRequest,
-				api.ProblemDetailsErrorCodeInvalidMusicXML, "invalid music xml: "+err.Error())
-		}
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to save score")
-	}
-
-	return &api.PutScoreOK{}, nil
-}
-
-// ------------------------------------
-//	QUERIES
-// ------------------------------------
 
 // AddOrUpdateScore stores the document and the metadata read out of it as one:
 // either both land, or neither does.

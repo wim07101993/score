@@ -1,15 +1,9 @@
 package score
 
-import (
-	"net/http"
-	"time"
+import "time"
 
-	"score/internal/api"
-	"score/internal/httperror"
-
-	"github.com/google/uuid"
-)
-
+// Score is a piece of sheet music as this package knows it: the metadata read
+// out of the music-xml document when it was stored.
 type Score struct {
 	Id            string    `json:"id"`
 	Work          Work      `json:"work"`
@@ -34,34 +28,4 @@ type Movement struct {
 type Creators struct {
 	Composers []string `json:"composers"`
 	Lyricists []string `json:"lyricists"`
-}
-
-// apiScore is a score the way api/endpoints/scores/by_id/get_score_response.yaml
-// describes it.
-func apiScore(score *Score) (*api.Score, error) {
-	id, err := uuid.Parse(score.Id)
-	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to get score")
-	}
-
-	return &api.Score{
-		ID: id,
-		Work: api.ScoreWork{
-			Title:  score.Work.Title,
-			Number: score.Work.Number,
-		},
-		Movement: api.ScoreMovement{
-			Title:  score.Movement.Title,
-			Number: score.Movement.Number,
-		},
-		Creators: api.ScoreCreators{
-			Composers: score.Creators.Composers,
-			Lyricists: score.Creators.Lyricists,
-		},
-		Languages:     score.Languages,
-		Instruments:   score.Instruments,
-		LastChangedAt: score.LastChangedAt,
-		Tags:          score.Tags,
-	}, nil
 }

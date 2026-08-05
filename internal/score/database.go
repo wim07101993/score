@@ -1,3 +1,13 @@
+// Package score is where sheet music is kept: the documents themselves, the
+// metadata read out of them when they are stored, and everything that reads or
+// writes either.
+//
+// It knows nothing about how any of this is served. There is a file per thing
+// the API asks of it, holding the queries that answer it, and what comes back
+// is this package's own model of a score. Turning that into a response, and a
+// failure from here into an answer for a caller, is the API layer's job — that
+// is internal/server, and it is the only place that knows there is http
+// involved at all.
 package score
 
 import (
@@ -12,10 +22,12 @@ import (
 
 // DatabaseFactory hands out a connection to the database. An operation takes
 // one for as long as it is serving a request, and gives it back after.
+//
+// This is what the API layer is handed to reach the store with.
 type DatabaseFactory func(ctx context.Context) (*Database, error)
 
-// Database is what the operations read from and write to. What each of them
-// asks of it is written in its own file, next to the operation that asks.
+// Database is what the API reads from and writes to. What each operation asks
+// of it is written in its own file, named after the operation that asks.
 type Database struct {
 	logger *slog.Logger
 	conn   *pgxpool.Conn
