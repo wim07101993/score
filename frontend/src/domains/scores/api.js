@@ -46,6 +46,37 @@ export class ScoresApi {
   }
 
   /**
+   * The metadata of one score, asked for by id.
+   *
+   * A listing only ever answers with what changed inside a window, so it is no
+   * way to get hold of a score that is older than the window a client has left
+   * to ask about. This is: it answers whatever is stored under the id,
+   * whenever it last changed. `null` when there is nothing stored under it.
+   *
+   * @param scoreId {String}
+   * @param authToken {String}
+   * @returns {Promise<ScoreDto|null>}
+   */
+  async getScore(scoreId, authToken) {
+    const url = `${this.config.baseUrl}scores/${scoreId}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (response.status === 404) {
+      return null;
+    }
+    if (response.status >= 500) {
+      throw `failed to fetch score (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
+    } else if (response.status >= 400) {
+      throw `failed to fetch score: ${response.status} ${response.statusText}: ${await response.text()}`;
+    }
+    return await response.json();
+  }
+
+  /**
    * @param scoreId
    * @param authToken
    * @returns {Promise<String>}
