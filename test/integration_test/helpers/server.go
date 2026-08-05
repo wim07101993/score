@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"score/internal/auth"
+	"score/internal/oidc"
 	"score/internal/score"
 	"score/internal/server"
 
@@ -64,12 +65,12 @@ func (h *Harness) EnsureSecurityHandler(t *testing.T) *auth.SecurityHandler {
 
 	if h.securityHandler.value == nil {
 		idp := h.EnsureIdentityProvider(t)
-		h.securityHandler.value = auth.NewSecurityHandler(
+		h.securityHandler.value = auth.NewSecurityHandler(oidc.NewClient(
 			idp.IntrospectionUrl(),
 			idp.UserInfoUrl(),
 			IdpClientId,
 			IdpClientSecret,
-			RolesKey)
+			RolesKey))
 		require.NotNil(t, h.securityHandler.value)
 	}
 	return h.securityHandler.value

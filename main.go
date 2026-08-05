@@ -11,6 +11,7 @@ import (
 	"os"
 	"score/config"
 	"score/internal/auth"
+	"score/internal/oidc"
 	"score/internal/score"
 	"score/internal/server"
 
@@ -104,12 +105,12 @@ func runMigrations() {
 func serveHttp() {
 	logger.Info("starting http server")
 
-	securityHandler := auth.NewSecurityHandler(
+	securityHandler := auth.NewSecurityHandler(oidc.NewClient(
 		cfg.TokenIntrospectionUrl,
 		cfg.UserInfoUrl,
 		cfg.TokenIntrospectionClientId,
 		cfg.TokenIntrospectionClientSecret,
-		cfg.RolesKey)
+		cfg.RolesKey))
 
 	apiServer, err := server.New(logger, createScoresDb, securityHandler)
 	if err != nil {

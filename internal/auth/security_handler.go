@@ -1,34 +1,24 @@
+// Package auth decides who may do what.
+//
+// Talking to the identity provider is not its job: that lives in
+// score/internal/oidc, and this package only asks it what it needs to make the
+// decision.
 package auth
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"net/url"
 	"score/internal"
 	"score/internal/api"
 	"score/internal/httperror"
-	"strings"
-
-	"github.com/pkg/errors"
+	"score/internal/oidc"
 )
 
 const (
 	RoleScoreEditor = "score_editor"
 	RoleScoreViewer = "score_viewer"
 )
-
-type UserInfo struct {
-	Name    string
-	Subject string
-	Roles   map[string]interface{}
-}
-
-type IntrospectionResponse struct {
-	IsActive bool `json:"active"`
-}
 
 // SecurityHandler answers the one question the generated server asks about
 // every request: may this token do this?
@@ -37,28 +27,13 @@ type IntrospectionResponse struct {
 // the openapi document, next to the operation, and handed to us by the
 // generated server.
 type SecurityHandler struct {
-	IntrospectionUrl string
-	ClientId         string
-	ClientSecret     string
-	UserInfoUrl      string
-	RolesKey         string
+	Oidc *oidc.Client
 }
 
 var _ api.SecurityHandler = (*SecurityHandler)(nil)
 
-func NewSecurityHandler(
-	introspectionUrl string,
-	userInfoUrl string,
-	clientId string,
-	clientSecret string,
-	rolesKey string) *SecurityHandler {
-	return &SecurityHandler{
-		IntrospectionUrl: introspectionUrl,
-		UserInfoUrl:      userInfoUrl,
-		ClientId:         clientId,
-		ClientSecret:     clientSecret,
-		RolesKey:         rolesKey,
-	}
+func NewSecurityHandler(oidcClient *oidc.Client) *SecurityHandler {
+	return &SecurityHandler{Oidc: oidcClient}
 }
 
 // HandleOAuth2 introspects the token, looks up who it belongs to, and checks
@@ -79,7 +54,7 @@ func (h *SecurityHandler) HandleOAuth2(
 			"authorization header is malformed. Expected 'Bearer {token}'")
 	}
 
-	isValid, err := introspectToken(h.IntrospectionUrl, h.ClientId, h.ClientSecret, t.Token)
+	isValid, err := h.Oidc.IntrospectToken(ctx, t.Token)
 	if err != nil {
 		return ctx, httperror.Wrap(err, http.StatusInternalServerError,
 			api.ProblemDetailsErrorCodeInternalError, "failed to introspect token")
@@ -89,7 +64,7 @@ func (h *SecurityHandler) HandleOAuth2(
 			api.ProblemDetailsErrorCodeInvalidCredentials, "token not valid")
 	}
 
-	user, err := getUserInfo(h.UserInfoUrl, h.RolesKey, t.Token)
+	user, err := h.Oidc.GetUserInfo(ctx, t.Token)
 	if err != nil {
 		return ctx, httperror.Wrap(err, http.StatusInternalServerError,
 			api.ProblemDetailsErrorCodeInternalError, "failed to get user info")
@@ -104,69 +79,4 @@ func (h *SecurityHandler) HandleOAuth2(
 	}
 
 	return context.WithValue(ctx, internal.UserInfoKey, user), nil
-}
-
-func introspectToken(endpoint string, clientId string, clientSecret string, token string) (bool, error) {
-	data := url.Values{}
-
-	data.Set("token", token)
-	req, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
-	if err != nil {
-		return false, errors.Wrap(err, "failed to create token introspection request")
-	}
-	req.SetBasicAuth(clientId, clientSecret)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to do token introspection request")
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		return false, errors.Errorf(
-			"token introspection failed with status %v: %s", resp.StatusCode, string(b))
-	}
-
-	var result IntrospectionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return false, errors.Wrap(err, "could not read response from introspection request")
-	}
-	return result.IsActive, nil
-}
-
-func getUserInfo(endpoint string, rolesKey string, token string) (*UserInfo, error) {
-	req, err := http.NewRequest("GET", endpoint, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create user info request")
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to do user info request")
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		return nil, errors.Errorf("failed to do user info request because of statuscode: %v, %s", resp.StatusCode, string(b))
-	}
-
-	userInfo := make(map[string]interface{})
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return nil, errors.Wrap(err, "could not deserialize user-info response")
-	}
-
-	name, _ := (userInfo["name"]).(string)
-	sub, _ := (userInfo["sub"]).(string)
-	roles, _ := (userInfo[rolesKey]).(map[string]interface{})
-	return &UserInfo{
-		Name:    name,
-		Subject: sub,
-		Roles:   roles,
-	}, nil
 }
