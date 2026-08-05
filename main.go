@@ -12,6 +12,7 @@ import (
 	"score/config"
 	"score/internal/auth"
 	"score/internal/score"
+	"score/internal/server"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -20,6 +21,10 @@ import (
 	"github.com/pkg/errors"
 	_ "golang.org/x/crypto/x509roots/fallback" // CA bundle for FROM Scratch
 )
+
+// The API is described in api/openapi-spec.yaml; the server that serves it is
+// generated from that document into internal/api.
+//go:generate go tool ogen --config ogen.yml --target internal/api --package api --clean api/openapi-spec.yaml
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 var cfg = &config.Config{}
@@ -99,20 +104,21 @@ func runMigrations() {
 func serveHttp() {
 	logger.Info("starting http server")
 
-	authMiddleware := auth.NewMiddleware(
+	securityHandler := auth.NewSecurityHandler(
 		cfg.TokenIntrospectionUrl,
 		cfg.UserInfoUrl,
 		cfg.TokenIntrospectionClientId,
 		cfg.TokenIntrospectionClientSecret,
 		cfg.RolesKey)
 
-	mux := http.NewServeMux()
-	scoreServ := score.NewHttpServer(logger, createScoresDb, authMiddleware)
-	scoreServ.RegisterRoutes(mux)
+	apiServer, err := server.New(logger, createScoresDb, securityHandler)
+	if err != nil {
+		log.Fatalf("failed to build the api server: %v", err)
+	}
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
 	logger.Info("start listening for http requests", slog.String("addr", addr))
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, apiServer); err != nil {
 		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err))
 	}

@@ -1,0 +1,13 @@
+# A moment at one end of a change window.
+#
+# This file is not a document of its own. It is what the Changes-Since and
+# Changes-Until parameters are written as, and it is read through the references
+# those make into it.
+
+type: string
+pattern: '^\d{8}T\d{6}$'
+description: |
+  A moment in UTC, written as `YYYYMMDDThhmmss`. The basic format of ISO 8601
+  rather than the extended one, so that it survives a query string without being
+  escaped.
+examples: ['20240101T000000']

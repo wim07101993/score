@@ -52,6 +52,9 @@ type Request struct {
 	// Authorization sets the header verbatim and wins over Token, for tests
 	// about malformed authorization headers.
 	Authorization string
+	// CorrelationId ties the request to the log lines and the failure it
+	// produces, the way a caller that keeps its own trail would.
+	CorrelationId string
 	Accept        string
 	ContentType   string
 	Body          string
@@ -106,6 +109,34 @@ type Score struct {
 	Tags          []string  `json:"tags"`
 }
 
+// DecodeProblem parses a failure response, failing the test when the body is
+// not the JSON the API promises.
+func (r Response) DecodeProblem(t *testing.T) ProblemDetails {
+	t.Helper()
+
+	var problem ProblemDetails
+	require.NoErrorf(t, json.Unmarshal(r.Body, &problem),
+		"failed to parse problem details response: %s", r.Text())
+	return problem
+}
+
+// ProblemDetails mirrors what the API answers a failed request with, whichever
+// way it failed: RFC 9457 problem details, plus the errorCode this API adds to
+// them. Spelled out here rather than reused from the generated code, so that a
+// change to the wire format shows up as a test failure.
+type ProblemDetails struct {
+	Type      string `json:"type"`
+	Title     string `json:"title"`
+	Status    int    `json:"status"`
+	Detail    string `json:"detail"`
+	Instance  string `json:"instance"`
+	ErrorCode string `json:"errorCode"`
+}
+
+// ProblemContentType is the media type RFC 9457 gives problem details, and the
+// one every failure of this API is answered in.
+const ProblemContentType = "application/problem+json"
+
 func (c *ScoresClient) Do(t *testing.T, r Request) Response {
 	t.Helper()
 
@@ -122,6 +153,9 @@ func (c *ScoresClient) Do(t *testing.T, r Request) Response {
 		req.Header.Set("Authorization", r.Authorization)
 	case r.Token != "":
 		req.Header.Set("Authorization", "Bearer "+r.Token)
+	}
+	if r.CorrelationId != "" {
+		req.Header.Set("X-Correlation-ID", r.CorrelationId)
 	}
 	if r.Accept != "" {
 		req.Header.Set("Accept", r.Accept)

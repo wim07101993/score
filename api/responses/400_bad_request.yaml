@@ -1,0 +1,7 @@
+description: |
+  The request is malformed: a parameter is missing or not written the way it
+  should be, or the uploaded document is not MusicXML the server can store.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'

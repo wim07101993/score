@@ -1,0 +1,15 @@
+# Configuration of the code generator that turns api/openapi-spec.yaml into the
+# server in internal/api. Run it with `go generate ./...`; the command itself is
+# in main.go.
+parser:
+  # api/openapi-spec.yaml is an outline that points at a file per endpoint, and
+  # those point on at the bodies they read and write. Following those references
+  # is the whole idea.
+  allow_remote: true
+
+generator:
+  features:
+    disable:
+      # There are no webhooks.
+      - webhooks/client
+      - webhooks/server

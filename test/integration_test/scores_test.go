@@ -359,6 +359,113 @@ func TestUnsupportedMethodsAreRejected(t *testing.T) {
 	}
 }
 
+// TestFailuresAreAnsweredAsProblemDetails checks that a failed request comes
+// back in the shape the openapi document promises, whoever turned it down: the
+// generated server while it was still reading the request, or a handler that
+// refused to serve it.
+func TestFailuresAreAnsweredAsProblemDetails(t *testing.T) {
+	client := harness.EnsureScoresClient(t)
+	token := editorToken(t)
+
+	tests := []struct {
+		name      string
+		request   helpers.Request
+		errorCode string
+	}{
+		{
+			name:      "a score that does not exist",
+			request:   helpers.Request{Method: http.MethodGet, Path: "/scores/" + uuid.NewString(), Token: token},
+			errorCode: "score_not_found",
+		},
+		{
+			name:      "a score id that is not an id",
+			request:   helpers.Request{Method: http.MethodGet, Path: "/scores/not-a-score-id", Token: token},
+			errorCode: "invalid_request",
+		},
+		{
+			name:      "a listing without a change window",
+			request:   helpers.Request{Method: http.MethodGet, Path: "/scores", Token: token},
+			errorCode: "invalid_request",
+		},
+		{
+			name:      "an upload that is not music-xml",
+			request:   helpers.Request{Method: http.MethodPut, Path: "/scores/" + uuid.NewString(), Token: token, ContentType: "text/plain", Body: "not a score"},
+			errorCode: "unsupported_media_type",
+		},
+		{
+			name:      "an endpoint that does not exist",
+			request:   helpers.Request{Method: http.MethodGet, Path: "/not-an-endpoint", Token: token},
+			errorCode: "endpoint_not_found",
+		},
+		{
+			name:      "a method the endpoint does not answer",
+			request:   helpers.Request{Method: http.MethodDelete, Path: "/scores/" + uuid.NewString(), Token: token},
+			errorCode: "method_not_allowed",
+		},
+		{
+			name:      "a request without a token",
+			request:   helpers.Request{Method: http.MethodGet, Path: "/scores/" + uuid.NewString()},
+			errorCode: "invalid_credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := client.Do(t, tt.request)
+
+			require.GreaterOrEqual(t, res.StatusCode, http.StatusBadRequest, "should have failed")
+			assert.Equal(t, helpers.ProblemContentType, res.ContentType)
+
+			problem := res.DecodeProblem(t)
+			assert.Equal(t, "about:blank", problem.Type, "every failure is about:blank so far")
+			assert.Equal(t, http.StatusText(res.StatusCode), problem.Title, "title")
+			assert.Equal(t, res.StatusCode, problem.Status,
+				"the status in the body should be the status of the response")
+			assert.NotEmpty(t, problem.Detail, "a failure should say what went wrong")
+			assert.Regexp(t, `^urn:uuid:[0-9a-f-]{36}$`, problem.Instance,
+				"a failure should say which occurrence it was")
+			assert.Equal(t, tt.errorCode, problem.ErrorCode, "the code an application branches on")
+		})
+	}
+}
+
+// TestTheCorrelationIdOfAFailureIsTheOneItWasLoggedUnder checks that a caller
+// that ties its own requests together gets that same id back as the instance of
+// whatever went wrong, so that reporting a failure is enough to find it.
+func TestTheCorrelationIdOfAFailureIsTheOneItWasLoggedUnder(t *testing.T) {
+	client := harness.EnsureScoresClient(t)
+	correlationId := uuid.NewString()
+
+	res := client.Do(t, helpers.Request{
+		Method:        http.MethodGet,
+		Path:          "/scores/" + uuid.NewString(),
+		Token:         editorToken(t),
+		CorrelationId: correlationId,
+	})
+
+	require.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
+	assert.Equal(t, "urn:uuid:"+correlationId, res.DecodeProblem(t).Instance)
+}
+
+// TestACorrelationIdThatIsNotAUuidIsNotRepeated guards the one string a caller
+// gets to choose that this server writes into its log and back into an answer.
+func TestACorrelationIdThatIsNotAUuidIsNotRepeated(t *testing.T) {
+	client := harness.EnsureScoresClient(t)
+	madeUp := "not-a-uuid</script>"
+
+	res := client.Do(t, helpers.Request{
+		Method:        http.MethodGet,
+		Path:          "/scores/" + uuid.NewString(),
+		Token:         editorToken(t),
+		CorrelationId: madeUp,
+	})
+
+	require.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
+	instance := res.DecodeProblem(t).Instance
+	assert.NotContains(t, instance, madeUp, "a correlation id the caller made up should not be repeated")
+	assert.Regexp(t, `^urn:uuid:[0-9a-f-]{36}$`, instance, "one should have been made up instead")
+}
+
 func TestUnknownRoutesReturnNotFound(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
 

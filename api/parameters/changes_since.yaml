@@ -1,0 +1,6 @@
+name: Changes-Since
+in: query
+required: true
+description: The start of the change window, inclusive.
+schema:
+  $ref: '../schemas/change_window_moment.yaml'

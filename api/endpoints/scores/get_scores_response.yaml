@@ -1,0 +1,11 @@
+# What listing the collection comes back as.
+#
+# This file is not a document of its own. It is the body `GET /scores` writes,
+# and it is read through the reference methods.yaml makes into it. A listed
+# score is the same score a single one is fetched as, so it is not described
+# twice: this points at the one description, in the by_id slice.
+
+type: array
+description: The metadata of the scores, most recently changed first.
+items:
+  $ref: 'score.yaml'

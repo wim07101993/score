@@ -10,6 +10,7 @@ import (
 
 	"score/internal/auth"
 	"score/internal/score"
+	"score/internal/server"
 
 	"github.com/stretchr/testify/require"
 )
@@ -22,26 +23,24 @@ func (h *Harness) EnsureApiServer(t *testing.T) *httptest.Server {
 	defer h.apiServer.mutex.Unlock()
 
 	if h.apiServer.value == nil {
-		mux := http.NewServeMux()
-		h.EnsureHttpServer(t).RegisterRoutes(mux)
-
 		// Not closed on test cleanup: the harness builds it once and every
 		// later test reuses it, so it lives as long as the test binary.
-		h.apiServer.value = httptest.NewServer(mux)
+		h.apiServer.value = httptest.NewServer(h.EnsureApiHandler(t))
 	}
 	return h.apiServer.value
 }
 
-func (h *Harness) EnsureHttpServer(t *testing.T) *score.HttpServer {
+// EnsureApiHandler builds the real API, the same way main does.
+func (h *Harness) EnsureApiHandler(t *testing.T) http.Handler {
 	t.Helper()
-	h.httpServer.mutex.Lock()
-	defer h.httpServer.mutex.Unlock()
+	h.apiHandler.mutex.Lock()
+	defer h.apiHandler.mutex.Unlock()
 
-	if h.httpServer.value == nil {
+	if h.apiHandler.value == nil {
 		pool := h.EnsureDatabase(t)
 		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-		h.httpServer.value = score.NewHttpServer(
+		apiHandler, err := server.New(
 			logger,
 			func(ctx context.Context) (*score.Database, error) {
 				conn, err := pool.Acquire(ctx)
@@ -50,25 +49,28 @@ func (h *Harness) EnsureHttpServer(t *testing.T) *score.HttpServer {
 				}
 				return score.NewDatabase(logger, conn), nil
 			},
-			h.EnsureAuthMiddleware(t))
+			h.EnsureSecurityHandler(t))
+		require.NoError(t, err, "failed to build the api server")
+
+		h.apiHandler.value = apiHandler
 	}
-	return h.httpServer.value
+	return h.apiHandler.value
 }
 
-func (h *Harness) EnsureAuthMiddleware(t *testing.T) *auth.Middleware {
+func (h *Harness) EnsureSecurityHandler(t *testing.T) *auth.SecurityHandler {
 	t.Helper()
-	h.authMiddleware.mutex.Lock()
-	defer h.authMiddleware.mutex.Unlock()
+	h.securityHandler.mutex.Lock()
+	defer h.securityHandler.mutex.Unlock()
 
-	if h.authMiddleware.value == nil {
+	if h.securityHandler.value == nil {
 		idp := h.EnsureIdentityProvider(t)
-		h.authMiddleware.value = auth.NewMiddleware(
+		h.securityHandler.value = auth.NewSecurityHandler(
 			idp.IntrospectionUrl(),
 			idp.UserInfoUrl(),
 			IdpClientId,
 			IdpClientSecret,
 			RolesKey)
-		require.NotNil(t, h.authMiddleware.value)
+		require.NotNil(t, h.securityHandler.value)
 	}
-	return h.authMiddleware.value
+	return h.securityHandler.value
 }

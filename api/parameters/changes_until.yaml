@@ -1,0 +1,6 @@
+name: Changes-Until
+in: query
+required: true
+description: The end of the change window, inclusive.
+schema:
+  $ref: '../schemas/change_window_moment.yaml'

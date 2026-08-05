@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"score/internal/auth"
-	"score/internal/score"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -22,12 +21,12 @@ type Harness struct {
 	DB          *pgxpool.Pool
 	DatabaseUrl string
 
-	httpClient     dependency[*http.Client]
-	identityProv   dependency[*IdentityProvider]
-	authMiddleware dependency[*auth.Middleware]
-	httpServer     dependency[*score.HttpServer]
-	apiServer      dependency[*httptest.Server]
-	scoresClient   dependency[*ScoresClient]
+	httpClient      dependency[*http.Client]
+	identityProv    dependency[*IdentityProvider]
+	securityHandler dependency[*auth.SecurityHandler]
+	apiHandler      dependency[http.Handler]
+	apiServer       dependency[*httptest.Server]
+	scoresClient    dependency[*ScoresClient]
 }
 
 type dependency[T any] struct {
