@@ -13,45 +13,49 @@
 package server
 
 import (
-	"log/slog"
 	"net/http"
+	"score/internal/storage"
 
 	"score/internal/api"
-	"score/internal/auth"
-	"score/internal/logging"
-	"score/internal/score"
 )
 
-// handler is the whole API: every operation of the openapi document, served
+// Handler is the whole API: every operation of the openapi document, served
 // off the one store they all share.
-type handler struct {
-	db     score.DatabaseFactory
-	logger *slog.Logger
+//
+// It holds no logger: the logging middleware puts one in the context of every
+// request, already carrying that request's correlation id, and the operations
+// write to that one.
+type Handler struct {
+	db storage.DBConnProvider
 }
 
-var _ api.Handler = (*handler)(nil)
+var _ api.Handler = (*Handler)(nil)
+
+func New(db storage.DBConnProvider) *Handler {
+	return &Handler{
+		db: db,
+	}
+}
 
 // New builds the API and everything around it, ready to be served.
-func New(
-	logger *slog.Logger,
-	db score.DatabaseFactory,
-	security *auth.SecurityHandler) (http.Handler, error) {
-	h := &handler{
-		db:     db,
-		logger: logger,
-	}
-
-	generated, err := api.NewServer(h, security,
-		api.WithErrorHandler(h.handleError),
-		api.WithNotFound(h.handleNotFound),
-		api.WithMethodNotAllowed(h.handleMethodNotAllowed),
-		api.WithMiddleware(setAcceptHeaderToContextMiddleware))
-	if err != nil {
-		return nil, err
-	}
-
-	return cors(logging.Wrap(logger, generated)), nil
-}
+//
+// The logger is the one every request is served under. It is handed to the
+// logging middleware and to nothing else: from there it travels in the context
+// of the request it belongs to.
+//func New(db score.DatabaseFactory, security *auth.SecurityHandler) (http.Handler, error) {
+//	h := &Handler{db: db}
+//
+//	generated, err := api.NewServer(h, security,
+//		api.WithErrorHandler(h.handleError),
+//		api.WithNotFound(h.handleNotFound),
+//		api.WithMethodNotAllowed(h.handleMethodNotAllowed),
+//		api.WithMiddleware(setAcceptHeaderToContextMiddleware))
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return cors(logging.Wrap(generated)), nil
+//}
 
 // cors answers a browser that asks whether it may talk to us, and tells every
 // other response that it may.

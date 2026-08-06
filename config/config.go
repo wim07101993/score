@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"score/internal/oidc"
+	"score/internal/storage"
 
 	"github.com/kelseyhightower/envconfig"
 	errorspkg "github.com/pkg/errors"
@@ -124,5 +126,21 @@ func (cfg *Config) Redacted() Config {
 		TokenIntrospectionClientSecret: "********",
 		UserInfoUrl:                    cfg.UserInfoUrl,
 		RolesKey:                       cfg.RolesKey,
+	}
+}
+
+func (cfg *Config) OidcClientConfig() oidc.ClientConfig {
+	return oidc.ClientConfig{
+		IntrospectionUrl: cfg.TokenIntrospectionUrl,
+		UserInfoUrl:      cfg.UserInfoUrl,
+		ClientId:         cfg.TokenIntrospectionClientId,
+		ClientSecret:     cfg.TokenIntrospectionClientSecret,
+		RolesKey:         cfg.RolesKey,
+	}
+}
+
+func (cfg *Config) DatabaseConfig() storage.DatabaseConfig {
+	return storage.DatabaseConfig{
+		ConnectionString: cfg.DbConnectionString,
 	}
 }

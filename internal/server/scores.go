@@ -20,7 +20,7 @@ const (
 	musicXmlXmlMediaType = "application/vnd.recordare.musicxml+xml"
 )
 
-func (h *handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.PutScoreParams) (api.PutScoreRes, error) {
+func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.PutScoreParams) (api.PutScoreRes, error) {
 	var document io.Reader
 	switch body := req.(type) {
 	case *api.PutScoreReqApplicationVndRecordareMusicxml:
@@ -38,14 +38,14 @@ func (h *handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 			api.ProblemDetailsErrorCodeInternalError, "failed to read request body")
 	}
 
-	db, err := h.db(ctx)
+	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
 		return nil, httperror.Wrap(err, http.StatusInternalServerError,
 			api.ProblemDetailsErrorCodeInternalError, "failed to save score")
 	}
-	defer db.Dispose()
+	defer dbConn.Release()
 
-	if err := db.AddOrUpdateScore(ctx, params.ScoreId.String(), string(mxml)); err != nil {
+	if err := score.AddOrUpdate(ctx, dbConn, params.ScoreId.String(), string(mxml)); err != nil {
 		invalidMxmlError := &score.ErrInvalidMusicXml{}
 		if errors.As(err, &invalidMxmlError) {
 			return nil, httperror.Wrap(err, http.StatusBadRequest,
@@ -58,33 +58,33 @@ func (h *handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 	return &api.PutScoreOK{}, nil
 }
 
-func (h *handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
-	db, err := h.db(ctx)
+func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
+	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
 		return nil, httperror.Wrap(err, http.StatusInternalServerError,
 			api.ProblemDetailsErrorCodeInternalError, "failed to get score")
 	}
-	defer db.Dispose()
+	defer dbConn.Release()
 
 	scoreId := params.ScoreId.String()
 
 	switch getAcceptHeaderFromContext(ctx) {
 	case musicXmlMediaType:
-		mxml, err := db.GetScoreMusicXml(ctx, scoreId)
+		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {
 			return nil, scoreLookupFailed(err)
 		}
 		return &api.GetScoreOKApplicationVndRecordareMusicxml{Data: strings.NewReader(mxml)}, nil
 
 	case musicXmlXmlMediaType:
-		mxml, err := db.GetScoreMusicXml(ctx, scoreId)
+		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {
 			return nil, scoreLookupFailed(err)
 		}
 		return &api.GetScoreOKApplicationVndRecordareMusicxmlXML{Data: strings.NewReader(mxml)}, nil
 
 	default:
-		stored, err := db.GetScore(ctx, scoreId)
+		stored, err := score.Get(ctx, dbConn, scoreId)
 		if err != nil {
 			return nil, scoreLookupFailed(err)
 		}
@@ -92,7 +92,7 @@ func (h *handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.
 	}
 }
 
-func (h *handler) ListScores(ctx context.Context, params api.ListScoresParams) (api.ListScoresRes, error) {
+func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (api.ListScoresRes, error) {
 	changesSince, err := parseChangeWindowMoment(params.ChangesSince, "Changes-Since")
 	if err != nil {
 		return nil, err
@@ -102,14 +102,14 @@ func (h *handler) ListScores(ctx context.Context, params api.ListScoresParams) (
 		return nil, err
 	}
 
-	db, err := h.db(ctx)
+	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
 		return nil, httperror.Wrap(err, http.StatusInternalServerError,
 			api.ProblemDetailsErrorCodeInternalError, "failed to get scores page")
 	}
-	defer db.Dispose()
+	defer dbConn.Release()
 
-	scores, err := db.GetScores(ctx, changesSince, changesUntil)
+	scores, err := score.List(ctx, dbConn, changesSince, changesUntil)
 	if err != nil {
 		return nil, httperror.Wrap(err, http.StatusInternalServerError,
 			api.ProblemDetailsErrorCodeInternalError, "failed to get scores page")

@@ -3,17 +3,22 @@ package score
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	slogctx "github.com/veqryn/slog-context"
 )
 
-// GetScores reads the metadata of every score that changed within the given
+// List reads the metadata of every score that changed within the given
 // window, newest first.
-func (db *Database) GetScores(
+func List(
 	ctx context.Context,
+	db *pgxpool.Conn,
 	changesSince time.Time,
-	changesUntil time.Time) ([]*Score, error) {
-	db.logger.Info("getting scores")
+	changesUntil time.Time,
+) ([]*Score, error) {
+	slogctx.Info(ctx, "getting scores")
 
-	rows, err := db.conn.Query(ctx, getScoresQuery, changesSince, changesUntil)
+	rows, err := db.Query(ctx, getScoresQuery, changesSince, changesUntil)
 
 	if err != nil {
 		return nil, err

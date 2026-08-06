@@ -20,6 +20,11 @@ const (
 	RoleScoreViewer = "score_viewer"
 )
 
+type OidcClient interface {
+	IntrospectToken(ctx context.Context, token string) (bool, error)
+	GetUserInfo(ctx context.Context, token string) (*oidc.UserInfo, error)
+}
+
 // SecurityHandler answers the one question the generated server asks about
 // every request: may this token do this?
 //
@@ -27,12 +32,12 @@ const (
 // the openapi document, next to the operation, and handed to us by the
 // generated server.
 type SecurityHandler struct {
-	Oidc *oidc.Client
+	Oidc OidcClient
 }
 
 var _ api.SecurityHandler = (*SecurityHandler)(nil)
 
-func NewSecurityHandler(oidcClient *oidc.Client) *SecurityHandler {
+func NewSecurityHandler(oidcClient OidcClient) *SecurityHandler {
 	return &SecurityHandler{Oidc: oidcClient}
 }
 

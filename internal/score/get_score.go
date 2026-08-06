@@ -6,14 +6,16 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	slogctx "github.com/veqryn/slog-context"
 )
 
-// GetScore reads the metadata of one score. It answers ErrScoreNotFound when
+// Get reads the metadata of one score. It answers ErrScoreNotFound when
 // nothing is stored under the given id.
-func (db *Database) GetScore(ctx context.Context, scoreId string) (*Score, error) {
-	db.logger.Info("getting score", slog.String("scoreId", scoreId))
+func Get(ctx context.Context, db *pgxpool.Conn, scoreId string) (*Score, error) {
+	slogctx.Info(ctx, "getting score", slog.String("scoreId", scoreId))
 
-	row := db.conn.QueryRow(ctx, getScoreQuery, scoreId)
+	row := db.QueryRow(ctx, getScoreQuery, scoreId)
 	score, err := scanScore(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -25,12 +27,12 @@ func (db *Database) GetScore(ctx context.Context, scoreId string) (*Score, error
 	return score, nil
 }
 
-// GetScoreMusicXml reads the document one score's metadata was extracted from.
+// GetMusicXml reads the document one score's metadata was extracted from.
 // It answers ErrScoreNotFound when nothing is stored under the given id.
-func (db *Database) GetScoreMusicXml(ctx context.Context, scoreId string) (string, error) {
-	db.logger.Info("getting music-xml", slog.String("scoreId", scoreId))
+func GetMusicXml(ctx context.Context, db *pgxpool.Conn, scoreId string) (string, error) {
+	slogctx.Info(ctx, "getting music-xml", slog.String("scoreId", scoreId))
 
-	row := db.conn.QueryRow(ctx, getScoreMusicXmlQuery, scoreId)
+	row := db.QueryRow(ctx, getScoreMusicXmlQuery, scoreId)
 
 	var (
 		id      string

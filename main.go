@@ -10,10 +10,9 @@ import (
 	"net/http"
 	"os"
 	"score/config"
-	"score/internal/auth"
+	"score/internal/bootstrap"
 	"score/internal/oidc"
-	"score/internal/score"
-	"score/internal/server"
+	"score/internal/storage"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -105,30 +104,22 @@ func runMigrations() {
 func serveHttp() {
 	logger.Info("starting http server")
 
-	securityHandler := auth.NewSecurityHandler(oidc.NewClient(
-		cfg.TokenIntrospectionUrl,
-		cfg.UserInfoUrl,
-		cfg.TokenIntrospectionClientId,
-		cfg.TokenIntrospectionClientSecret,
-		cfg.RolesKey))
+	ctx := context.Background()
 
-	apiServer, err := server.New(logger, createScoresDb, securityHandler)
+	bootstrapper := bootstrap.Default(
+		bootstrap.NewSingleton[oidc.ClientConfig](cfg.OidcClientConfig()),
+		bootstrap.NewSingleton[storage.DatabaseConfig](cfg.DatabaseConfig()),
+	)
+
+	server, err := bootstrapper.HttpHandler.Provide(ctx)
 	if err != nil {
-		log.Fatalf("failed to build the api server: %v", err)
+		log.Fatal(err)
 	}
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
 	logger.Info("start listening for http requests", slog.String("addr", addr))
-	if err := http.ListenAndServe(addr, apiServer); err != nil {
+	if err := http.ListenAndServe(addr, server); err != nil {
 		logger.Error("failed to serve score scoresIndex",
 			slog.Any("error", err))
 	}
-}
-
-func createScoresDb(ctx context.Context) (*score.Database, error) {
-	pgConn, err := pgPool.Acquire(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create database connection")
-	}
-	return score.NewDatabase(logger, pgConn), nil
 }

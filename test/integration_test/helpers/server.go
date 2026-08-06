@@ -41,16 +41,13 @@ func (h *Harness) EnsureApiHandler(t *testing.T) http.Handler {
 		pool := h.EnsureDatabase(t)
 		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-		apiHandler, err := server.New(
-			logger,
-			func(ctx context.Context) (*score.Database, error) {
-				conn, err := pool.Acquire(ctx)
-				if err != nil {
-					return nil, err
-				}
-				return score.NewDatabase(logger, conn), nil
-			},
-			h.EnsureSecurityHandler(t))
+		apiHandler, err := server.New(func(ctx context.Context) (*score.Database, error) {
+			conn, err := pool.Acquire(ctx)
+			if err != nil {
+				return nil, err
+			}
+			return score.NewDatabase(conn), nil
+		}, h.EnsureSecurityHandler(t))
 		require.NoError(t, err, "failed to build the api server")
 
 		h.apiHandler.value = apiHandler

@@ -12,7 +12,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	pkgerrors "github.com/pkg/errors"
+	slogctx "github.com/veqryn/slog-context"
 )
 
 // pgErrInvalidTextRepresentation is the postgres error code for a value that
@@ -20,10 +22,10 @@ import (
 // an enum member that does not exist.
 const pgErrInvalidTextRepresentation = "22P02"
 
-// AddOrUpdateScore stores the document and the metadata read out of it as one:
+// AddOrUpdate stores the document and the metadata read out of it as one:
 // either both land, or neither does.
-func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string) error {
-	db.logger.Info("adding/updating score document",
+func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) error {
+	slogctx.Info(ctx, "adding/updating score document",
 		slog.String("id", id))
 
 	reader := strings.NewReader(mxml)
@@ -32,7 +34,7 @@ func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string
 		return &ErrInvalidMusicXml{Cause: err}
 	}
 
-	tx, err := db.conn.Begin(ctx)
+	tx, err := db.Begin(ctx)
 	if err != nil {
 		return err
 	}

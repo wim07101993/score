@@ -10,10 +10,7 @@ import (
 	"net/http"
 )
 
-// Client is the identity provider, as far as the rest of the application is
-// concerned. It is safe for concurrent use and meant to be built once and
-// shared: the http client underneath keeps its connections alive between calls.
-type Client struct {
+type ClientConfig struct {
 	// IntrospectionUrl is the endpoint that says whether a token is still good.
 	IntrospectionUrl string
 	// UserInfoUrl is the endpoint that says who a token belongs to.
@@ -25,22 +22,20 @@ type Client struct {
 	// RolesKey is the claim the provider puts the user's roles under. Which key
 	// that is differs per provider, so it is configured rather than assumed.
 	RolesKey string
+}
+
+// Client is the identity provider, as far as the rest of the application is
+// concerned. It is safe for concurrent use and meant to be built once and
+// shared: the http client underneath keeps its connections alive between calls.
+type Client struct {
+	config ClientConfig
 
 	httpClient *http.Client
 }
 
-func NewClient(
-	introspectionUrl string,
-	userInfoUrl string,
-	clientId string,
-	clientSecret string,
-	rolesKey string) *Client {
+func NewClient(config ClientConfig) *Client {
 	return &Client{
-		IntrospectionUrl: introspectionUrl,
-		UserInfoUrl:      userInfoUrl,
-		ClientId:         clientId,
-		ClientSecret:     clientSecret,
-		RolesKey:         rolesKey,
-		httpClient:       &http.Client{},
+		config:     config,
+		httpClient: &http.Client{},
 	}
 }

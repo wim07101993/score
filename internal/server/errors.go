@@ -5,23 +5,24 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"score/internal/logging"
 
-	"score/internal"
 	"score/internal/api"
 	"score/internal/httperror"
 
 	"github.com/go-faster/jx"
+	slogctx "github.com/veqryn/slog-context"
 )
 
 // NewError turns whatever went wrong into the answer the caller gets. Nearly
 // every failure passes through here: the ones the generated server ran into
 // while it was reading the request, and the ones the operations returned. What
 // it answers with is described in api/schemas/problem_details.yaml.
-func (h *handler) NewError(ctx context.Context, err error) *api.XxxUnknownErrorStatusCode {
+func (h *Handler) NewError(ctx context.Context, err error) *api.XxxUnknownErrorStatusCode {
 	status, code, detail := httperror.Answer(err)
-	correlationId, _ := ctx.Value(internal.CorrelationIdKey).(string)
+	correlationID, _ := logging.CorrelationIdFromContext(ctx)
 
-	h.logFailure(ctx, status, err)
+	logFailure(ctx, status, err)
 
 	return &api.XxxUnknownErrorStatusCode{
 		StatusCode: status,
@@ -37,7 +38,7 @@ func (h *handler) NewError(ctx context.Context, err error) *api.XxxUnknownErrorS
 			// one can be answered with what actually happened. It is a uuid the
 			// server either made up or accepted from the caller, and this is
 			// how a uuid is written as a URI.
-			Instance:  "urn:uuid:" + correlationId,
+			Instance:  "urn:uuid:" + correlationID,
 			ErrorCode: code,
 		},
 	}
@@ -45,7 +46,7 @@ func (h *handler) NewError(ctx context.Context, err error) *api.XxxUnknownErrorS
 
 // handleError answers the failures the generated server does not hand to
 // NewError itself, so that those are answered in the same shape as the rest.
-func (h *handler) handleError(ctx context.Context, res http.ResponseWriter, req *http.Request, err error) {
+func (h *Handler) handleError(ctx context.Context, res http.ResponseWriter, req *http.Request, err error) {
 	if isUnreadableMediaType(req) {
 		err = httperror.Wrap(err, http.StatusUnsupportedMediaType,
 			api.ProblemDetailsErrorCodeUnsupportedMediaType, "content-type not supported")
@@ -53,32 +54,32 @@ func (h *handler) handleError(ctx context.Context, res http.ResponseWriter, req 
 	writeError(res, h.NewError(ctx, err))
 }
 
-func (h *handler) handleNotFound(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) handleNotFound(res http.ResponseWriter, req *http.Request) {
 	writeError(res, h.NewError(req.Context(),
 		httperror.New(http.StatusNotFound,
 			api.ProblemDetailsErrorCodeEndpointNotFound, "no such endpoint")))
 }
 
-func (h *handler) handleMethodNotAllowed(res http.ResponseWriter, req *http.Request, allowed string) {
+func (h *Handler) handleMethodNotAllowed(res http.ResponseWriter, req *http.Request, allowed string) {
 	res.Header().Set("Allow", allowed)
 	writeError(res, h.NewError(req.Context(),
 		httperror.New(http.StatusMethodNotAllowed,
 			api.ProblemDetailsErrorCodeMethodNotAllowed, "method not allowed on this endpoint")))
 }
 
-func (h *handler) logFailure(ctx context.Context, status int, err error) {
-	correlationId, _ := ctx.Value(internal.CorrelationIdKey).(string)
+// logFailure writes what went wrong to the logger of the request it went wrong
+// in, which is already saying which request that was.
+func logFailure(ctx context.Context, status int, err error) {
 	attrs := []any{
 		slog.Any("error", err),
 		slog.Int("status", status),
-		slog.String("correlationId", correlationId),
 	}
 
 	if status >= http.StatusInternalServerError {
-		h.logger.Error("failed to handle http request", attrs...)
+		slogctx.Error(ctx, "failed to handle http request", attrs...)
 		return
 	}
-	h.logger.Info("refused http request", attrs...)
+	slogctx.Info(ctx, "refused http request", attrs...)
 }
 
 // writeError answers with a failure the generated server is not writing for us,

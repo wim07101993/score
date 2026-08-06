@@ -11,38 +11,11 @@
 package score
 
 import (
-	"context"
-	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-// DatabaseFactory hands out a connection to the database. An operation takes
-// one for as long as it is serving a request, and gives it back after.
-//
-// This is what the API layer is handed to reach the store with.
-type DatabaseFactory func(ctx context.Context) (*Database, error)
-
-// Database is what the API reads from and writes to. What each operation asks
-// of it is written in its own file, named after the operation that asks.
-type Database struct {
-	logger *slog.Logger
-	conn   *pgxpool.Conn
-}
-
-func NewDatabase(logger *slog.Logger, conn *pgxpool.Conn) *Database {
-	return &Database{
-		logger: logger,
-		conn:   conn,
-	}
-}
-
-func (db *Database) Dispose() {
-	db.conn.Release()
-}
 
 // scanScore reads a row of score metadata. Looking up a single score and
 // listing a window of them select the same columns, in this order.
