@@ -1,13 +1,11 @@
 package helpers
 
 import (
-	"io"
-	"log/slog"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"score/internal/auth"
 	"score/internal/bootstrap"
 	"score/internal/oidc"
 	"score/internal/server"
@@ -32,21 +30,22 @@ func (h *Harness) EnsureApiServer(t *testing.T) *httptest.Server {
 	return h.apiServer.value
 }
 
-// EnsureBootstrapper builds the same dependency graph main builds, with the
+// EnsureDependencies builds the same dependency graph main builds, with the
 // harness standing in for the parts of the world the tests own: its database
-// pool, its fake identity provider, and a logger that goes nowhere.
+// pool, its fake identity provider, and migrations found from the test package
+// rather than from the repository root.
 //
-// Tests that need to reach further into the graph — to take the security
-// handler apart, or to swap one dependency for a double — go through here.
-func (h *Harness) EnsureBootstrapper(t *testing.T) *bootstrap.DependencyContainer {
+// Tests that need to reach further into the graph — to take a single dependency
+// apart, or to swap one for a double — go through here.
+func (h *Harness) EnsureDependencies(t *testing.T) *bootstrap.DependencyContainer {
 	t.Helper()
-	h.bootstrapper.mutex.Lock()
-	defer h.bootstrapper.mutex.Unlock()
+	h.dependencies.mutex.Lock()
+	defer h.dependencies.mutex.Unlock()
 
-	if h.bootstrapper.value == nil {
+	if h.dependencies.value == nil {
 		idp := h.EnsureIdentityProvider(t)
 
-		b := bootstrap.DefaultDependencyContainer(
+		dc := bootstrap.DefaultDependencyContainer(
 			bootstrap.NewSingleton[oidc.ClientConfig](oidc.ClientConfig{
 				IntrospectionUrl: idp.IntrospectionUrl(),
 				UserInfoUrl:      idp.UserInfoUrl(),
@@ -60,14 +59,13 @@ func (h *Harness) EnsureBootstrapper(t *testing.T) *bootstrap.DependencyContaine
 		)
 
 		// The harness already owns a pool, opened against the database it set
-		// up; the bootstrapper is given that one rather than opening a second.
-		b.PgxPool = bootstrap.NewSingleton[*pgxpool.Pool](h.EnsureDatabase(t))
-		b.Logger = bootstrap.NewSingleton[*slog.Logger](
-			slog.New(slog.NewTextHandler(io.Discard, nil)))
+		// up; the container is given that one rather than opening a second.
+		dc.PgxPool = bootstrap.NewSingleton[*pgxpool.Pool](h.EnsureDatabase(t))
+		dc.MigrationsSource = bootstrap.NewSingleton(MigrationsSource)
 
-		h.bootstrapper.value = b
+		h.dependencies.value = dc
 	}
-	return h.bootstrapper.value
+	return h.dependencies.value
 }
 
 // EnsureApiHandler builds the real API, the same way main does.
@@ -81,25 +79,13 @@ func (h *Harness) EnsureApiHandler(t *testing.T) http.Handler {
 		// than "an unexpected error happened". See FullErrorInResponse.
 		server.FullErrorInResponse.Store(true)
 
-		apiHandler, err := h.EnsureBootstrapper(t).HttpHandler.Provide(t.Context())
+		// Not t.Context(): the handler is built once and served to every later
+		// test, so it may not be tied to the lifetime of whichever test
+		// happened to ask for it first.
+		apiHandler, err := h.EnsureDependencies(t).HttpHandler.Provide(context.Background())
 		require.NoError(t, err, "failed to build the api server")
 
 		h.apiHandler.value = apiHandler
 	}
 	return h.apiHandler.value
-}
-
-func (h *Harness) EnsureSecurityHandler(t *testing.T) *auth.SecurityHandler {
-	t.Helper()
-	h.securityHandler.mutex.Lock()
-	defer h.securityHandler.mutex.Unlock()
-
-	if h.securityHandler.value == nil {
-		securityHandler, err := h.EnsureBootstrapper(t).AuthSecurityHandler.Provide(t.Context())
-		require.NoError(t, err, "failed to build the security handler")
-		require.NotNil(t, securityHandler)
-
-		h.securityHandler.value = securityHandler
-	}
-	return h.securityHandler.value
 }

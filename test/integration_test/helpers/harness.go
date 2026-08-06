@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	"score/internal/auth"
 	"score/internal/bootstrap"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,20 +21,15 @@ type Harness struct {
 	DB          *pgxpool.Pool
 	DatabaseUrl string
 
-	httpClient      dependency[*http.Client]
-	identityProv    dependency[*IdentityProvider]
-	bootstrapper    dependency[*bootstrap.DependencyContainer]
-	securityHandler dependency[*auth.SecurityHandler]
-	apiHandler      dependency[http.Handler]
-	apiServer       dependency[*httptest.Server]
-	scoresClient    dependency[*ScoresClient]
+	httpClient   dependency[*http.Client]
+	identityProv dependency[*IdentityProvider]
+	dependencies dependency[*bootstrap.DependencyContainer]
+	apiHandler   dependency[http.Handler]
+	apiServer    dependency[*httptest.Server]
+	scoresClient dependency[*ScoresClient]
 }
 
 type dependency[T any] struct {
 	mutex sync.Mutex
 	value T
-}
-
-func (d *dependency[T]) Get() T {
-	return d.value
 }

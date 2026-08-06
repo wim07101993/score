@@ -61,6 +61,7 @@ func (s *LazySingleton[T]) Provide(ctx context.Context) (_ T, err error) {
 		if s.value, err = s.factory(ctx); err != nil {
 			return *new(T), err
 		}
+		s.hasComputed = true
 	}
 
 	return s.value, nil

@@ -17,13 +17,17 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // the file:// migrations source
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+const DefaultMigrationsSource = "file://db/migrations"
 
 type DependencyContainer struct {
 	OidcClientConfig Provider[oidc.ClientConfig]
 	DatabaseConfig   Provider[storage.DatabaseConfig]
 	Logger           Provider[*slog.Logger]
+	MigrationsSource Provider[string]
 
 	ApiServer           Provider[*api.Server]
 	ApiServerOpts       Provider[[]api.ServerOption]
@@ -48,6 +52,7 @@ func DefaultDependencyContainer(
 
 	dc.OidcClientConfig = oidcClientConfig
 	dc.DatabaseConfig = databaseConfig
+	dc.MigrationsSource = NewSingleton(DefaultMigrationsSource)
 
 	dc.ApiServer = NewLazySingleton(dc.NewApiServer)
 	dc.ApiServerOpts = NewLazySingleton(dc.NewApiServerOpts)
@@ -166,6 +171,11 @@ func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWit
 		return nil, fmt.Errorf("failed to get database config: %w", err)
 	}
 
+	source, err := di.MigrationsSource.Provide(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get migrations source: %w", err)
+	}
+
 	db, err := sql.Open("postgres", config.ConnectionString)
 	if err != nil {
 		return nil, err
@@ -177,7 +187,7 @@ func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWit
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://db/migrations",
+		source,
 		"postgres",
 		driver,
 	)

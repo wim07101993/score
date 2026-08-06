@@ -2,7 +2,7 @@ package helpers
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"score/internal/bootstrap"
+	"score/internal/oidc"
+	"score/internal/storage"
+
 	"github.com/golang-migrate/migrate/v4"
-	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file" // file:// migration source
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -114,38 +116,31 @@ func waitForPostgres(ctx context.Context, databaseUrl string) error {
 	}
 }
 
-// Migrator builds a migration runner for the given database, mirroring the way
-// the application migrates itself on start-up. Close the returned *sql.DB when
-// done.
-func Migrator(databaseUrl string) (*migrate.Migrate, *sql.DB, error) {
-	db, err := sql.Open("postgres", databaseUrl)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open the database for migrations: %w", err)
-	}
+// Migrator builds a migration runner for the given database. It is the
+// application's own runner, built from the same container main builds it from,
+// so the tests exercise the migration path that actually ships rather than a
+// copy of it. Call Cleanup when done.
+func Migrator(ctx context.Context, databaseUrl string) (*bootstrap.DependencyWithCleanup[*migrate.Migrate], error) {
+	// Migrating needs a database and nothing else; the rest of the container is
+	// never reached, so it is left unconfigured.
+	dc := bootstrap.DefaultDependencyContainer(
+		bootstrap.NewSingleton(oidc.ClientConfig{}),
+		bootstrap.NewSingleton(storage.DatabaseConfig{ConnectionString: databaseUrl}),
+	)
+	dc.MigrationsSource = bootstrap.NewSingleton(MigrationsSource)
 
-	driver, err := migratepostgres.WithInstance(db, &migratepostgres.Config{})
-	if err != nil {
-		_ = db.Close()
-		return nil, nil, fmt.Errorf("failed to create the migration driver: %w", err)
-	}
-
-	migrator, err := migrate.NewWithDatabaseInstance(MigrationsSource, "postgres", driver)
-	if err != nil {
-		_ = db.Close()
-		return nil, nil, fmt.Errorf("failed to create the migration runner: %w", err)
-	}
-	return migrator, db, nil
+	return dc.Migrate.Provide(ctx)
 }
 
 // MigrateUp brings the given database up to the latest migration.
-func MigrateUp(databaseUrl string) error {
-	migrator, db, err := Migrator(databaseUrl)
+func MigrateUp(ctx context.Context, databaseUrl string) (err error) {
+	migrator, err := Migrator(ctx, databaseUrl)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = db.Close() }()
+	defer func() { err = errors.Join(err, migrator.Cleanup()) }()
 
-	if err := migrator.Up(); err != nil && err != migrate.ErrNoChange {
+	if err := migrator.Dependency.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("failed to migrate up: %w", err)
 	}
 	return nil

@@ -32,11 +32,24 @@ func TestMigrationsCanBeRolledBackAndReapplied(t *testing.T) {
 	databaseUrl, err := helpers.WithDatabaseName(harness.DatabaseUrl, databaseName)
 	require.NoError(t, err)
 
-	migrator, db, err := helpers.Migrator(databaseUrl)
+	migrator, err := helpers.Migrator(ctx, databaseUrl)
 	require.NoError(t, err)
-	defer func() { _ = db.Close() }()
+	defer func() { _ = migrator.Cleanup() }()
 
-	require.NoError(t, migrator.Up(), "failed to apply the migrations")
-	assert.NoError(t, migrator.Down(), "failed to roll every migration back")
-	assert.NoError(t, migrator.Up(), "failed to re-apply the migrations after a rollback")
+	require.NoError(t, migrator.Dependency.Up(), "failed to apply the migrations")
+	assert.NoError(t, migrator.Dependency.Down(), "failed to roll every migration back")
+	assert.NoError(t, migrator.Dependency.Up(), "failed to re-apply the migrations after a rollback")
+}
+
+// TestTheMigrationRunnerCleansUpAfterItself guards the shutdown half of the
+// migration dependency. main reports whatever Cleanup returns, so a cleanup
+// that closes the same handle twice makes every successful start-up look like a
+// failed one.
+func TestTheMigrationRunnerCleansUpAfterItself(t *testing.T) {
+	ctx := context.Background()
+
+	migrator, err := helpers.Migrator(ctx, harness.DatabaseUrl)
+	require.NoError(t, err)
+
+	assert.NoError(t, migrator.Cleanup(), "cleaning up after the migrations should not report a failure")
 }
