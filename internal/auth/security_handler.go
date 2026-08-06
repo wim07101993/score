@@ -8,10 +8,9 @@ package auth
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"score/internal"
 	"score/internal/api"
-	"score/internal/httperror"
+	"score/internal/failure"
 	"score/internal/oidc"
 )
 
@@ -54,32 +53,27 @@ func (h *SecurityHandler) HandleOAuth2(
 	operationName api.OperationName,
 	t api.OAuth2) (context.Context, error) {
 	if t.Token == "" {
-		return ctx, httperror.New(http.StatusUnauthorized,
-			api.ProblemDetailsErrorCodeInvalidCredentials,
-			"authorization header is malformed. Expected 'Bearer {token}'")
+		return ctx, failure.Unauthenticated(
+			"authorization header is malformed. Expected 'Bearer {token}'", nil)
 	}
 
 	isValid, err := h.Oidc.IntrospectToken(ctx, t.Token)
 	if err != nil {
-		return ctx, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to introspect token")
+		return ctx, failure.Internal("failed to introspect token", err)
 	}
 	if !isValid {
-		return ctx, httperror.New(http.StatusUnauthorized,
-			api.ProblemDetailsErrorCodeInvalidCredentials, "token not valid")
+		return ctx, failure.Unauthenticated("token not valid", nil)
 	}
 
 	user, err := h.Oidc.GetUserInfo(ctx, t.Token)
 	if err != nil {
-		return ctx, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to get user info")
+		return ctx, failure.Internal("failed to get user info", err)
 	}
 
 	for _, role := range t.Scopes {
 		if _, ok := user.Roles[role]; !ok {
-			return ctx, httperror.New(http.StatusForbidden,
-				api.ProblemDetailsErrorCodeMissingRole,
-				fmt.Sprintf("user does not have required role to perform this action (required role: %s)", role))
+			return ctx, failure.PermissionDenied(
+				fmt.Sprintf("user does not have required role to perform this action (required role: %s)", role), nil)
 		}
 	}
 

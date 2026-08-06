@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -15,10 +14,9 @@ import (
 	"score/internal/storage"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
+	slogctx "github.com/veqryn/slog-context"
 	_ "golang.org/x/crypto/x509roots/fallback" // CA bundle for FROM Scratch
 )
 
@@ -26,13 +24,15 @@ import (
 // generated from that document into internal/api.
 //go:generate go tool ogen --config ogen.yml --target internal/api --package api --clean api/openapi-spec.yaml
 
-var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 var cfg = &config.Config{}
-var pgPool *pgxpool.Pool
+var dc *bootstrap.DependencyContainer
 
 var configPath string
 
 func main() {
+	ctx := context.Background()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
 	flag.StringVar(&configPath, "config", "", "Specifies the file from which config should be read. If none is provided, only environment variables are read.")
 	flag.Parse()
 
@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to read config from env: %v", err)
 	}
-	logger.Debug("env config", slog.Any("config", fromEnv.Redacted()))
+	slog.Debug("env config", slog.Any("config", fromEnv.Redacted()))
 	cfg.CopyFrom(fromEnv)
 
 	if configPath != "" {
@@ -48,78 +48,75 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to get config from file: %v", err)
 		}
-		logger.Debug("file config", slog.Any("config", fromFile.Redacted()))
+		slog.Debug("file config", slog.Any("config", fromFile.Redacted()))
 		cfg.CopyFrom(fromFile)
 	}
 
-	logger.Info("validating config")
+	slog.Info("validating config")
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config invalid: %v", err)
 	}
 
-	logger.Info("starting application with config", slog.Any("config", cfg.Redacted()))
-
-	runMigrations()
-
-	pgPool, err = pgxpool.New(context.Background(), cfg.DbConnectionString)
-	if err != nil {
-		log.Fatalf("failed to obtain db-connection pool: %v", err)
-	}
-
-	serveHttp()
-}
-
-func runMigrations() {
-	logger.Info("running migrations")
-	db, err := sql.Open("postgres", cfg.DbConnectionString)
-	if err != nil {
-		log.Fatalf("failed to open database for migrations: %v", err)
-	}
-
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://db/migrations",
-		"postgres",
-		driver)
-	if err != nil {
-		log.Fatalf("failed to create migration runner: %v", err)
-	}
-
-	if err := m.Up(); err != nil {
-		if errors.Is(err, migrate.ErrNoChange) {
-			logger.Info("migrations already up-to-date")
-			return
-		}
-
-		log.Fatalf("failed to run migrations: %v", err)
-	}
-
-	logger.Info("migrated successfully")
-}
-
-func serveHttp() {
-	logger.Info("starting http server")
-
-	ctx := context.Background()
-
-	bootstrapper := bootstrap.Default(
+	dc = bootstrap.DefaultDependencyContainer(
 		bootstrap.NewSingleton[oidc.ClientConfig](cfg.OidcClientConfig()),
 		bootstrap.NewSingleton[storage.DatabaseConfig](cfg.DatabaseConfig()),
 	)
 
-	server, err := bootstrapper.HttpHandler.Provide(ctx)
+	logger, err := dc.Logger.Provide(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to create default logger: %v", err)
+	}
+
+	slog.SetDefault(logger)
+	slog.Info("starting application with config", slog.Any("config", cfg.Redacted()))
+
+	if err := runMigrations(ctx); err != nil {
+		slog.Error("failed to run migrations", slogctx.Err(err))
+	}
+	if err := serveHttp(ctx); err != nil {
+		slog.Error("failed to run http server", slogctx.Err(err))
+	}
+}
+
+func runMigrations(ctx context.Context) (err error) {
+	slogctx.Info(ctx, "running migrations")
+
+	var m *bootstrap.DependencyWithCleanup[*migrate.Migrate]
+	m, err = dc.Migrate.Provide(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start database migration: %w", err)
+	}
+	defer func() {
+		err = m.Cleanup()
+	}()
+
+	if err = m.Dependency.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			slogctx.Info(ctx, "migrations already up-to-date")
+			return nil
+		}
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	slogctx.Info(ctx, "migrated successfully")
+	return err
+}
+
+func serveHttp(ctx context.Context) (err error) {
+	slogctx.Info(ctx, "starting http server")
+
+	var server http.Handler
+	server, err = dc.HttpHandler.Provide(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create http handler: %w", err)
 	}
 
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
-	logger.Info("start listening for http requests", slog.String("addr", addr))
-	if err := http.ListenAndServe(addr, server); err != nil {
-		logger.Error("failed to serve score scoresIndex",
-			slog.Any("error", err))
+	slogctx.Info(ctx, "start listening for http requests", slog.String("addr", addr))
+
+	err = http.ListenAndServe(addr, server)
+	if err != nil {
+		return fmt.Errorf("failed to listen for requests: %w", err)
 	}
+	return nil
 }

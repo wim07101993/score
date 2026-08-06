@@ -2,8 +2,25 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
+
+type DependencyWithCleanup[T any] struct {
+	Dependency T
+	Cleanup    func() error
+}
+
+type CleanupFunc func() error
+
+func (c CleanupFunc) Append(f CleanupFunc) CleanupFunc {
+	if c == nil {
+		return f
+	}
+	return func() error {
+		return errors.Join(c(), f())
+	}
+}
 
 type Provider[T any] interface {
 	Provide(ctx context.Context) (T, error)

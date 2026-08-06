@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"score/internal/api"
-	"score/internal/httperror"
+	"score/internal/failure"
 	"score/internal/score"
 
 	"github.com/google/uuid"
@@ -28,31 +28,28 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 	case *api.PutScoreReqApplicationVndRecordareMusicxmlXML:
 		document = body.Data
 	default:
-		return nil, httperror.New(http.StatusUnsupportedMediaType,
+		return nil, api.NewProblemDetails(http.StatusUnsupportedMediaType,
 			api.ProblemDetailsErrorCodeUnsupportedMediaType, "content-type not supported")
 	}
 
 	mxml, err := io.ReadAll(document)
 	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to read request body")
+		return nil, failure.Internal("failed to read request body", err)
 	}
 
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to save score")
+		return nil, failure.Internal("failed to save score", err)
 	}
 	defer dbConn.Release()
 
 	if err := score.AddOrUpdate(ctx, dbConn, params.ScoreId.String(), string(mxml)); err != nil {
 		invalidMxmlError := &score.ErrInvalidMusicXml{}
 		if errors.As(err, &invalidMxmlError) {
-			return nil, httperror.Wrap(err, http.StatusBadRequest,
+			return nil, api.NewProblemDetails(http.StatusBadRequest,
 				api.ProblemDetailsErrorCodeInvalidMusicXML, "invalid music xml: "+err.Error())
 		}
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to save score")
+		return nil, failure.Internal("failed to save score", err)
 	}
 
 	return &api.PutScoreOK{}, nil
@@ -61,8 +58,7 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to get score")
+		return nil, failure.Internal("failed to get score", err)
 	}
 	defer dbConn.Release()
 
@@ -104,15 +100,13 @@ func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (
 
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to get scores page")
+		return nil, failure.Internal("failed to get scores page", err)
 	}
 	defer dbConn.Release()
 
 	scores, err := score.List(ctx, dbConn, changesSince, changesUntil)
 	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to get scores page")
+		return nil, failure.Internal("failed to get scores page", err)
 	}
 
 	page := make(api.GetScoresResponse, 0, len(scores))
@@ -129,7 +123,7 @@ func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (
 func parseChangeWindowMoment(moment api.ChangeWindowMoment, name string) (time.Time, error) {
 	t, err := time.Parse("20060102T150405", string(moment))
 	if err != nil {
-		return time.Time{}, httperror.Wrap(err, http.StatusBadRequest,
+		return time.Time{}, api.NewProblemDetails(http.StatusBadRequest,
 			api.ProblemDetailsErrorCodeInvalidRequest,
 			"failed to parse "+name+" as date-time (YYYYMMDDThhmmss)")
 	}
@@ -138,18 +132,16 @@ func parseChangeWindowMoment(moment api.ChangeWindowMoment, name string) (time.T
 
 func scoreLookupFailed(err error) error {
 	if errors.Is(err, score.ErrScoreNotFound) {
-		return httperror.Wrap(err, http.StatusNotFound,
+		return api.NewProblemDetails(http.StatusNotFound,
 			api.ProblemDetailsErrorCodeScoreNotFound, "no score found with the given id")
 	}
-	return httperror.Wrap(err, http.StatusInternalServerError,
-		api.ProblemDetailsErrorCodeInternalError, "failed to get score")
+	return failure.Internal("failed to get score", err)
 }
 
 func mapScoreToApi(stored *score.Score) (*api.Score, error) {
 	id, err := uuid.Parse(stored.Id)
 	if err != nil {
-		return nil, httperror.Wrap(err, http.StatusInternalServerError,
-			api.ProblemDetailsErrorCodeInternalError, "failed to get score")
+		return nil, failure.Internal("failed to get score", err)
 	}
 
 	return &api.Score{
