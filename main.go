@@ -89,7 +89,7 @@ func runMigrations(ctx context.Context) (err error) {
 		return fmt.Errorf("failed to start database migration: %w", err)
 	}
 	defer func() {
-		err = errors.Join(m.Cleanup())
+		err = errors.Join(err, m.Cleanup())
 	}()
 
 	if err = m.Dependency.Up(); err != nil {
