@@ -37,29 +37,9 @@ func New(db storage.DBConnProvider) *Handler {
 	}
 }
 
-// New builds the API and everything around it, ready to be served.
-//
-// The logger is the one every request is served under. It is handed to the
-// logging middleware and to nothing else: from there it travels in the context
-// of the request it belongs to.
-//func New(db score.DatabaseFactory, security *auth.SecurityHandler) (http.Handler, error) {
-//	h := &Handler{db: db}
-//
-//	generated, err := api.NewServer(h, security,
-//		api.WithErrorHandler(h.handleError),
-//		api.WithNotFound(h.handleNotFound),
-//		api.WithMethodNotAllowed(h.handleMethodNotAllowed),
-//		api.WithMiddleware(setAcceptHeaderToContextMiddleware))
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return cors(logging.Wrap(generated)), nil
-//}
-
-// cors answers a browser that asks whether it may talk to us, and tells every
+// Cors answers a browser that asks whether it may talk to us, and tells every
 // other response that it may.
-func cors(handler http.Handler) http.HandlerFunc {
+func Cors(handler http.Handler) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Access-Control-Allow-Origin", "*")
 		res.Header().Set("Access-Control-Allow-Headers", "*")

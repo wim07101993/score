@@ -22,12 +22,7 @@ func (pd ProblemDetails) Is(target error) bool {
 }
 
 func (pd ProblemDetails) LogValue() slog.Value {
-	attrs := []slog.Attr{
-		slog.String("title", pd.Title),
-		slog.String("title", pd.Title),
-		slog.String("title", pd.Title),
-		slog.String("title", pd.Title),
-	}
+	var attrs []slog.Attr
 	if pd.Type != "" {
 		attrs = append(attrs, slog.String("type", pd.Type))
 	}

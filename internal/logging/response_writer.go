@@ -7,7 +7,7 @@ import (
 )
 
 type wireErrorCode struct {
-	Code string `json:"code"`
+	Code string `json:"errorCode"`
 }
 
 func extractWireErrorCode(body []byte) string {

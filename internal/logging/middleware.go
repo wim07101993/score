@@ -39,7 +39,7 @@ func Wrap(handler http.Handler) http.HandlerFunc {
 			slog.String("correlation_id", correlationId))
 
 		ctx := CorrelationIdToContext(req.Context(), correlationId)
-		ctx = RequestIdToContext(ctx, uuid.NewString())
+		ctx = RequestIdToContext(ctx, requestId)
 		ctx = slogctx.NewCtx(ctx, logger)
 
 		req = req.WithContext(ctx)

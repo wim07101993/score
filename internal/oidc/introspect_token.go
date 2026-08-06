@@ -28,11 +28,11 @@ func (c *Client) IntrospectToken(ctx context.Context, token string) (bool, error
 	data.Set("token", token)
 
 	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPost, c.IntrospectionUrl, strings.NewReader(data.Encode()))
+		ctx, http.MethodPost, c.config.IntrospectionUrl, strings.NewReader(data.Encode()))
 	if err != nil {
 		return false, errors.Wrap(err, "failed to create token introspection request")
 	}
-	req.SetBasicAuth(c.ClientId, c.ClientSecret)
+	req.SetBasicAuth(c.config.ClientId, c.config.ClientSecret)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := c.httpClient.Do(req)

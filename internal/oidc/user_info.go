@@ -24,7 +24,7 @@ type UserInfo struct {
 // error: what the application does about a user without a name, or without
 // roles, is not for this package to decide.
 func (c *Client) GetUserInfo(ctx context.Context, token string) (*UserInfo, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.UserInfoUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.UserInfoUrl, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create user info request")
 	}
@@ -48,7 +48,7 @@ func (c *Client) GetUserInfo(ctx context.Context, token string) (*UserInfo, erro
 
 	name, _ := (userInfo["name"]).(string)
 	sub, _ := (userInfo["sub"]).(string)
-	roles, _ := (userInfo[c.RolesKey]).(map[string]any)
+	roles, _ := (userInfo[c.config.RolesKey]).(map[string]any)
 	return &UserInfo{
 		Name:    name,
 		Subject: sub,

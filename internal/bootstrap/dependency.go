@@ -48,7 +48,7 @@ func NewLazySingleton[T any](factory ProviderFunc[T]) *LazySingleton[T] {
 	}
 }
 
-func (s *LazySingleton[T]) Provide(ctx context.Context) (val T, err error) {
+func (s *LazySingleton[T]) Provide(ctx context.Context) (_ T, err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -58,5 +58,5 @@ func (s *LazySingleton[T]) Provide(ctx context.Context) (val T, err error) {
 		}
 	}
 
-	return val, err
+	return s.value, nil
 }
