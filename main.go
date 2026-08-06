@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/pkg/errors"
 	slogctx "github.com/veqryn/slog-context"
 	_ "golang.org/x/crypto/x509roots/fallback" // CA bundle for FROM Scratch
 )
@@ -72,9 +72,11 @@ func main() {
 
 	if err := runMigrations(ctx); err != nil {
 		slog.Error("failed to run migrations", slogctx.Err(err))
+		os.Exit(1)
 	}
 	if err := serveHttp(ctx); err != nil {
 		slog.Error("failed to run http server", slogctx.Err(err))
+		os.Exit(1)
 	}
 }
 
@@ -87,7 +89,7 @@ func runMigrations(ctx context.Context) (err error) {
 		return fmt.Errorf("failed to start database migration: %w", err)
 	}
 	defer func() {
-		err = m.Cleanup()
+		err = errors.Join(m.Cleanup())
 	}()
 
 	if err = m.Dependency.Up(); err != nil {

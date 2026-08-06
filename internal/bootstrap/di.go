@@ -23,10 +23,7 @@ import (
 type DependencyContainer struct {
 	OidcClientConfig Provider[oidc.ClientConfig]
 	DatabaseConfig   Provider[storage.DatabaseConfig]
-	// Logger is the one every request is served under. It is seeded into the
-	// context of each request by the logging middleware, and everything below
-	// reaches it from there rather than being handed one.
-	Logger Provider[*slog.Logger]
+	Logger           Provider[*slog.Logger]
 
 	ApiServer           Provider[*api.Server]
 	ApiServerOpts       Provider[[]api.ServerOption]
@@ -76,22 +73,14 @@ func DefaultDependencyContainer(
 	return dc
 }
 
-// NewHttpHandler is the whole thing a request meets, outermost first: the cors
-// headers a browser needs, then the logging that gives the request its
-// correlation id and the logger everything below writes to, then the generated
-// api server.
 func (di *DependencyContainer) NewHttpHandler(ctx context.Context) (_ http.Handler, err error) {
 	var apiServer *api.Server
-	var logger *slog.Logger
 
 	if apiServer, err = di.ApiServer.Provide(ctx); err != nil {
 		return nil, err
 	}
-	if logger, err = di.Logger.Provide(ctx); err != nil {
-		return nil, err
-	}
 
-	return server.Cors(logging.WithLogger(logger, logging.Wrap(apiServer))), nil
+	return server.Cors(logging.Wrap(apiServer)), nil
 }
 
 func (di *DependencyContainer) NewApiServer(ctx context.Context) (_ *api.Server, err error) {
@@ -172,8 +161,6 @@ func (di *DependencyContainer) NewLogger(ctx context.Context) (_ *slog.Logger, e
 }
 
 func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWithCleanup[*migrate.Migrate], err error) {
-	var cleanup CleanupFunc
-
 	config, err := di.DatabaseConfig.Provide(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database config: %w", err)
@@ -183,13 +170,11 @@ func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWit
 	if err != nil {
 		return nil, err
 	}
-	cleanup = cleanup.Append(db.Close)
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initiate postgres driver: %w", errors.Join(err, cleanup()))
+		return nil, fmt.Errorf("failed to initiate postgres driver: %w", errors.Join(err, db.Close()))
 	}
-	cleanup = cleanup.Append(driver.Close)
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://db/migrations",
@@ -197,15 +182,13 @@ func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWit
 		driver,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create migration runner: %w", errors.Join(err, cleanup()))
+		return nil, fmt.Errorf("failed to create migration runner: %w", errors.Join(err, driver.Close()))
 	}
-	cleanup = cleanup.Append(func() error {
-		src, db := m.Close()
-		return errors.Join(src, db)
-	})
-
 	return &DependencyWithCleanup[*migrate.Migrate]{
 		Dependency: m,
-		Cleanup:    cleanup,
+		Cleanup: func() error {
+			src, db := m.Close()
+			return errors.Join(src, db)
+		},
 	}, nil
 }
