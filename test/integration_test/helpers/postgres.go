@@ -132,12 +132,18 @@ func Migrator(ctx context.Context, databaseUrl string) (*bootstrap.DependencyWit
 	return dc.Migrate.Provide(ctx)
 }
 
-// MigrateUp brings the given database up to the latest migration.
-func MigrateUp(ctx context.Context, databaseUrl string) (err error) {
-	migrator, err := Migrator(ctx, databaseUrl)
+// MigrateUp brings the harness database up to the latest migration, through the
+// container the API is served from — the same path the application takes on
+// start-up.
+func (h *Harness) MigrateUp(ctx context.Context) error {
+	migrator, err := h.Migrate.Provide(ctx)
 	if err != nil {
 		return err
 	}
+	return migrateUp(migrator)
+}
+
+func migrateUp(migrator *bootstrap.DependencyWithCleanup[*migrate.Migrate]) (err error) {
 	defer func() { err = errors.Join(err, migrator.Cleanup()) }()
 
 	if err := migrator.Dependency.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {

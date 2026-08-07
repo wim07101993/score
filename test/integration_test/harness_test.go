@@ -6,4 +6,5 @@ import (
 	"score/test/integration_test/helpers"
 )
 
-var harness helpers.Harness
+// harness is built by TestMain before any test runs.
+var harness *helpers.Harness

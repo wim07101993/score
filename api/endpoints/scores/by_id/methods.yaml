@@ -8,6 +8,7 @@
 
 parameters:
   - $ref: '../../../parameters/score_id.yaml'
+  - $ref: '../../../parameters/correlation_id.yaml'
 
 get:
   operationId: getScore
@@ -22,6 +23,8 @@ get:
   tags: [scores]
   security:
     - oauth2: [score_viewer]
+  parameters:
+    - $ref: '../../../parameters/accept.yaml'
   responses:
     '200':
       description: The score.

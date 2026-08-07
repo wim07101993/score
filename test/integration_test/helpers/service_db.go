@@ -5,15 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 )
-
-func (h *Harness) EnsureDatabase(t *testing.T) *pgxpool.Pool {
-	t.Helper()
-	require.NotNil(t, h.DB, "the harness has no database; TestMain should have set it")
-	return h.DB
-}
 
 // TruncateScores empties the score tables so a test can make assertions about
 // everything the API stored, not just about its own rows.

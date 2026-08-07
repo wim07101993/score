@@ -39,13 +39,6 @@ func runTests(m *testing.M) int {
 	}
 	defer stop()
 
-	// The application migrates itself on start-up, so the tests run against a
-	// fully migrated database too.
-	if err := helpers.MigrateUp(ctx, databaseUrl); err != nil {
-		fmt.Fprintf(os.Stderr, "setup: failed to migrate the database: %v\n", err)
-		return 1
-	}
-
 	pool, err := pgxpool.New(ctx, databaseUrl)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "setup: failed to connect to the database: %v\n", err)
@@ -53,8 +46,14 @@ func runTests(m *testing.M) int {
 	}
 	defer pool.Close()
 
-	harness.DB = pool
-	harness.DatabaseUrl = databaseUrl
+	harness = helpers.NewHarness(databaseUrl, pool)
+
+	// The application migrates itself on start-up, so the tests run against a
+	// fully migrated database too.
+	if err := harness.MigrateUp(ctx); err != nil {
+		fmt.Fprintf(os.Stderr, "setup: failed to migrate the database: %v\n", err)
+		return 1
+	}
 
 	return m.Run()
 }

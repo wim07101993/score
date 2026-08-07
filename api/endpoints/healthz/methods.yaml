@@ -9,6 +9,8 @@ get:
   description: Answers `OK` as long as the server is serving. Public.
   tags: [health]
   security: []
+  parameters:
+    - $ref: '../../parameters/correlation_id.yaml'
   responses:
     '200':
       description: The server is up.

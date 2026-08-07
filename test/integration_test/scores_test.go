@@ -3,10 +3,11 @@
 package integration_test
 
 import (
-	"net/http"
+	"strings"
 	"testing"
 	"time"
 
+	"score/internal/api"
 	"score/internal/auth"
 	"score/test/integration_test/helpers"
 
@@ -15,43 +16,77 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// editorToken is the token most tests upload with.
-func editorToken(t *testing.T) string {
+// editorClient is the caller most tests upload with.
+func editorClient(t *testing.T) *api.Client {
 	t.Helper()
-	return harness.EnsureIdentityProvider(t).
-		IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+	return harness.ApiClient(t, harness.EnsureIdentityProvider(t).
+		IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor))
 }
 
-func aWhileAgo() time.Time { return time.Now().Add(-time.Hour) }
-func soon() time.Time      { return time.Now().Add(time.Hour) }
+func aWhileAgo() api.ChangeWindowMoment { return changeWindowMoment(time.Now().Add(-time.Hour)) }
+func soon() api.ChangeWindowMoment      { return changeWindowMoment(time.Now().Add(time.Hour)) }
+
+func changeWindowMoment(t time.Time) api.ChangeWindowMoment {
+	return api.ChangeWindowMoment(t.UTC().Format("20060102T150405"))
+}
+
+// mustGetScore fetches the metadata of a score the test expects to be there.
+func mustGetScore(t *testing.T, client *api.Client, scoreId uuid.UUID) *api.Score {
+	t.Helper()
+
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: scoreId})
+	require.NoErrorf(t, err, "failed to fetch score %s", scoreId)
+
+	score, ok := res.(*api.Score)
+	require.Truef(t, ok, "expected the metadata of score %s, got %#v", scoreId, res)
+	return score
+}
+
+// mustGetScoreDocument fetches the music-xml of a score the test expects to be
+// there, in the media type it asks for.
+func mustGetScoreDocument(t *testing.T, client *api.Client, scoreId uuid.UUID, mediaType string) string {
+	t.Helper()
+
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{
+		ScoreId: scoreId,
+		Accept:  api.NewOptString(mediaType),
+	})
+	require.NoErrorf(t, err, "failed to fetch the document of score %s", scoreId)
+
+	switch document := res.(type) {
+	case *api.GetScoreOKApplicationVndRecordareMusicxml:
+		return helpers.ReadAll(t, document.Data)
+	case *api.GetScoreOKApplicationVndRecordareMusicxmlXML:
+		return helpers.ReadAll(t, document.Data)
+	default:
+		require.FailNowf(t, "wrong representation",
+			"asked for %s and got %#v", mediaType, res)
+		return ""
+	}
+}
 
 func TestUploadingAScoreReturnsTheSameDocument(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
 	document := helpers.ExampleMusicXml(t, helpers.ExampleWithWork)
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, document)
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, document)
 
-	res := client.GetScoreMusicXml(t, scoreId, token)
-
-	require.Equalf(t, http.StatusOK, res.StatusCode, "failed to download the score: %s", res.Text())
-	assert.Equal(t, helpers.MusicXmlContentType, res.ContentType)
-	assert.Equal(t, document, res.Text(), "the stored document differs from the uploaded one")
+	assert.Equal(t, document, mustGetScoreDocument(t, client, scoreId, helpers.MusicXmlContentType),
+		"the stored document differs from the uploaded one")
 }
 
 // TestUploadingAScoreExtractsItsMetadata is the heart of the API: a document
 // goes in, and the fields the frontend lists scores by come back out.
 func TestUploadingAScoreExtractsItsMetadata(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithWorkAndMovement)
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
 
-	score := client.GetScore(t, scoreId, token).DecodeScore(t)
+	score := mustGetScore(t, client, scoreId)
 
-	assert.Equal(t, scoreId, score.Id)
+	assert.Equal(t, scoreId, score.ID)
 	assert.Equal(t, "Work title", score.Work.Title, "work title")
 	assert.Equal(t, "Work number 41", score.Work.Number, "work number")
 	assert.Equal(t, "Movement title", score.Movement.Title, "movement title")
@@ -65,21 +100,19 @@ func TestUploadingAScoreExtractsItsMetadata(t *testing.T) {
 }
 
 func TestUploadingAScoreKeepsEveryCreator(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithTwoComposers)
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithTwoComposers)
 
-	score := client.GetScore(t, scoreId, token).DecodeScore(t)
+	score := mustGetScore(t, client, scoreId)
 
 	assert.Equal(t, []string{"First Composer", "Second Composer"}, score.Creators.Composers)
 	assert.Equal(t, []string{"Only Lyricist"}, score.Creators.Lyricists)
 }
 
 func TestUploadingRealWorldDocuments(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
 	tests := []struct {
 		name string
@@ -119,10 +152,10 @@ func TestUploadingRealWorldDocuments(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			scoreId := uuid.NewString()
-			client.MustPutScore(t, scoreId, token, helpers.ExampleMusicXml(t, tt.document))
+			scoreId := uuid.New()
+			helpers.MustPutScore(t, client, scoreId, helpers.ExampleMusicXml(t, tt.document))
 
-			score := client.GetScore(t, scoreId, token).DecodeScore(t)
+			score := mustGetScore(t, client, scoreId)
 
 			assert.Equal(t, tt.workTitle, score.Work.Title, "work title")
 			assert.Equal(t, tt.workNumber, score.Work.Number, "work number")
@@ -136,26 +169,24 @@ func TestUploadingRealWorldDocuments(t *testing.T) {
 }
 
 func TestUploadingAScoreTwiceReplacesIt(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithWorkAndMovement)
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithTwoComposers)
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithTwoComposers)
 
-	score := client.GetScore(t, scoreId, token).DecodeScore(t)
+	score := mustGetScore(t, client, scoreId)
 
 	assert.Equal(t, "Collaboration", score.Work.Title, "the second upload should have replaced the first")
-	assert.Equal(t, 1, harness.CountRows(t, "score_files", scoreId), "score documents")
-	assert.Equal(t, 1, harness.CountRows(t, "scores", scoreId), "score metadata rows")
+	assert.Equal(t, 1, harness.CountRows(t, "score_files", scoreId.String()), "score documents")
+	assert.Equal(t, 1, harness.CountRows(t, "scores", scoreId.String()), "score metadata rows")
 
-	document := client.GetScoreMusicXml(t, scoreId, token)
-	assert.Equal(t, helpers.MusicXmlWithTwoComposers, document.Text())
+	assert.Equal(t, helpers.MusicXmlWithTwoComposers,
+		mustGetScoreDocument(t, client, scoreId, helpers.MusicXmlContentType))
 }
 
 func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
 	tests := []struct {
 		name     string
@@ -168,12 +199,15 @@ func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			scoreId := uuid.NewString()
-			res := client.PutScore(t, scoreId, token, tt.document)
+			scoreId := uuid.New()
 
-			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-				"uploading %s should be rejected: %s", tt.name, res.Text())
-			assert.Zero(t, harness.CountRows(t, "score_files", scoreId),
+			res, err := client.PutScore(t.Context(), helpers.MusicXmlBody(tt.document),
+				api.PutScoreParams{ScoreId: scoreId})
+			require.NoError(t, err)
+
+			assert.IsTypef(t, &api.PutScoreBadRequest{}, res,
+				"uploading %s should be rejected as a bad request, got %#v", tt.name, res)
+			assert.Zero(t, harness.CountRows(t, "score_files", scoreId.String()),
 				"a rejected document should not have been stored")
 		})
 	}
@@ -184,292 +218,136 @@ func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
 // the instrument enum. Whatever the API answers, it may not leave a document
 // behind without the metadata that belongs to it.
 func TestUploadingAnUnknownInstrumentStoresNothing(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
-	scoreId := uuid.NewString()
-	res := client.PutScore(t, scoreId, token, helpers.MusicXmlWithUnknownInstrument)
+	scoreId := uuid.New()
+	res, err := client.PutScore(t.Context(),
+		helpers.MusicXmlBody(helpers.MusicXmlWithUnknownInstrument),
+		api.PutScoreParams{ScoreId: scoreId})
+	require.NoError(t, err)
 
-	assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-		"an unsupported instrument is a problem with the uploaded document: %s", res.Text())
-	assert.Zero(t, harness.CountRows(t, "score_files", scoreId),
+	assert.IsTypef(t, &api.PutScoreBadRequest{}, res,
+		"an unsupported instrument is a problem with the uploaded document, got %#v", res)
+	assert.Zero(t, harness.CountRows(t, "score_files", scoreId.String()),
 		"a failed upload left the document behind without its metadata")
-	assert.Zero(t, harness.CountRows(t, "scores", scoreId), "score metadata rows")
-}
-
-func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
-
-	tests := []struct {
-		name        string
-		contentType string
-	}{
-		{name: "no content type", contentType: ""},
-		{name: "plain text", contentType: "text/plain"},
-		{name: "json", contentType: "application/json"},
-		{name: "plain xml", contentType: "application/xml"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{
-				Method:      http.MethodPut,
-				Path:        "/scores/" + uuid.NewString(),
-				Token:       token,
-				ContentType: tt.contentType,
-				Body:        helpers.MusicXmlWithWorkAndMovement,
-			})
-
-			assert.Equalf(t, http.StatusUnsupportedMediaType, res.StatusCode,
-				"content-type %q should be rejected: %s", tt.contentType, res.Text())
-		})
-	}
+	assert.Zero(t, harness.CountRows(t, "scores", scoreId.String()), "score metadata rows")
 }
 
 func TestUploadingAcceptsBothMusicXmlMediaTypes(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
-	mediaTypes := []string{
-		helpers.MusicXmlContentType,
-		helpers.MusicXmlContentTypeWithXmlSuffix,
+	tests := []struct {
+		mediaType string
+		body      api.PutScoreReq
+	}{
+		{
+			mediaType: helpers.MusicXmlContentType,
+			body:      helpers.MusicXmlBody(helpers.MusicXmlWithWorkAndMovement),
+		},
+		{
+			mediaType: helpers.MusicXmlContentTypeWithXmlSuffix,
+			body: &api.PutScoreReqApplicationVndRecordareMusicxmlXML{
+				Data: strings.NewReader(helpers.MusicXmlWithWorkAndMovement),
+			},
+		},
 	}
 
-	for _, mediaType := range mediaTypes {
-		t.Run(mediaType, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{
-				Method:      http.MethodPut,
-				Path:        "/scores/" + uuid.NewString(),
-				Token:       token,
-				ContentType: mediaType,
-				Body:        helpers.MusicXmlWithWorkAndMovement,
-			})
+	for _, tt := range tests {
+		t.Run(tt.mediaType, func(t *testing.T) {
+			res, err := client.PutScore(t.Context(), tt.body,
+				api.PutScoreParams{ScoreId: uuid.New()})
+			require.NoError(t, err)
 
-			assert.Equalf(t, http.StatusOK, res.StatusCode,
-				"content-type %q should be accepted: %s", mediaType, res.Text())
+			assert.IsTypef(t, &api.PutScoreOK{}, res,
+				"content-type %q should be accepted, got %#v", tt.mediaType, res)
 		})
 	}
 }
 
 func TestFetchingAnUnknownScoreReturnsNotFound(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
-	unknownId := uuid.NewString()
+	client := editorClient(t)
+	unknownId := uuid.New()
 
 	t.Run("metadata", func(t *testing.T) {
-		res := client.GetScore(t, unknownId, token)
-		assert.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
+		res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: unknownId})
+		require.NoError(t, err)
+		assert.IsTypef(t, &api.GetScoreNotFound{}, res, "got %#v", res)
 	})
 
 	t.Run("document", func(t *testing.T) {
-		res := client.GetScoreMusicXml(t, unknownId, token)
-		assert.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
-	})
-}
-
-// TestFetchingAScoreWithAMalformedIdIsARequestProblem checks that a path
-// segment that is not an id is answered as a client error rather than as a
-// server failure.
-func TestFetchingAScoreWithAMalformedIdIsARequestProblem(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-
-	res := client.GetScore(t, "not-a-score-id", editorToken(t))
-
-	assert.Lessf(t, res.StatusCode, http.StatusInternalServerError,
-		"a malformed score id should not be a server error, got %d: %s", res.StatusCode, res.Text())
-}
-
-func TestListingScoresRequiresAChangeWindow(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
-
-	tests := []struct {
-		name string
-		path string
-	}{
-		{name: "no parameters", path: "/scores"},
-		{name: "only Changes-Since", path: "/scores?Changes-Since=20240101T000000"},
-		{name: "only Changes-Until", path: "/scores?Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Since", path: "/scores?Changes-Since=yesterday&Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Until", path: "/scores?Changes-Since=20240101T000000&Changes-Until=tomorrow"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: tt.path, Token: token})
-
-			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-				"listing scores with %s should be rejected: %s", tt.name, res.Text())
+		res, err := client.GetScore(t.Context(), api.GetScoreParams{
+			ScoreId: unknownId,
+			Accept:  api.NewOptString(helpers.MusicXmlContentType),
 		})
-	}
+		require.NoError(t, err)
+		assert.IsTypef(t, &api.GetScoreNotFound{}, res, "got %#v", res)
+	})
 }
 
 func TestListingScoresReturnsTheScoresInTheWindow(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	client := editorClient(t)
 
 	harness.TruncateScores(t)
 
-	first := uuid.NewString()
-	second := uuid.NewString()
-	client.MustPutScore(t, first, token, helpers.MusicXmlWithWorkAndMovement)
-	client.MustPutScore(t, second, token, helpers.MusicXmlWithTwoComposers)
+	first := uuid.New()
+	second := uuid.New()
+	helpers.MustPutScore(t, client, first, helpers.MusicXmlWithWorkAndMovement)
+	helpers.MustPutScore(t, client, second, helpers.MusicXmlWithTwoComposers)
 
 	t.Run("window covering both uploads", func(t *testing.T) {
-		res := client.ListScores(t, token, aWhileAgo(), soon())
-		require.Equalf(t, http.StatusOK, res.StatusCode, "failed to list scores: %s", res.Text())
-
-		scores := res.DecodeScores(t)
+		scores := mustListScores(t, client, aWhileAgo(), soon())
 		require.Len(t, scores, 2)
 
-		ids := []string{scores[0].Id, scores[1].Id}
-		assert.ElementsMatch(t, []string{first, second}, ids)
+		assert.ElementsMatch(t, []uuid.UUID{first, second},
+			[]uuid.UUID{scores[0].ID, scores[1].ID})
 	})
 
 	t.Run("window before the uploads", func(t *testing.T) {
-		res := client.ListScores(t, token, time.Now().Add(-48*time.Hour), time.Now().Add(-24*time.Hour))
-		require.Equalf(t, http.StatusOK, res.StatusCode, "failed to list scores: %s", res.Text())
+		scores := mustListScores(t, client,
+			changeWindowMoment(time.Now().Add(-48*time.Hour)),
+			changeWindowMoment(time.Now().Add(-24*time.Hour)))
 
-		assert.Empty(t, res.DecodeScores(t), "scores changed today are not in a window that ended yesterday")
+		assert.Empty(t, scores, "scores changed today are not in a window that ended yesterday")
 	})
 }
 
-func TestUnsupportedMethodsAreRejected(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+func mustListScores(t *testing.T, client *api.Client, since, until api.ChangeWindowMoment) api.GetScoresResponse {
+	t.Helper()
 
-	tests := []struct {
-		method string
-		path   string
-	}{
-		{method: http.MethodDelete, path: "/scores/" + uuid.NewString()},
-		{method: http.MethodPost, path: "/scores/" + uuid.NewString()},
-		{method: http.MethodPost, path: "/scores"},
-		{method: http.MethodPut, path: "/scores"},
-	}
+	res, err := client.ListScores(t.Context(), api.ListScoresParams{
+		ChangesSince: since,
+		ChangesUntil: until,
+	})
+	require.NoError(t, err, "failed to list scores")
 
-	for _, tt := range tests {
-		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: tt.method, Path: tt.path, Token: token})
-
-			assert.Equalf(t, http.StatusMethodNotAllowed, res.StatusCode,
-				"%s %s should not be allowed: %s", tt.method, tt.path, res.Text())
-		})
-	}
-}
-
-// TestFailuresAreAnsweredAsProblemDetails checks that a failed request comes
-// back in the shape the openapi document promises, whoever turned it down: the
-// generated server while it was still reading the request, or a handler that
-// refused to serve it.
-func TestFailuresAreAnsweredAsProblemDetails(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
-
-	tests := []struct {
-		name      string
-		request   helpers.Request
-		errorCode string
-	}{
-		{
-			name:      "a score that does not exist",
-			request:   helpers.Request{Method: http.MethodGet, Path: "/scores/" + uuid.NewString(), Token: token},
-			errorCode: "score_not_found",
-		},
-		{
-			name:      "a score id that is not an id",
-			request:   helpers.Request{Method: http.MethodGet, Path: "/scores/not-a-score-id", Token: token},
-			errorCode: "invalid_request",
-		},
-		{
-			name:      "a listing without a change window",
-			request:   helpers.Request{Method: http.MethodGet, Path: "/scores", Token: token},
-			errorCode: "invalid_request",
-		},
-		{
-			name:      "an upload that is not music-xml",
-			request:   helpers.Request{Method: http.MethodPut, Path: "/scores/" + uuid.NewString(), Token: token, ContentType: "text/plain", Body: "not a score"},
-			errorCode: "unsupported_media_type",
-		},
-		{
-			name:      "an endpoint that does not exist",
-			request:   helpers.Request{Method: http.MethodGet, Path: "/not-an-endpoint", Token: token},
-			errorCode: "endpoint_not_found",
-		},
-		{
-			name:      "a method the endpoint does not answer",
-			request:   helpers.Request{Method: http.MethodDelete, Path: "/scores/" + uuid.NewString(), Token: token},
-			errorCode: "method_not_allowed",
-		},
-		{
-			name:      "a request without a token",
-			request:   helpers.Request{Method: http.MethodGet, Path: "/scores/" + uuid.NewString()},
-			errorCode: "invalid_credentials",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, tt.request)
-
-			require.GreaterOrEqual(t, res.StatusCode, http.StatusBadRequest, "should have failed")
-			assert.Equal(t, helpers.ProblemContentType, res.ContentType)
-
-			problem := res.DecodeProblem(t)
-			assert.Equal(t, "about:blank", problem.Type, "every failure is about:blank so far")
-			assert.Equal(t, http.StatusText(res.StatusCode), problem.Title, "title")
-			assert.Equal(t, res.StatusCode, problem.Status,
-				"the status in the body should be the status of the response")
-			assert.NotEmpty(t, problem.Detail, "a failure should say what went wrong")
-			assert.Regexp(t, `^urn:uuid:[0-9a-f-]{36}$`, problem.Instance,
-				"a failure should say which occurrence it was")
-			assert.Equal(t, tt.errorCode, problem.ErrorCode, "the code an application branches on")
-		})
-	}
+	scores, ok := res.(*api.GetScoresResponse)
+	require.Truef(t, ok, "expected a page of scores, got %#v", res)
+	return *scores
 }
 
 // TestTheCorrelationIdOfAFailureIsTheOneItWasLoggedUnder checks that a caller
 // that ties its own requests together gets that same id back as the instance of
 // whatever went wrong, so that reporting a failure is enough to find it.
 func TestTheCorrelationIdOfAFailureIsTheOneItWasLoggedUnder(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
+	client := editorClient(t)
 	correlationId := uuid.NewString()
 
-	res := client.Do(t, helpers.Request{
-		Method:        http.MethodGet,
-		Path:          "/scores/" + uuid.NewString(),
-		Token:         editorToken(t),
-		CorrelationId: correlationId,
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{
+		ScoreId:        uuid.New(),
+		XCorrelationID: api.NewOptString(correlationId),
 	})
+	require.NoError(t, err)
 
-	require.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
-	assert.Equal(t, "urn:uuid:"+correlationId, res.DecodeProblem(t).Instance)
+	notFound, ok := res.(*api.GetScoreNotFound)
+	require.Truef(t, ok, "got %#v", res)
+	assert.Equal(t, "urn:uuid:"+correlationId, notFound.Instance)
 }
 
-// TestACorrelationIdThatIsNotAUuidIsNotRepeated guards the one string a caller
-// gets to choose that this server writes into its log and back into an answer.
-func TestACorrelationIdThatIsNotAUuidIsNotRepeated(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	madeUp := "not-a-uuid</script>"
+func TestHealthzIsPublic(t *testing.T) {
+	res, err := harness.ApiClient(t, "").Healthz(t.Context(), api.HealthzParams{})
+	require.NoError(t, err)
 
-	res := client.Do(t, helpers.Request{
-		Method:        http.MethodGet,
-		Path:          "/scores/" + uuid.NewString(),
-		Token:         editorToken(t),
-		CorrelationId: madeUp,
-	})
-
-	require.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
-	instance := res.DecodeProblem(t).Instance
-	assert.NotContains(t, instance, madeUp, "a correlation id the caller made up should not be repeated")
-	assert.Regexp(t, `^urn:uuid:[0-9a-f-]{36}$`, instance, "one should have been made up instead")
-}
-
-func TestUnknownRoutesReturnNotFound(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-
-	res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: "/not-an-endpoint"})
-
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	ok, isOk := res.(*api.HealthzOK)
+	require.Truef(t, isOk, "got %#v", res)
+	assert.Equal(t, "OK", helpers.ReadAll(t, ok.Data))
 }

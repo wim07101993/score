@@ -22,6 +22,7 @@ get:
   parameters:
     - $ref: '../../parameters/changes_since.yaml'
     - $ref: '../../parameters/changes_until.yaml'
+    - $ref: '../../parameters/correlation_id.yaml'
   responses:
     '200':
       description: The scores that changed within the window.
