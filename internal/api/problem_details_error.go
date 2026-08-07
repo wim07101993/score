@@ -114,7 +114,7 @@ func (pd ProblemDetailsError) ProblemDetails(ctx context.Context) ProblemDetails
 		for key, val := range pd.AdditionalData {
 			jsonValue, err := json.Marshal(val)
 			if err != nil {
-				slogctx.Error(ctx, "failed to marshal full err details map", slogctx.Err(err))
+				slogctx.Error(ctx, "failed to marshal full additional data", slogctx.Err(err))
 				continue
 			}
 			additionalProps[key] = jsonValue

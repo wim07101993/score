@@ -44,6 +44,11 @@ var (
 		api.ProblemDetailsErrorCodeInternalError,
 		"failed to read request body",
 	)
+	ErrGetScore = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to get score",
+	)
 	ErrSaveScore = api.NewProblemDetailsError(
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
@@ -54,9 +59,9 @@ var (
 		api.ProblemDetailsErrorCodeInternalError,
 		"failed to get scores page",
 	)
-	ErrUnexpected = api.NewProblemDetailsError(
+	ErrUnknown = api.NewProblemDetailsError(
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
-		"an unexpected error occurred",
+		"an unknown error occurred",
 	)
 )

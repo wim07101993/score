@@ -47,7 +47,21 @@ func requestErrToProblemDetails(req *http.Request, err error) api.ProblemDetails
 		return ogenErrToProblemDetails(ogenErr)
 	}
 
-	return ErrUnexpected.WithParent(err)
+	return ErrUnknown.WithParent(err)
+}
+
+func errToProblemDetails(err error) api.ProblemDetailsError {
+	var problemDetailsErr api.ProblemDetailsError
+	if errors.As(err, &problemDetailsErr) {
+		return problemDetailsErr
+	}
+
+	var ogenErr ogenerrors.Error
+	if errors.As(err, &ogenErr) {
+		return ogenErrToProblemDetails(ogenErr)
+	}
+
+	return ErrUnknown.WithParent(err)
 }
 
 func ogenErrToProblemDetails(err ogenerrors.Error) api.ProblemDetailsError {
@@ -57,7 +71,7 @@ func ogenErrToProblemDetails(err ogenerrors.Error) api.ProblemDetailsError {
 			WithParent(err)
 	}
 
-	return ErrUnexpected.WithParent(err)
+	return ErrUnknown.WithParent(err)
 }
 
 func errorCodeOfStatus(status int) api.ProblemDetailsErrorCode {

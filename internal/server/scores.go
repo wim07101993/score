@@ -54,7 +54,7 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, ErrUnexpected.WithParent(err)
+		return nil, ErrGetScore.WithParent(err)
 	}
 	defer dbConn.Release()
 
@@ -64,7 +64,7 @@ func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.
 		if errors.Is(err, score.ErrScoreNotFound) {
 			return ErrScoreNotFound
 		}
-		return ErrUnexpected.WithParent(err)
+		return ErrGetScore.WithParent(err)
 	}
 
 	switch params.Accept.Or("") {
@@ -137,7 +137,7 @@ func parseChangeWindowMoment(moment api.ChangeWindowMoment, name string) (time.T
 func mapScoreToApi(stored *score.Score) (*api.Score, error) {
 	id, err := uuid.Parse(stored.Id)
 	if err != nil {
-		return nil, ErrUnexpected.WithParent(err)
+		return nil, ErrUnknown.WithParent(err)
 	}
 
 	return &api.Score{
