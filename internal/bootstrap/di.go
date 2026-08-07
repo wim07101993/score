@@ -88,10 +88,10 @@ func (di *DependencyContainer) NewHttpServer(ctx context.Context) (_ *http.Serve
 	var handler http.Handler
 
 	if config, err = di.ServerConfig.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get server config: %w", err)
 	}
 	if handler, err = di.HttpHandler.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get http handler: %w", err)
 	}
 
 	return server.NewHttpServer(config, handler), nil
@@ -102,10 +102,10 @@ func (di *DependencyContainer) NewHttpHandler(ctx context.Context) (_ http.Handl
 	var apiServer *api.Server
 
 	if config, err = di.ServerConfig.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get server config: %w", err)
 	}
 	if apiServer, err = di.ApiServer.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get api server: %w", err)
 	}
 
 	return server.Cors(logging.Wrap(
@@ -118,16 +118,20 @@ func (di *DependencyContainer) NewApiServer(ctx context.Context) (_ *api.Server,
 	var opts []api.ServerOption
 
 	if router, err = di.ApiHandler.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get api handler: %w", err)
 	}
 	if sec, err = di.ApiSecurityHandler.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get api security handler: %w", err)
 	}
 	if opts, err = di.ApiServerOpts.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get api server options: %w", err)
 	}
 
-	return api.NewServer(router, sec, opts...)
+	apiServer, err := api.NewServer(router, sec, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create api server: %w", err)
+	}
+	return apiServer, nil
 }
 
 func (di *DependencyContainer) NewServerHandler(ctx context.Context) (_ *server.Handler, err error) {
@@ -148,7 +152,7 @@ func (di *DependencyContainer) NewAuthSecurityHandler(ctx context.Context) (_ *a
 	var oidcClient auth.OidcClient
 
 	if oidcClient, err = di.AuthOidcClient.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get oidc client: %w", err)
 	}
 
 	return auth.NewSecurityHandler(oidcClient), nil
@@ -158,7 +162,7 @@ func (di *DependencyContainer) NewOidcClient(ctx context.Context) (_ *oidc.Clien
 	var config oidc.ClientConfig
 
 	if config, err = di.OidcClientConfig.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get oidc client config: %w", err)
 	}
 
 	return oidc.NewClient(config), nil
@@ -168,20 +172,28 @@ func (di *DependencyContainer) NewPgPool(ctx context.Context) (_ *pgxpool.Pool, 
 	var config storage.DatabaseConfig
 
 	if config, err = di.DatabaseConfig.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get database config: %w", err)
 	}
 
-	return pgxpool.New(ctx, config.ConnectionString)
+	pool, err := pgxpool.New(ctx, config.ConnectionString)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create database connection pool: %w", err)
+	}
+	return pool, nil
 }
 
 func (di *DependencyContainer) NewPgConn(ctx context.Context) (_ *pgxpool.Conn, err error) {
 	var pool *pgxpool.Pool
 
 	if pool, err = di.PgxPool.Provide(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get database connection pool: %w", err)
 	}
 
-	return pool.Acquire(ctx)
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire a database connection: %w", err)
+	}
+	return conn, nil
 }
 
 func (di *DependencyContainer) NewLogger(ctx context.Context) (_ *slog.Logger, err error) {
@@ -201,7 +213,7 @@ func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWit
 
 	db, err := sql.Open("postgres", config.ConnectionString)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open a database connection: %w", err)
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
@@ -230,6 +242,7 @@ func (di *DependencyContainer) NewScope() *DependencyContainer {
 	return &DependencyContainer{
 		OidcClientConfig: ScopeProvider(di.OidcClientConfig),
 		DatabaseConfig:   ScopeProvider(di.DatabaseConfig),
+		ServerConfig:     ScopeProvider(di.ServerConfig),
 		Logger:           ScopeProvider(di.Logger),
 		MigrationsSource: ScopeProvider(di.MigrationsSource),
 
@@ -242,6 +255,7 @@ func (di *DependencyContainer) NewScope() *DependencyContainer {
 		PgxConn:             ScopeProvider(di.PgxConn),
 		Migrate:             ScopeProvider(di.Migrate),
 
+		HttpServer:         ScopeProvider(di.HttpServer),
 		HttpHandler:        ScopeProvider(di.HttpHandler),
 		ApiSecurityHandler: ScopeProvider(di.ApiSecurityHandler),
 		ApiHandler:         ScopeProvider(di.ApiHandler),
