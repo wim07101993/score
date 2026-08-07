@@ -24,7 +24,7 @@ type Handler interface {
 	// Answers `OK` as long as the server is serving. Public.
 	//
 	// GET /healthz
-	Healthz(ctx context.Context) (HealthzRes, error)
+	Healthz(ctx context.Context, params HealthzParams) (HealthzRes, error)
 	// ListScores implements listScores operation.
 	//
 	// Returns the metadata of every score whose last change falls within the given window, most recently

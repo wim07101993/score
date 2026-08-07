@@ -64,7 +64,7 @@ func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.
 
 	scoreId := params.ScoreId.String()
 
-	switch getAcceptHeaderFromContext(ctx) {
+	switch params.Accept.Or("") {
 	case musicXmlMediaType:
 		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {

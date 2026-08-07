@@ -11,12 +11,15 @@ import (
 )
 
 var (
+	rn4AllowedHeaders = map[string]string{
+		"GET": "X-Correlation-Id",
+	}
 	rn5AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET": "Authorization,X-Correlation-Id",
 	}
 	rn2AllowedHeaders = map[string]string{
-		"GET": "Authorization",
-		"PUT": "Authorization,Content-Type",
+		"GET": "Accept,Authorization,X-Correlation-Id",
+		"PUT": "Authorization,Content-Type,X-Correlation-Id",
 	}
 )
 
@@ -87,7 +90,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET",
-							allowedHeaders: nil,
+							allowedHeaders: rn4AllowedHeaders,
 							acceptPost:     "",
 							acceptPatch:    "",
 						})

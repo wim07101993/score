@@ -113,8 +113,7 @@ func (di *DependencyContainer) NewServerHandler(ctx context.Context) (_ *server.
 func (di *DependencyContainer) NewApiServerOpts(ctx context.Context) (_ []api.ServerOption, err error) {
 	return []api.ServerOption{
 		api.WithMiddleware(
-			logging.AddOperationIdToContext(),
-			server.SetAcceptHeaderToContext),
+			logging.AddOperationIdToContext()),
 		api.WithErrorHandler(server.ErrorHandler),
 		api.WithNotFound(server.NotFound),
 		api.WithMethodNotAllowed(server.MethodNotAllowed),

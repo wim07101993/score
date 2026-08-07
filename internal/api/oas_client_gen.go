@@ -45,7 +45,7 @@ type Invoker interface {
 	// Answers `OK` as long as the server is serving. Public.
 	//
 	// GET /healthz
-	Healthz(ctx context.Context) (HealthzRes, error)
+	Healthz(ctx context.Context, params HealthzParams) (HealthzRes, error)
 	// ListScores invokes listScores operation.
 	//
 	// Returns the metadata of every score whose last change falls within the given window, most recently
@@ -190,6 +190,37 @@ func (c *Client) sendGetScore(ctx context.Context, params GetScoreParams) (res G
 		return res, errors.Wrap(err, "create request")
 	}
 
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "Accept",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Accept.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
 	{
 		type bitset = [1]uint8
 		var satisfied bitset
@@ -251,12 +282,12 @@ func (c *Client) sendGetScore(ctx context.Context, params GetScoreParams) (res G
 // Answers `OK` as long as the server is serving. Public.
 //
 // GET /healthz
-func (c *Client) Healthz(ctx context.Context) (HealthzRes, error) {
-	res, err := c.sendHealthz(ctx)
+func (c *Client) Healthz(ctx context.Context, params HealthzParams) (HealthzRes, error) {
+	res, err := c.sendHealthz(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendHealthz(ctx context.Context) (res HealthzRes, err error) {
+func (c *Client) sendHealthz(ctx context.Context, params HealthzParams) (res HealthzRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("healthz"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -301,6 +332,23 @@ func (c *Client) sendHealthz(ctx context.Context) (res HealthzRes, err error) {
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	stage = "SendRequest"
@@ -423,6 +471,23 @@ func (c *Client) sendListScores(ctx context.Context, params ListScoresParams) (r
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -562,6 +627,23 @@ func (c *Client) sendPutScore(ctx context.Context, request PutScoreReq, params P
 	}
 	if err := encodePutScoreRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

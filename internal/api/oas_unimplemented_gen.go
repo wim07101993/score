@@ -32,7 +32,7 @@ func (UnimplementedHandler) GetScore(ctx context.Context, params GetScoreParams)
 // Answers `OK` as long as the server is serving. Public.
 //
 // GET /healthz
-func (UnimplementedHandler) Healthz(ctx context.Context) (r HealthzRes, _ error) {
+func (UnimplementedHandler) Healthz(ctx context.Context, params HealthzParams) (r HealthzRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

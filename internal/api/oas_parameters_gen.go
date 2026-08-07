@@ -17,11 +17,28 @@ import (
 
 // GetScoreParams is parameters of getScore operation.
 type GetScoreParams struct {
+	// The representation the caller wants back. An operation that answers in more than one media type
+	// reads it to decide which; anything it does not recognise is answered in the media type it lists
+	// first.
+	Accept OptString `json:",omitempty,omitzero"`
 	// The id the score is stored under.
 	ScoreId uuid.UUID
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
 }
 
 func unpackGetScoreParams(packed middleware.Parameters) (params GetScoreParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "Accept",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.Accept = v.(OptString)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "scoreId",
@@ -29,10 +46,59 @@ func unpackGetScoreParams(packed middleware.Parameters) (params GetScoreParams) 
 		}
 		params.ScoreId = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
 	return params
 }
 
 func decodeGetScoreParams(args [1]string, argsEscaped bool, r *http.Request) (params GetScoreParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: Accept.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "Accept",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotAcceptVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotAcceptVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Accept.SetTo(paramsDotAcceptVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "Accept",
+			In:   "header",
+			Err:  err,
+		}
+	}
 	// Decode path: scoreId.
 	if err := func() error {
 		param := args[0]
@@ -78,6 +144,110 @@ func decodeGetScoreParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 			Err:  err,
 		}
 	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// HealthzParams is parameters of healthz operation.
+type HealthzParams struct {
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
+}
+
+func unpackHealthzParams(packed middleware.Parameters) (params HealthzParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeHealthzParams(args [0]string, argsEscaped bool, r *http.Request) (params HealthzParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
 	return params, nil
 }
 
@@ -87,6 +257,10 @@ type ListScoresParams struct {
 	ChangesSince ChangeWindowMoment
 	// The end of the change window, inclusive.
 	ChangesUntil ChangeWindowMoment
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
 }
 
 func unpackListScoresParams(packed middleware.Parameters) (params ListScoresParams) {
@@ -104,11 +278,21 @@ func unpackListScoresParams(packed middleware.Parameters) (params ListScoresPara
 		}
 		params.ChangesUntil = packed[key].(ChangeWindowMoment)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
 	return params
 }
 
 func decodeListScoresParams(args [0]string, argsEscaped bool, r *http.Request) (params ListScoresParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode query: Changes-Since.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -211,6 +395,45 @@ func decodeListScoresParams(args [0]string, argsEscaped bool, r *http.Request) (
 			Err:  err,
 		}
 	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
 	return params, nil
 }
 
@@ -218,6 +441,10 @@ func decodeListScoresParams(args [0]string, argsEscaped bool, r *http.Request) (
 type PutScoreParams struct {
 	// The id the score is stored under.
 	ScoreId uuid.UUID
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
 }
 
 func unpackPutScoreParams(packed middleware.Parameters) (params PutScoreParams) {
@@ -228,10 +455,20 @@ func unpackPutScoreParams(packed middleware.Parameters) (params PutScoreParams) 
 		}
 		params.ScoreId = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
 	return params
 }
 
 func decodePutScoreParams(args [1]string, argsEscaped bool, r *http.Request) (params PutScoreParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: scoreId.
 	if err := func() error {
 		param := args[0]
@@ -274,6 +511,45 @@ func decodePutScoreParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 		return params, &ogenerrors.DecodeParamError{
 			Name: "scoreId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
 			Err:  err,
 		}
 	}

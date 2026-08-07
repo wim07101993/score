@@ -1,0 +1,9 @@
+name: Accept
+in: header
+required: false
+description: |
+  The representation the caller wants back. An operation that answers in more
+  than one media type reads it to decide which; anything it does not recognise
+  is answered in the media type it lists first.
+schema:
+  type: string

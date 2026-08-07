@@ -184,9 +184,17 @@ func (s *Server) handleGetScoreRequest(args [1]string, argsEscaped bool, w http.
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
+					Name: "Accept",
+					In:   "header",
+				}: params.Accept,
+				{
 					Name: "scoreId",
 					In:   "path",
 				}: params.ScoreId,
+				{
+					Name: "X-Correlation-ID",
+					In:   "header",
+				}: params.XCorrelationID,
 			},
 			Raw: r,
 		}
@@ -308,8 +316,22 @@ func (s *Server) handleHealthzRequest(args [0]string, argsEscaped bool, w http.R
 
 			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
 		}
-		err error
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: HealthzOperation,
+			ID:   "healthz",
+		}
 	)
+	params, err := decodeHealthzParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 
@@ -322,13 +344,18 @@ func (s *Server) handleHealthzRequest(args [0]string, argsEscaped bool, w http.R
 			OperationID:      "healthz",
 			Body:             nil,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "X-Correlation-ID",
+					In:   "header",
+				}: params.XCorrelationID,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = struct{}
+			Params   = HealthzParams
 			Response = HealthzRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -338,14 +365,14 @@ func (s *Server) handleHealthzRequest(args [0]string, argsEscaped bool, w http.R
 		](
 			m,
 			mreq,
-			nil,
+			unpackHealthzParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.Healthz(ctx)
+				response, err = s.h.Healthz(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.Healthz(ctx)
+		response, err = s.h.Healthz(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*XxxUnknownErrorStatusCode](err); ok {
@@ -530,6 +557,10 @@ func (s *Server) handleListScoresRequest(args [0]string, argsEscaped bool, w htt
 					Name: "Changes-Until",
 					In:   "query",
 				}: params.ChangesUntil,
+				{
+					Name: "X-Correlation-ID",
+					In:   "header",
+				}: params.XCorrelationID,
 			},
 			Raw: r,
 		}
@@ -750,6 +781,10 @@ func (s *Server) handlePutScoreRequest(args [1]string, argsEscaped bool, w http.
 					Name: "scoreId",
 					In:   "path",
 				}: params.ScoreId,
+				{
+					Name: "X-Correlation-ID",
+					In:   "header",
+				}: params.XCorrelationID,
 			},
 			Raw: r,
 		}
