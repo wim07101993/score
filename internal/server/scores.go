@@ -42,7 +42,8 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 
 	if err := score.AddOrUpdate(ctx, dbConn, params.ScoreId.String(), string(mxml)); err != nil {
 		if errors.Is(err, score.ErrInvalidMusicXml) {
-			return nil, ErrInvalidMusicXml.WithParent(err)
+			return nil, ErrInvalidMusicXml.
+				WithParent(err)
 		}
 		return nil, ErrSaveScore.WithParent(err)
 	}
@@ -53,44 +54,45 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, ErrUnknown.WithParent(err)
+		return nil, ErrUnexpected.WithParent(err)
 	}
 	defer dbConn.Release()
 
 	scoreId := params.ScoreId.String()
 
-	errToProblemDetails := func(err error) error {
+	scoreLookupFailed := func(err error) error {
 		if errors.Is(err, score.ErrScoreNotFound) {
 			return ErrScoreNotFound
 		}
-		return ErrUnknown.WithParent(err)
+		return ErrUnexpected.WithParent(err)
 	}
 
 	switch params.Accept.Or("") {
 	case musicXmlMediaType:
 		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {
-			return nil, errToProblemDetails(err)
+			return nil, scoreLookupFailed(err)
 		}
 		return &api.GetScoreOKApplicationVndRecordareMusicxml{Data: strings.NewReader(mxml)}, nil
 
 	case musicXmlXmlMediaType:
 		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {
-			return nil, errToProblemDetails(err)
+			return nil, scoreLookupFailed(err)
 		}
 		return &api.GetScoreOKApplicationVndRecordareMusicxmlXML{Data: strings.NewReader(mxml)}, nil
 
 	default:
 		stored, err := score.Get(ctx, dbConn, scoreId)
 		if err != nil {
-			return nil, errToProblemDetails(err)
+			return nil, scoreLookupFailed(err)
 		}
 		return mapScoreToApi(stored)
 	}
 }
 
 func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (api.ListScoresRes, error) {
+	// TODO: change the changes-since and until to proper date-fields
 	changesSince, err := parseChangeWindowMoment(params.ChangesSince, "Changes-Since")
 	if err != nil {
 		return nil, err
@@ -135,7 +137,7 @@ func parseChangeWindowMoment(moment api.ChangeWindowMoment, name string) (time.T
 func mapScoreToApi(stored *score.Score) (*api.Score, error) {
 	id, err := uuid.Parse(stored.Id)
 	if err != nil {
-		return nil, ErrUnknown.WithParent(err)
+		return nil, ErrUnexpected.WithParent(err)
 	}
 
 	return &api.Score{

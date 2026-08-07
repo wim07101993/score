@@ -13,11 +13,11 @@ import (
 )
 
 // FullErrorInResponse attaches the unwrapped cause of an error to the response
-// body under `details.parent`. It is a **test-only** aid: it turns an opaque
-// "an unexpected error occurred" into the chain that produced it, which is what
-// makes a red integration run diagnosable. Never enable it on a served
-// instance — the chain carries internals (SQL, validation paths, wrapped
-// library errors) that the client has no business seeing.
+// body under `parent`. It is a **test-only** aid: it turns an opaque "an
+// unknown error occurred" into the chain that produced it, which is what makes
+// a red integration run diagnosable. Never enable it on a served instance — the
+// chain carries internals (SQL, validation paths, wrapped library errors) that
+// the client has no business seeing.
 var FullErrorInResponse = atomic.Bool{}
 
 type ProblemDetailsError struct {
@@ -51,6 +51,10 @@ func (pd ProblemDetailsError) Log(ctx context.Context) {
 
 func (pd ProblemDetailsError) Error() string {
 	return fmt.Sprintf("%s: %s", pd.ErrorCode, pd.Title)
+}
+
+func (pd ProblemDetailsError) Unwrap() error {
+	return pd.Parent
 }
 
 func (pd ProblemDetailsError) Is(target error) bool {
@@ -104,10 +108,9 @@ func (pd ProblemDetailsError) LogValue() slog.Value {
 }
 
 func (pd ProblemDetailsError) ProblemDetails(ctx context.Context) ProblemDetails {
-	var additionalProps ProblemDetailsAdditional
+	additionalProps := make(ProblemDetailsAdditional)
 
-	if len(pd.AdditionalData) != 0 {
-		additionalProps = make(ProblemDetailsAdditional)
+	if len(pd.AdditionalData) > 0 {
 		for key, val := range pd.AdditionalData {
 			jsonValue, err := json.Marshal(val)
 			if err != nil {
@@ -118,17 +121,19 @@ func (pd ProblemDetailsError) ProblemDetails(ctx context.Context) ProblemDetails
 		}
 	}
 
-	if FullErrorInResponse.Load() && pd.Parent != nil {
-		if additionalProps == nil {
-			additionalProps = make(ProblemDetailsAdditional)
+	if pd.Parent != nil {
+		var v any
+		if FullErrorInResponse.Load() {
+			v = createFullErrDetailsDetailsMap(pd.Parent)
+		} else {
+			v = pd.Parent
 		}
 
-		m := createFullErrDetailsDetailsMap(pd.Parent)
-		jsonm, err := json.Marshal(m)
+		jsonv, err := json.Marshal(v)
 		if err != nil {
-			slogctx.Error(ctx, "failed to marshal full err details map", slogctx.Err(err))
+			slogctx.Error(ctx, "failed to marshal parent", slogctx.Err(err))
 		} else {
-			additionalProps["parent"] = jsonm
+			additionalProps["parent"] = jsonv
 		}
 	}
 

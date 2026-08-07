@@ -5,6 +5,7 @@ import (
 	"mime"
 	"net/http"
 	"score/internal/api"
+	"score/internal/logging"
 
 	"github.com/go-faster/errors"
 	"github.com/ogen-go/ogen/ogenerrors"
@@ -12,7 +13,7 @@ import (
 )
 
 func ErrorHandler(ctx context.Context, w http.ResponseWriter, req *http.Request, err error) {
-	pderr := errToProblemDetails(req, err)
+	pderr := withInstance(ctx, requestErrToProblemDetails(req, err))
 
 	pderr.Log(ctx)
 
@@ -30,20 +31,64 @@ func ErrorHandler(ctx context.Context, w http.ResponseWriter, req *http.Request,
 	}
 }
 
-func errToProblemDetails(req *http.Request, err error) api.ProblemDetailsError {
+func requestErrToProblemDetails(req *http.Request, err error) api.ProblemDetailsError {
 	var problemDetailsErr api.ProblemDetailsError
 	if errors.As(err, &problemDetailsErr) {
 		return problemDetailsErr
 	}
 
 	var decodeErr *ogenerrors.DecodeRequestError
-	if errors.As(err, &decodeErr) {
-		if _, _, err := mime.ParseMediaType(req.Header.Get("Content-Type")); err != nil {
-			return ErrUnsupportedMediaType
-		}
+	if errors.As(err, &decodeErr) && !hasParsableMediaType(req) {
+		return ErrUnsupportedMediaType.WithParent(err)
 	}
 
-	return ErrUnknown.WithParent(err)
+	var ogenErr ogenerrors.Error
+	if errors.As(err, &ogenErr) {
+		return ogenErrToProblemDetails(ogenErr)
+	}
+
+	return ErrUnexpected.WithParent(err)
+}
+
+func ogenErrToProblemDetails(err ogenerrors.Error) api.ProblemDetailsError {
+	status := ogenerrors.ErrorCode(err)
+	if status < http.StatusInternalServerError {
+		return api.NewProblemDetailsError(status, errorCodeOfStatus(status), err.Error()).
+			WithParent(err)
+	}
+
+	return ErrUnexpected.WithParent(err)
+}
+
+func errorCodeOfStatus(status int) api.ProblemDetailsErrorCode {
+	switch status {
+	case http.StatusUnauthorized:
+		return api.ProblemDetailsErrorCodeInvalidCredentials
+	case http.StatusForbidden:
+		return api.ProblemDetailsErrorCodeMissingRole
+	case http.StatusNotFound:
+		return api.ProblemDetailsErrorCodeEndpointNotFound
+	case http.StatusMethodNotAllowed:
+		return api.ProblemDetailsErrorCodeMethodNotAllowed
+	case http.StatusUnsupportedMediaType:
+		return api.ProblemDetailsErrorCodeUnsupportedMediaType
+	default:
+		return api.ProblemDetailsErrorCodeInvalidRequest
+	}
+}
+
+func hasParsableMediaType(req *http.Request) bool {
+	_, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+	return err == nil
+}
+
+func withInstance(ctx context.Context, pderr api.ProblemDetailsError) api.ProblemDetailsError {
+	correlationId, ok := logging.CorrelationIdFromContext(ctx)
+	if !ok {
+		return pderr
+	}
+	pderr.Instance = "urn:uuid:" + correlationId
+	return pderr
 }
 
 func NotFound(w http.ResponseWriter, req *http.Request) {

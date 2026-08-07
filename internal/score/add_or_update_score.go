@@ -102,7 +102,7 @@ func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) 
 		if errors.As(err, &pgErr) && pgErr.Code == pgErrInvalidTextRepresentation {
 			return fmt.Errorf("%w: failed to execute upsert score query: %w", ErrInvalidMusicXml, pgErr)
 		}
-		return fmt.Errorf("failed to execute upsert score query: %w", pgErr)
+		return fmt.Errorf("failed to execute upsert score query: %w", err)
 	}
 
 	err = tx.Commit(ctx)

@@ -54,9 +54,9 @@ var (
 		api.ProblemDetailsErrorCodeInternalError,
 		"failed to get scores page",
 	)
-	ErrUnknown = api.NewProblemDetailsError(
+	ErrUnexpected = api.NewProblemDetailsError(
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
-		"an unknown error occured",
+		"an unexpected error occurred",
 	)
 )
