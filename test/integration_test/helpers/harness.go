@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"score/internal/bootstrap"
-	"score/internal/server"
 	"score/internal/storage"
 
 	"github.com/stretchr/testify/require"
@@ -60,7 +59,7 @@ func NewHarness(databaseUrl string) *Harness {
 		return h.FakeSecuritySource.Provide(ctx)
 	})
 
-	server.FullErrorInResponse.Store(true)
+	api.FullErrorInResponse.Store(true)
 
 	return h
 }

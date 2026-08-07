@@ -3,6 +3,7 @@ package score
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
@@ -21,7 +22,7 @@ func Get(ctx context.Context, db *pgxpool.Conn, scoreId string) (*Score, error) 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrScoreNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to scan score db row: %w", err)
 	}
 
 	return score, nil
@@ -44,7 +45,7 @@ func GetMusicXml(ctx context.Context, db *pgxpool.Conn, scoreId string) (string,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", ErrScoreNotFound
 		}
-		return "", err
+		return "", fmt.Errorf("failed to scan score musicxml db row: %w", err)
 	}
 
 	return content, nil

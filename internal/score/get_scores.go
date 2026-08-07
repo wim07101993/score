@@ -2,6 +2,7 @@ package score
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,9 +20,8 @@ func List(
 	slogctx.Info(ctx, "getting scores")
 
 	rows, err := db.Query(ctx, getScoresQuery, changesSince, changesUntil)
-
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query database: %w", err)
 	}
 
 	var scores = make([]*Score, 0)
@@ -30,13 +30,13 @@ func List(
 	for rows.Next() {
 		score, err := scanScore(rows)
 		if err != nil {
-			return scores, err
+			return scores, fmt.Errorf("failed to scan score db row: %w", err)
 		}
 
 		scores = append(scores, score)
 	}
 
-	return scores, err
+	return scores, nil
 }
 
 const getScoresQuery = `

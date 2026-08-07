@@ -93,12 +93,6 @@ func Wrap(handler http.Handler) http.HandlerFunc {
 	}
 }
 
-// callerCorrelationId is the correlation id the caller asked its request to be
-// tied together under, if it asked for one this server is willing to use.
-//
-// Only a uuid is: the id ends up in the log and, when the request fails, in the
-// answer as well, so it is a string the caller chooses that this server then
-// repeats. Anything but a uuid is dropped and one is made up instead.
 func callerCorrelationId(req *http.Request) string {
 	asked := req.Header.Get("X-Correlation-ID")
 	if _, err := uuid.Parse(asked); err != nil {
@@ -121,11 +115,6 @@ func AddOperationIdToContext() api.Middleware {
 	}
 }
 
-// withOperationIDContext adds the given operation ID to the given context.
-// The value is wrapped in struct so that it can be set downstream and
-// retrieved upstream in the callstack.
-// If a wrapper already exists in the context, its value is set instead of
-// creating a new wrapper.
 func withOperationIDContext(ctx context.Context, operationID string) context.Context {
 	wrapper, ok := ctx.Value(operationIDContextKey{}).(*operationIDWrapper)
 	if ok {

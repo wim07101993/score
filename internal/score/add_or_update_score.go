@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	pkgerrors "github.com/pkg/errors"
 	slogctx "github.com/veqryn/slog-context"
 )
 
@@ -31,7 +31,7 @@ func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) 
 	reader := strings.NewReader(mxml)
 	score, err := musicxml.DeserializeMusicXml(xml.NewDecoder(reader))
 	if err != nil {
-		return &ErrInvalidMusicXml{Cause: err}
+		return fmt.Errorf("%w: failed to decode musicxml: %w", ErrInvalidMusicXml, err)
 	}
 
 	tx, err := db.Begin(ctx)
@@ -45,7 +45,7 @@ func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) 
 		"content": mxml,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute upsert score file query: %w", err)
 	}
 
 	var composers []string
@@ -100,12 +100,16 @@ func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgErrInvalidTextRepresentation {
-			return &ErrInvalidMusicXml{Cause: pkgerrors.New(pgErr.Message)}
+			return fmt.Errorf("%w: failed to execute upsert score query: %w", ErrInvalidMusicXml, pgErr)
 		}
-		return err
+		return fmt.Errorf("failed to execute upsert score query: %w", pgErr)
 	}
 
-	return tx.Commit(ctx)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
 }
 
 const upsertScoreFileQuery = `

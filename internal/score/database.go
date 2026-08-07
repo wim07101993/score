@@ -11,6 +11,7 @@
 package score
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -48,7 +49,7 @@ func scanScore(row pgx.Row) (*Score, error) {
 		&tagsArr)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
 	creatorsComposers := creatorsComposersArr.Elements

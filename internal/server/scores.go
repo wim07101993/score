@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/http"
 	"strings"
 	"time"
 
 	"score/internal/api"
-	"score/internal/failure"
 	"score/internal/score"
 
 	"github.com/google/uuid"
@@ -28,28 +26,25 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 	case *api.PutScoreReqApplicationVndRecordareMusicxmlXML:
 		document = body.Data
 	default:
-		return nil, api.NewProblemDetails(http.StatusUnsupportedMediaType,
-			api.ProblemDetailsErrorCodeUnsupportedMediaType, "content-type not supported")
+		return nil, ErrUnsupportedMediaType
 	}
 
 	mxml, err := io.ReadAll(document)
 	if err != nil {
-		return nil, failure.Internal("failed to read request body", err)
+		return nil, ErrReadRequestBody.WithParent(err)
 	}
 
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, failure.Internal("failed to save score", err)
+		return nil, ErrSaveScore.WithParent(err)
 	}
 	defer dbConn.Release()
 
 	if err := score.AddOrUpdate(ctx, dbConn, params.ScoreId.String(), string(mxml)); err != nil {
-		invalidMxmlError := &score.ErrInvalidMusicXml{}
-		if errors.As(err, &invalidMxmlError) {
-			return nil, api.NewProblemDetails(http.StatusBadRequest,
-				api.ProblemDetailsErrorCodeInvalidMusicXML, "invalid music xml: "+err.Error())
+		if errors.Is(err, score.ErrInvalidMusicXml) {
+			return nil, ErrInvalidMusicXml.WithParent(err)
 		}
-		return nil, failure.Internal("failed to save score", err)
+		return nil, ErrSaveScore.WithParent(err)
 	}
 
 	return &api.PutScoreOK{}, nil
@@ -58,31 +53,38 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.GetScoreRes, error) {
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, failure.Internal("failed to get score", err)
+		return nil, ErrUnknown.WithParent(err)
 	}
 	defer dbConn.Release()
 
 	scoreId := params.ScoreId.String()
 
+	errToProblemDetails := func(err error) error {
+		if errors.Is(err, score.ErrScoreNotFound) {
+			return ErrScoreNotFound
+		}
+		return ErrUnknown.WithParent(err)
+	}
+
 	switch params.Accept.Or("") {
 	case musicXmlMediaType:
 		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {
-			return nil, scoreLookupFailed(err)
+			return nil, errToProblemDetails(err)
 		}
 		return &api.GetScoreOKApplicationVndRecordareMusicxml{Data: strings.NewReader(mxml)}, nil
 
 	case musicXmlXmlMediaType:
 		mxml, err := score.GetMusicXml(ctx, dbConn, scoreId)
 		if err != nil {
-			return nil, scoreLookupFailed(err)
+			return nil, errToProblemDetails(err)
 		}
 		return &api.GetScoreOKApplicationVndRecordareMusicxmlXML{Data: strings.NewReader(mxml)}, nil
 
 	default:
 		stored, err := score.Get(ctx, dbConn, scoreId)
 		if err != nil {
-			return nil, scoreLookupFailed(err)
+			return nil, errToProblemDetails(err)
 		}
 		return mapScoreToApi(stored)
 	}
@@ -100,13 +102,13 @@ func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (
 
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
-		return nil, failure.Internal("failed to get scores page", err)
+		return nil, ErrListScores.WithParent(err)
 	}
 	defer dbConn.Release()
 
 	scores, err := score.List(ctx, dbConn, changesSince, changesUntil)
 	if err != nil {
-		return nil, failure.Internal("failed to get scores page", err)
+		return nil, ErrListScores.WithParent(err)
 	}
 
 	page := make(api.GetScoresResponse, 0, len(scores))
@@ -123,25 +125,17 @@ func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (
 func parseChangeWindowMoment(moment api.ChangeWindowMoment, name string) (time.Time, error) {
 	t, err := time.Parse("20060102T150405", string(moment))
 	if err != nil {
-		return time.Time{}, api.NewProblemDetails(http.StatusBadRequest,
-			api.ProblemDetailsErrorCodeInvalidRequest,
-			"failed to parse "+name+" as date-time (YYYYMMDDThhmmss)")
+		return time.Time{}, ErrInvalidChangeWindow.
+			WithAdditionalData("failingField", name).
+			WithAdditionalData("failingReason", "failed to parse as date-time (YYYYMMDDThhmmss)")
 	}
 	return t, nil
-}
-
-func scoreLookupFailed(err error) error {
-	if errors.Is(err, score.ErrScoreNotFound) {
-		return api.NewProblemDetails(http.StatusNotFound,
-			api.ProblemDetailsErrorCodeScoreNotFound, "no score found with the given id")
-	}
-	return failure.Internal("failed to get score", err)
 }
 
 func mapScoreToApi(stored *score.Score) (*api.Score, error) {
 	id, err := uuid.Parse(stored.Id)
 	if err != nil {
-		return nil, failure.Internal("failed to get score", err)
+		return nil, ErrUnknown.WithParent(err)
 	}
 
 	return &api.Score{

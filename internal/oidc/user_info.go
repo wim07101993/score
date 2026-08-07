@@ -10,19 +10,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// UserInfo is who a token belongs to, as the provider tells it.
 type UserInfo struct {
 	Name    string
 	Subject string
 	Roles   map[string]any
 }
 
-// GetUserInfo asks the provider who the token belongs to.
-//
-// The endpoint is asked with the caller's own token, so it answers about that
-// caller. A claim the provider leaves out comes back empty rather than as an
-// error: what the application does about a user without a name, or without
-// roles, is not for this package to decide.
 func (c *Client) GetUserInfo(ctx context.Context, token string) (*UserInfo, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.UserInfoUrl, nil)
 	if err != nil {
