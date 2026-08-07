@@ -201,3 +201,26 @@ func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWit
 		},
 	}, nil
 }
+
+func (di *DependencyContainer) NewScope() *DependencyContainer {
+	return &DependencyContainer{
+		OidcClientConfig: ScopeProvider(di.OidcClientConfig),
+		DatabaseConfig:   ScopeProvider(di.DatabaseConfig),
+		Logger:           ScopeProvider(di.Logger),
+		MigrationsSource: ScopeProvider(di.MigrationsSource),
+
+		ApiServer:           ScopeProvider(di.ApiServer),
+		ApiServerOpts:       ScopeProvider(di.ApiServerOpts),
+		ServerHandler:       ScopeProvider(di.ServerHandler),
+		AuthSecurityHandler: ScopeProvider(di.AuthSecurityHandler),
+		OidcClient:          ScopeProvider(di.OidcClient),
+		PgxPool:             ScopeProvider(di.PgxPool),
+		PgxConn:             ScopeProvider(di.PgxConn),
+		Migrate:             ScopeProvider(di.Migrate),
+
+		HttpHandler:        ScopeProvider(di.HttpHandler),
+		ApiSecurityHandler: ScopeProvider(di.ApiSecurityHandler),
+		ApiHandler:         ScopeProvider(di.ApiHandler),
+		AuthOidcClient:     ScopeProvider(di.AuthOidcClient),
+	}
+}

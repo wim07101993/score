@@ -23,16 +23,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// editorToken is the token the middleware tests send when the token is not what
-// they are about.
-func editorToken(t *testing.T) string {
-	t.Helper()
-	return harness.EnsureIdentityProvider(t).
-		IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
-}
-
 func TestMalformedAuthorizationHeadersAreRejected(t *testing.T) {
-	client := harness.EnsureRawClient(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
 	scoreId := uuid.NewString()
 
 	tests := []struct {
@@ -47,6 +42,8 @@ func TestMalformedAuthorizationHeadersAreRejected(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			res := client.Do(t, helpers.Request{
 				Method:        http.MethodGet,
 				Path:          "/scores/" + scoreId,
@@ -60,8 +57,12 @@ func TestMalformedAuthorizationHeadersAreRejected(t *testing.T) {
 }
 
 func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
-	client := harness.EnsureRawClient(t)
-	token := editorToken(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	token := idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	tests := []struct {
 		name        string
@@ -75,6 +76,8 @@ func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			res := client.Do(t, helpers.Request{
 				Method:      http.MethodPut,
 				Path:        "/scores/" + uuid.NewString(),
@@ -93,12 +96,15 @@ func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
 // segment that is not an id is answered as a client error rather than as a
 // server failure.
 func TestFetchingAScoreWithAMalformedIdIsARequestProblem(t *testing.T) {
-	client := harness.EnsureRawClient(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
 
 	res := client.Do(t, helpers.Request{
 		Method: http.MethodGet,
 		Path:   "/scores/not-a-score-id",
-		Token:  editorToken(t),
+		Token:  helpers.Ensure(t, h.IdentityProvider, "idp").IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor),
 	})
 
 	assert.Lessf(t, res.StatusCode, http.StatusInternalServerError,
@@ -106,8 +112,12 @@ func TestFetchingAScoreWithAMalformedIdIsARequestProblem(t *testing.T) {
 }
 
 func TestListingScoresRequiresAChangeWindow(t *testing.T) {
-	client := harness.EnsureRawClient(t)
-	token := editorToken(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	token := idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	tests := []struct {
 		name string
@@ -122,6 +132,8 @@ func TestListingScoresRequiresAChangeWindow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: tt.path, Token: token})
 
 			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
@@ -131,8 +143,12 @@ func TestListingScoresRequiresAChangeWindow(t *testing.T) {
 }
 
 func TestUnsupportedMethodsAreRejected(t *testing.T) {
-	client := harness.EnsureRawClient(t)
-	token := editorToken(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	token := idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	tests := []struct {
 		method string
@@ -146,6 +162,8 @@ func TestUnsupportedMethodsAreRejected(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			t.Parallel()
+
 			res := client.Do(t, helpers.Request{Method: tt.method, Path: tt.path, Token: token})
 
 			assert.Equalf(t, http.StatusMethodNotAllowed, res.StatusCode,
@@ -157,7 +175,10 @@ func TestUnsupportedMethodsAreRejected(t *testing.T) {
 }
 
 func TestUnknownRoutesReturnNotFound(t *testing.T) {
-	client := harness.EnsureRawClient(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
 
 	res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: "/not-an-endpoint"})
 
@@ -169,8 +190,12 @@ func TestUnknownRoutesReturnNotFound(t *testing.T) {
 // generated server while it was still reading the request, or a handler that
 // refused to serve it.
 func TestFailuresAreAnsweredAsProblemDetails(t *testing.T) {
-	client := harness.EnsureRawClient(t)
-	token := editorToken(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	token := idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	tests := []struct {
 		name      string
@@ -216,6 +241,8 @@ func TestFailuresAreAnsweredAsProblemDetails(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			res := client.Do(t, tt.request)
 
 			require.GreaterOrEqual(t, res.StatusCode, http.StatusBadRequest, "should have failed")
@@ -239,13 +266,16 @@ func TestFailuresAreAnsweredAsProblemDetails(t *testing.T) {
 // The header is documented as a plain string, so a caller can send anything;
 // what the server may not do is repeat it.
 func TestACorrelationIdThatIsNotAUuidIsNotRepeated(t *testing.T) {
-	client := harness.EnsureRawClient(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
 	madeUp := "not-a-uuid</script>"
 
 	res := client.Do(t, helpers.Request{
 		Method:        http.MethodGet,
 		Path:          "/scores/" + uuid.NewString(),
-		Token:         editorToken(t),
+		Token:         helpers.Ensure(t, h.IdentityProvider, "idp").IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor),
 		CorrelationId: madeUp,
 	})
 
@@ -256,7 +286,10 @@ func TestACorrelationIdThatIsNotAUuidIsNotRepeated(t *testing.T) {
 }
 
 func TestPreflightRequestsDoNotRequireAuthentication(t *testing.T) {
-	client := harness.EnsureRawClient(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
 
 	res := client.Do(t, helpers.Request{
 		Method: http.MethodOptions,

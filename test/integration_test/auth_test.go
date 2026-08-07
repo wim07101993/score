@@ -16,7 +16,9 @@ import (
 )
 
 func TestTokensTheProviderDoesNotVouchForAreRejected(t *testing.T) {
-	idp := helpers.Ensure(t, harness.IdentityProvider, "idp")
+	t.Parallel()
+
+	idp := helpers.Ensure(t, harness.NewScope().IdentityProvider, "idp")
 
 	tcs := []struct {
 		name  string
@@ -28,10 +30,13 @@ func TestTokensTheProviderDoesNotVouchForAreRejected(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			securitySource := helpers.Ensure(t, harness.FakeSecuritySource, "FakeSecuritySource")
-			client := helpers.Ensure(t, harness.ApiClient, "ApiClient")
+			t.Parallel()
 
-			securitySource.Token = tc.token
+			// Its own scope: a subtest may not re-point a security source
+			// another subtest is calling through.
+			client := helpers.Ensure(t, harness.NewScope().ApiClient, "ApiClient")
+
+			client.Security.Token = tc.token
 
 			res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: uuid.New()})
 			require.NoError(t, err)
@@ -42,13 +47,19 @@ func TestTokensTheProviderDoesNotVouchForAreRejected(t *testing.T) {
 }
 
 func TestReadingScoreMetadataRequiresTheViewerRole(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
 	scoreId := uuid.New()
-	helpers.MustPutScore(t, editorClient(t), scoreId, helpers.MusicXmlWithWorkAndMovement)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
 
-	res, err := harness.ApiClient(t, idp.IssueToken(t)).
-		GetScore(t.Context(), api.GetScoreParams{ScoreId: scoreId})
+	client.Security.Token = idp.IssueToken(t)
+
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: scoreId})
 	require.NoError(t, err)
 
 	assert.IsTypef(t, &api.GetScoreForbidden{}, res,
@@ -60,10 +71,15 @@ func TestReadingScoreMetadataRequiresTheViewerRole(t *testing.T) {
 // itself. Asking for the music-xml representation may not be a way around the
 // role check that protects the metadata.
 func TestReadingTheScoreDocumentRequiresTheViewerRole(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
 	scoreId := uuid.New()
-	helpers.MustPutScore(t, editorClient(t), scoreId, helpers.MusicXmlWithWorkAndMovement)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
 
 	mediaTypes := []string{
 		helpers.MusicXmlContentType,
@@ -72,11 +88,20 @@ func TestReadingTheScoreDocumentRequiresTheViewerRole(t *testing.T) {
 
 	for _, mediaType := range mediaTypes {
 		t.Run(mediaType, func(t *testing.T) {
-			res, err := harness.ApiClient(t, idp.IssueToken(t)).
-				GetScore(t.Context(), api.GetScoreParams{
-					ScoreId: scoreId,
-					Accept:  api.NewOptString(mediaType),
-				})
+			t.Parallel()
+
+			// Its own client: the one above is the editor that uploaded the
+			// score, and a subtest may not re-point it while another is using it.
+			// Its own scope: a subtest may not re-point a security source
+			// another subtest is calling through.
+			client := helpers.Ensure(t, harness.NewScope().ApiClient, "ApiClient")
+
+			client.Security.Token = idp.IssueToken(t)
+
+			res, err := client.GetScore(t.Context(), api.GetScoreParams{
+				ScoreId: scoreId,
+				Accept:  api.NewOptString(mediaType),
+			})
 			require.NoError(t, err)
 
 			assert.IsTypef(t, &api.GetScoreForbidden{}, res,
@@ -87,13 +112,18 @@ func TestReadingTheScoreDocumentRequiresTheViewerRole(t *testing.T) {
 }
 
 func TestListingScoresRequiresTheViewerRole(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
 
-	res, err := harness.ApiClient(t, idp.IssueToken(t)).
-		ListScores(t.Context(), api.ListScoresParams{
-			ChangesSince: aWhileAgo(),
-			ChangesUntil: soon(),
-		})
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t)
+
+	res, err := client.ListScores(t.Context(), api.ListScoresParams{
+		ChangesSince: aWhileAgo(),
+		ChangesUntil: soon(),
+	})
 	require.NoError(t, err)
 
 	assert.IsTypef(t, &api.ListScoresForbidden{}, res,
@@ -102,39 +132,55 @@ func TestListingScoresRequiresTheViewerRole(t *testing.T) {
 }
 
 func TestUploadingRequiresTheEditorRole(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
 
-	tests := []struct {
+	idp := helpers.Ensure(t, harness.NewScope().IdentityProvider, "idp")
+
+	tcs := []struct {
 		name  string
-		token string
+		roles []string
 	}{
-		{name: "no roles", token: idp.IssueToken(t)},
-		{name: "viewer only", token: idp.IssueToken(t, auth.RoleScoreViewer)},
+		{name: "no roles", roles: nil},
+		{name: "viewer only", roles: []string{auth.RoleScoreViewer}},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			scoreId := uuid.New()
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-			res, err := harness.ApiClient(t, tt.token).PutScore(t.Context(),
+			// Its own scope: a subtest may not re-point a security source
+			// another subtest is calling through.
+			h := harness.NewScope()
+			client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+			client.Security.Token = idp.IssueToken(t, tc.roles...)
+
+			scoreId := uuid.New()
+			res, err := client.PutScore(t.Context(),
 				helpers.MusicXmlBody(helpers.MusicXmlWithWorkAndMovement),
 				api.PutScoreParams{ScoreId: scoreId})
 			require.NoError(t, err)
 
 			assert.IsTypef(t, &api.PutScoreForbidden{}, res,
-				"a user with %s should not be able to upload a score, got %#v", tt.name, res)
-			assert.Zerof(t, harness.CountRows(t, "score_files", scoreId.String()),
+				"a user with %s should not be able to upload a score, got %#v", tc.name, res)
+			assert.Zerof(t, h.CountRows(t, "score_files", scoreId.String()),
 				"a rejected upload should not have stored a document")
 		})
 	}
 }
 
 func TestTheEditorRoleAllowsUploading(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
 
-	res, err := harness.ApiClient(t, idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)).
-		PutScore(t.Context(), helpers.MusicXmlBody(helpers.MusicXmlWithWorkAndMovement),
-			api.PutScoreParams{ScoreId: uuid.New()})
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+
+	res, err := client.PutScore(t.Context(),
+		helpers.MusicXmlBody(helpers.MusicXmlWithWorkAndMovement),
+		api.PutScoreParams{ScoreId: uuid.New()})
 	require.NoError(t, err)
 
 	assert.IsTypef(t, &api.PutScoreOK{}, res, "an editor should be able to upload, got %#v", res)
@@ -145,9 +191,11 @@ func TestTheEditorRoleAllowsUploading(t *testing.T) {
 // credentials are wrong. That is a server-side problem: telling the caller
 // their token is invalid sends them off to debug the wrong thing.
 func TestIdentityProviderFailuresAreNotReportedAsInvalidTokens(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
 
-	tests := []struct {
+	idp := helpers.Ensure(t, harness.NewScope().IdentityProvider, "idp")
+
+	tcs := []struct {
 		name  string
 		token string
 	}{
@@ -155,18 +203,25 @@ func TestIdentityProviderFailuresAreNotReportedAsInvalidTokens(t *testing.T) {
 		{name: "user info fails", token: idp.IssueTokenWithoutUserInfo(t)},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := harness.ApiClient(t, tt.token).
-				GetScore(t.Context(), api.GetScoreParams{ScoreId: uuid.New()})
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Its own scope: a subtest may not re-point a security source
+			// another subtest is calling through.
+			client := helpers.Ensure(t, harness.NewScope().ApiClient, "ApiClient")
+
+			client.Security.Token = tc.token
+
+			_, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: uuid.New()})
 
 			// A status the document does not describe comes back as an error
 			// wrapping what was answered, rather than as a response variant.
 			var unknown *api.XxxUnknownErrorStatusCode
 			require.ErrorAsf(t, err, &unknown,
-				"a failing %s call should be answered as a server error, got %v", tt.name, err)
+				"a failing %s call should be answered as a server error, got %v", tc.name, err)
 			assert.GreaterOrEqualf(t, unknown.StatusCode, http.StatusInternalServerError,
-				"a failing %s call should be reported as a server error, got %d", tt.name, unknown.StatusCode)
+				"a failing %s call should be reported as a server error, got %d", tc.name, unknown.StatusCode)
 		})
 	}
 }

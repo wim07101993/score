@@ -34,7 +34,7 @@ type Harness struct {
 	HttpClient         bootstrap.Provider[*http.Client]
 	IdentityProvider   bootstrap.Provider[*IdentityProvider]
 	TestServer         bootstrap.Provider[*httptest.Server]
-	ApiClient          bootstrap.Provider[*api.Client]
+	ApiClient          bootstrap.Provider[*ApiClient]
 	RawClient          bootstrap.Provider[*RawClient]
 	SecuritySource     bootstrap.Provider[api.SecuritySource]
 	FakeSecuritySource bootstrap.Provider[*FakeSecuritySource]
@@ -55,7 +55,7 @@ func NewHarness(databaseUrl string) *Harness {
 	)
 
 	h.MigrationsSource = bootstrap.NewSingleton(MigrationsSource)
-	h.FakeSecuritySource = bootstrap.NewLazySingleton(h.NewFakeSecuritySource)
+	h.FakeSecuritySource = bootstrap.NewScopedLazySingleton(h.NewFakeSecuritySource)
 	h.SecuritySource = bootstrap.NewFactory(func(ctx context.Context) (api.SecuritySource, error) {
 		return h.FakeSecuritySource.Provide(ctx)
 	})
@@ -63,6 +63,35 @@ func NewHarness(databaseUrl string) *Harness {
 	server.FullErrorInResponse.Store(true)
 
 	return h
+}
+
+// NewScope is the harness as one test sees it. What a test may not share with
+// the test running beside it — the security source that says who it is calling
+// as — is built again for the scope; everything else is a plain provider and
+// passes through, so the database, the identity provider and the http server
+// stay the one the whole run is served from.
+//
+// ApiClient and SecuritySource are rebound to the scope rather than scoped:
+// they are factories, and they have to resolve the scope's security source
+// rather than the root's.
+func (h *Harness) NewScope() *Harness {
+	scoped := &Harness{
+		DependencyContainer: h.DependencyContainer.NewScope(),
+		DatabaseUrl:         h.DatabaseUrl,
+
+		HttpClient:         bootstrap.ScopeProvider(h.HttpClient),
+		IdentityProvider:   bootstrap.ScopeProvider(h.IdentityProvider),
+		TestServer:         bootstrap.ScopeProvider(h.TestServer),
+		RawClient:          bootstrap.ScopeProvider(h.RawClient),
+		FakeSecuritySource: bootstrap.ScopeProvider(h.FakeSecuritySource),
+	}
+
+	scoped.ApiClient = bootstrap.NewFactory(scoped.NewApiClient)
+	scoped.SecuritySource = bootstrap.NewFactory(func(ctx context.Context) (api.SecuritySource, error) {
+		return scoped.FakeSecuritySource.Provide(ctx)
+	})
+
+	return scoped
 }
 
 func (h *Harness) NewHttpClient(ctx context.Context) (*http.Client, error) {
@@ -84,17 +113,20 @@ func (h *Harness) NewTestServer(ctx context.Context) (*httptest.Server, error) {
 	return httptest.NewServer(handler), nil
 }
 
-func (h *Harness) NewApiClient(ctx context.Context) (_ *api.Client, err error) {
+func (h *Harness) NewApiClient(ctx context.Context) (_ *ApiClient, err error) {
 	var (
 		testServer     *httptest.Server
-		securitySource api.SecuritySource
+		securitySource *FakeSecuritySource
 		httpClient     *http.Client
 	)
 
 	if testServer, err = h.TestServer.Provide(ctx); err != nil {
 		return nil, fmt.Errorf("failed to get test server: %w", err)
 	}
-	if securitySource, err = h.SecuritySource.Provide(ctx); err != nil {
+	// The concrete source rather than h.SecuritySource: it is handed back with
+	// the client so that a test can say who it is calling as, and every client
+	// gets one of its own so that two tests can be two callers at once.
+	if securitySource, err = h.FakeSecuritySource.Provide(ctx); err != nil {
 		return nil, fmt.Errorf("failed to get security source: %w", err)
 	}
 	if httpClient, err = h.HttpClient.Provide(ctx); err != nil {
@@ -110,7 +142,7 @@ func (h *Harness) NewApiClient(ctx context.Context) (_ *api.Client, err error) {
 		return nil, fmt.Errorf("failed to build api client: %w", err)
 	}
 
-	return client, nil
+	return &ApiClient{Client: client, Security: securitySource}, nil
 }
 
 func (h *Harness) NewRawClient(ctx context.Context) (_ *RawClient, err error) {

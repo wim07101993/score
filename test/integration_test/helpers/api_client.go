@@ -17,12 +17,21 @@ const (
 	MusicXmlContentTypeWithXmlSuffix = "application/vnd.recordare.musicxml+xml"
 )
 
+// ApiClient is the generated client together with the security source it
+// authenticates through. Every client is built with one of its own, so a test
+// says who it is calling as by setting Security.Token on the client it holds,
+// and two tests can be two callers at the same time.
+type ApiClient struct {
+	*api.Client
+	Security *FakeSecuritySource
+}
+
 // MusicXmlBody is a document as the API reads it.
 func MusicXmlBody(document string) *api.PutScoreReqApplicationVndRecordareMusicxml {
 	return &api.PutScoreReqApplicationVndRecordareMusicxml{Data: strings.NewReader(document)}
 }
 
-func MustPutScore(t *testing.T, client *api.Client, scoreId uuid.UUID, document string) {
+func MustPutScore(t *testing.T, client *ApiClient, scoreId uuid.UUID, document string) {
 	t.Helper()
 
 	res, err := client.PutScore(

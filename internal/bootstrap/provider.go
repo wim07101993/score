@@ -14,6 +14,10 @@ type Provider[T any] interface {
 	Provide(ctx context.Context) (T, error)
 }
 
+type Scoper[T any] interface {
+	NewScope() Provider[T]
+}
+
 type ProviderFunc[T any] = func(ctx context.Context) (T, error)
 
 type Factory[T any] struct {
@@ -65,4 +69,31 @@ func (s *LazySingleton[T]) Provide(ctx context.Context) (_ T, err error) {
 	}
 
 	return s.value, nil
+}
+
+type ScopedLazySingleton[T any] struct {
+	LazySingleton[T]
+}
+
+func NewScopedLazySingleton[T any](factory ProviderFunc[T]) *ScopedLazySingleton[T] {
+	return &ScopedLazySingleton[T]{
+		*NewLazySingleton(factory),
+	}
+}
+
+func (s *ScopedLazySingleton[T]) Provide(ctx context.Context) (T, error) {
+	return s.LazySingleton.Provide(ctx)
+}
+
+func (s *ScopedLazySingleton[T]) NewScope() Provider[T] {
+	return NewScopedLazySingleton(s.factory)
+}
+
+var _ Scoper[int] = (*ScopedLazySingleton[int])(nil)
+
+func ScopeProvider[T any](provider Provider[T]) Provider[T] {
+	if scoper, ok := provider.(Scoper[T]); ok {
+		return scoper.NewScope()
+	}
+	return provider
 }
