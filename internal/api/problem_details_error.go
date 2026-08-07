@@ -14,10 +14,11 @@ import (
 
 // FullErrorInResponse attaches the unwrapped cause of an error to the response
 // body under `parent`. It is a **test-only** aid: it turns an opaque "an
-// unknown error occurred" into the chain that produced it, which is what makes
-// a red integration run diagnosable. Never enable it on a served instance — the
-// chain carries internals (SQL, validation paths, wrapped library errors) that
-// the client has no business seeing.
+// unexpected error occurred" into the chain that produced it, which is what
+// makes a red integration run diagnosable. Never enable it on a served
+// instance — the chain carries internals (SQL, validation paths, wrapped
+// library errors) that the client has no business seeing, which is why nothing
+// of the parent reaches the response while it is off.
 var FullErrorInResponse = atomic.Bool{}
 
 type ProblemDetailsError struct {
@@ -121,19 +122,12 @@ func (pd ProblemDetailsError) ProblemDetails(ctx context.Context) ProblemDetails
 		}
 	}
 
-	if pd.Parent != nil {
-		var v any
-		if FullErrorInResponse.Load() {
-			v = createFullErrDetailsDetailsMap(pd.Parent)
-		} else {
-			v = pd.Parent
-		}
-
-		jsonv, err := json.Marshal(v)
+	if FullErrorInResponse.Load() && pd.Parent != nil {
+		jsonParent, err := json.Marshal(createFullErrDetailsDetailsMap(pd.Parent))
 		if err != nil {
 			slogctx.Error(ctx, "failed to marshal parent", slogctx.Err(err))
 		} else {
-			additionalProps["parent"] = jsonv
+			additionalProps["parent"] = jsonParent
 		}
 	}
 
