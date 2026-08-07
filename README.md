@@ -119,10 +119,12 @@ $ go run .
 $ go run . -config ./config.json
 ```
 
-`HTTP_SERVER_PORT` (`httpServerPort` in the file) defaults to 7001. Every other
-setting is required and the server refuses to start without it. The server runs
-the migrations itself on start-up, so `db/migrations` has to be reachable from
-the working directory.
+`HTTP_SERVER_PORT` (`httpServerPort` in the file) defaults to 7001, and
+`MAX_REQUEST_BODY_BYTES` (`maxRequestBodyBytes`) to 32MiB — the largest score
+this server will read, and what keeps one upload from deciding how much memory
+it uses. Every other setting is required and the server refuses to start
+without it. The server runs the migrations itself on start-up, so
+`db/migrations` has to be reachable from the working directory.
 
 The frontend is served by a static file server of its own:
 

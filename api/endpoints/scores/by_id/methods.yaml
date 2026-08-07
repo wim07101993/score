@@ -82,6 +82,8 @@ put:
       $ref: '../../../responses/401_unauthorized.yaml'
     '403':
       $ref: '../../../responses/403_forbidden.yaml'
+    '413':
+      $ref: '../../../responses/413_content_too_large.yaml'
     '415':
       $ref: '../../../responses/415_unsupported_media_type.yaml'
     default:

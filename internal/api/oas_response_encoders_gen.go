@@ -250,6 +250,18 @@ func encodePutScoreResponse(response PutScoreRes, w http.ResponseWriter, span tr
 
 		return nil
 
+	case *PutScoreRequestEntityTooLarge:
+		w.Header().Set("Content-Type", "application/problem+json")
+		w.WriteHeader(413)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
 	case *PutScoreUnsupportedMediaType:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(415)

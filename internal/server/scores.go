@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -31,6 +32,12 @@ func (h *Handler) PutScore(ctx context.Context, req api.PutScoreReq, params api.
 
 	mxml, err := io.ReadAll(document)
 	if err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			return nil, ErrRequestBodyTooLarge.
+				WithAdditionalData("maxBytes", tooLarge.Limit).
+				WithParent(err)
+		}
 		return nil, ErrReadRequestBody.WithParent(err)
 	}
 

@@ -13,6 +13,7 @@ package integration_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"score/internal/auth"
@@ -109,6 +110,30 @@ func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
 				"content-type %q should be rejected: %s", tt.contentType, res.Text())
 		})
 	}
+}
+
+// TestUploadingRejectsBodiesPastTheLimit guards the bound on what one request
+// can make this server hold in memory. A score is read whole before it is
+// stored, so without the limit a single upload decides how much memory this
+// process uses.
+func TestUploadingRejectsBodiesPastTheLimit(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.RawClient, "RawClient")
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+
+	res := client.Do(t, helpers.Request{
+		Method:      http.MethodPut,
+		Path:        "/scores/" + uuid.NewString(),
+		Token:       idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor),
+		ContentType: "application/vnd.recordare.musicxml",
+		Body:        strings.Repeat("x", int(helpers.MaxRequestBodyBytes)+1),
+	})
+
+	assert.Equalf(t, http.StatusRequestEntityTooLarge, res.StatusCode,
+		"a body past the limit should be refused: %s", res.Text())
+	assert.Equal(t, "request_body_too_large", string(res.DecodeProblem(t).ErrorCode))
 }
 
 // TestFetchingAScoreWithAMalformedIdIsARequestProblem checks that a path

@@ -616,6 +616,8 @@ func (s *ProblemDetailsErrorCode) Decode(d *jx.Decoder) error {
 		*s = ProblemDetailsErrorCodeMethodNotAllowed
 	case ProblemDetailsErrorCodeUnsupportedMediaType:
 		*s = ProblemDetailsErrorCodeUnsupportedMediaType
+	case ProblemDetailsErrorCodeRequestBodyTooLarge:
+		*s = ProblemDetailsErrorCodeRequestBodyTooLarge
 	case ProblemDetailsErrorCodeInternalError:
 		*s = ProblemDetailsErrorCodeInternalError
 	default:
@@ -710,6 +712,44 @@ func (s *PutScoreForbidden) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PutScoreForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PutScoreRequestEntityTooLarge as json.
+func (s *PutScoreRequestEntityTooLarge) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes PutScoreRequestEntityTooLarge from json.
+func (s *PutScoreRequestEntityTooLarge) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PutScoreRequestEntityTooLarge to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PutScoreRequestEntityTooLarge(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *PutScoreRequestEntityTooLarge) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PutScoreRequestEntityTooLarge) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

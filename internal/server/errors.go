@@ -38,6 +38,11 @@ var (
 		api.ProblemDetailsErrorCodeInvalidRequest,
 		"change window is not a date-time",
 	)
+	ErrRequestBodyTooLarge = api.NewProblemDetailsError(
+		http.StatusRequestEntityTooLarge,
+		api.ProblemDetailsErrorCodeRequestBodyTooLarge,
+		"request body is larger than this server reads",
+	)
 
 	ErrReadRequestBody = api.NewProblemDetailsError(
 		http.StatusInternalServerError,

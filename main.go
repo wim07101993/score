@@ -12,6 +12,7 @@ import (
 	"score/config"
 	"score/internal/bootstrap"
 	"score/internal/oidc"
+	"score/internal/server"
 	"score/internal/storage"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -60,6 +61,7 @@ func main() {
 	dc = bootstrap.DefaultDependencyContainer(
 		bootstrap.NewSingleton[oidc.ClientConfig](cfg.OidcClientConfig()),
 		bootstrap.NewSingleton[storage.DatabaseConfig](cfg.DatabaseConfig()),
+		bootstrap.NewSingleton[server.Config](cfg.ServerConfig()),
 	)
 
 	logger, err := dc.Logger.Provide(ctx)
@@ -107,16 +109,15 @@ func runMigrations(ctx context.Context) (err error) {
 func serveHttp(ctx context.Context) (err error) {
 	slogctx.Info(ctx, "starting http server")
 
-	var server http.Handler
-	server, err = dc.HttpHandler.Provide(ctx)
+	var httpServer *http.Server
+	httpServer, err = dc.HttpServer.Provide(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to create http handler: %w", err)
+		return fmt.Errorf("failed to create http server: %w", err)
 	}
 
-	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
-	slogctx.Info(ctx, "start listening for http requests", slog.String("addr", addr))
+	slogctx.Info(ctx, "start listening for http requests", slog.String("addr", httpServer.Addr))
 
-	err = http.ListenAndServe(addr, server)
+	err = httpServer.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("failed to listen for requests: %w", err)
 	}

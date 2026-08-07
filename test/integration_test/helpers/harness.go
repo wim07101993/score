@@ -20,10 +20,13 @@ import (
 	"time"
 
 	"score/internal/bootstrap"
+	"score/internal/server"
 	"score/internal/storage"
 
 	"github.com/stretchr/testify/require"
 )
+
+const MaxRequestBodyBytes int64 = 1 << 20
 
 type Harness struct {
 	*bootstrap.DependencyContainer
@@ -51,6 +54,7 @@ func NewHarness(databaseUrl string) *Harness {
 	h.DependencyContainer = bootstrap.DefaultDependencyContainer(
 		bootstrap.NewLazySingleton(h.NewOidcClientConfig),
 		bootstrap.NewSingleton(storage.DatabaseConfig{ConnectionString: databaseUrl}),
+		bootstrap.NewSingleton(server.Config{MaxRequestBodyBytes: MaxRequestBodyBytes}),
 	)
 
 	h.MigrationsSource = bootstrap.NewSingleton(MigrationsSource)

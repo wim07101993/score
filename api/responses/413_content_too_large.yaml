@@ -1,0 +1,8 @@
+description: |
+  The body is larger than this server reads. A score is read whole before it is
+  stored, so there is a bound on how large one may be; `maxBytes` says what it
+  is for this server.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'

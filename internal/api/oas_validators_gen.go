@@ -172,6 +172,8 @@ func (s ProblemDetailsErrorCode) Validate() error {
 		return nil
 	case "unsupported_media_type":
 		return nil
+	case "request_body_too_large":
+		return nil
 	case "internal_error":
 		return nil
 	default:
@@ -211,6 +213,14 @@ func (s *PutScoreBadRequest) Validate() error {
 }
 
 func (s *PutScoreForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *PutScoreRequestEntityTooLarge) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

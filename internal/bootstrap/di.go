@@ -26,6 +26,7 @@ const DefaultMigrationsSource = "file://db/migrations"
 type DependencyContainer struct {
 	OidcClientConfig Provider[oidc.ClientConfig]
 	DatabaseConfig   Provider[storage.DatabaseConfig]
+	ServerConfig     Provider[server.Config]
 	Logger           Provider[*slog.Logger]
 	MigrationsSource Provider[string]
 
@@ -38,6 +39,7 @@ type DependencyContainer struct {
 	PgxConn             Provider[*pgxpool.Conn]
 	Migrate             Provider[*DependencyWithCleanup[*migrate.Migrate]]
 
+	HttpServer         Provider[*http.Server]
 	HttpHandler        Provider[http.Handler]
 	ApiSecurityHandler Provider[api.SecurityHandler]
 	ApiHandler         Provider[api.Handler]
@@ -47,11 +49,13 @@ type DependencyContainer struct {
 func DefaultDependencyContainer(
 	oidcClientConfig Provider[oidc.ClientConfig],
 	databaseConfig Provider[storage.DatabaseConfig],
+	serverConfig Provider[server.Config],
 ) *DependencyContainer {
 	dc := &DependencyContainer{}
 
 	dc.OidcClientConfig = oidcClientConfig
 	dc.DatabaseConfig = databaseConfig
+	dc.ServerConfig = serverConfig
 	dc.MigrationsSource = NewSingleton(DefaultMigrationsSource)
 
 	dc.ApiServer = NewLazySingleton(dc.NewApiServer)
@@ -64,6 +68,7 @@ func DefaultDependencyContainer(
 	dc.Logger = NewFactory(dc.NewLogger)
 	dc.Migrate = NewFactory(dc.NewMigrate)
 
+	dc.HttpServer = NewLazySingleton(dc.NewHttpServer)
 	dc.HttpHandler = NewLazySingleton(dc.NewHttpHandler)
 	dc.ApiSecurityHandler = NewFactory(func(ctx context.Context) (api.SecurityHandler, error) {
 		return dc.AuthSecurityHandler.Provide(ctx)
@@ -78,14 +83,33 @@ func DefaultDependencyContainer(
 	return dc
 }
 
+func (di *DependencyContainer) NewHttpServer(ctx context.Context) (_ *http.Server, err error) {
+	var config server.Config
+	var handler http.Handler
+
+	if config, err = di.ServerConfig.Provide(ctx); err != nil {
+		return nil, err
+	}
+	if handler, err = di.HttpHandler.Provide(ctx); err != nil {
+		return nil, err
+	}
+
+	return server.NewHttpServer(config, handler), nil
+}
+
 func (di *DependencyContainer) NewHttpHandler(ctx context.Context) (_ http.Handler, err error) {
+	var config server.Config
 	var apiServer *api.Server
 
+	if config, err = di.ServerConfig.Provide(ctx); err != nil {
+		return nil, err
+	}
 	if apiServer, err = di.ApiServer.Provide(ctx); err != nil {
 		return nil, err
 	}
 
-	return server.Cors(logging.Wrap(apiServer)), nil
+	return server.Cors(logging.Wrap(
+		server.LimitRequestBody(config.MaxRequestBodyBytes, apiServer))), nil
 }
 
 func (di *DependencyContainer) NewApiServer(ctx context.Context) (_ *api.Server, err error) {

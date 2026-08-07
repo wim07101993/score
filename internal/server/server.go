@@ -2,10 +2,35 @@ package server
 
 import (
 	"context"
-	"score/internal/storage"
-
+	"fmt"
+	"net/http"
 	"score/internal/api"
+	"score/internal/storage"
+	"time"
 )
+
+type Config struct {
+	Port                int
+	MaxRequestBodyBytes int64
+}
+
+const (
+	readHeaderTimeout = 10 * time.Second
+	readTimeout       = 60 * time.Second
+	writeTimeout      = 120 * time.Second
+	idleTimeout       = 120 * time.Second
+)
+
+func NewHttpServer(config Config, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              fmt.Sprintf(":%d", config.Port),
+		Handler:           handler,
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+	}
+}
 
 type Handler struct {
 	db storage.DBConnProvider

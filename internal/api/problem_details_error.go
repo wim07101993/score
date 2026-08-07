@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"sync/atomic"
 
@@ -51,7 +52,10 @@ func (pd ProblemDetailsError) Log(ctx context.Context) {
 }
 
 func (pd ProblemDetailsError) Error() string {
-	return fmt.Sprintf("%s: %s", pd.ErrorCode, pd.Title)
+	if pd.Detail == "" {
+		return fmt.Sprintf("%s: %s", pd.ErrorCode, pd.Title)
+	}
+	return fmt.Sprintf("%s: %s", pd.ErrorCode, pd.Detail)
 }
 
 func (pd ProblemDetailsError) Unwrap() error {
@@ -66,6 +70,12 @@ func (pd ProblemDetailsError) Is(target error) bool {
 	if pd.ErrorCode != t.ErrorCode {
 		return false
 	}
+	// The code says what kind of answer this is, and several answers share one.
+	// What tells those apart is the detail they were declared with, so it is
+	// compared too whenever the one being compared against carries one.
+	if t.Detail != "" && pd.Detail != t.Detail {
+		return false
+	}
 	return true
 }
 
@@ -74,11 +84,16 @@ func (pd ProblemDetailsError) WithParent(err error) ProblemDetailsError {
 	return pd
 }
 
+// WithAdditionalData copies rather than writes into what it was called on: the
+// values these are declared as are package-level and shared by every request
+// that answers with one, and a map is the one field of this struct that copying
+// the struct does not copy.
 func (pd ProblemDetailsError) WithAdditionalData(key string, value any) ProblemDetailsError {
-	if pd.AdditionalData == nil {
-		pd.AdditionalData = make(map[string]any)
-	}
-	pd.AdditionalData[key] = value
+	additionalData := make(map[string]any, len(pd.AdditionalData)+1)
+	maps.Copy(additionalData, pd.AdditionalData)
+	additionalData[key] = value
+
+	pd.AdditionalData = additionalData
 	return pd
 }
 

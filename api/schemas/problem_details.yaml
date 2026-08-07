@@ -92,5 +92,6 @@ properties:
       - endpoint_not_found
       - method_not_allowed
       - unsupported_media_type
+      - request_body_too_large
       - internal_error
     examples: [score_not_found]

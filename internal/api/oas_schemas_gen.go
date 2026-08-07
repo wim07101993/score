@@ -303,6 +303,7 @@ const (
 	ProblemDetailsErrorCodeEndpointNotFound     ProblemDetailsErrorCode = "endpoint_not_found"
 	ProblemDetailsErrorCodeMethodNotAllowed     ProblemDetailsErrorCode = "method_not_allowed"
 	ProblemDetailsErrorCodeUnsupportedMediaType ProblemDetailsErrorCode = "unsupported_media_type"
+	ProblemDetailsErrorCodeRequestBodyTooLarge  ProblemDetailsErrorCode = "request_body_too_large"
 	ProblemDetailsErrorCodeInternalError        ProblemDetailsErrorCode = "internal_error"
 )
 
@@ -317,6 +318,7 @@ func (ProblemDetailsErrorCode) AllValues() []ProblemDetailsErrorCode {
 		ProblemDetailsErrorCodeEndpointNotFound,
 		ProblemDetailsErrorCodeMethodNotAllowed,
 		ProblemDetailsErrorCodeUnsupportedMediaType,
+		ProblemDetailsErrorCodeRequestBodyTooLarge,
 		ProblemDetailsErrorCodeInternalError,
 	}
 }
@@ -339,6 +341,8 @@ func (s ProblemDetailsErrorCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsErrorCodeMethodNotAllowed:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeUnsupportedMediaType:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeRequestBodyTooLarge:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeInternalError:
 		return []byte(s), nil
@@ -373,6 +377,9 @@ func (s *ProblemDetailsErrorCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsErrorCodeUnsupportedMediaType:
 		*s = ProblemDetailsErrorCodeUnsupportedMediaType
+		return nil
+	case ProblemDetailsErrorCodeRequestBodyTooLarge:
+		*s = ProblemDetailsErrorCodeRequestBodyTooLarge
 		return nil
 	case ProblemDetailsErrorCodeInternalError:
 		*s = ProblemDetailsErrorCodeInternalError
@@ -458,6 +465,10 @@ func (s PutScoreReqApplicationVndRecordareMusicxmlXML) Read(p []byte) (n int, er
 }
 
 func (*PutScoreReqApplicationVndRecordareMusicxmlXML) putScoreReq() {}
+
+type PutScoreRequestEntityTooLarge ProblemDetails
+
+func (*PutScoreRequestEntityTooLarge) putScoreRes() {}
 
 type PutScoreUnauthorized ProblemDetails
 
