@@ -3,4 +3,6 @@ in: query
 required: true
 description: The end of the change window, inclusive.
 schema:
-  $ref: '../schemas/change_window_moment.yaml'
+  type: string
+  format: date-time
+  examples: ['2024-01-01T00:00:00Z']

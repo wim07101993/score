@@ -16,8 +16,6 @@ func (s *XxxUnknownErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
-type ChangeWindowMoment string
-
 type GetScoreBadRequest ProblemDetails
 
 func (*GetScoreBadRequest) getScoreRes() {}

@@ -5,6 +5,7 @@ package api
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-faster/errors"
 	"github.com/google/uuid"
@@ -254,9 +255,9 @@ func decodeHealthzParams(args [0]string, argsEscaped bool, r *http.Request) (par
 // ListScoresParams is parameters of listScores operation.
 type ListScoresParams struct {
 	// The start of the change window, inclusive.
-	ChangesSince ChangeWindowMoment
+	ChangesSince time.Time
 	// The end of the change window, inclusive.
-	ChangesUntil ChangeWindowMoment
+	ChangesUntil time.Time
 	// An id a caller ties its own requests together with. The server logs the request under it and answers
 	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
 	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
@@ -269,14 +270,14 @@ func unpackListScoresParams(packed middleware.Parameters) (params ListScoresPara
 			Name: "Changes-Since",
 			In:   "query",
 		}
-		params.ChangesSince = packed[key].(ChangeWindowMoment)
+		params.ChangesSince = packed[key].(time.Time)
 	}
 	{
 		key := middleware.ParameterKey{
 			Name: "Changes-Until",
 			In:   "query",
 		}
-		params.ChangesUntil = packed[key].(ChangeWindowMoment)
+		params.ChangesUntil = packed[key].(time.Time)
 	}
 	{
 		key := middleware.ParameterKey{
@@ -303,34 +304,19 @@ func decodeListScoresParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotChangesSinceVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotChangesSinceVal = c
-					return nil
-				}(); err != nil {
+				val, err := d.DecodeValue()
+				if err != nil {
 					return err
 				}
-				params.ChangesSince = ChangeWindowMoment(paramsDotChangesSinceVal)
+
+				c, err := conv.ToDateTime(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChangesSince = c
 				return nil
 			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if err := params.ChangesSince.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
 				return err
 			}
 		} else {
@@ -354,34 +340,19 @@ func decodeListScoresParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotChangesUntilVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotChangesUntilVal = c
-					return nil
-				}(); err != nil {
+				val, err := d.DecodeValue()
+				if err != nil {
 					return err
 				}
-				params.ChangesUntil = ChangeWindowMoment(paramsDotChangesUntilVal)
+
+				c, err := conv.ToDateTime(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChangesUntil = c
 				return nil
 			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if err := params.ChangesUntil.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
 				return err
 			}
 		} else {

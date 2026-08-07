@@ -168,10 +168,11 @@ func TestListingScoresRequiresAChangeWindow(t *testing.T) {
 		path string
 	}{
 		{name: "no parameters", path: "/scores"},
-		{name: "only Changes-Since", path: "/scores?Changes-Since=20240101T000000"},
-		{name: "only Changes-Until", path: "/scores?Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Since", path: "/scores?Changes-Since=yesterday&Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Until", path: "/scores?Changes-Since=20240101T000000&Changes-Until=tomorrow"},
+		{name: "only Changes-Since", path: "/scores?Changes-Since=2024-01-01T00:00:00Z"},
+		{name: "only Changes-Until", path: "/scores?Changes-Until=2024-01-01T00:00:00Z"},
+		{name: "malformed Changes-Since", path: "/scores?Changes-Since=yesterday&Changes-Until=2024-01-01T00:00:00Z"},
+		{name: "malformed Changes-Until", path: "/scores?Changes-Since=2024-01-01T00:00:00Z&Changes-Until=tomorrow"},
+		{name: "a moment in the old compact format", path: "/scores?Changes-Since=20240101T000000&Changes-Until=20240102T000000"},
 	}
 
 	for _, tt := range tests {

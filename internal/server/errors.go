@@ -33,11 +33,6 @@ var (
 		api.ProblemDetailsErrorCodeInvalidMusicXML,
 		"invalid music xml",
 	)
-	ErrInvalidChangeWindow = api.NewProblemDetailsError(
-		http.StatusBadRequest,
-		api.ProblemDetailsErrorCodeInvalidRequest,
-		"change window is not a date-time",
-	)
 	ErrRequestBodyTooLarge = api.NewProblemDetailsError(
 		http.StatusRequestEntityTooLarge,
 		api.ProblemDetailsErrorCodeRequestBodyTooLarge,

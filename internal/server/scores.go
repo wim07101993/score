@@ -5,11 +5,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strings"
-	"time"
-
 	"score/internal/api"
 	"score/internal/score"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -99,23 +97,13 @@ func (h *Handler) GetScore(ctx context.Context, params api.GetScoreParams) (api.
 }
 
 func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (api.ListScoresRes, error) {
-	// TODO: change the changes-since and until to proper date-fields
-	changesSince, err := parseChangeWindowMoment(params.ChangesSince, "Changes-Since")
-	if err != nil {
-		return nil, err
-	}
-	changesUntil, err := parseChangeWindowMoment(params.ChangesUntil, "Changes-Until")
-	if err != nil {
-		return nil, err
-	}
-
 	dbConn, err := h.db.Provide(ctx)
 	if err != nil {
 		return nil, ErrListScores.WithParent(err)
 	}
 	defer dbConn.Release()
 
-	scores, err := score.List(ctx, dbConn, changesSince, changesUntil)
+	scores, err := score.List(ctx, dbConn, params.ChangesSince, params.ChangesUntil)
 	if err != nil {
 		return nil, ErrListScores.WithParent(err)
 	}
@@ -129,16 +117,6 @@ func (h *Handler) ListScores(ctx context.Context, params api.ListScoresParams) (
 		page = append(page, *apiScore)
 	}
 	return &page, nil
-}
-
-func parseChangeWindowMoment(moment api.ChangeWindowMoment, name string) (time.Time, error) {
-	t, err := time.Parse("20060102T150405", string(moment))
-	if err != nil {
-		return time.Time{}, ErrInvalidChangeWindow.
-			WithAdditionalData("failingField", name).
-			WithAdditionalData("failingReason", "failed to parse as date-time (YYYYMMDDThhmmss)")
-	}
-	return t, nil
 }
 
 func mapScoreToApi(stored *score.Score) (*api.Score, error) {

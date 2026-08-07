@@ -74,6 +74,12 @@ func scanScore(row pgx.Row) (*Score, error) {
 		tags = make([]string, 0)
 	}
 
+	// The store hands a moment back in whatever zone the process runs in. Which
+	// one that is says nothing about the score, and letting it through would
+	// have the same score read differently from one deployment to the next, so
+	// it is said in UTC and the instant is what is left.
+	lastChangedAt = lastChangedAt.UTC()
+
 	return &Score{
 		Id: id,
 		Work: Work{

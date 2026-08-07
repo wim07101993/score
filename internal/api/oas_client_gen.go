@@ -440,10 +440,7 @@ func (c *Client) sendListScores(ctx context.Context, params ListScoresParams) (r
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if unwrapped := string(params.ChangesSince); true {
-				return e.EncodeValue(conv.StringToString(unwrapped))
-			}
-			return nil
+			return e.EncodeValue(conv.DateTimeToString(params.ChangesSince))
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -457,10 +454,7 @@ func (c *Client) sendListScores(ctx context.Context, params ListScoresParams) (r
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if unwrapped := string(params.ChangesUntil); true {
-				return e.EncodeValue(conv.StringToString(unwrapped))
-			}
-			return nil
+			return e.EncodeValue(conv.DateTimeToString(params.ChangesUntil))
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}

@@ -16,12 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func aWhileAgo() api.ChangeWindowMoment { return changeWindowMoment(time.Now().Add(-time.Hour)) }
-func soon() api.ChangeWindowMoment      { return changeWindowMoment(time.Now().Add(time.Hour)) }
-
-func changeWindowMoment(t time.Time) api.ChangeWindowMoment {
-	return api.ChangeWindowMoment(t.UTC().Format("20060102T150405"))
-}
+func aWhileAgo() time.Time { return time.Now().Add(-time.Hour) }
+func soon() time.Time      { return time.Now().Add(time.Hour) }
 
 // mustGetScore fetches the metadata of a score the test expects to be there.
 func mustGetScore(t *testing.T, client *helpers.ApiClient, scoreId uuid.UUID) *api.Score {
@@ -375,14 +371,36 @@ func TestListingScoresReturnsTheScoresInTheWindow(t *testing.T) {
 		t.Parallel()
 
 		scores := mustListScores(t, client,
-			changeWindowMoment(time.Now().Add(-48*time.Hour)),
-			changeWindowMoment(time.Now().Add(-24*time.Hour)))
+			time.Now().Add(-48*time.Hour),
+			time.Now().Add(-24*time.Hour))
 
 		assert.Empty(t, scores, "scores changed today are not in a window that ended yesterday")
 	})
+
+	// A window is a pair of moments, and a moment says which one it is however
+	// it is written. Said in a zone of its own it has to hold the same scores as
+	// the same window said in UTC — the bound is compared as an instant, not as
+	// the wall clock it reads.
+	t.Run("window covering both uploads, said in another zone", func(t *testing.T) {
+		t.Parallel()
+
+		farEast := time.FixedZone("UTC+14", 14*60*60)
+		farWest := time.FixedZone("UTC-11", -11*60*60)
+
+		scores := mustListScores(t, client,
+			aWhileAgo().In(farEast),
+			soon().In(farWest))
+
+		listed := make([]uuid.UUID, 0, len(scores))
+		for _, score := range scores {
+			listed = append(listed, score.ID)
+		}
+		assert.Subset(t, listed, []uuid.UUID{first, second},
+			"the window a client wrote in its own zone should hold what the same window holds in UTC")
+	})
 }
 
-func mustListScores(t *testing.T, client *helpers.ApiClient, since, until api.ChangeWindowMoment) api.GetScoresResponse {
+func mustListScores(t *testing.T, client *helpers.ApiClient, since, until time.Time) api.GetScoresResponse {
 	t.Helper()
 
 	res, err := client.ListScores(t.Context(), api.ListScoresParams{
