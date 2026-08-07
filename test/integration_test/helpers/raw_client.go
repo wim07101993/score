@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -29,24 +28,6 @@ const ProblemContentType = "application/problem+json"
 type RawClient struct {
 	baseUrl string
 	client  *http.Client
-}
-
-func (h *Harness) NewRawClient(ctx context.Context) (*RawClient, error) {
-	server, err := h.TestServer.Provide(ctx)
-	if err != nil {
-		return nil, err
-	}
-	client, err := h.HttpClient.Provide(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &RawClient{baseUrl: server.URL, client: client}, nil
-}
-
-func (h *Harness) EnsureRawClient(t *testing.T) *RawClient {
-	t.Helper()
-	return ensure(t, h.RawClient, "raw client")
 }
 
 type Request struct {

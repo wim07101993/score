@@ -145,12 +145,23 @@ are behind a build tag:
 $ go test -tags integration ./test/...
 ```
 
-They start a throwaway `postgres:16-alpine` container, so docker has to be
-running. To use a database of your own instead:
+They need nothing installed either: they run a real PostgreSQL 16 of their own,
+started as a child process on a free port and thrown away afterwards, so a
+database you are running yourself is left alone. The first run downloads the
+server binaries and caches them under `~/.embedded-postgres-go`; every run after
+that starts from what is already there.
+
+To use a database of your own instead — no download, and the tests write to it:
 
 ```bash
 $ SCORE_TEST_DATABASE_URL=postgres://user:password@localhost:7432/score?sslmode=disable \
     go test -tags integration ./test/...
+```
+
+The API's own log is silenced during a test run. To see it:
+
+```bash
+$ SCORE_TEST_LOG=1 go test -tags integration ./test/...
 ```
 
 The frontend tests run on node without a build step or any dependency:

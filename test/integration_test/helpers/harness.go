@@ -12,8 +12,10 @@ package helpers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"score/internal/api"
 	"testing"
 	"time"
 
@@ -21,7 +23,6 @@ import (
 	"score/internal/server"
 	"score/internal/storage"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,40 +31,38 @@ type Harness struct {
 
 	DatabaseUrl string
 
-	HttpClient       bootstrap.Provider[*http.Client]
-	IdentityProvider bootstrap.Provider[*IdentityProvider]
-	TestServer       bootstrap.Provider[*httptest.Server]
-	RawClient        bootstrap.Provider[*RawClient]
+	HttpClient         bootstrap.Provider[*http.Client]
+	IdentityProvider   bootstrap.Provider[*IdentityProvider]
+	TestServer         bootstrap.Provider[*httptest.Server]
+	ApiClient          bootstrap.Provider[*api.Client]
+	RawClient          bootstrap.Provider[*RawClient]
+	SecuritySource     bootstrap.Provider[api.SecuritySource]
+	FakeSecuritySource bootstrap.Provider[*FakeSecuritySource]
 }
 
-func NewHarness(databaseUrl string, pool *pgxpool.Pool) *Harness {
+func NewHarness(databaseUrl string) *Harness {
 	h := &Harness{DatabaseUrl: databaseUrl}
 
 	h.HttpClient = bootstrap.NewLazySingleton(h.NewHttpClient)
 	h.IdentityProvider = bootstrap.NewLazySingleton(h.NewIdentityProvider)
 	h.TestServer = bootstrap.NewLazySingleton(h.NewTestServer)
-	h.RawClient = bootstrap.NewLazySingleton(h.NewRawClient)
+	h.ApiClient = bootstrap.NewFactory(h.NewApiClient)
+	h.RawClient = bootstrap.NewFactory(h.NewRawClient)
 
 	h.DependencyContainer = bootstrap.DefaultDependencyContainer(
 		bootstrap.NewLazySingleton(h.NewOidcClientConfig),
 		bootstrap.NewSingleton(storage.DatabaseConfig{ConnectionString: databaseUrl}),
 	)
 
-	h.PgxPool = bootstrap.NewSingleton(pool)
 	h.MigrationsSource = bootstrap.NewSingleton(MigrationsSource)
+	h.FakeSecuritySource = bootstrap.NewLazySingleton(h.NewFakeSecuritySource)
+	h.SecuritySource = bootstrap.NewFactory(func(ctx context.Context) (api.SecuritySource, error) {
+		return h.FakeSecuritySource.Provide(ctx)
+	})
 
 	server.FullErrorInResponse.Store(true)
 
 	return h
-}
-
-func ensure[T any](t *testing.T, provider bootstrap.Provider[T], what string) T {
-	t.Helper()
-
-	value, err := provider.Provide(context.Background())
-	require.NoErrorf(t, err, "failed to build the %s", what)
-	require.NotNilf(t, value, "the %s was built as nil", what)
-	return value
 }
 
 func (h *Harness) NewHttpClient(ctx context.Context) (*http.Client, error) {
@@ -85,12 +84,60 @@ func (h *Harness) NewTestServer(ctx context.Context) (*httptest.Server, error) {
 	return httptest.NewServer(handler), nil
 }
 
-func (h *Harness) EnsureApiServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	return ensure(t, h.TestServer, "api server")
+func (h *Harness) NewApiClient(ctx context.Context) (_ *api.Client, err error) {
+	var (
+		testServer     *httptest.Server
+		securitySource api.SecuritySource
+		httpClient     *http.Client
+	)
+
+	if testServer, err = h.TestServer.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get test server: %w", err)
+	}
+	if securitySource, err = h.SecuritySource.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get security source: %w", err)
+	}
+	if httpClient, err = h.HttpClient.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get http client: %w", err)
+	}
+
+	client, err := api.NewClient(
+		testServer.URL,
+		securitySource,
+		api.WithClient(httpClient),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build api client: %w", err)
+	}
+
+	return client, nil
 }
 
-func (h *Harness) EnsureDatabase(t *testing.T) *pgxpool.Pool {
+func (h *Harness) NewRawClient(ctx context.Context) (_ *RawClient, err error) {
+	var (
+		testServer *httptest.Server
+		httpClient *http.Client
+	)
+
+	if testServer, err = h.TestServer.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get test server: %w", err)
+	}
+	if httpClient, err = h.HttpClient.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get http client: %w", err)
+	}
+
+	return &RawClient{baseUrl: testServer.URL, client: httpClient}, nil
+}
+
+func (h *Harness) NewFakeSecuritySource(ctx context.Context) (_ *FakeSecuritySource, err error) {
+	return &FakeSecuritySource{}, nil
+}
+
+func Ensure[T any](t *testing.T, provider bootstrap.Provider[T], what string) T {
 	t.Helper()
-	return ensure(t, h.PgxPool, "database pool")
+
+	value, err := provider.Provide(t.Context())
+	require.NoErrorf(t, err, "failed to build the %s", what)
+	require.NotNilf(t, value, "the %s was built as nil", what)
+	return value
 }

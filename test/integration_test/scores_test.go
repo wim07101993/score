@@ -55,9 +55,9 @@ func mustGetScoreDocument(t *testing.T, client *api.Client, scoreId uuid.UUID, m
 
 	switch document := res.(type) {
 	case *api.GetScoreOKApplicationVndRecordareMusicxml:
-		return helpers.ReadAll(t, document.Data)
+		return helpers.MustReadAll(t, document.Data)
 	case *api.GetScoreOKApplicationVndRecordareMusicxmlXML:
-		return helpers.ReadAll(t, document.Data)
+		return helpers.MustReadAll(t, document.Data)
 	default:
 		require.FailNowf(t, "wrong representation",
 			"asked for %s and got %#v", mediaType, res)
@@ -349,5 +349,5 @@ func TestHealthzIsPublic(t *testing.T) {
 
 	ok, isOk := res.(*api.HealthzOK)
 	require.Truef(t, isOk, "got %#v", res)
-	assert.Equal(t, "OK", helpers.ReadAll(t, ok.Data))
+	assert.Equal(t, "OK", helpers.MustReadAll(t, ok.Data))
 }

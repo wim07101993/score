@@ -78,11 +78,6 @@ func (h *Harness) NewOidcClientConfig(ctx context.Context) (oidc.ClientConfig, e
 	}, nil
 }
 
-func (h *Harness) EnsureIdentityProvider(t *testing.T) *IdentityProvider {
-	t.Helper()
-	return ensure(t, h.IdentityProvider, "identity provider")
-}
-
 func (idp *IdentityProvider) IntrospectionUrl() string { return idp.server.URL + IntrospectionPath }
 func (idp *IdentityProvider) UserInfoUrl() string      { return idp.server.URL + UserInfoPath }
 

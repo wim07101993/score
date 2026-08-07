@@ -16,9 +16,9 @@ import (
 )
 
 func TestTokensTheProviderDoesNotVouchForAreRejected(t *testing.T) {
-	idp := harness.EnsureIdentityProvider(t)
+	idp := helpers.Ensure(t, harness.IdentityProvider, "idp")
 
-	tests := []struct {
+	tcs := []struct {
 		name  string
 		token string
 	}{
@@ -26,10 +26,14 @@ func TestTokensTheProviderDoesNotVouchForAreRejected(t *testing.T) {
 		{name: "inactive token", token: idp.IssueInactiveToken(t)},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res, err := harness.ApiClient(t, tt.token).
-				GetScore(t.Context(), api.GetScoreParams{ScoreId: uuid.New()})
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			securitySource := helpers.Ensure(t, harness.FakeSecuritySource, "FakeSecuritySource")
+			client := helpers.Ensure(t, harness.ApiClient, "ApiClient")
+
+			securitySource.Token = tc.token
+
+			res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: uuid.New()})
 			require.NoError(t, err)
 
 			assert.IsTypef(t, &api.GetScoreUnauthorized{}, res, "got %#v", res)
