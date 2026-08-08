@@ -1,0 +1,90 @@
+# /scores/{scoreId}: a single score.
+#
+# This file is not a document of its own. It is what one score answers to, and
+# it is read through the reference openapi-spec.yaml makes into it. The bodies
+# the methods read and write are in the files next to this one; what it shares
+# with the other endpoints — the parameters it reads, the failures it answers
+# with — is above them, in parameters/ and responses/.
+
+parameters:
+  - $ref: '../../../parameters/score_id.yaml'
+  - $ref: '../../../parameters/correlation_id.yaml'
+
+get:
+  operationId: getScore
+  summary: Fetch a single score.
+  description: |
+    Returns either the metadata of the score or the MusicXML document it was
+    extracted from, whichever the `Accept` header asks for. Anything that is
+    not one of the MusicXML media types is answered with the JSON metadata.
+
+    Requires the `score_viewer` role for both representations: the document
+    is not a way around the role check that protects the metadata.
+  tags: [scores]
+  security:
+    - oauth2: [score_viewer]
+  parameters:
+    - $ref: '../../../parameters/accept.yaml'
+  responses:
+    '200':
+      description: The score.
+      content:
+        application/json:
+          schema:
+            $ref: '../score.yaml'
+        application/vnd.recordare.musicxml:
+          schema:
+            $ref: '../musicxml.yaml'
+        application/vnd.recordare.musicxml+xml:
+          schema:
+            $ref: '../musicxml.yaml'
+    '400':
+      $ref: '../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../responses/404_not_found.yaml'
+    default:
+      $ref: '../../../responses/xxx_unknown_error.yaml'
+
+put:
+  operationId: putScore
+  summary: Add or replace a score.
+  description: |
+    Stores the MusicXML document under the given id, replacing whatever was
+    stored under it before, and extracts the metadata the scores are listed
+    by. A document that is not MusicXML, or that carries something the
+    server cannot store such as an unknown instrument, is rejected whole:
+    nothing of it is left behind.
+
+    Requires the `score_editor` role.
+  tags: [scores]
+  security:
+    - oauth2: [score_editor]
+  requestBody:
+    required: true
+    description: The MusicXML document.
+    content:
+      application/vnd.recordare.musicxml:
+        schema:
+          $ref: '../musicxml.yaml'
+      application/vnd.recordare.musicxml+xml:
+        schema:
+          $ref: '../musicxml.yaml'
+  responses:
+    '200':
+      description: The score was stored.
+    '400':
+      $ref: '../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../responses/403_forbidden.yaml'
+    '413':
+      $ref: '../../../responses/413_content_too_large.yaml'
+    '415':
+      $ref: '../../../responses/415_unsupported_media_type.yaml'
+    default:
+      $ref: '../../../responses/xxx_unknown_error.yaml'

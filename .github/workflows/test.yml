@@ -6,6 +6,24 @@ on:
   pull_request:
 
 jobs:
+  # The openapi document as a document: that it is valid, that every reference
+  # lands, and that an operation says who may call it and what it answers. The
+  # backend job checks that the generated server matches it; this checks that it
+  # is worth generating from. Its settings are in redocly.yaml.
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # Pinned: a new release of the linter brings new rules, and the day those
+      # start failing should be a day somebody chose.
+      - name: Lint the openapi document
+        run: npx --yes @redocly/cli@2.44.1 lint
+
   backend:
     runs-on: ubuntu-latest
     steps:
@@ -14,6 +32,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+
+      - name: The generated api is the one the openapi document describes
+        run: |
+          go generate ./...
+          git diff --exit-code internal/api
 
       - name: Vet
         run: go vet ./...

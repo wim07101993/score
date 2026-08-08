@@ -1,0 +1,76 @@
+type: object
+description: The metadata of a score, extracted from its MusicXML document.
+required:
+  - id
+  - work
+  - movement
+  - creators
+  - languages
+  - instruments
+  - last_changed_at
+  - tags
+properties:
+  id:
+    type: string
+    format: uuid
+    description: The id the score was stored under.
+  work:
+    type: object
+    description: The work the score is part of. Empty strings when the document names none.
+    required: [ title, number ]
+    properties:
+      title:
+        type: string
+        examples: [ An die ferne Geliebte ]
+      number:
+        type: string
+        examples: [ Op. 98 ]
+  movement:
+    type: object
+    description: The movement within the work. Empty strings when the document names none.
+    required: [title, number]
+    properties:
+      title:
+        type: string
+      number:
+        type: string
+  creators:
+    type: object
+    description: Who wrote the score.
+    required: [composers, lyricists]
+    properties:
+      composers:
+        type: array
+        items:
+          type: string
+        examples:
+          - [Ludwig van Beethoven]
+      lyricists:
+        type: array
+        items:
+          type: string
+        examples:
+          - [Aloys Jeitteles]
+  languages:
+    type: array
+    description: The languages of the lyrics.
+    items:
+      type: string
+    examples:
+      - [ nl ]
+  instruments:
+    type: array
+    description: The instruments the score is written for.
+    items:
+      type: string
+    examples:
+      - [ voice.vocals, keyboard.piano ]
+  last_changed_at:
+    type: string
+    format: date-time
+    description: When the score was last uploaded.
+  tags:
+    type: array
+    description: The tags the score is filed under.
+    items:
+      type: string

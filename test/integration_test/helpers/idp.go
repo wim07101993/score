@@ -1,12 +1,15 @@
 package helpers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+
+	"score/internal/oidc"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -49,19 +52,30 @@ type tokenState struct {
 	userInfoFails bool
 }
 
-func (h *Harness) EnsureIdentityProvider(t *testing.T) *IdentityProvider {
-	t.Helper()
-	h.identityProv.mutex.Lock()
-	defer h.identityProv.mutex.Unlock()
+func (h *Harness) NewIdentityProvider(ctx context.Context) (*IdentityProvider, error) {
+	idp := &IdentityProvider{tokens: map[string]*tokenState{}}
+	// Not closed on test cleanup: the harness builds it once and every later
+	// test reuses it, so it lives as long as the test binary.
+	idp.server = httptest.NewServer(http.HandlerFunc(idp.handle))
+	return idp, nil
+}
 
-	if h.identityProv.value == nil {
-		idp := &IdentityProvider{tokens: map[string]*tokenState{}}
-		// Not closed on test cleanup: the harness builds it once and every
-		// later test reuses it, so it lives as long as the test binary.
-		idp.server = httptest.NewServer(http.HandlerFunc(idp.handle))
-		h.identityProv.value = idp
+// NewOidcClientConfig points the API at the fake provider. It is what makes the
+// container the tests build the same graph the application builds, differing
+// only in which identity provider it trusts.
+func (h *Harness) NewOidcClientConfig(ctx context.Context) (oidc.ClientConfig, error) {
+	idp, err := h.IdentityProvider.Provide(ctx)
+	if err != nil {
+		return oidc.ClientConfig{}, err
 	}
-	return h.identityProv.value
+
+	return oidc.ClientConfig{
+		IntrospectionUrl: idp.IntrospectionUrl(),
+		UserInfoUrl:      idp.UserInfoUrl(),
+		ClientId:         IdpClientId,
+		ClientSecret:     IdpClientSecret,
+		RolesKey:         RolesKey,
+	}, nil
 }
 
 func (idp *IdentityProvider) IntrospectionUrl() string { return idp.server.URL + IntrospectionPath }

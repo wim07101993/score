@@ -1,0 +1,8 @@
+name: Changes-Since
+in: query
+required: true
+description: The start of the change window, inclusive.
+schema:
+  type: string
+  format: date-time
+  examples: ['2024-01-01T00:00:00Z']

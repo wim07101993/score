@@ -1,0 +1,264 @@
+package bootstrap
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"score/internal/api"
+	"score/internal/auth"
+	"score/internal/logging"
+	"score/internal/oidc"
+	"score/internal/server"
+	"score/internal/storage"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // the file:// migrations source
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+const DefaultMigrationsSource = "file://db/migrations"
+
+type DependencyContainer struct {
+	OidcClientConfig Provider[oidc.ClientConfig]
+	DatabaseConfig   Provider[storage.DatabaseConfig]
+	ServerConfig     Provider[server.Config]
+	Logger           Provider[*slog.Logger]
+	MigrationsSource Provider[string]
+
+	ApiServer           Provider[*api.Server]
+	ApiServerOpts       Provider[[]api.ServerOption]
+	ServerHandler       Provider[*server.Handler]
+	AuthSecurityHandler Provider[*auth.SecurityHandler]
+	OidcClient          Provider[*oidc.Client]
+	PgxPool             Provider[*pgxpool.Pool]
+	PgxConn             Provider[*pgxpool.Conn]
+	Migrate             Provider[*DependencyWithCleanup[*migrate.Migrate]]
+
+	HttpServer         Provider[*http.Server]
+	HttpHandler        Provider[http.Handler]
+	ApiSecurityHandler Provider[api.SecurityHandler]
+	ApiHandler         Provider[api.Handler]
+	AuthOidcClient     Provider[auth.OidcClient]
+}
+
+func DefaultDependencyContainer(
+	oidcClientConfig Provider[oidc.ClientConfig],
+	databaseConfig Provider[storage.DatabaseConfig],
+	serverConfig Provider[server.Config],
+) *DependencyContainer {
+	dc := &DependencyContainer{}
+
+	dc.OidcClientConfig = oidcClientConfig
+	dc.DatabaseConfig = databaseConfig
+	dc.ServerConfig = serverConfig
+	dc.MigrationsSource = NewSingleton(DefaultMigrationsSource)
+
+	dc.ApiServer = NewLazySingleton(dc.NewApiServer)
+	dc.ApiServerOpts = NewLazySingleton(dc.NewApiServerOpts)
+	dc.ServerHandler = NewLazySingleton(dc.NewServerHandler)
+	dc.AuthSecurityHandler = NewLazySingleton(dc.NewAuthSecurityHandler)
+	dc.OidcClient = NewLazySingleton(dc.NewOidcClient)
+	dc.PgxPool = NewLazySingleton(dc.NewPgPool)
+	dc.PgxConn = NewFactory(dc.NewPgConn)
+	dc.Logger = NewFactory(dc.NewLogger)
+	dc.Migrate = NewFactory(dc.NewMigrate)
+
+	dc.HttpServer = NewLazySingleton(dc.NewHttpServer)
+	dc.HttpHandler = NewLazySingleton(dc.NewHttpHandler)
+	dc.ApiSecurityHandler = NewFactory(func(ctx context.Context) (api.SecurityHandler, error) {
+		return dc.AuthSecurityHandler.Provide(ctx)
+	})
+	dc.ApiHandler = NewFactory(func(ctx context.Context) (api.Handler, error) {
+		return dc.ServerHandler.Provide(ctx)
+	})
+	dc.AuthOidcClient = NewFactory(func(ctx context.Context) (auth.OidcClient, error) {
+		return dc.OidcClient.Provide(ctx)
+	})
+
+	return dc
+}
+
+func (di *DependencyContainer) NewHttpServer(ctx context.Context) (_ *http.Server, err error) {
+	var config server.Config
+	var handler http.Handler
+
+	if config, err = di.ServerConfig.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get server config: %w", err)
+	}
+	if handler, err = di.HttpHandler.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get http handler: %w", err)
+	}
+
+	return server.NewHttpServer(config, handler), nil
+}
+
+func (di *DependencyContainer) NewHttpHandler(ctx context.Context) (_ http.Handler, err error) {
+	var config server.Config
+	var apiServer *api.Server
+
+	if config, err = di.ServerConfig.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get server config: %w", err)
+	}
+	if apiServer, err = di.ApiServer.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get api server: %w", err)
+	}
+
+	return server.Cors(logging.Wrap(
+		server.LimitRequestBody(config.MaxRequestBodyBytes, apiServer))), nil
+}
+
+func (di *DependencyContainer) NewApiServer(ctx context.Context) (_ *api.Server, err error) {
+	var router api.Handler
+	var sec api.SecurityHandler
+	var opts []api.ServerOption
+
+	if router, err = di.ApiHandler.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get api handler: %w", err)
+	}
+	if sec, err = di.ApiSecurityHandler.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get api security handler: %w", err)
+	}
+	if opts, err = di.ApiServerOpts.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get api server options: %w", err)
+	}
+
+	apiServer, err := api.NewServer(router, sec, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create api server: %w", err)
+	}
+	return apiServer, nil
+}
+
+func (di *DependencyContainer) NewServerHandler(ctx context.Context) (_ *server.Handler, err error) {
+	return server.New(di.PgxConn), nil
+}
+
+func (di *DependencyContainer) NewApiServerOpts(ctx context.Context) (_ []api.ServerOption, err error) {
+	return []api.ServerOption{
+		api.WithMiddleware(
+			logging.AddOperationIdToContext()),
+		api.WithErrorHandler(server.ErrorHandler),
+		api.WithNotFound(server.NotFound),
+		api.WithMethodNotAllowed(server.MethodNotAllowed),
+	}, nil
+}
+
+func (di *DependencyContainer) NewAuthSecurityHandler(ctx context.Context) (_ *auth.SecurityHandler, err error) {
+	var oidcClient auth.OidcClient
+
+	if oidcClient, err = di.AuthOidcClient.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get oidc client: %w", err)
+	}
+
+	return auth.NewSecurityHandler(oidcClient), nil
+}
+
+func (di *DependencyContainer) NewOidcClient(ctx context.Context) (_ *oidc.Client, err error) {
+	var config oidc.ClientConfig
+
+	if config, err = di.OidcClientConfig.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get oidc client config: %w", err)
+	}
+
+	return oidc.NewClient(config), nil
+}
+
+func (di *DependencyContainer) NewPgPool(ctx context.Context) (_ *pgxpool.Pool, err error) {
+	var config storage.DatabaseConfig
+
+	if config, err = di.DatabaseConfig.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get database config: %w", err)
+	}
+
+	pool, err := pgxpool.New(ctx, config.ConnectionString)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create database connection pool: %w", err)
+	}
+	return pool, nil
+}
+
+func (di *DependencyContainer) NewPgConn(ctx context.Context) (_ *pgxpool.Conn, err error) {
+	var pool *pgxpool.Pool
+
+	if pool, err = di.PgxPool.Provide(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get database connection pool: %w", err)
+	}
+
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire a database connection: %w", err)
+	}
+	return conn, nil
+}
+
+func (di *DependencyContainer) NewLogger(ctx context.Context) (_ *slog.Logger, err error) {
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})), nil
+}
+
+func (di *DependencyContainer) NewMigrate(ctx context.Context) (_ *DependencyWithCleanup[*migrate.Migrate], err error) {
+	config, err := di.DatabaseConfig.Provide(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database config: %w", err)
+	}
+
+	source, err := di.MigrationsSource.Provide(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get migrations source: %w", err)
+	}
+
+	db, err := sql.Open("postgres", config.ConnectionString)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open a database connection: %w", err)
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initiate postgres driver: %w", errors.Join(err, db.Close()))
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		source,
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create migration runner: %w", errors.Join(err, driver.Close()))
+	}
+	return &DependencyWithCleanup[*migrate.Migrate]{
+		Dependency: m,
+		Cleanup: func() error {
+			src, db := m.Close()
+			return errors.Join(src, db)
+		},
+	}, nil
+}
+
+func (di *DependencyContainer) NewScope() *DependencyContainer {
+	return &DependencyContainer{
+		OidcClientConfig: ScopeProvider(di.OidcClientConfig),
+		DatabaseConfig:   ScopeProvider(di.DatabaseConfig),
+		ServerConfig:     ScopeProvider(di.ServerConfig),
+		Logger:           ScopeProvider(di.Logger),
+		MigrationsSource: ScopeProvider(di.MigrationsSource),
+
+		ApiServer:           ScopeProvider(di.ApiServer),
+		ApiServerOpts:       ScopeProvider(di.ApiServerOpts),
+		ServerHandler:       ScopeProvider(di.ServerHandler),
+		AuthSecurityHandler: ScopeProvider(di.AuthSecurityHandler),
+		OidcClient:          ScopeProvider(di.OidcClient),
+		PgxPool:             ScopeProvider(di.PgxPool),
+		PgxConn:             ScopeProvider(di.PgxConn),
+		Migrate:             ScopeProvider(di.Migrate),
+
+		HttpServer:         ScopeProvider(di.HttpServer),
+		HttpHandler:        ScopeProvider(di.HttpHandler),
+		ApiSecurityHandler: ScopeProvider(di.ApiSecurityHandler),
+		ApiHandler:         ScopeProvider(di.ApiHandler),
+		AuthOidcClient:     ScopeProvider(di.AuthOidcClient),
+	}
+}

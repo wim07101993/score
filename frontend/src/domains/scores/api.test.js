@@ -34,30 +34,29 @@ async function windowAskedFor(changesSince, changesUntil) {
 }
 
 /**
- * Reads the YYYYMMDDThhmmss the API takes, which it reads as UTC.
+ * Reads the RFC 3339 moment the API takes.
  *
  * @param value {string}
  * @return {Date}
  */
 function parseApiDate(value) {
-  const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/.exec(value);
-  assert.ok(match, `"${value}" is not a date-time the API can read`);
-  const [, year, month, day, hour, minute, second] = match;
-  return new Date(Date.UTC(+year, +month - 1, +day, +hour, +minute, +second));
+  const parsed = new Date(value);
+  assert.ok(!Number.isNaN(parsed.getTime()), `"${value}" is not a date-time the API can read`);
+  return parsed;
 }
 
 test('a change window is asked for in the format the API reads', async () => {
   const {raw} = await windowAskedFor(new Date('2026-08-03T18:39:14.800Z'), new Date('2026-08-03T19:00:00.000Z'));
 
-  assert.match(raw.get('Changes-Since'), /^\d{8}T\d{6}$/);
-  assert.match(raw.get('Changes-Until'), /^\d{8}T\d{6}$/);
+  assert.match(raw.get('Changes-Since'), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/);
+  assert.match(raw.get('Changes-Until'), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/);
 });
 
 // The API keeps everything that changed up to and including the end of the
-// window, but only reads a moment to the second. Rounding the end down leaves
+// window. An end that falls short of the moment it was asked about — because
+// something along the way dropped the fraction of a second it carries — leaves
 // out whatever changed during the second that is still running, which is how a
-// score comes back missing from the list of scores immediately after being
-// uploaded.
+// score comes back missing from the list immediately after being uploaded.
 test('the end of a change window covers a score that changed a fraction of a second ago', async () => {
   const justUploadedAt = new Date('2026-08-03T18:39:14.686Z');
   const syncingAt = new Date('2026-08-03T18:39:14.900Z');
@@ -70,16 +69,16 @@ test('the end of a change window covers a score that changed a fraction of a sec
     `the window ends at ${until.toISOString()}, before the ${syncingAt.toISOString()} it was asked to cover`);
 });
 
-test('an end that is already a whole second is not pushed any further out', async () => {
-  const exactly = new Date('2026-08-03T18:39:14.000Z');
+test('an end is asked for as the moment it was given, and not a moment later', async () => {
+  const exactly = new Date('2026-08-03T18:39:14.686Z');
 
   const {until} = await windowAskedFor(new Date('2026-08-03T17:00:00.000Z'), exactly);
 
   assert.equal(until.getTime(), exactly.getTime());
 });
 
-// Rounding the start down is what keeps it inclusive, the same way rounding the
-// end up does at the other end.
+// The same at the other end: a start that overshoots the moment it was asked
+// about leaves out whatever changed in between.
 test('the start of a change window covers a score that changed a fraction of a second into it', async () => {
   const askedFrom = new Date('2026-08-03T18:39:14.800Z');
 

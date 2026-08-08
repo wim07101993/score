@@ -1,0 +1,34 @@
+# /healthz: whether the server is up.
+#
+# This file is not a document of its own. It is what the health endpoint answers
+# to, and it is read through the reference openapi-spec.yaml makes into it.
+
+get:
+  operationId: healthz
+  summary: Whether the server is up.
+  description: Answers `OK` as long as the server is serving. Public.
+  tags: [health]
+  security: []
+  parameters:
+    - $ref: '../../parameters/correlation_id.yaml'
+  responses:
+    '200':
+      description: The server is up.
+      content:
+        text/plain:
+          examples:
+            ok:
+              summary: Server is healthy
+              value: ok
+            fail:
+              summary: Server is not healthy
+              value: fail
+    '4XX':
+      description: The request was rejected by the server.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/problem_details.yaml'
+
+    default:
+      $ref: '../../responses/xxx_unknown_error.yaml'

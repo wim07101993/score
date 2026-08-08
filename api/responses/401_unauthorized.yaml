@@ -1,0 +1,7 @@
+description: |
+  No token was sent, or the token that was sent is not valid. The caller has not
+  proven who they are.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'

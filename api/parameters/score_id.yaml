@@ -1,0 +1,7 @@
+name: scoreId
+in: path
+required: true
+description: The id the score is stored under.
+schema:
+  type: string
+  format: uuid

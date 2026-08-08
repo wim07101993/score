@@ -1,274 +1,25 @@
+// Package score is where sheet music is kept: the documents themselves, the
+// metadata read out of them when they are stored, and everything that reads or
+// writes either.
+//
+// It knows nothing about how any of this is served. There is a file per thing
+// the API asks of it, holding the queries that answer it, and what comes back
+// is this package's own model of a score. Turning that into a response, and a
+// failure from here into an answer for a caller, is the API layer's job — that
+// is internal/server, and it is the only place that knows there is http
+// involved at all.
 package score
 
 import (
-	"context"
-	"encoding/xml"
-	"log/slog"
-	"score/internal/musicxml"
-	"strings"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 )
 
-// pgErrInvalidTextRepresentation is the postgres error code for a value that
-// does not parse as the type of the column it is written to, such as a uuid or
-// an enum member that does not exist.
-const pgErrInvalidTextRepresentation = "22P02"
-
-type DatabaseFactory func(ctx context.Context) (*Database, error)
-
-type Database struct {
-	logger *slog.Logger
-	conn   *pgxpool.Conn
-}
-
-func NewDatabase(logger *slog.Logger, conn *pgxpool.Conn) *Database {
-	return &Database{
-		logger: logger,
-		conn:   conn,
-	}
-}
-
-func (db *Database) Dispose() {
-	db.conn.Release()
-}
-
-// ------------------------------------
-//	MUTATING FUNCTIONS
-// ------------------------------------
-
-func (db *Database) AddOrUpdateScore(ctx context.Context, id string, mxml string) error {
-	db.logger.Info("adding/updating score document",
-		slog.String("id", id))
-
-	reader := strings.NewReader(mxml)
-	score, err := musicxml.DeserializeMusicXml(xml.NewDecoder(reader))
-	if err != nil {
-		return &ErrInvalidMusicXml{Cause: err}
-	}
-
-	tx, err := db.conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	const upsertScoreFileQuery = `
-		INSERT INTO score_files (id, content)
-		VALUES (@id, @content)
-		ON CONFLICT (id) DO UPDATE SET
-			content = EXCLUDED.content
-	`
-
-	_, err = tx.Exec(ctx, upsertScoreFileQuery, pgx.NamedArgs{
-		"id":      id,
-		"content": mxml,
-	})
-	if err != nil {
-		return err
-	}
-
-	var composers []string
-	var lyricists []string
-	if score.Identification != nil && score.Identification.Creators != nil {
-		for _, creator := range score.Identification.Creators {
-			switch creator.Type {
-			case "composer":
-				composers = append(composers, creator.Value)
-			case "lyricist":
-				lyricists = append(lyricists, creator.Value)
-			}
-		}
-	}
-
-	var instruments []string
-	for _, part := range score.PartList {
-		if part.ScorePart == nil {
-			continue
-		}
-		for _, instrument := range part.ScorePart.Instruments {
-			if instrument.Sound == "" {
-				continue
-			}
-			instruments = append(instruments, instrument.Sound)
-		}
-	}
-
-	var languages []string
-	if score.Defaults != nil && score.Defaults.LyricLanguage != "" {
-		languages = []string{score.Defaults.LyricLanguage}
-	}
-
-	var workTitle, workNumber string
-	if score.Work != nil {
-		workTitle = score.Work.Title
-		workNumber = score.Work.Number
-	}
-
-	const insertScoreQuery = `
-		INSERT INTO scores (
-			id,
-			work_title, work_number,
-			movement_title, movement_number,
-			creators_composers, creators_lyricists,
-			languages, instruments,
-			lastChangedAt)
-		VALUES (
-			@id,
-			@work_title, @work_number,
-			@movement_title, @movement_number,
-			@creators_composers, @creators_lyricists,
-			@languages, @instruments,
-			@lastChangedAt)
-		ON CONFLICT (id) DO UPDATE SET
-			work_title = EXCLUDED.work_title,
-			work_number = EXCLUDED.work_number,
-			movement_title = EXCLUDED.movement_title,
-			movement_number = EXCLUDED.movement_number,
-			creators_composers = EXCLUDED.creators_composers,
-			creators_lyricists = EXCLUDED.creators_lyricists,
-			languages = EXCLUDED.languages,
-			instruments = EXCLUDED.instruments,
-			lastChangedAt = EXCLUDED.lastChangedAt`
-
-	_, err = tx.Exec(ctx, insertScoreQuery, pgx.NamedArgs{
-		"id":                 id,
-		"work_title":         workTitle,
-		"work_number":        workNumber,
-		"movement_title":     score.MovementTitle,
-		"movement_number":    score.MovementNumber,
-		"creators_composers": composers,
-		"creators_lyricists": lyricists,
-		"languages":          languages,
-		"instruments":        instruments,
-		"lastChangedAt":      time.Now().UTC(),
-	})
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgErrInvalidTextRepresentation {
-			return &ErrInvalidMusicXml{Cause: errors.New(pgErr.Message)}
-		}
-		return err
-	}
-
-	return tx.Commit(ctx)
-}
-
-// ------------------------------------
-//	QUERY FUNCTIONS
-// ------------------------------------
-
-func (db *Database) GetApiScore(ctx context.Context, scoreId string) (*Score, error) {
-	db.logger.Info("getting score", slog.String("scoreId", scoreId))
-
-	row := db.conn.QueryRow(ctx, getScoreQuery, scoreId)
-	score, err := scanScore(row)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrScoreNotFound
-		}
-		return nil, err
-	}
-
-	return score, nil
-}
-
-func (db *Database) GetScoreMusicXml(ctx context.Context, scoreId string) (string, error) {
-	db.logger.Info("getting music-xml", slog.String("scoreId", scoreId))
-
-	row := db.conn.QueryRow(ctx, getScoreMusicXmlQuery, scoreId)
-
-	var (
-		id      string
-		content string
-	)
-
-	err := row.Scan(&id, &content)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", ErrScoreNotFound
-		}
-		return "", err
-	}
-
-	return content, nil
-}
-
-func (db *Database) GetScores(
-	ctx context.Context,
-	changesSince time.Time,
-	changesUntil time.Time) ([]*Score, error) {
-	db.logger.Info("getting scores")
-
-	rows, err := db.conn.Query(ctx, getScoresQuery, changesSince, changesUntil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var scores = make([]*Score, 0)
-
-	defer rows.Close()
-	for rows.Next() {
-		score, err := scanScore(rows)
-		if err != nil {
-			return scores, err
-		}
-
-		scores = append(scores, score)
-	}
-
-	return scores, err
-}
-
-const getScoresQuery = `
-	SELECT
-		score.id,
-		score.work_title,
-		score.work_number,
-		score.movement_number,
-		score.movement_title,
-		score.lastChangedAt,
-		score.creators_composers,
-		score.creators_lyricists,
-		score.languages,
-		score.instruments,
-		score.tags
-	FROM scores AS score
-	WHERE score.lastchangedat >= $1 AND score.lastchangedat <= $2
-	ORDER BY score.lastchangedat DESC
-`
-
-const getScoreQuery = `
-	SELECT
-		score.id,
-		score.work_title,
-		score.work_number,
-		score.movement_number,
-		score.movement_title,
-		score.lastChangedAt,
-		score.creators_composers,
-		score.creators_lyricists,
-		score.languages,
-		score.instruments,
-		score.tags
-	FROM scores AS score
-	WHERE score.id = $1
-`
-
-const getScoreMusicXmlQuery = `
-	SELECT
-		score.id,
-		score.content
-	FROM score_files AS score
-	WHERE score.id = $1
-`
-
+// scanScore reads a row of score metadata. Looking up a single score and
+// listing a window of them select the same columns, in this order.
 func scanScore(row pgx.Row) (*Score, error) {
 	var (
 		id                   string
@@ -298,7 +49,7 @@ func scanScore(row pgx.Row) (*Score, error) {
 		&tagsArr)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
 	creatorsComposers := creatorsComposersArr.Elements
@@ -322,6 +73,12 @@ func scanScore(row pgx.Row) (*Score, error) {
 	if tags == nil {
 		tags = make([]string, 0)
 	}
+
+	// The store hands a moment back in whatever zone the process runs in. Which
+	// one that is says nothing about the score, and letting it through would
+	// have the same score read differently from one deployment to the next, so
+	// it is said in UTC and the instant is what is left.
+	lastChangedAt = lastChangedAt.UTC()
 
 	return &Score{
 		Id: id,

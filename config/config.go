@@ -5,6 +5,9 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"score/internal/oidc"
+	"score/internal/server"
+	"score/internal/storage"
 
 	"github.com/kelseyhightower/envconfig"
 	errorspkg "github.com/pkg/errors"
@@ -18,6 +21,7 @@ type Config struct {
 	TokenIntrospectionClientSecret string `envconfig:"TOKEN_INTROSPECTION_CLIENT_SECRET" json:"tokenIntrospectionClientSecret"`
 	UserInfoUrl                    string `envconfig:"USER_INFO_URL" json:"userInfoUrl"`
 	RolesKey                       string `envconfig:"ROLES_KEY" json:"rolesKey"`
+	MaxRequestBodyBytes            int64  `envconfig:"MAX_REQUEST_BODY_BYTES" json:"maxRequestBodyBytes" default:"33554432"`
 }
 
 func FromFile(configPath string) (*Config, error) {
@@ -72,6 +76,9 @@ func (cfg *Config) CopyFrom(other *Config) {
 	if other.RolesKey != "" {
 		cfg.RolesKey = other.RolesKey
 	}
+	if other.MaxRequestBodyBytes != 0 {
+		cfg.MaxRequestBodyBytes = other.MaxRequestBodyBytes
+	}
 }
 
 func (cfg *Config) Validate() error {
@@ -109,6 +116,10 @@ func (cfg *Config) Validate() error {
 		errs = append(errs, errors.New("no roles key"))
 	}
 
+	if cfg.MaxRequestBodyBytes <= 0 {
+		errs = append(errs, errors.New("the maximum request body size must be a positive number of bytes"))
+	}
+
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
@@ -124,5 +135,29 @@ func (cfg *Config) Redacted() Config {
 		TokenIntrospectionClientSecret: "********",
 		UserInfoUrl:                    cfg.UserInfoUrl,
 		RolesKey:                       cfg.RolesKey,
+		MaxRequestBodyBytes:            cfg.MaxRequestBodyBytes,
+	}
+}
+
+func (cfg *Config) ServerConfig() server.Config {
+	return server.Config{
+		Port:                cfg.HttpServerPort,
+		MaxRequestBodyBytes: cfg.MaxRequestBodyBytes,
+	}
+}
+
+func (cfg *Config) OidcClientConfig() oidc.ClientConfig {
+	return oidc.ClientConfig{
+		IntrospectionUrl: cfg.TokenIntrospectionUrl,
+		UserInfoUrl:      cfg.UserInfoUrl,
+		ClientId:         cfg.TokenIntrospectionClientId,
+		ClientSecret:     cfg.TokenIntrospectionClientSecret,
+		RolesKey:         cfg.RolesKey,
+	}
+}
+
+func (cfg *Config) DatabaseConfig() storage.DatabaseConfig {
+	return storage.DatabaseConfig{
+		ConnectionString: cfg.DbConnectionString,
 	}
 }

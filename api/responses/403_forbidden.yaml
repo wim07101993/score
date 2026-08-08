@@ -1,0 +1,7 @@
+description: |
+  The token is valid, but the user it belongs to does not hold the role this
+  operation asks for.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'

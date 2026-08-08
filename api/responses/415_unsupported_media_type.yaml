@@ -1,0 +1,7 @@
+description: |
+  The body was not sent in a media type this operation reads. A request that
+  does not say what it carries at all is one of those.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'
