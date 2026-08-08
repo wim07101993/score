@@ -11,15 +11,23 @@ import (
 )
 
 var (
-	rn4AllowedHeaders = map[string]string{
+	rn7AllowedHeaders = map[string]string{
 		"GET": "X-Correlation-Id",
 	}
+	rn8AllowedHeaders = map[string]string{
+		"GET": "Authorization,X-Correlation-Id",
+	}
 	rn5AllowedHeaders = map[string]string{
+		"GET": "Accept,Authorization,X-Correlation-Id",
+		"PUT": "Authorization,Content-Type,X-Correlation-Id",
+	}
+	rn9AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Correlation-Id",
 	}
 	rn2AllowedHeaders = map[string]string{
-		"GET": "Accept,Authorization,X-Correlation-Id",
-		"PUT": "Authorization,Content-Type,X-Correlation-Id",
+		"DELETE": "Authorization,X-Correlation-Id",
+		"GET":    "Authorization,X-Correlation-Id",
+		"PUT":    "Authorization,Content-Type,X-Correlation-Id",
 	}
 )
 
@@ -90,7 +98,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET",
-							allowedHeaders: rn4AllowedHeaders,
+							allowedHeaders: rn7AllowedHeaders,
 							acceptPost:     "",
 							acceptPatch:    "",
 						})
@@ -99,68 +107,152 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-			case 's': // Prefix: "scores"
+			case 's': // Prefix: "s"
 
-				if l := len("scores"); len(elem) >= l && elem[0:l] == "scores" {
+				if l := len("s"); len(elem) >= l && elem[0:l] == "s" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					switch r.Method {
-					case "GET":
-						s.handleListScoresRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "GET",
-							allowedHeaders: rn5AllowedHeaders,
-							acceptPost:     "",
-							acceptPatch:    "",
-						})
-					}
-
-					return
+					break
 				}
 				switch elem[0] {
-				case '/': // Prefix: "/"
+				case 'c': // Prefix: "cores"
 
-					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+					if l := len("cores"); len(elem) >= l && elem[0:l] == "cores" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "scoreId"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
 					if len(elem) == 0 {
-						// Leaf node.
 						switch r.Method {
 						case "GET":
-							s.handleGetScoreRequest([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
-						case "PUT":
-							s.handlePutScoreRequest([1]string{
-								args[0],
-							}, elemIsEscaped, w, r)
+							s.handleListScoresRequest([0]string{}, elemIsEscaped, w, r)
 						default:
 							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "GET,PUT",
-								allowedHeaders: rn2AllowedHeaders,
+								allowedMethods: "GET",
+								allowedHeaders: rn8AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
 						}
 
 						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "scoreId"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleGetScoreRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							case "PUT":
+								s.handlePutScoreRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET,PUT",
+									allowedHeaders: rn5AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					}
+
+				case 'e': // Prefix: "ets"
+
+					if l := len("ets"); len(elem) >= l && elem[0:l] == "ets" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						switch r.Method {
+						case "GET":
+							s.handleListSetsRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: rn9AllowedHeaders,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "setId"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "DELETE":
+								s.handleDeleteSetRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							case "GET":
+								s.handleGetSetRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							case "PUT":
+								s.handlePutSetRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "DELETE,GET,PUT",
+									allowedHeaders: rn2AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
 					}
 
 				}
@@ -290,71 +382,163 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					}
 				}
 
-			case 's': // Prefix: "scores"
+			case 's': // Prefix: "s"
 
-				if l := len("scores"); len(elem) >= l && elem[0:l] == "scores" {
+				if l := len("s"); len(elem) >= l && elem[0:l] == "s" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					switch method {
-					case "GET":
-						r.name = ListScoresOperation
-						r.summary = "List the scores that changed within a window."
-						r.operationID = "listScores"
-						r.operationGroup = ""
-						r.pathPattern = "/scores"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
-					}
+					break
 				}
 				switch elem[0] {
-				case '/': // Prefix: "/"
+				case 'c': // Prefix: "cores"
 
-					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+					if l := len("cores"); len(elem) >= l && elem[0:l] == "cores" {
 						elem = elem[l:]
 					} else {
 						break
 					}
 
-					// Param: "scoreId"
-					// Leaf parameter, slashes are prohibited
-					idx := strings.IndexByte(elem, '/')
-					if idx >= 0 {
-						break
-					}
-					args[0] = elem
-					elem = ""
-
 					if len(elem) == 0 {
-						// Leaf node.
 						switch method {
 						case "GET":
-							r.name = GetScoreOperation
-							r.summary = "Fetch a single score."
-							r.operationID = "getScore"
+							r.name = ListScoresOperation
+							r.summary = "List the scores that changed within a window."
+							r.operationID = "listScores"
 							r.operationGroup = ""
-							r.pathPattern = "/scores/{scoreId}"
+							r.pathPattern = "/scores"
 							r.args = args
-							r.count = 1
-							return r, true
-						case "PUT":
-							r.name = PutScoreOperation
-							r.summary = "Add or replace a score."
-							r.operationID = "putScore"
-							r.operationGroup = ""
-							r.pathPattern = "/scores/{scoreId}"
-							r.args = args
-							r.count = 1
+							r.count = 0
 							return r, true
 						default:
 							return
 						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "scoreId"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = GetScoreOperation
+								r.summary = "Fetch a single score."
+								r.operationID = "getScore"
+								r.operationGroup = ""
+								r.pathPattern = "/scores/{scoreId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							case "PUT":
+								r.name = PutScoreOperation
+								r.summary = "Add or replace a score."
+								r.operationID = "putScore"
+								r.operationGroup = ""
+								r.pathPattern = "/scores/{scoreId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+
+					}
+
+				case 'e': // Prefix: "ets"
+
+					if l := len("ets"); len(elem) >= l && elem[0:l] == "ets" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						switch method {
+						case "GET":
+							r.name = ListSetsOperation
+							r.summary = "List the sets that changed within a window."
+							r.operationID = "listSets"
+							r.operationGroup = ""
+							r.pathPattern = "/sets"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/"
+
+						if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "setId"
+						// Leaf parameter, slashes are prohibited
+						idx := strings.IndexByte(elem, '/')
+						if idx >= 0 {
+							break
+						}
+						args[0] = elem
+						elem = ""
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "DELETE":
+								r.name = DeleteSetOperation
+								r.summary = "Delete a set."
+								r.operationID = "deleteSet"
+								r.operationGroup = ""
+								r.pathPattern = "/sets/{setId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							case "GET":
+								r.name = GetSetOperation
+								r.summary = "Fetch a single set."
+								r.operationID = "getSet"
+								r.operationGroup = ""
+								r.pathPattern = "/sets/{setId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							case "PUT":
+								r.name = PutSetOperation
+								r.summary = "Create or replace a set."
+								r.operationID = "putSet"
+								r.operationGroup = ""
+								r.pathPattern = "/sets/{setId}"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+
 					}
 
 				}

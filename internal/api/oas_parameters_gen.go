@@ -16,6 +16,125 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
+// DeleteSetParams is parameters of deleteSet operation.
+type DeleteSetParams struct {
+	// The id the set is stored under.
+	SetId uuid.UUID
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
+}
+
+func unpackDeleteSetParams(packed middleware.Parameters) (params DeleteSetParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "setId",
+			In:   "path",
+		}
+		params.SetId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeDeleteSetParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteSetParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: setId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "setId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.SetId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "setId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetScoreParams is parameters of getScore operation.
 type GetScoreParams struct {
 	// The representation the caller wants back. An operation that answers in more than one media type
@@ -141,6 +260,125 @@ func decodeGetScoreParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "scoreId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetSetParams is parameters of getSet operation.
+type GetSetParams struct {
+	// The id the set is stored under.
+	SetId uuid.UUID
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
+}
+
+func unpackGetSetParams(packed middleware.Parameters) (params GetSetParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "setId",
+			In:   "path",
+		}
+		params.SetId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeGetSetParams(args [1]string, argsEscaped bool, r *http.Request) (params GetSetParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: setId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "setId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.SetId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "setId",
 			In:   "path",
 			Err:  err,
 		}
@@ -408,6 +646,162 @@ func decodeListScoresParams(args [0]string, argsEscaped bool, r *http.Request) (
 	return params, nil
 }
 
+// ListSetsParams is parameters of listSets operation.
+type ListSetsParams struct {
+	// The start of the change window, inclusive.
+	ChangesSince time.Time
+	// The end of the change window, inclusive.
+	ChangesUntil time.Time
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
+}
+
+func unpackListSetsParams(packed middleware.Parameters) (params ListSetsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "Changes-Since",
+			In:   "query",
+		}
+		params.ChangesSince = packed[key].(time.Time)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "Changes-Until",
+			In:   "query",
+		}
+		params.ChangesUntil = packed[key].(time.Time)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeListSetsParams(args [0]string, argsEscaped bool, r *http.Request) (params ListSetsParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: Changes-Since.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "Changes-Since",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToDateTime(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChangesSince = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "Changes-Since",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: Changes-Until.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "Changes-Until",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToDateTime(val)
+				if err != nil {
+					return err
+				}
+
+				params.ChangesUntil = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "Changes-Until",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // PutScoreParams is parameters of putScore operation.
 type PutScoreParams struct {
 	// The id the score is stored under.
@@ -481,6 +875,125 @@ func decodePutScoreParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "scoreId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: X-Correlation-ID.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXCorrelationIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXCorrelationIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XCorrelationID.SetTo(paramsDotXCorrelationIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "X-Correlation-ID",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// PutSetParams is parameters of putSet operation.
+type PutSetParams struct {
+	// The id the set is stored under.
+	SetId uuid.UUID
+	// An id a caller ties its own requests together with. The server logs the request under it and answers
+	// a failure with it as the `instance` of the problem, so that reporting a failure is enough to find
+	// it. A caller that sends nothing, or sends something that is not a uuid, is given one.
+	XCorrelationID OptString `json:",omitempty,omitzero"`
+}
+
+func unpackPutSetParams(packed middleware.Parameters) (params PutSetParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "setId",
+			In:   "path",
+		}
+		params.SetId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "X-Correlation-ID",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XCorrelationID = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodePutSetParams(args [1]string, argsEscaped bool, r *http.Request) (params PutSetParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: setId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "setId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.SetId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "setId",
 			In:   "path",
 			Err:  err,
 		}

@@ -40,6 +40,7 @@ type IdentityProvider struct {
 type tokenState struct {
 	subject string
 	name    string
+	email   string
 	roles   map[string]any
 
 	// active is what the introspection endpoint reports.
@@ -81,8 +82,26 @@ func (h *Harness) NewOidcClientConfig(ctx context.Context) (oidc.ClientConfig, e
 func (idp *IdentityProvider) IntrospectionUrl() string { return idp.server.URL + IntrospectionPath }
 func (idp *IdentityProvider) UserInfoUrl() string      { return idp.server.URL + UserInfoPath }
 
+// User is who a token is minted for. Every field is optional: what is left
+// blank is filled in with something nobody else has, so that a test which does
+// not care who it is talking as never has two of its users turn out to be one.
+// A test that does care — sharing a set is the reason this exists — names the
+// parts it needs to name and lets the rest be.
+type User struct {
+	Subject string
+	Name    string
+	Email   string
+}
+
 // IssueToken mints an active token for a user holding the given roles.
 func (idp *IdentityProvider) IssueToken(t *testing.T, roles ...string) string {
+	t.Helper()
+	return idp.IssueTokenFor(t, User{}, roles...)
+}
+
+// IssueTokenFor mints an active token for the given user, holding the given
+// roles.
+func (idp *IdentityProvider) IssueTokenFor(t *testing.T, user User, roles ...string) string {
 	t.Helper()
 
 	claimed := map[string]any{}
@@ -92,9 +111,22 @@ func (idp *IdentityProvider) IssueToken(t *testing.T, roles ...string) string {
 		claimed[role] = map[string]any{"1": "test.localhost"}
 	}
 
+	if user.Subject == "" {
+		user.Subject = uuid.NewString()
+	}
+	if user.Name == "" {
+		user.Name = "Test User"
+	}
+	if user.Email == "" {
+		// Tied to the subject rather than random, so that the address and the
+		// subject of one user always agree, and two users never share either.
+		user.Email = user.Subject + "@test.localhost"
+	}
+
 	return idp.issue(t, &tokenState{
-		subject: uuid.NewString(),
-		name:    "Test User",
+		subject: user.Subject,
+		name:    user.Name,
+		email:   user.Email,
 		roles:   claimed,
 		active:  true,
 	})
@@ -192,6 +224,7 @@ func (idp *IdentityProvider) handleUserInfo(res http.ResponseWriter, req *http.R
 	writeJson(res, http.StatusOK, map[string]any{
 		"sub":    state.subject,
 		"name":   state.name,
+		"email":  state.email,
 		RolesKey: state.roles,
 	})
 }

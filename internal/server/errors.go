@@ -39,6 +39,30 @@ var (
 		"request body is larger than this server reads",
 	)
 
+	ErrSetNotFound = api.NewProblemDetailsError(
+		http.StatusNotFound,
+		api.ProblemDetailsErrorCodeSetNotFound,
+		"no set found with the given id",
+	)
+	// ErrNotSetOwner is only ever the answer to writing a set that is shared
+	// with the caller. Reading one they may not see at all is ErrSetNotFound:
+	// saying "not yours" about a set would say that it exists.
+	ErrNotSetOwner = api.NewProblemDetailsError(
+		http.StatusForbidden,
+		api.ProblemDetailsErrorCodeNotSetOwner,
+		"only the owner of a set can change it",
+	)
+	ErrInvalidSet = api.NewProblemDetailsError(
+		http.StatusBadRequest,
+		api.ProblemDetailsErrorCodeInvalidSet,
+		"invalid set",
+	)
+	ErrUnknownScore = api.NewProblemDetailsError(
+		http.StatusBadRequest,
+		api.ProblemDetailsErrorCodeUnknownScore,
+		"the set names a score that does not exist",
+	)
+
 	ErrReadRequestBody = api.NewProblemDetailsError(
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
@@ -59,6 +83,35 @@ var (
 		api.ProblemDetailsErrorCodeInternalError,
 		"failed to get scores page",
 	)
+	ErrGetSet = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to get set",
+	)
+	ErrSaveSet = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to save set",
+	)
+	ErrDeleteSet = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to delete set",
+	)
+	ErrListSets = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to get sets page",
+	)
+	// ErrNoUserInfo is a request that got past the security handler without a
+	// caller on it. Nothing should be able to arrange that, so it is a fault
+	// here rather than anything the caller can act on.
+	ErrNoUserInfo = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"no user info on an authenticated request",
+	)
+
 	ErrUnknown = api.NewProblemDetailsError(
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,

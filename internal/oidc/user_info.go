@@ -11,6 +11,7 @@ import (
 type UserInfo struct {
 	Name    string
 	Subject string
+	Email   string
 	Roles   map[string]any
 }
 
@@ -39,10 +40,12 @@ func (c *Client) GetUserInfo(ctx context.Context, token string) (*UserInfo, erro
 
 	name, _ := (userInfo["name"]).(string)
 	sub, _ := (userInfo["sub"]).(string)
+	email, _ := (userInfo["email"]).(string)
 	roles, _ := (userInfo[c.config.RolesKey]).(map[string]any)
 	return &UserInfo{
 		Name:    name,
 		Subject: sub,
+		Email:   email,
 		Roles:   roles,
 	}, nil
 }

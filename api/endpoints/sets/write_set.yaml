@@ -1,0 +1,37 @@
+type: object
+description: A set as the client states it.
+required:
+  - title
+  - description
+  - entries
+  - shared_with
+properties:
+  title:
+    type: string
+    examples: [Zomerbar 12 juli]
+  description:
+    type: string
+  entries:
+    type: array
+    description: |
+      The scores that are played, in playing order.
+
+      They are replaced rather than merged: this is the whole of the list, and
+      what is not in it is no longer in the set.
+    items:
+      $ref: 'write_set_entry.yaml'
+  shared_with:
+    type: array
+    description: |
+      The addresses the set should be readable by.
+
+      They are compared in lower case, since an address says nothing about who
+      it belongs to by the case it was typed in. Anything that is not an
+      address is refused rather than tidied up, so a share that was going to go
+      nowhere is said so at the time it is written. The owner's own address is
+      ignored: they already have the set.
+    items:
+      type: string
+      format: email
+    examples:
+      - [bas@example.com]

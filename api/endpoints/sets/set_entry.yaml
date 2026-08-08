@@ -1,0 +1,48 @@
+type: object
+required:
+  - id
+  - score_id
+  - description
+  - transposition
+  - hidden_parts
+properties:
+  id:
+    type: string
+    format: uuid
+    description: |
+      The id of this entry.
+
+      It belongs to the entry rather than to the score, because the same score
+      may be played more than once in a gig, each time with its own key and its
+      own note next to it.
+
+      It is given out by the server and is not something a client states.
+      Writing a set replaces its entries whole, so an entry is given a new id
+      every time the set it is in is written: it names an entry of the set as
+      it reads now, and nothing beyond that. What is stable across a write is
+      the order the entries are in.
+  score_id:
+    type: string
+    format: uuid
+    description: The score that is played.
+  description:
+    type: string
+    description: |
+      Whatever the player needs to remember about this one.
+    examples: [capo 2, second verse only, straight into the next]
+  transposition:
+    type: integer
+    minimum: -12
+    maximum: 12
+    description: |
+      How far the score is transposed, in semitones, negative for down. The
+      range is the one the player offers.
+    examples: [-2]
+  hidden_parts:
+    type: array
+    description: |
+      The parts of the score that are off screen, by their MusicXML part id.
+    items:
+      type: string
+    examples:
+      - [P2]

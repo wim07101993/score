@@ -1,0 +1,38 @@
+get:
+  operationId: listSets
+  summary: List the sets that changed within a window.
+  description: |
+    Returns every set the caller owns or that is shared with them whose last
+    change falls within the given window, most recently changed first. Both
+    ends of the window are inclusive and both are required: a client
+    synchronises by asking for everything since the moment it last asked.
+
+    Sets that were deleted within the window are returned too, with
+    `deleted_at` filled in, so that a client holding a copy learns that it is
+    gone rather than syncing it back.
+
+    Requires the `score_viewer` role. A set names scores but changes nothing
+    about them, so keeping one asks no more of a user than reading the scores
+    in it.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  parameters:
+    - $ref: '../../parameters/changes_since.yaml'
+    - $ref: '../../parameters/changes_until.yaml'
+    - $ref: '../../parameters/correlation_id.yaml'
+  responses:
+    '200':
+      description: The sets that changed within the window.
+      content:
+        application/json:
+          schema:
+            $ref: 'get_sets_response.yaml'
+    '400':
+      $ref: '../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../responses/403_forbidden.yaml'
+    default:
+      $ref: '../../responses/xxx_unknown_error.yaml'

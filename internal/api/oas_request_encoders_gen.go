@@ -3,9 +3,11 @@
 package api
 
 import (
+	"bytes"
 	"net/http"
 
 	"github.com/go-faster/errors"
+	"github.com/go-faster/jx"
 	ht "github.com/ogen-go/ogen/http"
 )
 
@@ -27,4 +29,18 @@ func encodePutScoreRequest(
 	default:
 		return errors.Errorf("unexpected request type: %T", req)
 	}
+}
+
+func encodePutSetRequest(
+	req *WriteSet,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
 }

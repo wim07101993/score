@@ -16,6 +16,27 @@ func (s *XxxUnknownErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+type DeleteSetBadRequest ProblemDetails
+
+func (*DeleteSetBadRequest) deleteSetRes() {}
+
+type DeleteSetForbidden ProblemDetails
+
+func (*DeleteSetForbidden) deleteSetRes() {}
+
+// DeleteSetNoContent is response for DeleteSet operation.
+type DeleteSetNoContent struct{}
+
+func (*DeleteSetNoContent) deleteSetRes() {}
+
+type DeleteSetNotFound ProblemDetails
+
+func (*DeleteSetNotFound) deleteSetRes() {}
+
+type DeleteSetUnauthorized ProblemDetails
+
+func (*DeleteSetUnauthorized) deleteSetRes() {}
+
 type GetScoreBadRequest ProblemDetails
 
 func (*GetScoreBadRequest) getScoreRes() {}
@@ -72,6 +93,26 @@ type GetScoresResponse []Score
 
 func (*GetScoresResponse) listScoresRes() {}
 
+type GetSetBadRequest ProblemDetails
+
+func (*GetSetBadRequest) getSetRes() {}
+
+type GetSetForbidden ProblemDetails
+
+func (*GetSetForbidden) getSetRes() {}
+
+type GetSetNotFound ProblemDetails
+
+func (*GetSetNotFound) getSetRes() {}
+
+type GetSetUnauthorized ProblemDetails
+
+func (*GetSetUnauthorized) getSetRes() {}
+
+type GetSetsResponse []Set
+
+func (*GetSetsResponse) listSetsRes() {}
+
 type HealthzOK struct {
 	Data io.Reader
 }
@@ -99,6 +140,63 @@ func (*ListScoresForbidden) listScoresRes() {}
 type ListScoresUnauthorized ProblemDetails
 
 func (*ListScoresUnauthorized) listScoresRes() {}
+
+type ListSetsBadRequest ProblemDetails
+
+func (*ListSetsBadRequest) listSetsRes() {}
+
+type ListSetsForbidden ProblemDetails
+
+func (*ListSetsForbidden) listSetsRes() {}
+
+type ListSetsUnauthorized ProblemDetails
+
+func (*ListSetsUnauthorized) listSetsRes() {}
+
+// NewNilDateTime returns new NilDateTime with value set to v.
+func NewNilDateTime(v time.Time) NilDateTime {
+	return NilDateTime{
+		Value: v,
+	}
+}
+
+// NilDateTime is nullable time.Time.
+type NilDateTime struct {
+	Value time.Time
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilDateTime) SetTo(v time.Time) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilDateTime) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilDateTime) SetToNull() {
+	o.Null = true
+	var v time.Time
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilDateTime) Get() (v time.Time, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
 
 type OAuth2 struct {
 	Token  string
@@ -298,6 +396,10 @@ const (
 	ProblemDetailsErrorCodeInvalidCredentials   ProblemDetailsErrorCode = "invalid_credentials"
 	ProblemDetailsErrorCodeMissingRole          ProblemDetailsErrorCode = "missing_role"
 	ProblemDetailsErrorCodeScoreNotFound        ProblemDetailsErrorCode = "score_not_found"
+	ProblemDetailsErrorCodeSetNotFound          ProblemDetailsErrorCode = "set_not_found"
+	ProblemDetailsErrorCodeInvalidSet           ProblemDetailsErrorCode = "invalid_set"
+	ProblemDetailsErrorCodeUnknownScore         ProblemDetailsErrorCode = "unknown_score"
+	ProblemDetailsErrorCodeNotSetOwner          ProblemDetailsErrorCode = "not_set_owner"
 	ProblemDetailsErrorCodeEndpointNotFound     ProblemDetailsErrorCode = "endpoint_not_found"
 	ProblemDetailsErrorCodeMethodNotAllowed     ProblemDetailsErrorCode = "method_not_allowed"
 	ProblemDetailsErrorCodeUnsupportedMediaType ProblemDetailsErrorCode = "unsupported_media_type"
@@ -313,6 +415,10 @@ func (ProblemDetailsErrorCode) AllValues() []ProblemDetailsErrorCode {
 		ProblemDetailsErrorCodeInvalidCredentials,
 		ProblemDetailsErrorCodeMissingRole,
 		ProblemDetailsErrorCodeScoreNotFound,
+		ProblemDetailsErrorCodeSetNotFound,
+		ProblemDetailsErrorCodeInvalidSet,
+		ProblemDetailsErrorCodeUnknownScore,
+		ProblemDetailsErrorCodeNotSetOwner,
 		ProblemDetailsErrorCodeEndpointNotFound,
 		ProblemDetailsErrorCodeMethodNotAllowed,
 		ProblemDetailsErrorCodeUnsupportedMediaType,
@@ -333,6 +439,14 @@ func (s ProblemDetailsErrorCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsErrorCodeMissingRole:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeScoreNotFound:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeSetNotFound:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeInvalidSet:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeUnknownScore:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeNotSetOwner:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeEndpointNotFound:
 		return []byte(s), nil
@@ -366,6 +480,18 @@ func (s *ProblemDetailsErrorCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsErrorCodeScoreNotFound:
 		*s = ProblemDetailsErrorCodeScoreNotFound
+		return nil
+	case ProblemDetailsErrorCodeSetNotFound:
+		*s = ProblemDetailsErrorCodeSetNotFound
+		return nil
+	case ProblemDetailsErrorCodeInvalidSet:
+		*s = ProblemDetailsErrorCodeInvalidSet
+		return nil
+	case ProblemDetailsErrorCodeUnknownScore:
+		*s = ProblemDetailsErrorCodeUnknownScore
+		return nil
+	case ProblemDetailsErrorCodeNotSetOwner:
+		*s = ProblemDetailsErrorCodeNotSetOwner
 		return nil
 	case ProblemDetailsErrorCodeEndpointNotFound:
 		*s = ProblemDetailsErrorCodeEndpointNotFound
@@ -475,6 +601,26 @@ func (*PutScoreUnauthorized) putScoreRes() {}
 type PutScoreUnsupportedMediaType ProblemDetails
 
 func (*PutScoreUnsupportedMediaType) putScoreRes() {}
+
+type PutSetBadRequest ProblemDetails
+
+func (*PutSetBadRequest) putSetRes() {}
+
+type PutSetForbidden ProblemDetails
+
+func (*PutSetForbidden) putSetRes() {}
+
+type PutSetRequestEntityTooLarge ProblemDetails
+
+func (*PutSetRequestEntityTooLarge) putSetRes() {}
+
+type PutSetUnauthorized ProblemDetails
+
+func (*PutSetUnauthorized) putSetRes() {}
+
+type PutSetUnsupportedMediaType ProblemDetails
+
+func (*PutSetUnsupportedMediaType) putSetRes() {}
 
 // The metadata of a score, extracted from its MusicXML document.
 // Ref: #
@@ -655,6 +801,309 @@ func (s *ScoreWork) SetTitle(val string) {
 // SetNumber sets the value of Number.
 func (s *ScoreWork) SetNumber(val string) {
 	s.Number = val
+}
+
+// A playlist for a gig: an ordered list of scores, each with the key it is played in and the parts
+// that are on screen.
+//
+// A set says how a score is played, never what it is. Nothing in it changes a score, and two sets can
+// play the same score in different keys without either of them changing it.
+// Ref: #
+type Set struct {
+	// The id the set was stored under.
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+	// Whatever the player needs to remember about the gig as a whole.
+	Description string `json:"description"`
+	// The scores that are played, in playing order.
+	Entries []SetEntry `json:"entries"`
+	// The addresses the set is readable by.
+	//
+	// Only filled in for the owner; for everyone else it is empty. Who else someone shares with is not the
+	// business of the people they share with.
+	SharedWith []string `json:"shared_with"`
+	// Whether this set is the caller's to change. A set that is only shared with the caller can be read
+	// but not written or deleted.
+	IsOwner bool `json:"is_owner"`
+	// When the set was last written.
+	LastChangedAt time.Time `json:"last_changed_at"`
+	// When the set was deleted, or null while it still exists.
+	//
+	// A deleted set is kept rather than removed, and it is still returned by the change window, so that a
+	// client holding a copy learns that it is gone instead of syncing it back.
+	DeletedAt NilDateTime `json:"deleted_at"`
+}
+
+// GetID returns the value of ID.
+func (s *Set) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetTitle returns the value of Title.
+func (s *Set) GetTitle() string {
+	return s.Title
+}
+
+// GetDescription returns the value of Description.
+func (s *Set) GetDescription() string {
+	return s.Description
+}
+
+// GetEntries returns the value of Entries.
+func (s *Set) GetEntries() []SetEntry {
+	return s.Entries
+}
+
+// GetSharedWith returns the value of SharedWith.
+func (s *Set) GetSharedWith() []string {
+	return s.SharedWith
+}
+
+// GetIsOwner returns the value of IsOwner.
+func (s *Set) GetIsOwner() bool {
+	return s.IsOwner
+}
+
+// GetLastChangedAt returns the value of LastChangedAt.
+func (s *Set) GetLastChangedAt() time.Time {
+	return s.LastChangedAt
+}
+
+// GetDeletedAt returns the value of DeletedAt.
+func (s *Set) GetDeletedAt() NilDateTime {
+	return s.DeletedAt
+}
+
+// SetID sets the value of ID.
+func (s *Set) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetTitle sets the value of Title.
+func (s *Set) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDescription sets the value of Description.
+func (s *Set) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *Set) SetEntries(val []SetEntry) {
+	s.Entries = val
+}
+
+// SetSharedWith sets the value of SharedWith.
+func (s *Set) SetSharedWith(val []string) {
+	s.SharedWith = val
+}
+
+// SetIsOwner sets the value of IsOwner.
+func (s *Set) SetIsOwner(val bool) {
+	s.IsOwner = val
+}
+
+// SetLastChangedAt sets the value of LastChangedAt.
+func (s *Set) SetLastChangedAt(val time.Time) {
+	s.LastChangedAt = val
+}
+
+// SetDeletedAt sets the value of DeletedAt.
+func (s *Set) SetDeletedAt(val NilDateTime) {
+	s.DeletedAt = val
+}
+
+func (*Set) getSetRes() {}
+func (*Set) putSetRes() {}
+
+// Ref: #
+type SetEntry struct {
+	// The id of this entry.
+	//
+	// It belongs to the entry rather than to the score, because the same score may be played more than
+	// once in a gig, each time with its own key and its own note next to it.
+	//
+	// It is given out by the server and is not something a client states. Writing a set replaces its
+	// entries whole, so an entry is given a new id every time the set it is in is written: it names an
+	// entry of the set as it reads now, and nothing beyond that. What is stable across a write is the
+	// order the entries are in.
+	ID uuid.UUID `json:"id"`
+	// The score that is played.
+	ScoreID uuid.UUID `json:"score_id"`
+	// Whatever the player needs to remember about this one.
+	Description string `json:"description"`
+	// How far the score is transposed, in semitones, negative for down. The range is the one the player
+	// offers.
+	Transposition int `json:"transposition"`
+	// The parts of the score that are off screen, by their MusicXML part id.
+	HiddenParts []string `json:"hidden_parts"`
+}
+
+// GetID returns the value of ID.
+func (s *SetEntry) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetScoreID returns the value of ScoreID.
+func (s *SetEntry) GetScoreID() uuid.UUID {
+	return s.ScoreID
+}
+
+// GetDescription returns the value of Description.
+func (s *SetEntry) GetDescription() string {
+	return s.Description
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *SetEntry) GetTransposition() int {
+	return s.Transposition
+}
+
+// GetHiddenParts returns the value of HiddenParts.
+func (s *SetEntry) GetHiddenParts() []string {
+	return s.HiddenParts
+}
+
+// SetID sets the value of ID.
+func (s *SetEntry) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetScoreID sets the value of ScoreID.
+func (s *SetEntry) SetScoreID(val uuid.UUID) {
+	s.ScoreID = val
+}
+
+// SetDescription sets the value of Description.
+func (s *SetEntry) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *SetEntry) SetTransposition(val int) {
+	s.Transposition = val
+}
+
+// SetHiddenParts sets the value of HiddenParts.
+func (s *SetEntry) SetHiddenParts(val []string) {
+	s.HiddenParts = val
+}
+
+// A set as the client states it.
+// Ref: #
+type WriteSet struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	// The scores that are played, in playing order.
+	//
+	// They are replaced rather than merged: this is the whole of the list, and what is not in it is no
+	// longer in the set.
+	Entries []WriteSetEntry `json:"entries"`
+	// The addresses the set should be readable by.
+	//
+	// They are compared in lower case, since an address says nothing about who it belongs to by the case
+	// it was typed in. Anything that is not an address is refused rather than tidied up, so a share that
+	// was going to go nowhere is said so at the time it is written. The owner's own address is ignored:
+	// they already have the set.
+	SharedWith []string `json:"shared_with"`
+}
+
+// GetTitle returns the value of Title.
+func (s *WriteSet) GetTitle() string {
+	return s.Title
+}
+
+// GetDescription returns the value of Description.
+func (s *WriteSet) GetDescription() string {
+	return s.Description
+}
+
+// GetEntries returns the value of Entries.
+func (s *WriteSet) GetEntries() []WriteSetEntry {
+	return s.Entries
+}
+
+// GetSharedWith returns the value of SharedWith.
+func (s *WriteSet) GetSharedWith() []string {
+	return s.SharedWith
+}
+
+// SetTitle sets the value of Title.
+func (s *WriteSet) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDescription sets the value of Description.
+func (s *WriteSet) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *WriteSet) SetEntries(val []WriteSetEntry) {
+	s.Entries = val
+}
+
+// SetSharedWith sets the value of SharedWith.
+func (s *WriteSet) SetSharedWith(val []string) {
+	s.SharedWith = val
+}
+
+// One score as it is played at one point in a gig, as the client states it.
+//
+// It is the read entry without `id`: which row an entry is stored as is the server's to decide, and a
+// client that could name it could point a second set's entry at the first set's row.
+// Ref: #
+type WriteSetEntry struct {
+	// The score that is played.
+	ScoreID uuid.UUID `json:"score_id"`
+	// Whatever the player needs to remember about this one.
+	Description string `json:"description"`
+	// How far the score is transposed, in semitones, negative for down. The range is the one the player
+	// offers.
+	Transposition int `json:"transposition"`
+	// The parts of the score that are off screen, by their MusicXML part id.
+	HiddenParts []string `json:"hidden_parts"`
+}
+
+// GetScoreID returns the value of ScoreID.
+func (s *WriteSetEntry) GetScoreID() uuid.UUID {
+	return s.ScoreID
+}
+
+// GetDescription returns the value of Description.
+func (s *WriteSetEntry) GetDescription() string {
+	return s.Description
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *WriteSetEntry) GetTransposition() int {
+	return s.Transposition
+}
+
+// GetHiddenParts returns the value of HiddenParts.
+func (s *WriteSetEntry) GetHiddenParts() []string {
+	return s.HiddenParts
+}
+
+// SetScoreID sets the value of ScoreID.
+func (s *WriteSetEntry) SetScoreID(val uuid.UUID) {
+	s.ScoreID = val
+}
+
+// SetDescription sets the value of Description.
+func (s *WriteSetEntry) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *WriteSetEntry) SetTransposition(val int) {
+	s.Transposition = val
+}
+
+// SetHiddenParts sets the value of HiddenParts.
+func (s *WriteSetEntry) SetHiddenParts(val []string) {
+	s.HiddenParts = val
 }
 
 // XxxUnknownErrorStatusCode wraps ProblemDetails with StatusCode.

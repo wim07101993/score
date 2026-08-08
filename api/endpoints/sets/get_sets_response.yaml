@@ -1,0 +1,4 @@
+type: array
+description: The sets that changed within the window, most recently changed first.
+items:
+  $ref: 'set.yaml'

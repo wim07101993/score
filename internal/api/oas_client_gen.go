@@ -29,6 +29,18 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
+	// DeleteSet invokes deleteSet operation.
+	//
+	// Marks the set as deleted. It is kept rather than removed, and it keeps turning up in the change
+	// window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+	//
+	// Only the owner of a set can delete it. A set that is not there, already deleted, or not the caller's
+	// is answered the same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /sets/{setId}
+	DeleteSet(ctx context.Context, params DeleteSetParams) (DeleteSetRes, error)
 	// GetScore invokes getScore operation.
 	//
 	// Returns either the metadata of the score or the MusicXML document it was extracted from, whichever
@@ -40,6 +52,15 @@ type Invoker interface {
 	//
 	// GET /scores/{scoreId}
 	GetScore(ctx context.Context, params GetScoreParams) (GetScoreRes, error)
+	// GetSet invokes getSet operation.
+	//
+	// Returns the set, whether the caller owns it or it is shared with them. `is_owner` says which of the
+	// two it is, and `shared_with` is only filled in for the owner.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// GET /sets/{setId}
+	GetSet(ctx context.Context, params GetSetParams) (GetSetRes, error)
 	// Healthz invokes healthz operation.
 	//
 	// Answers `OK` as long as the server is serving. Public.
@@ -56,6 +77,20 @@ type Invoker interface {
 	//
 	// GET /scores
 	ListScores(ctx context.Context, params ListScoresParams) (ListScoresRes, error)
+	// ListSets invokes listSets operation.
+	//
+	// Returns every set the caller owns or that is shared with them whose last change falls within the
+	// given window, most recently changed first. Both ends of the window are inclusive and both are
+	// required: a client synchronises by asking for everything since the moment it last asked.
+	//
+	// Sets that were deleted within the window are returned too, with `deleted_at` filled in, so that a
+	// client holding a copy learns that it is gone rather than syncing it back.
+	//
+	// Requires the `score_viewer` role. A set names scores but changes nothing about them, so keeping one
+	// asks no more of a user than reading the scores in it.
+	//
+	// GET /sets
+	ListSets(ctx context.Context, params ListSetsParams) (ListSetsRes, error)
 	// PutScore invokes putScore operation.
 	//
 	// Stores the MusicXML document under the given id, replacing whatever was stored under it before, and
@@ -67,6 +102,20 @@ type Invoker interface {
 	//
 	// PUT /scores/{scoreId}
 	PutScore(ctx context.Context, request PutScoreReq, params PutScoreParams) (PutScoreRes, error)
+	// PutSet invokes putSet operation.
+	//
+	// Stores the set under the given id, replacing whatever was stored under it before, and returns it as
+	// it now reads. A set that is not there yet belongs to whoever creates it; one that is can only be
+	// written by its owner.
+	//
+	// Writing a set that had been deleted brings it back: a client that still has it and edits it is
+	// saying it should exist.
+	//
+	// Requires the `score_viewer` role. A set names scores but changes nothing about them, so building one
+	// asks no more of a user than reading the scores in it.
+	//
+	// PUT /sets/{setId}
+	PutSet(ctx context.Context, request *WriteSet, params PutSetParams) (PutSetRes, error)
 }
 
 // Client implements OAS client.
@@ -108,6 +157,160 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 		return c.serverURL
 	}
 	return u
+}
+
+// DeleteSet invokes deleteSet operation.
+//
+// Marks the set as deleted. It is kept rather than removed, and it keeps turning up in the change
+// window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+//
+// Only the owner of a set can delete it. A set that is not there, already deleted, or not the caller's
+// is answered the same way.
+//
+// Requires the `score_viewer` role.
+//
+// DELETE /sets/{setId}
+func (c *Client) DeleteSet(ctx context.Context, params DeleteSetParams) (DeleteSetRes, error) {
+	res, err := c.sendDeleteSet(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendDeleteSet(ctx context.Context, params DeleteSetParams) (res DeleteSetRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("deleteSet"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/sets/{setId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, DeleteSetOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/sets/"
+	{
+		// Encode "setId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "setId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.SetId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, DeleteSetOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeDeleteSetResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
 }
 
 // GetScore invokes getScore operation.
@@ -270,6 +473,157 @@ func (c *Client) sendGetScore(ctx context.Context, params GetScoreParams) (res G
 
 	stage = "DecodeResponse"
 	result, err := decodeGetScoreResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetSet invokes getSet operation.
+//
+// Returns the set, whether the caller owns it or it is shared with them. `is_owner` says which of the
+// two it is, and `shared_with` is only filled in for the owner.
+//
+// Requires the `score_viewer` role.
+//
+// GET /sets/{setId}
+func (c *Client) GetSet(ctx context.Context, params GetSetParams) (GetSetRes, error) {
+	res, err := c.sendGetSet(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetSet(ctx context.Context, params GetSetParams) (res GetSetRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getSet"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/sets/{setId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetSetOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/sets/"
+	{
+		// Encode "setId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "setId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.SetId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, GetSetOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetSetResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -540,6 +894,176 @@ func (c *Client) sendListScores(ctx context.Context, params ListScoresParams) (r
 	return result, nil
 }
 
+// ListSets invokes listSets operation.
+//
+// Returns every set the caller owns or that is shared with them whose last change falls within the
+// given window, most recently changed first. Both ends of the window are inclusive and both are
+// required: a client synchronises by asking for everything since the moment it last asked.
+//
+// Sets that were deleted within the window are returned too, with `deleted_at` filled in, so that a
+// client holding a copy learns that it is gone rather than syncing it back.
+//
+// Requires the `score_viewer` role. A set names scores but changes nothing about them, so keeping one
+// asks no more of a user than reading the scores in it.
+//
+// GET /sets
+func (c *Client) ListSets(ctx context.Context, params ListSetsParams) (ListSetsRes, error) {
+	res, err := c.sendListSets(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendListSets(ctx context.Context, params ListSetsParams) (res ListSetsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listSets"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/sets"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ListSetsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/sets"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "Changes-Since" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "Changes-Since",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.DateTimeToString(params.ChangesSince))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "Changes-Until" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "Changes-Until",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.DateTimeToString(params.ChangesUntil))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, ListSetsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeListSetsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // PutScore invokes putScore operation.
 //
 // Stores the MusicXML document under the given id, replacing whatever was stored under it before, and
@@ -689,6 +1213,165 @@ func (c *Client) sendPutScore(ctx context.Context, request PutScoreReq, params P
 
 	stage = "DecodeResponse"
 	result, err := decodePutScoreResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PutSet invokes putSet operation.
+//
+// Stores the set under the given id, replacing whatever was stored under it before, and returns it as
+// it now reads. A set that is not there yet belongs to whoever creates it; one that is can only be
+// written by its owner.
+//
+// Writing a set that had been deleted brings it back: a client that still has it and edits it is
+// saying it should exist.
+//
+// Requires the `score_viewer` role. A set names scores but changes nothing about them, so building one
+// asks no more of a user than reading the scores in it.
+//
+// PUT /sets/{setId}
+func (c *Client) PutSet(ctx context.Context, request *WriteSet, params PutSetParams) (PutSetRes, error) {
+	res, err := c.sendPutSet(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPutSet(ctx context.Context, request *WriteSet, params PutSetParams) (res PutSetRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("putSet"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/sets/{setId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PutSetOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/sets/"
+	{
+		// Encode "setId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "setId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.SetId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PUT", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePutSetRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, PutSetOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodePutSetResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

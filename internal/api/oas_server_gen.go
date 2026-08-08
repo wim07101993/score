@@ -8,6 +8,18 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// DeleteSet implements deleteSet operation.
+	//
+	// Marks the set as deleted. It is kept rather than removed, and it keeps turning up in the change
+	// window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+	//
+	// Only the owner of a set can delete it. A set that is not there, already deleted, or not the caller's
+	// is answered the same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /sets/{setId}
+	DeleteSet(ctx context.Context, params DeleteSetParams) (DeleteSetRes, error)
 	// GetScore implements getScore operation.
 	//
 	// Returns either the metadata of the score or the MusicXML document it was extracted from, whichever
@@ -19,6 +31,15 @@ type Handler interface {
 	//
 	// GET /scores/{scoreId}
 	GetScore(ctx context.Context, params GetScoreParams) (GetScoreRes, error)
+	// GetSet implements getSet operation.
+	//
+	// Returns the set, whether the caller owns it or it is shared with them. `is_owner` says which of the
+	// two it is, and `shared_with` is only filled in for the owner.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// GET /sets/{setId}
+	GetSet(ctx context.Context, params GetSetParams) (GetSetRes, error)
 	// Healthz implements healthz operation.
 	//
 	// Answers `OK` as long as the server is serving. Public.
@@ -35,6 +56,20 @@ type Handler interface {
 	//
 	// GET /scores
 	ListScores(ctx context.Context, params ListScoresParams) (ListScoresRes, error)
+	// ListSets implements listSets operation.
+	//
+	// Returns every set the caller owns or that is shared with them whose last change falls within the
+	// given window, most recently changed first. Both ends of the window are inclusive and both are
+	// required: a client synchronises by asking for everything since the moment it last asked.
+	//
+	// Sets that were deleted within the window are returned too, with `deleted_at` filled in, so that a
+	// client holding a copy learns that it is gone rather than syncing it back.
+	//
+	// Requires the `score_viewer` role. A set names scores but changes nothing about them, so keeping one
+	// asks no more of a user than reading the scores in it.
+	//
+	// GET /sets
+	ListSets(ctx context.Context, params ListSetsParams) (ListSetsRes, error)
 	// PutScore implements putScore operation.
 	//
 	// Stores the MusicXML document under the given id, replacing whatever was stored under it before, and
@@ -46,6 +81,20 @@ type Handler interface {
 	//
 	// PUT /scores/{scoreId}
 	PutScore(ctx context.Context, req PutScoreReq, params PutScoreParams) (PutScoreRes, error)
+	// PutSet implements putSet operation.
+	//
+	// Stores the set under the given id, replacing whatever was stored under it before, and returns it as
+	// it now reads. A set that is not there yet belongs to whoever creates it; one that is can only be
+	// written by its owner.
+	//
+	// Writing a set that had been deleted brings it back: a client that still has it and edits it is
+	// saying it should exist.
+	//
+	// Requires the `score_viewer` role. A set names scores but changes nothing about them, so building one
+	// asks no more of a user than reading the scores in it.
+	//
+	// PUT /sets/{setId}
+	PutSet(ctx context.Context, req *WriteSet, params PutSetParams) (PutSetRes, error)
 	// NewError creates *XxxUnknownErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

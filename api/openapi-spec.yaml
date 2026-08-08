@@ -28,6 +28,8 @@ servers:
 tags:
   - name: scores
     description: Sheet music and the metadata extracted from it.
+  - name: sets
+    description: The ordered lists of scores a gig is played from.
   - name: health
     description: Whether the server is up.
 
@@ -39,6 +41,10 @@ paths:
     $ref: './endpoints/scores/methods.yaml'
   /scores/{scoreId}:
     $ref: './endpoints/scores/by_id/methods.yaml'
+  /sets:
+    $ref: './endpoints/sets/methods.yaml'
+  /sets/{setId}:
+    $ref: './endpoints/sets/by_id/methods.yaml'
   /healthz:
     $ref: './endpoints/healthz/methods.yaml'
 
