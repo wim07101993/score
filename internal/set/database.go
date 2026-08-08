@@ -1,15 +1,3 @@
-// Package set holds the sets a user plays a gig from: an ordered list of
-// scores, each with the key it is played in and the parts that are on screen.
-//
-// A set says how a score is played, never what it is. Nothing here writes to a
-// score, and two sets can play the same score in different keys without either
-// of them changing it.
-//
-// Like internal/score, it knows nothing about how any of this is served. There
-// is a file per thing the API asks of it, holding the queries that answer it,
-// and what comes back is this package's own model of a set. Turning that into a
-// response, and a failure from here into an answer for a caller, is
-// internal/server's job.
 package set
 
 import (
@@ -21,11 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-// pgErrForeignKeyViolation is the postgres error code for a row pointing at
-// something that is not there, which for a set entry means a score that does
-// not exist.
-const pgErrForeignKeyViolation = "23503"
 
 // User is who is asking after a set. A set belongs to someone by subject and is
 // shared with them by address, so telling what someone may see takes both.

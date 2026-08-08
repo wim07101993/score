@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"time"
 
+	"score/internal/storage"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	slogctx "github.com/veqryn/slog-context"
 )
@@ -96,8 +97,9 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 			"hidden_parts":  emptyWhenNil(entry.HiddenParts),
 		})
 		if err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == pgErrForeignKeyViolation {
+			// The only thing a set entry points at is a score, so a row that
+			// points at something missing is a score that is not there.
+			if storage.IsForeignKeyViolation(err) {
 				return &ErrUnknownScore{ScoreId: entry.ScoreId}
 			}
 			return fmt.Errorf("failed to save an entry of the set: %w", err)

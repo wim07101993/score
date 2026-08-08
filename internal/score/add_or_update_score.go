@@ -3,24 +3,18 @@ package score
 import (
 	"context"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
 	"score/internal/musicxml"
+	"score/internal/storage"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	slogctx "github.com/veqryn/slog-context"
 )
-
-// pgErrInvalidTextRepresentation is the postgres error code for a value that
-// does not parse as the type of the column it is written to, such as a uuid or
-// an enum member that does not exist.
-const pgErrInvalidTextRepresentation = "22P02"
 
 // AddOrUpdate stores the document and the metadata read out of it as one:
 // either both land, or neither does.
@@ -98,9 +92,8 @@ func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) 
 		"lastChangedAt":      time.Now().UTC(),
 	})
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgErrInvalidTextRepresentation {
-			return fmt.Errorf("%w: failed to execute upsert score query: %w", ErrInvalidMusicXml, pgErr)
+		if storage.IsInvalidTextRepresentation(err) {
+			return fmt.Errorf("%w: failed to execute upsert score query: %w", ErrInvalidMusicXml, err)
 		}
 		return fmt.Errorf("failed to execute upsert score query: %w", err)
 	}
