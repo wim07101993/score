@@ -1,14 +1,3 @@
-# How a caller proves who they are.
-#
-# This file is not a document of its own. It is the one scheme every operation
-# that is not public is protected by, and it is read through the reference
-# openapi-spec.yaml makes into it.
-#
-# The token is an access token of the OIDC provider the server is configured
-# against; it is introspected on every request, and the roles it grants come
-# from the user-info endpoint. Which roles an operation asks for is written next
-# to that operation, as the scopes of its security requirement.
-
 type: oauth2
 description: |
   An access token of the OIDC provider the server is configured against, sent as

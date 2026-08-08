@@ -81,9 +81,6 @@ func (h *Handler) PutSet(ctx context.Context, req *api.WriteSet, params api.PutS
 		return nil, saveSetFailed(err)
 	}
 
-	// Read back rather than echo: what a set reads as is not only what was
-	// sent. Who owns it, when it changed and which shares survived normalizing
-	// are decided while saving, and the client should see those.
 	saved, err := set.Get(ctx, dbConn, setId, user)
 	if err != nil {
 		return nil, ErrSaveSet.WithParent(err)
@@ -113,8 +110,6 @@ func (h *Handler) DeleteSet(ctx context.Context, params api.DeleteSetParams) (ap
 	return &api.DeleteSetNoContent{}, nil
 }
 
-// saveSetFailed turns the ways a set can be refused into the answers they
-// deserve: what the caller sent, what is not theirs, and what went wrong here.
 func saveSetFailed(err error) error {
 	var invalid *set.ErrInvalidSet
 	if errors.As(err, &invalid) {
@@ -137,8 +132,6 @@ func saveSetFailed(err error) error {
 	return ErrSaveSet.WithParent(err)
 }
 
-// callerOf is who the security handler said is asking, as the set package wants
-// to hear it.
 func callerOf(ctx context.Context) (set.User, error) {
 	user, ok := ctx.Value(internal.UserInfoKey).(*oidc.UserInfo)
 	if !ok {
@@ -194,7 +187,6 @@ func mapWriteSetFromApi(req *api.WriteSet) set.WriteSet {
 	entries := make([]set.WriteEntry, 0, len(req.Entries))
 	for _, entry := range req.Entries {
 		entries = append(entries, set.WriteEntry{
-			Id:            entry.ID.String(),
 			ScoreId:       entry.ScoreID.String(),
 			Description:   entry.Description,
 			Transposition: entry.Transposition,

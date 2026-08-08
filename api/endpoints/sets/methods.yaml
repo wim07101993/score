@@ -1,11 +1,3 @@
-# /sets: the collection.
-#
-# This file is not a document of its own. It is what the collection answers to,
-# and it is read through the reference openapi-spec.yaml makes into it. The body
-# it writes is in the file next to this one; what it shares with the other
-# endpoints — the parameters it reads, the failures it answers with — is above
-# them, in parameters/ and responses/.
-
 get:
   operationId: listSets
   summary: List the sets that changed within a window.

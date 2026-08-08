@@ -11,11 +11,6 @@ import (
 	slogctx "github.com/veqryn/slog-context"
 )
 
-// Delete marks a set as deleted without removing it, so that clients holding a
-// copy learn that it is gone rather than syncing it back.
-//
-// Only the owner of a set can delete it. It answers ErrSetNotFound when there
-// is nothing to delete under the given id.
 func Delete(ctx context.Context, db *pgxpool.Conn, setId string, user User) error {
 	slogctx.Info(ctx, "deleting set", slog.String("setId", setId))
 

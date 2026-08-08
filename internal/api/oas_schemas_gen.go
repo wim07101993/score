@@ -923,6 +923,11 @@ type SetEntry struct {
 	//
 	// It belongs to the entry rather than to the score, because the same score may be played more than
 	// once in a gig, each time with its own key and its own note next to it.
+	//
+	// It is given out by the server and is not something a client states. Writing a set replaces its
+	// entries whole, so an entry is given a new id every time the set it is in is written: it names an
+	// entry of the set as it reads now, and nothing beyond that. What is stable across a write is the
+	// order the entries are in.
 	ID uuid.UUID `json:"id"`
 	// The score that is played.
 	ScoreID uuid.UUID `json:"score_id"`
@@ -994,7 +999,7 @@ type WriteSet struct {
 	//
 	// They are replaced rather than merged: this is the whole of the list, and what is not in it is no
 	// longer in the set.
-	Entries []SetEntry `json:"entries"`
+	Entries []WriteSetEntry `json:"entries"`
 	// The addresses the set should be readable by.
 	//
 	// They are compared in lower case, since an address says nothing about who it belongs to by the case
@@ -1015,7 +1020,7 @@ func (s *WriteSet) GetDescription() string {
 }
 
 // GetEntries returns the value of Entries.
-func (s *WriteSet) GetEntries() []SetEntry {
+func (s *WriteSet) GetEntries() []WriteSetEntry {
 	return s.Entries
 }
 
@@ -1035,13 +1040,70 @@ func (s *WriteSet) SetDescription(val string) {
 }
 
 // SetEntries sets the value of Entries.
-func (s *WriteSet) SetEntries(val []SetEntry) {
+func (s *WriteSet) SetEntries(val []WriteSetEntry) {
 	s.Entries = val
 }
 
 // SetSharedWith sets the value of SharedWith.
 func (s *WriteSet) SetSharedWith(val []string) {
 	s.SharedWith = val
+}
+
+// One score as it is played at one point in a gig, as the client states it.
+//
+// It is the read entry without `id`: which row an entry is stored as is the server's to decide, and a
+// client that could name it could point a second set's entry at the first set's row.
+// Ref: #
+type WriteSetEntry struct {
+	// The score that is played.
+	ScoreID uuid.UUID `json:"score_id"`
+	// Whatever the player needs to remember about this one.
+	Description string `json:"description"`
+	// How far the score is transposed, in semitones, negative for down. The range is the one the player
+	// offers.
+	Transposition int `json:"transposition"`
+	// The parts of the score that are off screen, by their MusicXML part id.
+	HiddenParts []string `json:"hidden_parts"`
+}
+
+// GetScoreID returns the value of ScoreID.
+func (s *WriteSetEntry) GetScoreID() uuid.UUID {
+	return s.ScoreID
+}
+
+// GetDescription returns the value of Description.
+func (s *WriteSetEntry) GetDescription() string {
+	return s.Description
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *WriteSetEntry) GetTransposition() int {
+	return s.Transposition
+}
+
+// GetHiddenParts returns the value of HiddenParts.
+func (s *WriteSetEntry) GetHiddenParts() []string {
+	return s.HiddenParts
+}
+
+// SetScoreID sets the value of ScoreID.
+func (s *WriteSetEntry) SetScoreID(val uuid.UUID) {
+	s.ScoreID = val
+}
+
+// SetDescription sets the value of Description.
+func (s *WriteSetEntry) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *WriteSetEntry) SetTransposition(val int) {
+	s.Transposition = val
+}
+
+// SetHiddenParts sets the value of HiddenParts.
+func (s *WriteSetEntry) SetHiddenParts(val []string) {
+	s.HiddenParts = val
 }
 
 // XxxUnknownErrorStatusCode wraps ProblemDetails with StatusCode.

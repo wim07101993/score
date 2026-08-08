@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -83,7 +84,10 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 
 	for position, entry := range write.Entries {
 		_, err = tx.Exec(ctx, insertEntryQuery, pgx.NamedArgs{
-			"id":            entry.Id,
+			// Minted here rather than taken from the client: which row an entry
+			// is stored as is not theirs to name. Every write replaces the
+			// entries, so every write mints them again.
+			"id":            uuid.NewString(),
 			"set_id":        setId,
 			"position":      position,
 			"score_id":      entry.ScoreId,
@@ -119,19 +123,11 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 	return nil
 }
 
+// validate checks what the store cannot. Nothing here rejects a repeated
+// score: the same song may come round twice in a gig, and each time it does is
+// its own entry with its own place, note and key.
 func validate(write WriteSet) error {
-	seen := make(map[string]struct{}, len(write.Entries))
 	for i, entry := range write.Entries {
-		if entry.Id == "" {
-			return &ErrInvalidSet{Reason: fmt.Sprintf("entry %d has no id", i)}
-		}
-		if _, duplicate := seen[entry.Id]; duplicate {
-			// The same score may be in a set twice, but each time it is is its
-			// own entry with its own id, description and key.
-			return &ErrInvalidSet{Reason: fmt.Sprintf("entry id %s is used more than once", entry.Id)}
-		}
-		seen[entry.Id] = struct{}{}
-
 		if entry.ScoreId == "" {
 			return &ErrInvalidSet{Reason: fmt.Sprintf("entry %d has no score", i)}
 		}

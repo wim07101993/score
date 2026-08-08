@@ -1,15 +1,3 @@
-# /sets/{setId}: a single set.
-#
-# This file is not a document of its own. It is what one set answers to, and it
-# is read through the reference openapi-spec.yaml makes into it. The bodies the
-# methods read and write are in the directory above this one, next to the
-# collection; what it shares with the other endpoints — the parameters it reads,
-# the failures it answers with — is above them, in parameters/ and responses/.
-#
-# A set that is not the caller's to see is answered with 404 rather than 403,
-# here and on every method below. Which sets other people have is not something
-# to be discovered by asking for ids.
-
 parameters:
   - $ref: '../../../parameters/set_id.yaml'
   - $ref: '../../../parameters/correlation_id.yaml'

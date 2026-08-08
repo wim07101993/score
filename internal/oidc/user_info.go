@@ -13,11 +13,8 @@ import (
 type UserInfo struct {
 	Name    string
 	Subject string
-	// Email is reported as the provider gave it. What counts as the same
-	// address is not this package's rule to make; whoever compares addresses
-	// says so, which today is internal/set.
-	Email string
-	Roles map[string]any
+	Email   string
+	Roles   map[string]any
 }
 
 func (c *Client) GetUserInfo(ctx context.Context, token string) (*UserInfo, error) {

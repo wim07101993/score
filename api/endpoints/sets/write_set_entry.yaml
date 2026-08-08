@@ -1,26 +1,16 @@
 type: object
+description: |
+  One score as it is played at one point in a gig, as the client states it.
+
+  It is the read entry without `id`: which row an entry is stored as is the
+  server's to decide, and a client that could name it could point a second set's
+  entry at the first set's row.
 required:
-  - id
   - score_id
   - description
   - transposition
   - hidden_parts
 properties:
-  id:
-    type: string
-    format: uuid
-    description: |
-      The id of this entry.
-
-      It belongs to the entry rather than to the score, because the same score
-      may be played more than once in a gig, each time with its own key and its
-      own note next to it.
-
-      It is given out by the server and is not something a client states.
-      Writing a set replaces its entries whole, so an entry is given a new id
-      every time the set it is in is written: it names an entry of the set as
-      it reads now, and nothing beyond that. What is stable across a write is
-      the order the entries are in.
   score_id:
     type: string
     format: uuid

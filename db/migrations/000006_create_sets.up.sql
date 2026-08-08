@@ -4,9 +4,6 @@ CREATE TABLE IF NOT EXISTS sets
     owner_subject TEXT      NOT NULL,
     title         TEXT      NOT NULL DEFAULT '',
     description   TEXT      NOT NULL DEFAULT '',
-    -- TIMESTAMPTZ rather than TIMESTAMP for the reason 000005 moved scores over
-    -- for: the change window compares these against bounds a client sends in
-    -- whatever zone it is in, and only an instant compares as an instant.
     lastChangedAt TIMESTAMPTZ NOT NULL,
     deletedAt     TIMESTAMPTZ
 );

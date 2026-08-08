@@ -69,9 +69,8 @@ func ScoreIdsOf(set *api.Set) []uuid.UUID {
 
 // AnEntry is a set entry with nothing remarkable about it: a score, played as
 // written, with everything on screen.
-func AnEntry(scoreId uuid.UUID) api.SetEntry {
-	return api.SetEntry{
-		ID:          uuid.New(),
+func AnEntry(scoreId uuid.UUID) api.WriteSetEntry {
+	return api.WriteSetEntry{
 		ScoreID:     scoreId,
 		HiddenParts: []string{},
 	}
@@ -80,9 +79,9 @@ func AnEntry(scoreId uuid.UUID) api.SetEntry {
 // WriteSetOf is a set as a client states it, with the lists filled in. They are
 // required by the API, and a test that does not care about them should not have
 // to say so.
-func WriteSetOf(title string, entries []api.SetEntry, sharedWith []string) *api.WriteSet {
+func WriteSetOf(title string, entries []api.WriteSetEntry, sharedWith []string) *api.WriteSet {
 	if entries == nil {
-		entries = []api.SetEntry{}
+		entries = []api.WriteSetEntry{}
 	}
 	if sharedWith == nil {
 		sharedWith = []string{}

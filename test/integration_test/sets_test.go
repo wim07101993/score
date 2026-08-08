@@ -92,7 +92,7 @@ func TestASetIsPlayedInTheOrderItWasGivenIn(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Running order",
-		[]api.SetEntry{helpers.AnEntry(third), helpers.AnEntry(first), helpers.AnEntry(second)}, nil))
+		[]api.WriteSetEntry{helpers.AnEntry(third), helpers.AnEntry(first), helpers.AnEntry(second)}, nil))
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
@@ -108,9 +108,9 @@ func TestReorderingASetIsSavedAsTheNewOrder(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Before", []api.SetEntry{firstEntry, secondEntry}, nil))
+		helpers.WriteSetOf("Before", []api.WriteSetEntry{firstEntry, secondEntry}, nil))
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("After", []api.SetEntry{secondEntry, firstEntry}, nil))
+		helpers.WriteSetOf("After", []api.WriteSetEntry{secondEntry, firstEntry}, nil))
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
@@ -126,18 +126,18 @@ func TestTheSameScoreCanBePlayedTwiceInASet(t *testing.T) {
 	owner := aPlayer(t)
 	scoreId := aScore(t)
 
-	opener := api.SetEntry{
-		ID: uuid.New(), ScoreID: scoreId,
+	opener := api.WriteSetEntry{
+		ScoreID:     scoreId,
 		Description: "opener, full band", Transposition: 0, HiddenParts: []string{},
 	}
-	encore := api.SetEntry{
-		ID: uuid.New(), ScoreID: scoreId,
+	encore := api.WriteSetEntry{
+		ScoreID:     scoreId,
 		Description: "encore, voice only", Transposition: -2, HiddenParts: []string{"P2"},
 	}
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Twice round",
-		[]api.SetEntry{opener, helpers.AnEntry(aScore(t)), encore}, nil))
+		[]api.WriteSetEntry{opener, helpers.AnEntry(aScore(t)), encore}, nil))
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
@@ -168,8 +168,7 @@ func TestHowAScoreIsPlayedIsKeptWithTheSet(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Arrangements",
-		[]api.SetEntry{{
-			ID:            uuid.New(),
+		[]api.WriteSetEntry{{
 			ScoreID:       scoreId,
 			Description:   "down a third for the singer",
 			Transposition: -4,
@@ -199,8 +198,8 @@ func TestPlayingAScoreInAnotherKeyLeavesTheScoreAlone(t *testing.T) {
 	helpers.MustPutScore(t, editor, scoreId, helpers.MusicXmlWithWorkAndMovement)
 
 	helpers.MustPutSet(t, owner.ApiClient, uuid.New(), helpers.WriteSetOf("Transposed",
-		[]api.SetEntry{{
-			ID: uuid.New(), ScoreID: scoreId, Transposition: 5, HiddenParts: []string{},
+		[]api.WriteSetEntry{{
+			ScoreID: scoreId, Transposition: 5, HiddenParts: []string{},
 		}}, nil))
 
 	document := mustGetScoreDocument(t, editor, scoreId, helpers.MusicXmlContentType)
@@ -246,7 +245,7 @@ func TestASetRefusesAScoreThatDoesNotExist(t *testing.T) {
 
 	setId := uuid.New()
 	res, err := owner.PutSet(t.Context(),
-		helpers.WriteSetOf("Ghost", []api.SetEntry{helpers.AnEntry(uuid.New())}, nil),
+		helpers.WriteSetOf("Ghost", []api.WriteSetEntry{helpers.AnEntry(uuid.New())}, nil),
 		api.PutSetParams{SetId: setId})
 
 	require.NoError(t, err)
@@ -259,20 +258,54 @@ func TestASetRefusesAScoreThatDoesNotExist(t *testing.T) {
 	assert.IsTypef(t, &api.GetSetNotFound{}, got, "a refused set should not have been stored, got %#v", got)
 }
 
-func TestASetRefusesTheSameEntryTwice(t *testing.T) {
+// Two entries a client cannot tell apart are still two entries. Nothing about
+// an entry says which row it is, so there is nothing for the second one to
+// collide with.
+func TestTwoIdenticalEntriesAreKeptAsTwo(t *testing.T) {
 	t.Parallel()
 
 	owner := aPlayer(t)
 	entry := helpers.AnEntry(aScore(t))
 
-	res, err := owner.PutSet(t.Context(),
-		helpers.WriteSetOf("Duplicate", []api.SetEntry{entry, entry}, nil),
-		api.PutSetParams{SetId: uuid.New()})
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Twice", []api.WriteSetEntry{entry, entry}, nil))
 
-	require.NoError(t, err)
-	badRequest, ok := res.(*api.PutSetBadRequest)
-	require.Truef(t, ok, "two entries with the same id should be refused, got %#v", res)
-	assert.Equal(t, api.ProblemDetailsErrorCodeInvalidSet, badRequest.ErrorCode)
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
+
+	require.Len(t, saved.Entries, 2)
+	assert.NotEqual(t, saved.Entries[0].ID, saved.Entries[1].ID,
+		"each entry should have been stored under an id of its own")
+}
+
+// The id of an entry is the server's. A client that states one is stating a
+// field the write shape does not have, and it changes nothing about what is
+// stored.
+func TestAnEntryIdFromTheClientIsIgnored(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+
+	claimed := uuid.NewString()
+	setId := uuid.NewString()
+
+	res := raw.Do(t, helpers.Request{
+		Method:      http.MethodPut,
+		Path:        "/sets/" + setId,
+		Token:       tokenOf(t, owner),
+		ContentType: "application/json",
+		Body: fmt.Sprintf(
+			`{"title":"Not yours to name","description":"","shared_with":[],"entries":[
+				{"id":%q,"score_id":%q,"description":"","transposition":0,"hidden_parts":[]}]}`,
+			claimed, scoreId),
+	})
+
+	require.Equal(t, http.StatusOK, res.StatusCode, res.Text())
+	assert.NotContains(t, res.Text(), claimed,
+		"the id the client made up was stored: %s", res.Text())
 }
 
 // ---------------------------------------------------------------------------
@@ -344,8 +377,8 @@ func TestASharedSetCanBeReadByThePersonItIsSharedWith(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Friday night",
-		[]api.SetEntry{{
-			ID: uuid.New(), ScoreID: scoreId,
+		[]api.WriteSetEntry{{
+			ScoreID:       scoreId,
 			Transposition: 2, Description: "count it in", HiddenParts: []string{},
 		}},
 		[]string{bandMember.Email}))

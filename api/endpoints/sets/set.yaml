@@ -1,11 +1,3 @@
-# A set as it is read back.
-#
-# This file is not a document of its own. It is the body the set endpoints
-# write, and it is read through the references their methods.yaml files make
-# into it. What a client sends to write one is a different shape, in
-# write_set.yaml next to this: most of what is below is not the client's to
-# state.
-
 type: object
 description: |
   A playlist for a gig: an ordered list of scores, each with the key it is
@@ -61,8 +53,6 @@ properties:
     format: date-time
     description: When the set was last written.
   deleted_at:
-    # A union with `null` rather than `nullable: true`: this is OpenAPI 3.1,
-    # where a schema is JSON Schema and `nullable` is no longer a keyword.
     type: [string, 'null']
     format: date-time
     description: |
