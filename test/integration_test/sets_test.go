@@ -432,7 +432,36 @@ func TestThePeopleASetIsSharedWithAreOnlyShownToTheOwner(t *testing.T) {
 
 	asReader := helpers.MustGetSet(t, singer.ApiClient, setId)
 	assert.Empty(t, asReader.SharedWith, "a reader should not learn who else has the set")
-	assert.NotContains(t, asReader.SharedWith, trumpet.Email, "another band member's address leaked")
+
+	// Read back as bytes as well as as a set, and on both endpoints. An address
+	// that never reaches the parsed field can still be somewhere else in the
+	// body, and a set is served by the listing as well as one at a time — the
+	// share list is filled in by one query behind both, so a leak would be a
+	// leak in both.
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+	readerToken := tokenOf(t, singer)
+
+	one := raw.Do(t, helpers.Request{
+		Method: http.MethodGet,
+		Path:   "/sets/" + setId.String(),
+		Token:  readerToken,
+	})
+	require.Equal(t, http.StatusOK, one.StatusCode, one.Text())
+
+	list := raw.Do(t, helpers.Request{
+		Method: http.MethodGet,
+		Path:   "/sets?Changes-Since=2000-01-01T00:00:00Z&Changes-Until=2100-01-01T00:00:00Z",
+		Token:  readerToken,
+	})
+	require.Equal(t, http.StatusOK, list.StatusCode, list.Text())
+
+	for _, res := range []helpers.Response{one, list} {
+		assert.NotContains(t, res.Text(), trumpet.Email,
+			"another band member's address leaked: %s", res.Text())
+		assert.NotContains(t, res.Text(), singer.Email,
+			"a reader was told they are on the share list: %s", res.Text())
+	}
 }
 
 func TestUnsharingASetTakesItAway(t *testing.T) {
