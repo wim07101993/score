@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS set_shares;
+DROP TABLE IF EXISTS set_entries;
+DROP TABLE IF EXISTS sets;

@@ -1,15 +1,14 @@
 package score
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"score/internal/auth"
+	"score/internal/http_helpers"
 	"score/internal/logging"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -67,7 +66,7 @@ func (serv *HttpServer) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (serv *HttpServer) handleFunc(mux *http.ServeMux, pattern string, handler func(http.ResponseWriter, *http.Request) error) {
-	mux.HandleFunc(pattern, cors(
+	mux.HandleFunc(pattern, http_helpers.Cors(
 		logging.Wrap(serv.logger, func(res http.ResponseWriter, req *http.Request) error {
 			return handler(res, req)
 		})))
@@ -99,19 +98,7 @@ func (serv *HttpServer) GetScoreMetadata(res http.ResponseWriter, req *http.Requ
 	}
 
 	// RETURN RESULT
-	bs, err := json.Marshal(score)
-	if err != nil {
-		http.Error(res, "failed to get score", http.StatusInternalServerError)
-		return fmt.Errorf("failed to serialize score: %v", err)
-	}
-
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	if _, err = res.Write(bs); err != nil {
-		return fmt.Errorf("failed to respond score: %v", err)
-	}
-
-	return nil
+	return http_helpers.RespondJson(res, score)
 }
 
 func (serv *HttpServer) GetScoreMusicxml(res http.ResponseWriter, req *http.Request) error {
@@ -194,12 +181,12 @@ func (serv *HttpServer) PutScore(res http.ResponseWriter, req *http.Request) err
 
 func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request) error {
 	// VALIDATE INPUT
-	changesSince, err := getChangesSinceParam(req)
+	changesSince, err := http_helpers.GetChangesSinceParam(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return err
 	}
-	changesUntil, err := getChangesUntilParam(req)
+	changesUntil, err := http_helpers.GetChangesUntilParam(req)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return err
@@ -222,19 +209,7 @@ func (serv *HttpServer) GetScoresPage(res http.ResponseWriter, req *http.Request
 
 	// RETURN RESULT
 
-	bs, err := json.Marshal(scores)
-	if err != nil {
-		http.Error(res, "failed to get scores page", http.StatusInternalServerError)
-		return fmt.Errorf("failed to serialize scores page: %v", err)
-	}
-
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	if _, err = res.Write(bs); err != nil {
-		return fmt.Errorf("failed respond scores page: %v", err)
-	}
-
-	return nil
+	return http_helpers.RespondJson(res, scores)
 }
 
 func getScoreIdFromPath(res http.ResponseWriter, req *http.Request) (string, error) {
@@ -248,43 +223,4 @@ func getScoreIdFromPath(res http.ResponseWriter, req *http.Request) (string, err
 		return "", fmt.Errorf("malformed score-id %q: %v", id, err)
 	}
 	return id, nil
-}
-
-func getChangesSinceParam(req *http.Request) (time.Time, error) {
-	s := req.URL.Query().Get("Changes-Since")
-	if s == "" {
-		return time.Time{}, errors.New("a Changes-Since query param must be provided")
-	}
-
-	t, err := time.Parse("20060102T150405", s)
-	if err != nil {
-		return time.Time{}, errors.New("failed to parse Changes-Since as date-time (YYMMDDThhmmss)")
-	}
-	return t, nil
-}
-
-func getChangesUntilParam(req *http.Request) (time.Time, error) {
-	s := req.URL.Query().Get("Changes-Until")
-	if s == "" {
-		return time.Time{}, errors.New("a Changes-Until query param must be provided")
-	}
-
-	t, err := time.Parse("20060102T150405", s)
-	if err != nil {
-		return time.Time{}, errors.New("failed to parse Changes-Until as date-time (YYMMDDThhmmss)")
-	}
-	return t, nil
-}
-
-func cors(handler http.HandlerFunc) http.HandlerFunc {
-	return func(res http.ResponseWriter, req *http.Request) {
-		res.Header().Set("Access-Control-Allow-Origin", "*")
-		res.Header().Set("Access-Control-Allow-Headers", "*")
-		res.Header().Set("Access-Control-Allow-Methods", "*")
-		if req.Method == http.MethodOptions {
-			_, _ = res.Write([]byte("OK"))
-			return
-		}
-		handler(res, req)
-	}
 }

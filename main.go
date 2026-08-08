@@ -12,6 +12,7 @@ import (
 	"score/config"
 	"score/internal/auth"
 	"score/internal/score"
+	"score/internal/set"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -110,6 +111,9 @@ func serveHttp() {
 	scoreServ := score.NewHttpServer(logger, createScoresDb, authMiddleware)
 	scoreServ.RegisterRoutes(mux)
 
+	setServ := set.NewHttpServer(logger, createSetsDb, authMiddleware)
+	setServ.RegisterRoutes(mux)
+
 	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
 	logger.Info("start listening for http requests", slog.String("addr", addr))
 	if err := http.ListenAndServe(addr, mux); err != nil {
@@ -124,4 +128,12 @@ func createScoresDb(ctx context.Context) (*score.Database, error) {
 		return nil, errors.Wrap(err, "failed to create database connection")
 	}
 	return score.NewDatabase(logger, pgConn), nil
+}
+
+func createSetsDb(ctx context.Context) (*set.Database, error) {
+	pgConn, err := pgPool.Acquire(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create database connection")
+	}
+	return set.NewDatabase(logger, pgConn), nil
 }

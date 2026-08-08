@@ -13,6 +13,7 @@ import (
 
 	"score/internal/auth"
 	"score/internal/score"
+	"score/internal/set"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -26,6 +27,7 @@ type Harness struct {
 	identityProv   dependency[*IdentityProvider]
 	authMiddleware dependency[*auth.Middleware]
 	httpServer     dependency[*score.HttpServer]
+	setsHttpServer dependency[*set.HttpServer]
 	apiServer      dependency[*httptest.Server]
 	scoresClient   dependency[*ScoresClient]
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -37,6 +38,7 @@ type IdentityProvider struct {
 type tokenState struct {
 	subject string
 	name    string
+	email   string
 	roles   map[string]any
 
 	// active is what the introspection endpoint reports.
@@ -67,20 +69,37 @@ func (h *Harness) EnsureIdentityProvider(t *testing.T) *IdentityProvider {
 func (idp *IdentityProvider) IntrospectionUrl() string { return idp.server.URL + IntrospectionPath }
 func (idp *IdentityProvider) UserInfoUrl() string      { return idp.server.URL + UserInfoPath }
 
-// IssueToken mints an active token for a user holding the given roles.
-func (idp *IdentityProvider) IssueToken(t *testing.T, roles ...string) string {
+type IssueTokenInput struct {
+	Subject string
+	Name    string
+	Email   string
+	Roles   []string
+}
+
+func (idp *IdentityProvider) IssueToken(t *testing.T, input IssueTokenInput) string {
 	t.Helper()
 
 	claimed := map[string]any{}
-	for _, role := range roles {
+	for _, role := range input.Roles {
 		// Zitadel projects a role as a map of org-id to org-domain; the API
 		// only cares about the presence of the key.
 		claimed[role] = map[string]any{"1": "test.localhost"}
 	}
 
+	if input.Subject == "" {
+		input.Subject = uuid.NewString()
+	}
+	if input.Email == "" {
+		input.Email = faker.Email()
+	}
+	if input.Name == "" {
+		input.Name = faker.Name()
+	}
+
 	return idp.issue(t, &tokenState{
-		subject: uuid.NewString(),
-		name:    "Test User",
+		subject: input.Subject,
+		name:    input.Name,
+		email:   input.Email,
 		roles:   claimed,
 		active:  true,
 	})
@@ -178,6 +197,7 @@ func (idp *IdentityProvider) handleUserInfo(res http.ResponseWriter, req *http.R
 	writeJson(res, http.StatusOK, map[string]any{
 		"sub":    state.subject,
 		"name":   state.name,
+		"email":  state.email,
 		RolesKey: state.roles,
 	})
 }

@@ -4,10 +4,10 @@ package integration_test
 
 import (
 	"net/http"
+	"score/internal/auth"
 	"testing"
 	"time"
 
-	"score/internal/auth"
 	"score/test/integration_test/helpers"
 
 	"github.com/google/uuid"
@@ -15,19 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// editorToken is the token most tests upload with.
-func editorToken(t *testing.T) string {
-	t.Helper()
-	return harness.EnsureIdentityProvider(t).
-		IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
-}
-
 func aWhileAgo() time.Time { return time.Now().Add(-time.Hour) }
 func soon() time.Time      { return time.Now().Add(time.Hour) }
 
 func TestUploadingAScoreReturnsTheSameDocument(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	document := helpers.ExampleMusicXml(t, helpers.ExampleWithWork)
 	scoreId := uuid.NewString()
@@ -44,7 +38,8 @@ func TestUploadingAScoreReturnsTheSameDocument(t *testing.T) {
 // goes in, and the fields the frontend lists scores by come back out.
 func TestUploadingAScoreExtractsItsMetadata(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	scoreId := uuid.NewString()
 	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithWorkAndMovement)
@@ -66,7 +61,8 @@ func TestUploadingAScoreExtractsItsMetadata(t *testing.T) {
 
 func TestUploadingAScoreKeepsEveryCreator(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	scoreId := uuid.NewString()
 	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithTwoComposers)
@@ -79,7 +75,8 @@ func TestUploadingAScoreKeepsEveryCreator(t *testing.T) {
 
 func TestUploadingRealWorldDocuments(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	tests := []struct {
 		name string
@@ -137,7 +134,8 @@ func TestUploadingRealWorldDocuments(t *testing.T) {
 
 func TestUploadingAScoreTwiceReplacesIt(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	scoreId := uuid.NewString()
 	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithWorkAndMovement)
@@ -155,7 +153,8 @@ func TestUploadingAScoreTwiceReplacesIt(t *testing.T) {
 
 func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	tests := []struct {
 		name     string
@@ -185,7 +184,8 @@ func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
 // behind without the metadata that belongs to it.
 func TestUploadingAnUnknownInstrumentStoresNothing(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	scoreId := uuid.NewString()
 	res := client.PutScore(t, scoreId, token, helpers.MusicXmlWithUnknownInstrument)
@@ -199,7 +199,8 @@ func TestUploadingAnUnknownInstrumentStoresNothing(t *testing.T) {
 
 func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	tests := []struct {
 		name        string
@@ -229,7 +230,8 @@ func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
 
 func TestUploadingAcceptsBothMusicXmlMediaTypes(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	mediaTypes := []string{
 		helpers.MusicXmlContentType,
@@ -254,7 +256,8 @@ func TestUploadingAcceptsBothMusicXmlMediaTypes(t *testing.T) {
 
 func TestFetchingAnUnknownScoreReturnsNotFound(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 	unknownId := uuid.NewString()
 
 	t.Run("metadata", func(t *testing.T) {
@@ -273,8 +276,10 @@ func TestFetchingAnUnknownScoreReturnsNotFound(t *testing.T) {
 // server failure.
 func TestFetchingAScoreWithAMalformedIdIsARequestProblem(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
-	res := client.GetScore(t, "not-a-score-id", editorToken(t))
+	res := client.GetScore(t, "not-a-score-id", token)
 
 	assert.Lessf(t, res.StatusCode, http.StatusInternalServerError,
 		"a malformed score id should not be a server error, got %d: %s", res.StatusCode, res.Text())
@@ -282,7 +287,8 @@ func TestFetchingAScoreWithAMalformedIdIsARequestProblem(t *testing.T) {
 
 func TestListingScoresRequiresAChangeWindow(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	tests := []struct {
 		name string
@@ -307,7 +313,8 @@ func TestListingScoresRequiresAChangeWindow(t *testing.T) {
 
 func TestListingScoresReturnsTheScoresInTheWindow(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	harness.TruncateScores(t)
 
@@ -337,7 +344,8 @@ func TestListingScoresReturnsTheScoresInTheWindow(t *testing.T) {
 
 func TestUnsupportedMethodsAreRejected(t *testing.T) {
 	client := harness.EnsureScoresClient(t)
-	token := editorToken(t)
+	idp := harness.EnsureIdentityProvider(t)
+	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
 
 	tests := []struct {
 		method string

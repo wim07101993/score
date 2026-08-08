@@ -21,6 +21,7 @@ const (
 type UserInfo struct {
 	Name    string
 	Subject string
+	Email   string
 	Roles   map[string]interface{}
 }
 
@@ -165,10 +166,19 @@ func getUserInfo(endpoint string, rolesKey string, token string) (*UserInfo, err
 
 	name, _ := (userInfo["name"]).(string)
 	sub, _ := (userInfo["sub"]).(string)
+	email, _ := (userInfo["email"]).(string)
 	roles, _ := (userInfo[rolesKey]).(map[string]interface{})
 	return &UserInfo{
 		Name:    name,
 		Subject: sub,
+		Email:   NormalizeEmail(email),
 		Roles:   roles,
 	}, nil
+}
+
+// NormalizeEmail puts an address in the one form shares are stored and compared
+// in. Addresses are handed around by people typing them, so the case they
+// arrive in says nothing about who they belong to.
+func NormalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }

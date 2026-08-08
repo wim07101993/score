@@ -10,6 +10,7 @@ import (
 
 	"score/internal/auth"
 	"score/internal/score"
+	"score/internal/set"
 
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +25,7 @@ func (h *Harness) EnsureApiServer(t *testing.T) *httptest.Server {
 	if h.apiServer.value == nil {
 		mux := http.NewServeMux()
 		h.EnsureHttpServer(t).RegisterRoutes(mux)
+		h.EnsureSetsHttpServer(t).RegisterRoutes(mux)
 
 		// Not closed on test cleanup: the harness builds it once and every
 		// later test reuses it, so it lives as long as the test binary.
@@ -53,6 +55,29 @@ func (h *Harness) EnsureHttpServer(t *testing.T) *score.HttpServer {
 			h.EnsureAuthMiddleware(t))
 	}
 	return h.httpServer.value
+}
+
+func (h *Harness) EnsureSetsHttpServer(t *testing.T) *set.HttpServer {
+	t.Helper()
+	h.setsHttpServer.mutex.Lock()
+	defer h.setsHttpServer.mutex.Unlock()
+
+	if h.setsHttpServer.value == nil {
+		pool := h.EnsureDatabase(t)
+		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+		h.setsHttpServer.value = set.NewHttpServer(
+			logger,
+			func(ctx context.Context) (*set.Database, error) {
+				conn, err := pool.Acquire(ctx)
+				if err != nil {
+					return nil, err
+				}
+				return set.NewDatabase(logger, conn), nil
+			},
+			h.EnsureAuthMiddleware(t))
+	}
+	return h.setsHttpServer.value
 }
 
 func (h *Harness) EnsureAuthMiddleware(t *testing.T) *auth.Middleware {
