@@ -1,0 +1,40 @@
+# /scores: the collection.
+#
+# This file is not a document of its own. It is what the collection answers to,
+# and it is read through the reference openapi-spec.yaml makes into it. The body
+# it writes is in the file next to this one; what it shares with the other
+# endpoints — the parameters it reads, the failures it answers with — is above
+# them, in parameters/ and responses/.
+
+get:
+  operationId: listScores
+  summary: List the scores that changed within a window.
+  description: |
+    Returns the metadata of every score whose last change falls within the
+    given window, most recently changed first. Both ends of the window are
+    inclusive and both are required: a client synchronises by asking for
+    everything since the moment it last asked.
+
+    Requires the `score_viewer` role.
+  tags: [scores]
+  security:
+    - oauth2: [score_viewer]
+  parameters:
+    - $ref: '../../parameters/changes_since.yaml'
+    - $ref: '../../parameters/changes_until.yaml'
+    - $ref: '../../parameters/correlation_id.yaml'
+  responses:
+    '200':
+      description: The scores that changed within the window.
+      content:
+        application/json:
+          schema:
+            $ref: 'get_scores_response.yaml'
+    '400':
+      $ref: '../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../responses/403_forbidden.yaml'
+    default:
+      $ref: '../../responses/xxx_unknown_error.yaml'

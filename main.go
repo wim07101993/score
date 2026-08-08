@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -10,25 +10,30 @@ import (
 	"net/http"
 	"os"
 	"score/config"
-	"score/internal/auth"
-	"score/internal/score"
-	"score/internal/set"
+	"score/internal/bootstrap"
+	"score/internal/oidc"
+	"score/internal/server"
+	"score/internal/storage"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
+	slogctx "github.com/veqryn/slog-context"
 	_ "golang.org/x/crypto/x509roots/fallback" // CA bundle for FROM Scratch
 )
 
-var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+// The API is described in api/openapi-spec.yaml; the server that serves it is
+// generated from that document into internal/api.
+//go:generate go tool ogen --config ogen.yml --target internal/api --package api --clean api/openapi-spec.yaml
+
 var cfg = &config.Config{}
-var pgPool *pgxpool.Pool
+var dc *bootstrap.DependencyContainer
 
 var configPath string
 
 func main() {
+	ctx := context.Background()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
 	flag.StringVar(&configPath, "config", "", "Specifies the file from which config should be read. If none is provided, only environment variables are read.")
 	flag.Parse()
 
@@ -36,7 +41,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to read config from env: %v", err)
 	}
-	logger.Debug("env config", slog.Any("config", fromEnv.Redacted()))
+	slog.Debug("env config", slog.Any("config", fromEnv.Redacted()))
 	cfg.CopyFrom(fromEnv)
 
 	if configPath != "" {
@@ -44,96 +49,77 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to get config from file: %v", err)
 		}
-		logger.Debug("file config", slog.Any("config", fromFile.Redacted()))
+		slog.Debug("file config", slog.Any("config", fromFile.Redacted()))
 		cfg.CopyFrom(fromFile)
 	}
 
-	logger.Info("validating config")
+	slog.Info("validating config")
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("config invalid: %v", err)
 	}
 
-	logger.Info("starting application with config", slog.Any("config", cfg.Redacted()))
+	dc = bootstrap.DefaultDependencyContainer(
+		bootstrap.NewSingleton[oidc.ClientConfig](cfg.OidcClientConfig()),
+		bootstrap.NewSingleton[storage.DatabaseConfig](cfg.DatabaseConfig()),
+		bootstrap.NewSingleton[server.Config](cfg.ServerConfig()),
+	)
 
-	runMigrations()
-
-	pgPool, err = pgxpool.New(context.Background(), cfg.DbConnectionString)
+	logger, err := dc.Logger.Provide(ctx)
 	if err != nil {
-		log.Fatalf("failed to obtain db-connection pool: %v", err)
+		log.Fatalf("failed to create default logger: %v", err)
 	}
 
-	serveHttp()
+	slog.SetDefault(logger)
+	slog.Info("starting application with config", slog.Any("config", cfg.Redacted()))
+
+	if err := runMigrations(ctx); err != nil {
+		slog.Error("failed to run migrations", slogctx.Err(err))
+		os.Exit(1)
+	}
+	if err := serveHttp(ctx); err != nil {
+		slog.Error("failed to run http server", slogctx.Err(err))
+		os.Exit(1)
+	}
 }
 
-func runMigrations() {
-	logger.Info("running migrations")
-	db, err := sql.Open("postgres", cfg.DbConnectionString)
-	if err != nil {
-		log.Fatalf("failed to open database for migrations: %v", err)
-	}
+func runMigrations(ctx context.Context) (err error) {
+	slogctx.Info(ctx, "running migrations")
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	var m *bootstrap.DependencyWithCleanup[*migrate.Migrate]
+	m, err = dc.Migrate.Provide(ctx)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		return fmt.Errorf("failed to start database migration: %w", err)
 	}
+	defer func() {
+		err = errors.Join(err, m.Cleanup())
+	}()
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://db/migrations",
-		"postgres",
-		driver)
-	if err != nil {
-		log.Fatalf("failed to create migration runner: %v", err)
-	}
-
-	if err := m.Up(); err != nil {
+	if err = m.Dependency.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			logger.Info("migrations already up-to-date")
-			return
+			slogctx.Info(ctx, "migrations already up-to-date")
+			return nil
 		}
-
-		log.Fatalf("failed to run migrations: %v", err)
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	logger.Info("migrated successfully")
+	slogctx.Info(ctx, "migrated successfully")
+	return err
 }
 
-func serveHttp() {
-	logger.Info("starting http server")
+func serveHttp(ctx context.Context) (err error) {
+	slogctx.Info(ctx, "starting http server")
 
-	authMiddleware := auth.NewMiddleware(
-		cfg.TokenIntrospectionUrl,
-		cfg.UserInfoUrl,
-		cfg.TokenIntrospectionClientId,
-		cfg.TokenIntrospectionClientSecret,
-		cfg.RolesKey)
-
-	mux := http.NewServeMux()
-	scoreServ := score.NewHttpServer(logger, createScoresDb, authMiddleware)
-	scoreServ.RegisterRoutes(mux)
-
-	setServ := set.NewHttpServer(logger, createSetsDb, authMiddleware)
-	setServ.RegisterRoutes(mux)
-
-	addr := fmt.Sprintf(":%d", cfg.HttpServerPort)
-	logger.Info("start listening for http requests", slog.String("addr", addr))
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		logger.Error("failed to serve score scoresIndex",
-			slog.Any("error", err))
-	}
-}
-
-func createScoresDb(ctx context.Context) (*score.Database, error) {
-	pgConn, err := pgPool.Acquire(ctx)
+	var httpServer *http.Server
+	httpServer, err = dc.HttpServer.Provide(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create database connection")
+		return fmt.Errorf("failed to create http server: %w", err)
 	}
-	return score.NewDatabase(logger, pgConn), nil
-}
 
-func createSetsDb(ctx context.Context) (*set.Database, error) {
-	pgConn, err := pgPool.Acquire(ctx)
+	slogctx.Info(ctx, "start listening for http requests", slog.String("addr", httpServer.Addr))
+
+	err = httpServer.ListenAndServe()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create database connection")
+		return fmt.Errorf("failed to listen for requests: %w", err)
 	}
-	return set.NewDatabase(logger, pgConn), nil
+	return nil
 }

@@ -1,0 +1,54 @@
+openapi: 3.1.0
+
+info:
+  title: Score API
+  description: |
+    API to manage sheet music.
+
+    A score is a MusicXML document plus the metadata that is extracted from it
+    when it is uploaded. The document itself is written and read as MusicXML;
+    everything else is JSON.
+
+    This document is the outline. It says which paths exist and points at the
+    file that describes each of them. What a path is, is written down with that
+    path: one directory per endpoint under `endpoints/`, holding the methods it
+    answers to and the bodies those methods read and write. What more than one
+    endpoint uses sits above them, a directory per kind: `parameters/`,
+    `responses/`, `schemas/`, and how a caller proves who they are in
+    `security/`.
+  version: 1.0.0
+  license:
+    name: none
+    identifier: none
+
+servers:
+  - url: /
+    description: The server itself.
+
+tags:
+  - name: scores
+    description: Sheet music and the metadata extracted from it.
+  - name: sets
+    description: The ordered lists of scores a gig is played from.
+  - name: health
+    description: Whether the server is up.
+
+security:
+  - oauth2: [score_viewer]
+
+paths:
+  /scores:
+    $ref: './endpoints/scores/methods.yaml'
+  /scores/{scoreId}:
+    $ref: './endpoints/scores/by_id/methods.yaml'
+  /sets:
+    $ref: './endpoints/sets/methods.yaml'
+  /sets/{setId}:
+    $ref: './endpoints/sets/by_id/methods.yaml'
+  /healthz:
+    $ref: './endpoints/healthz/methods.yaml'
+
+components:
+  securitySchemes:
+    oauth2:
+      $ref: './security/oauth2.yaml'

@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -8,7 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/go-faker/faker/v4"
+	"score/internal/oidc"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -51,55 +53,80 @@ type tokenState struct {
 	userInfoFails bool
 }
 
-func (h *Harness) EnsureIdentityProvider(t *testing.T) *IdentityProvider {
-	t.Helper()
-	h.identityProv.mutex.Lock()
-	defer h.identityProv.mutex.Unlock()
+func (h *Harness) NewIdentityProvider(ctx context.Context) (*IdentityProvider, error) {
+	idp := &IdentityProvider{tokens: map[string]*tokenState{}}
+	// Not closed on test cleanup: the harness builds it once and every later
+	// test reuses it, so it lives as long as the test binary.
+	idp.server = httptest.NewServer(http.HandlerFunc(idp.handle))
+	return idp, nil
+}
 
-	if h.identityProv.value == nil {
-		idp := &IdentityProvider{tokens: map[string]*tokenState{}}
-		// Not closed on test cleanup: the harness builds it once and every
-		// later test reuses it, so it lives as long as the test binary.
-		idp.server = httptest.NewServer(http.HandlerFunc(idp.handle))
-		h.identityProv.value = idp
+// NewOidcClientConfig points the API at the fake provider. It is what makes the
+// container the tests build the same graph the application builds, differing
+// only in which identity provider it trusts.
+func (h *Harness) NewOidcClientConfig(ctx context.Context) (oidc.ClientConfig, error) {
+	idp, err := h.IdentityProvider.Provide(ctx)
+	if err != nil {
+		return oidc.ClientConfig{}, err
 	}
-	return h.identityProv.value
+
+	return oidc.ClientConfig{
+		IntrospectionUrl: idp.IntrospectionUrl(),
+		UserInfoUrl:      idp.UserInfoUrl(),
+		ClientId:         IdpClientId,
+		ClientSecret:     IdpClientSecret,
+		RolesKey:         RolesKey,
+	}, nil
 }
 
 func (idp *IdentityProvider) IntrospectionUrl() string { return idp.server.URL + IntrospectionPath }
 func (idp *IdentityProvider) UserInfoUrl() string      { return idp.server.URL + UserInfoPath }
 
-type IssueTokenInput struct {
+// User is who a token is minted for. Every field is optional: what is left
+// blank is filled in with something nobody else has, so that a test which does
+// not care who it is talking as never has two of its users turn out to be one.
+// A test that does care — sharing a set is the reason this exists — names the
+// parts it needs to name and lets the rest be.
+type User struct {
 	Subject string
 	Name    string
 	Email   string
-	Roles   []string
 }
 
-func (idp *IdentityProvider) IssueToken(t *testing.T, input IssueTokenInput) string {
+// IssueToken mints an active token for a user holding the given roles.
+func (idp *IdentityProvider) IssueToken(t *testing.T, roles ...string) string {
+	t.Helper()
+	return idp.IssueTokenFor(t, User{}, roles...)
+}
+
+// IssueTokenFor mints an active token for the given user, holding the given
+// roles.
+func (idp *IdentityProvider) IssueTokenFor(t *testing.T, user User, roles ...string) string {
 	t.Helper()
 
 	claimed := map[string]any{}
-	for _, role := range input.Roles {
+	for _, role := range roles {
 		// Zitadel projects a role as a map of org-id to org-domain; the API
 		// only cares about the presence of the key.
 		claimed[role] = map[string]any{"1": "test.localhost"}
 	}
 
-	if input.Subject == "" {
-		input.Subject = uuid.NewString()
+	if user.Subject == "" {
+		user.Subject = uuid.NewString()
 	}
-	if input.Email == "" {
-		input.Email = faker.Email()
+	if user.Name == "" {
+		user.Name = "Test User"
 	}
-	if input.Name == "" {
-		input.Name = faker.Name()
+	if user.Email == "" {
+		// Tied to the subject rather than random, so that the address and the
+		// subject of one user always agree, and two users never share either.
+		user.Email = user.Subject + "@test.localhost"
 	}
 
 	return idp.issue(t, &tokenState{
-		subject: input.Subject,
-		name:    input.Name,
-		email:   input.Email,
+		subject: user.Subject,
+		name:    user.Name,
+		email:   user.Email,
 		roles:   claimed,
 		active:  true,
 	})

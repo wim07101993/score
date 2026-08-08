@@ -1,0 +1,101 @@
+# What a failure says about itself: problem details, as described by RFC 9457.
+#
+# This file is not a document of its own. It is the body every failure answer in
+# responses/ carries, and it is read through the references those make into it.
+# One shape for every failure, whichever endpoint it happened at and whoever
+# turned the request down.
+#
+# https://www.rfc-editor.org/rfc/rfc9457 — it obsoletes RFC 7807, which is where
+# this shape is usually looked up. The five members it names are the first five
+# below; what 9457 adds over 7807 is the registry of problem types and, in §3.2,
+# leave for a problem to carry members of its own beyond them. `errorCode` is
+# one of those: it is this API's, not the RFC's.
+#
+# The problem type is `about:blank` throughout, which is 9457's way of saying a
+# failure is its status code and nothing more. Telling failures apart is what
+# `errorCode` is for here — a type per kind of failure would do the same job the
+# way the RFC intends, and is where this would go if the set ever grows past
+# what one flat list can carry.
+
+type: object
+description: |
+  What went wrong, in the shape
+  [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) gives a failure.
+additionalProperties: true
+required:
+  - type
+  - title
+  - status
+  - detail
+  - instance
+  - errorCode
+properties:
+  type:
+    type: string
+    # A URI reference by RFC 9457, but left as a plain string on purpose: this
+    # server only ever answers `about:blank`, and typing it as a URI would make
+    # every reader of a failure parse one.
+    description: |
+      What kind of failure this is, as a URI reference. `about:blank` when the
+      failure is no more than its status code, which is all this server tells
+      apart so far.
+    examples: [about:blank]
+  title:
+    type: string
+    description: |
+      What the kind of failure is called. The same for every failure of a kind,
+      so that it can be shown to a human without reading the detail. With a
+      `type` of `about:blank`, RFC 9457 asks for the status code's own name.
+    examples: [Not Found]
+  status:
+    type: integer
+    minimum: 100
+    maximum: 599
+    description: |
+      The http status code of the answer, repeated here so that the body stands
+      on its own once it has been passed on by something that dropped the rest
+      of the response.
+    examples: [404]
+  detail:
+    type: string
+    description: |
+      What went wrong with this request in particular, meant for a human. It
+      says nothing the caller is not allowed to know: what went wrong inside the
+      server belongs in its log, not in the answer.
+    examples: [no score found with the given id]
+  instance:
+    type: string
+    description: |
+      Which occurrence of the problem this was, as a URI reference: the
+      correlation id of the request that failed, written as a URN. It is what
+      the server logged the failure under, so quoting it back is enough to find
+      out what happened inside.
+    examples: ['urn:uuid:5f6a2f1e-9b3c-4a7d-8e21-0c1d2e3f4a5b']
+  errorCode:
+    type: string
+    description: |
+      A code on which an application can act. This is a machine readable code,
+      not meant to display to an end-user, but can be used to show a translated
+      error message.
+
+      It is what a caller should branch on. `status` says how the request
+      failed in the terms http has, and `detail` says it in the terms a
+      developer reading a log has; neither is stable enough to switch on. This
+      is: the set below only ever grows, and a code is never given a new
+      meaning.
+    enum:
+      - invalid_request
+      - invalid_music_xml
+      - invalid_credentials
+      - missing_role
+      - score_not_found
+      - set_not_found
+      - invalid_set
+      - unknown_score
+      - not_set_owner
+      - endpoint_not_found
+      - method_not_allowed
+      - unsupported_media_type
+      - request_body_too_large
+      - internal_error
+    examples: [score_not_found]

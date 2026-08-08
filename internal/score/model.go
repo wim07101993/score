@@ -2,6 +2,8 @@ package score
 
 import "time"
 
+// Score is a piece of sheet music as this package knows it: the metadata read
+// out of the music-xml document when it was stored.
 type Score struct {
 	Id            string    `json:"id"`
 	Work          Work      `json:"work"`

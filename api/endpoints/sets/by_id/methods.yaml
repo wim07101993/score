@@ -1,0 +1,118 @@
+# /sets/{setId}: a single set.
+#
+# This file is not a document of its own. It is what one set answers to, and it
+# is read through the reference openapi-spec.yaml makes into it. The bodies the
+# methods read and write are in the directory above this one, next to the
+# collection; what it shares with the other endpoints — the parameters it reads,
+# the failures it answers with — is above them, in parameters/ and responses/.
+#
+# A set that is not the caller's to see is answered with 404 rather than 403,
+# here and on every method below. Which sets other people have is not something
+# to be discovered by asking for ids.
+
+parameters:
+  - $ref: '../../../parameters/set_id.yaml'
+  - $ref: '../../../parameters/correlation_id.yaml'
+
+get:
+  operationId: getSet
+  summary: Fetch a single set.
+  description: |
+    Returns the set, whether the caller owns it or it is shared with them.
+    `is_owner` says which of the two it is, and `shared_with` is only filled in
+    for the owner.
+
+    Requires the `score_viewer` role.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  responses:
+    '200':
+      description: The set.
+      content:
+        application/json:
+          schema:
+            $ref: '../set.yaml'
+    '400':
+      $ref: '../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../responses/404_not_found.yaml'
+    default:
+      $ref: '../../../responses/xxx_unknown_error.yaml'
+
+put:
+  operationId: putSet
+  summary: Create or replace a set.
+  description: |
+    Stores the set under the given id, replacing whatever was stored under it
+    before, and returns it as it now reads. A set that is not there yet belongs
+    to whoever creates it; one that is can only be written by its owner.
+
+    Writing a set that had been deleted brings it back: a client that still has
+    it and edits it is saying it should exist.
+
+    Requires the `score_viewer` role. A set names scores but changes nothing
+    about them, so building one asks no more of a user than reading the scores
+    in it.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  requestBody:
+    required: true
+    description: The set as the client states it.
+    content:
+      application/json:
+        schema:
+          $ref: '../write_set.yaml'
+  responses:
+    '200':
+      description: The set as it now reads.
+      content:
+        application/json:
+          schema:
+            $ref: '../set.yaml'
+    '400':
+      $ref: '../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../responses/403_forbidden.yaml'
+    '413':
+      $ref: '../../../responses/413_content_too_large.yaml'
+    '415':
+      $ref: '../../../responses/415_unsupported_media_type.yaml'
+    default:
+      $ref: '../../../responses/xxx_unknown_error.yaml'
+
+delete:
+  operationId: deleteSet
+  summary: Delete a set.
+  description: |
+    Marks the set as deleted. It is kept rather than removed, and it keeps
+    turning up in the change window with `deleted_at` filled in, so that a
+    client holding a copy learns that it is gone.
+
+    Only the owner of a set can delete it. A set that is not there, already
+    deleted, or not the caller's is answered the same way.
+
+    Requires the `score_viewer` role.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  responses:
+    '204':
+      description: The set was deleted.
+    '400':
+      $ref: '../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../responses/404_not_found.yaml'
+    default:
+      $ref: '../../../responses/xxx_unknown_error.yaml'

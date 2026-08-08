@@ -1,0 +1,5 @@
+description: There is nothing stored under the given id.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'

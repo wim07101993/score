@@ -1,0 +1,11 @@
+# What listing the collection comes back as.
+#
+# This file is not a document of its own. It is the body `GET /sets` writes, and
+# it is read through the reference methods.yaml makes into it. A listed set is
+# the same set a single one is fetched as, so it is not described twice: this
+# points at the one description.
+
+type: array
+description: The sets that changed within the window, most recently changed first.
+items:
+  $ref: 'set.yaml'

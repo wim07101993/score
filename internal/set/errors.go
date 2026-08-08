@@ -1,9 +1,8 @@
 package set
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 // ErrSetNotFound is returned for a set that does not exist and, deliberately,

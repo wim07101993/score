@@ -3,157 +3,155 @@
 package integration_test
 
 import (
+	"fmt"
 	"net/http"
-	"score/internal/auth"
+	"strings"
 	"testing"
 	"time"
 
+	"score/internal/api"
+	"score/internal/auth"
 	"score/test/integration_test/helpers"
 
-	"github.com/go-faker/faker/v4"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// player is a client together with the address it is calling as, which is what
+// a set is shared by.
+type player struct {
+	*helpers.ApiClient
+	Email string
+}
+
+// aPlayer is a user who may look at scores and build sets.
+//
+// Every player gets a scope of its own: who a client is calling as is scoped,
+// so two players built from one scope would turn out to be one caller.
+func aPlayer(t *testing.T) player {
+	t.Helper()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	user := helpers.User{Email: uuid.NewString() + "@test.localhost"}
+	client.Security.Token = idp.IssueTokenFor(t, user, auth.RoleScoreViewer)
+
+	return player{ApiClient: client, Email: user.Email}
+}
+
+// aScore uploads a score for a set to point at and answers its id. Uploading
+// takes the editor role, which a player deliberately does not have.
+func aScore(t *testing.T) uuid.UUID {
+	t.Helper()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
+	return scoreId
+}
+
 // ---------------------------------------------------------------------------
 // A SET IS A RUNNING ORDER
 // ---------------------------------------------------------------------------
 
-func TestCreateSet(t *testing.T) {
+func TestCreatingASetStoresWhatWasGiven(t *testing.T) {
 	t.Parallel()
 
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, helpers.IssueTokenInput{
-		Roles: []string{auth.RoleScoreViewer},
-	})
+	owner := aPlayer(t)
 
-	t.Run("ok", func(t *testing.T) {
-		t.Parallel()
+	setId := uuid.New()
+	write := helpers.WriteSetOf("Zomerbar 12 juli", nil, nil)
+	write.Description = "outside, two sets of 45"
+	helpers.MustPutSet(t, owner.ApiClient, setId, write)
 
-		t.Run("basic", func(t *testing.T) {
-			t.Parallel()
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
-			title:= faker.Sentence()
-			description := faker.Paragraph()
+	assert.Equal(t, setId, saved.ID)
+	assert.Equal(t, "Zomerbar 12 juli", saved.Title)
+	assert.Equal(t, "outside, two sets of 45", saved.Description)
+	assert.True(t, saved.IsOwner, "the user who created a set owns it")
+	assert.True(t, saved.DeletedAt.Null, "a set that was just created is not deleted")
+	assert.NotNil(t, saved.Entries, "entries should be an empty list, never null")
+	assert.NotNil(t, saved.SharedWith, "shared_with should be an empty list, never null")
+}
 
+// The order of a set is the order of the gig, so it is kept exactly as it was
+// given rather than in whatever order the database finds convenient.
+func TestASetIsPlayedInTheOrderItWasGivenIn(t *testing.T) {
+	t.Parallel()
 
-			setId := uuid.NewString()
-			client.MustPutSet(t, setId, token, helpers.WriteSet{
-				Title:       title,
-				Description: description,
-			})
+	owner := aPlayer(t)
+	first, second, third := aScore(t), aScore(t), aScore(t)
 
-			saved := client.GetSet(t, setId, token).DecodeSet(t)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Running order",
+		[]api.SetEntry{helpers.AnEntry(third), helpers.AnEntry(first), helpers.AnEntry(second)}, nil))
 
-			assert.Equal(t, setId, saved.Id)
-			assert.Equal(t, title, saved.Title)
-			assert.Equal(t, description, saved.Description)
-			assert.True(t, saved.IsOwner, "the user who created a set owns it")
-			assert.Nil(t, saved.DeletedAt)
-			assert.NotNil(t, saved.Entries, "entries should be an empty list, never null")
-			assert.NotNil(t, saved.SharedWith, "shared_with should be an empty list, never null")
-		})
-	})
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
-	// The order of a set is the order of the gig, so it is kept exactly as it was
-	// given rather than in whatever order the database finds convenient.
-	func
-	TestASetIsPlayedInTheOrderItWasGivenIn(t * testing.T)
-	{
-		client := harness.EnsureScoresClient(t)
-		idp := harness.EnsureIdentityProvider(t)
-		token := idp.IssueToken(t, helpers.IssueTokenInput{
-			Email: "order@test.localhost",
-			Roles: []string{auth.RoleScoreViewer},
-		})
+	assert.Equal(t, []uuid.UUID{third, first, second}, helpers.ScoreIdsOf(saved))
+}
 
-		first, second, third := aScore(t), aScore(t), aScore(t)
+func TestReorderingASetIsSavedAsTheNewOrder(t *testing.T) {
+	t.Parallel()
 
-		setId := uuid.NewString()
-		client.MustPutSet(t, setId, token, helpers.WriteSet{
-			Title:   "Running order",
-			Entries: []helpers.SetEntry{anEntry(third), anEntry(first), anEntry(second)},
-		})
+	owner := aPlayer(t)
+	first, second := aScore(t), aScore(t)
+	firstEntry, secondEntry := helpers.AnEntry(first), helpers.AnEntry(second)
 
-		saved := client.GetSet(t, setId, token).DecodeSet(t)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Before", []api.SetEntry{firstEntry, secondEntry}, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("After", []api.SetEntry{secondEntry, firstEntry}, nil))
 
-		assert.Equal(t, []string{third, first, second}, saved.ScoreIds())
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
+
+	assert.Equal(t, []uuid.UUID{second, first}, helpers.ScoreIdsOf(saved))
+	assert.Equal(t, "After", saved.Title)
+}
+
+// A song can come round twice in a gig, and the second time is its own entry:
+// its own place in the order, its own note, and its own key.
+func TestTheSameScoreCanBePlayedTwiceInASet(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	opener := api.SetEntry{
+		ID: uuid.New(), ScoreID: scoreId,
+		Description: "opener, full band", Transposition: 0, HiddenParts: []string{},
+	}
+	encore := api.SetEntry{
+		ID: uuid.New(), ScoreID: scoreId,
+		Description: "encore, voice only", Transposition: -2, HiddenParts: []string{"P2"},
 	}
 
-	func
-	TestReorderingASetIsSavedAsTheNewOrder(t * testing.T)
-	{
-		client := harness.EnsureScoresClient(t)
-		idp := harness.EnsureIdentityProvider(t)
-		token := idp.IssueToken(t, helpers.IssueTokenInput{
-			Email: "reorder@test.localhost",
-			Roles: []string{auth.RoleScoreViewer},
-		})
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Twice round",
+		[]api.SetEntry{opener, helpers.AnEntry(aScore(t)), encore}, nil))
 
-		first, second := aScore(t), aScore(t)
-		firstEntry, secondEntry := anEntry(first), anEntry(second)
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
-		setId := uuid.NewString()
-		client.MustPutSet(t, setId, token, helpers.WriteSet{
-			Title:   "Before",
-			Entries: []helpers.SetEntry{firstEntry, secondEntry},
-		})
+	require.Len(t, saved.Entries, 3)
+	assert.Equal(t, scoreId, saved.Entries[0].ScoreID)
+	assert.Equal(t, scoreId, saved.Entries[2].ScoreID)
 
-		client.MustPutSet(t, setId, token, helpers.WriteSet{
-			Title:   "After",
-			Entries: []helpers.SetEntry{secondEntry, firstEntry},
-		})
+	assert.Equal(t, "opener, full band", saved.Entries[0].Description)
+	assert.Equal(t, 0, saved.Entries[0].Transposition)
+	assert.Empty(t, saved.Entries[0].HiddenParts)
 
-		saved := client.GetSet(t, setId, token).DecodeSet(t)
-
-		assert.Equal(t, []string{second, first}, saved.ScoreIds())
-		assert.Equal(t, "After", saved.Title)
-	}
-
-	// A song can come round twice in a gig, and the second time is its own entry:
-	// its own place in the order, its own note, and its own key.
-	func
-	TestTheSameScoreCanBePlayedTwiceInASet(t * testing.T)
-	{
-		client := harness.EnsureScoresClient(t)
-		idp := harness.EnsureIdentityProvider(t)
-		token := idp.IssueToken(t, helpers.IssueTokenInput{
-			Email: "encore@test.localhost",
-			Roles: []string{auth.RoleScoreViewer},
-		})
-
-		scoreId := aScore(t)
-		opener := helpers.SetEntry{
-			Id: uuid.NewString(), ScoreId: scoreId,
-			Description: "opener, full band", Transposition: 0, HiddenParts: []string{},
-		}
-		encore := helpers.SetEntry{
-			Id: uuid.NewString(), ScoreId: scoreId,
-			Description: "encore, voice only", Transposition: -2, HiddenParts: []string{"P2"},
-		}
-
-		setId := uuid.NewString()
-		client.MustPutSet(t, setId, token, helpers.WriteSet{
-			Title:   "Twice round",
-			Entries: []helpers.SetEntry{opener, anEntry(aScore(t)), encore},
-		})
-
-		saved := client.GetSet(t, setId, token).DecodeSet(t)
-
-		require.Len(t, saved.Entries, 3)
-		assert.Equal(t, scoreId, saved.Entries[0].ScoreId)
-		assert.Equal(t, scoreId, saved.Entries[2].ScoreId)
-
-		assert.Equal(t, "opener, full band", saved.Entries[0].Description)
-		assert.Equal(t, 0, saved.Entries[0].Transposition)
-		assert.Empty(t, saved.Entries[0].HiddenParts)
-
-		assert.Equal(t, "encore, voice only", saved.Entries[2].Description)
-		assert.Equal(t, -2, saved.Entries[2].Transposition, "the two times round are played in different keys")
-		assert.Equal(t, []string{"P2"}, saved.Entries[2].HiddenParts)
-	}
+	assert.Equal(t, "encore, voice only", saved.Entries[2].Description)
+	assert.Equal(t, -2, saved.Entries[2].Transposition, "the two times round are played in different keys")
+	assert.Equal(t, []string{"P2"}, saved.Entries[2].HiddenParts)
 }
 
 // ---------------------------------------------------------------------------
@@ -163,23 +161,22 @@ func TestCreateSet(t *testing.T) {
 // The key and the parts on screen are what the player needs back when they open
 // a score from inside a set, so they have to survive the round trip exactly.
 func TestHowAScoreIsPlayedIsKeptWithTheSet(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "arrangement@test.localhost")
+	t.Parallel()
 
+	owner := aPlayer(t)
 	scoreId := aScore(t)
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, token, helpers.WriteSet{
-		Title: "Arrangements",
-		Entries: []helpers.SetEntry{{
-			Id:            uuid.NewString(),
-			ScoreId:       scoreId,
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Arrangements",
+		[]api.SetEntry{{
+			ID:            uuid.New(),
+			ScoreID:       scoreId,
 			Description:   "down a third for the singer",
 			Transposition: -4,
 			HiddenParts:   []string{"P2", "P3"},
-		}},
-	})
+		}}, nil))
 
-	saved := client.GetSet(t, setId, token).DecodeSet(t)
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
 	require.Len(t, saved.Entries, 1)
 	assert.Equal(t, -4, saved.Entries[0].Transposition)
@@ -189,32 +186,52 @@ func TestHowAScoreIsPlayedIsKeptWithTheSet(t *testing.T) {
 
 // Playing a score in another key is a property of the set, not of the score.
 func TestPlayingAScoreInAnotherKeyLeavesTheScoreAlone(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "untouched@test.localhost")
-	editor := editorToken(t)
+	t.Parallel()
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, editor, helpers.MusicXmlWithWorkAndMovement)
+	owner := aPlayer(t)
 
-	client.MustPutSet(t, uuid.NewString(), token, helpers.WriteSet{
-		Title:   "Transposed",
-		Entries: []helpers.SetEntry{{Id: uuid.NewString(), ScoreId: scoreId, Transposition: 5}},
-	})
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	editor := helpers.Ensure(t, h.ApiClient, "ApiClient")
+	editor.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
-	document := client.GetScoreMusicXml(t, scoreId, editor)
-	assert.Equal(t, helpers.MusicXmlWithWorkAndMovement, document.Text(),
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, editor, scoreId, helpers.MusicXmlWithWorkAndMovement)
+
+	helpers.MustPutSet(t, owner.ApiClient, uuid.New(), helpers.WriteSetOf("Transposed",
+		[]api.SetEntry{{
+			ID: uuid.New(), ScoreID: scoreId, Transposition: 5, HiddenParts: []string{},
+		}}, nil))
+
+	document := mustGetScoreDocument(t, editor, scoreId, helpers.MusicXmlContentType)
+	assert.Equal(t, helpers.MusicXmlWithWorkAndMovement, document,
 		"putting a score in a set changed the score itself")
 }
 
 func TestASetRefusesATranspositionItCannotPlay(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "range@test.localhost")
+	t.Parallel()
+
+	owner := aPlayer(t)
 	scoreId := aScore(t)
 
+	// Sent by hand rather than through the generated client: the range is in
+	// the spec, so the client would refuse to send it and the server would
+	// never get to say no. What this is about is the server saying no.
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+
 	for _, semitones := range []int{13, -13, 200} {
-		res := client.PutSet(t, uuid.NewString(), token, helpers.WriteSet{
-			Title:   "Out of range",
-			Entries: []helpers.SetEntry{{Id: uuid.NewString(), ScoreId: scoreId, Transposition: semitones}},
+		body := fmt.Sprintf(
+			`{"title":"Out of range","description":"","shared_with":[],"entries":[
+				{"id":%q,"score_id":%q,"description":"","transposition":%d,"hidden_parts":[]}]}`,
+			uuid.NewString(), scoreId, semitones)
+
+		res := raw.Do(t, helpers.Request{
+			Method:      http.MethodPut,
+			Path:        "/sets/" + uuid.NewString(),
+			Token:       tokenOf(t, owner),
+			ContentType: "application/json",
+			Body:        body,
 		})
 
 		assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
@@ -223,33 +240,39 @@ func TestASetRefusesATranspositionItCannotPlay(t *testing.T) {
 }
 
 func TestASetRefusesAScoreThatDoesNotExist(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "ghost@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	res := client.PutSet(t, setId, token, helpers.WriteSet{
-		Title:   "Ghost",
-		Entries: []helpers.SetEntry{anEntry(uuid.NewString())},
-	})
+	owner := aPlayer(t)
 
-	assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-		"a set naming a score that does not exist should be refused: %s", res.Text())
-	assert.Equal(t, http.StatusNotFound, client.GetSet(t, setId, token).StatusCode,
-		"a refused set should not have been stored")
+	setId := uuid.New()
+	res, err := owner.PutSet(t.Context(),
+		helpers.WriteSetOf("Ghost", []api.SetEntry{helpers.AnEntry(uuid.New())}, nil),
+		api.PutSetParams{SetId: setId})
+
+	require.NoError(t, err)
+	badRequest, ok := res.(*api.PutSetBadRequest)
+	require.Truef(t, ok, "a set naming a score that does not exist should be refused, got %#v", res)
+	assert.Equal(t, api.ProblemDetailsErrorCodeUnknownScore, badRequest.ErrorCode)
+
+	got, err := owner.GetSet(t.Context(), api.GetSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetSetNotFound{}, got, "a refused set should not have been stored, got %#v", got)
 }
 
 func TestASetRefusesTheSameEntryTwice(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "duplicate@test.localhost")
+	t.Parallel()
 
-	entry := anEntry(aScore(t))
-	res := client.PutSet(t, uuid.NewString(), token, helpers.WriteSet{
-		Title:   "Duplicate",
-		Entries: []helpers.SetEntry{entry, entry},
-	})
+	owner := aPlayer(t)
+	entry := helpers.AnEntry(aScore(t))
 
-	assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-		"two entries with the same id should be refused: %s", res.Text())
+	res, err := owner.PutSet(t.Context(),
+		helpers.WriteSetOf("Duplicate", []api.SetEntry{entry, entry}, nil),
+		api.PutSetParams{SetId: uuid.New()})
+
+	require.NoError(t, err)
+	badRequest, ok := res.(*api.PutSetBadRequest)
+	require.Truef(t, ok, "two entries with the same id should be refused, got %#v", res)
+	assert.Equal(t, api.ProblemDetailsErrorCodeInvalidSet, badRequest.ErrorCode)
 }
 
 // ---------------------------------------------------------------------------
@@ -257,49 +280,55 @@ func TestASetRefusesTheSameEntryTwice(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestASetIsNotVisibleToEveryone(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "owner@test.localhost")
-	stranger := aPlayer(t, "stranger@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{Title: "Private"})
+	owner, stranger := aPlayer(t), aPlayer(t)
 
-	res := client.GetSet(t, setId, stranger)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Private", nil, nil))
 
-	assert.Equal(t, http.StatusNotFound, res.StatusCode,
-		"a set someone has nothing to do with should not be readable")
-	assert.NotContains(t, res.Text(), "Private", "the title of another user's set leaked")
+	res, err := stranger.GetSet(t.Context(), api.GetSetParams{SetId: setId})
+
+	require.NoError(t, err)
+	notFound, ok := res.(*api.GetSetNotFound)
+	require.Truef(t, ok, "a set someone has nothing to do with should not be readable, got %#v", res)
+	assert.NotContains(t, notFound.Detail, "Private", "the title of another user's set leaked")
 }
 
 func TestListingSetsOnlyShowsYourOwn(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "mine@test.localhost")
-	stranger := aPlayer(t, "notmine@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{Title: "Mine"})
+	owner, stranger := aPlayer(t), aPlayer(t)
 
-	mine := client.ListSets(t, owner, aWhileAgo(), soon()).DecodeSets(t)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Mine", nil, nil))
+
+	window := api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()}
+
+	mine := helpers.MustListSets(t, owner.ApiClient, window)
 	_, found := helpers.FindSet(mine, setId)
 	assert.True(t, found, "a set should be in its owner's list")
 
-	theirs := client.ListSets(t, stranger, aWhileAgo(), soon()).DecodeSets(t)
+	theirs := helpers.MustListSets(t, stranger.ApiClient, window)
 	_, found = helpers.FindSet(theirs, setId)
 	assert.False(t, found, "another user's set should not be in the list")
 }
 
 func TestOnlyTheOwnerCanChangeASet(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "keeper@test.localhost")
-	other := aPlayer(t, "meddler@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{Title: "Kept"})
+	owner, meddler := aPlayer(t), aPlayer(t)
 
-	res := client.PutSet(t, setId, other, helpers.WriteSet{Title: "Meddled with"})
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Kept", nil, nil))
 
-	assert.Equal(t, http.StatusForbidden, res.StatusCode, res.Text())
-	assert.Equal(t, "Kept", client.GetSet(t, setId, owner).DecodeSet(t).Title,
+	res, err := meddler.PutSet(t.Context(),
+		helpers.WriteSetOf("Meddled with", nil, nil),
+		api.PutSetParams{SetId: setId})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetForbidden{}, res, "got %#v", res)
+	assert.Equal(t, "Kept", helpers.MustGetSet(t, owner.ApiClient, setId).Title,
 		"a set was changed by someone who does not own it")
 }
 
@@ -308,22 +337,21 @@ func TestOnlyTheOwnerCanChangeASet(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestASharedSetCanBeReadByThePersonItIsSharedWith(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "bandleader@test.localhost")
-	bandMember := aPlayer(t, "bassist@test.localhost")
+	t.Parallel()
 
+	owner, bandMember := aPlayer(t), aPlayer(t)
 	scoreId := aScore(t)
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{
-		Title:      "Friday night",
-		Entries:    []helpers.SetEntry{{Id: uuid.NewString(), ScoreId: scoreId, Transposition: 2, Description: "count it in"}},
-		SharedWith: []string{"bassist@test.localhost"},
-	})
 
-	res := client.GetSet(t, setId, bandMember)
-	require.Equalf(t, http.StatusOK, res.StatusCode, "a shared set should be readable: %s", res.Text())
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Friday night",
+		[]api.SetEntry{{
+			ID: uuid.New(), ScoreID: scoreId,
+			Transposition: 2, Description: "count it in", HiddenParts: []string{},
+		}},
+		[]string{bandMember.Email}))
 
-	shared := res.DecodeSet(t)
+	shared := helpers.MustGetSet(t, bandMember.ApiClient, setId)
+
 	assert.Equal(t, "Friday night", shared.Title)
 	assert.False(t, shared.IsOwner, "a set someone shared is not theirs")
 	require.Len(t, shared.Entries, 1)
@@ -332,17 +360,16 @@ func TestASharedSetCanBeReadByThePersonItIsSharedWith(t *testing.T) {
 }
 
 func TestASharedSetIsInTheListOfThePersonItIsSharedWith(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "leader2@test.localhost")
-	bandMember := aPlayer(t, "drummer@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{
-		Title:      "Saturday night",
-		SharedWith: []string{"drummer@test.localhost"},
-	})
+	owner, bandMember := aPlayer(t), aPlayer(t)
 
-	sets := client.ListSets(t, bandMember, aWhileAgo(), soon()).DecodeSets(t)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Saturday night", nil, []string{bandMember.Email}))
+
+	sets := helpers.MustListSets(t, bandMember.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
 
 	found, ok := helpers.FindSet(sets, setId)
 	require.True(t, ok, "a shared set should be in the list of the person it is shared with")
@@ -352,78 +379,79 @@ func TestASharedSetIsInTheListOfThePersonItIsSharedWith(t *testing.T) {
 // Sharing is by address, and an address that differs only in case is the same
 // address: nobody types their email the same way twice.
 func TestSharingIgnoresTheCaseOfAnAddress(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "leader3@test.localhost")
-	bandMember := aPlayer(t, "guitarist@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{
-		Title:      "Case",
-		SharedWith: []string{"  GuiTarist@Test.Localhost  "},
-	})
+	owner, bandMember := aPlayer(t), aPlayer(t)
 
-	assert.Equal(t, http.StatusOK, client.GetSet(t, setId, bandMember).StatusCode)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Case", nil, []string{strings.ToUpper(bandMember.Email)}))
+
+	assert.Equal(t, "Case", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
 }
 
 // Sharing is for reading. A band member seeing the set is not a band member
 // rewriting it.
 func TestSharingASetDoesNotAllowChangingIt(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "leader4@test.localhost")
-	bandMember := aPlayer(t, "pianist@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{
-		Title:      "Read only",
-		SharedWith: []string{"pianist@test.localhost"},
-	})
+	owner, bandMember := aPlayer(t), aPlayer(t)
 
-	write := client.PutSet(t, setId, bandMember, helpers.WriteSet{Title: "Rewritten"})
-	assert.Equal(t, http.StatusForbidden, write.StatusCode, write.Text())
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Read only", nil, []string{bandMember.Email}))
 
-	remove := client.DeleteSet(t, setId, bandMember)
-	assert.Equal(t, http.StatusNotFound, remove.StatusCode,
-		"a shared set is not the reader's to delete: %s", remove.Text())
+	write, err := bandMember.PutSet(t.Context(),
+		helpers.WriteSetOf("Rewritten", nil, nil),
+		api.PutSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetForbidden{}, write, "got %#v", write)
 
-	assert.Equal(t, "Read only", client.GetSet(t, setId, owner).DecodeSet(t).Title)
+	// Deleting is 404 rather than 403: only the owner deletes, and to everyone
+	// else a set they cannot delete is a set that is not there.
+	remove, err := bandMember.DeleteSet(t.Context(), api.DeleteSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.DeleteSetNotFound{}, remove,
+		"a shared set is not the reader's to delete, got %#v", remove)
+
+	assert.Equal(t, "Read only", helpers.MustGetSet(t, owner.ApiClient, setId).Title)
 }
 
 // Who else a set is shared with is the owner's business.
 func TestThePeopleASetIsSharedWithAreOnlyShownToTheOwner(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "leader5@test.localhost")
-	bandMember := aPlayer(t, "singer@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{
-		Title:      "Who else",
-		SharedWith: []string{"singer@test.localhost", "trumpet@test.localhost"},
-	})
+	owner, singer, trumpet := aPlayer(t), aPlayer(t), aPlayer(t)
 
-	asOwner := client.GetSet(t, setId, owner).DecodeSet(t)
-	assert.ElementsMatch(t, []string{"singer@test.localhost", "trumpet@test.localhost"}, asOwner.SharedWith)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Who else", nil, []string{singer.Email, trumpet.Email}))
 
-	res := client.GetSet(t, setId, bandMember)
-	assert.Empty(t, res.DecodeSet(t).SharedWith, "a reader should not learn who else has the set")
-	assert.NotContains(t, res.Text(), "trumpet@test.localhost", "another band member's address leaked")
+	asOwner := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.ElementsMatch(t, []string{singer.Email, trumpet.Email}, asOwner.SharedWith)
+
+	asReader := helpers.MustGetSet(t, singer.ApiClient, setId)
+	assert.Empty(t, asReader.SharedWith, "a reader should not learn who else has the set")
+	assert.NotContains(t, asReader.SharedWith, trumpet.Email, "another band member's address leaked")
 }
 
 func TestUnsharingASetTakesItAway(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	owner := aPlayer(t, "leader6@test.localhost")
-	bandMember := aPlayer(t, "fiddle@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{
-		Title:      "Shared for now",
-		SharedWith: []string{"fiddle@test.localhost"},
-	})
-	require.Equal(t, http.StatusOK, client.GetSet(t, setId, bandMember).StatusCode)
+	owner, bandMember := aPlayer(t), aPlayer(t)
 
-	client.MustPutSet(t, setId, owner, helpers.WriteSet{Title: "Shared for now", SharedWith: []string{}})
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Shared for now", nil, []string{bandMember.Email}))
+	require.Equal(t, "Shared for now", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
 
-	assert.Equal(t, http.StatusNotFound, client.GetSet(t, setId, bandMember).StatusCode,
-		"a set that is no longer shared should no longer be readable")
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Shared for now", nil, nil))
+
+	res, err := bandMember.GetSet(t.Context(), api.GetSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetSetNotFound{}, res,
+		"a set that is no longer shared should no longer be readable, got %#v", res)
 }
 
 // ---------------------------------------------------------------------------
@@ -434,89 +462,104 @@ func TestUnsharingASetTakesItAway(t *testing.T) {
 // has to be recognisable as deleted by another that still has it. Dropping the
 // row would leave the other device with a set nothing ever contradicts.
 func TestADeletedSetIsReportedAsDeletedRatherThanVanishing(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "twodevices@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, token, helpers.WriteSet{Title: "Cancelled gig"})
+	owner := aPlayer(t)
 
-	require.Equal(t, http.StatusNoContent, client.DeleteSet(t, setId, token).StatusCode)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Cancelled gig", nil, nil))
+	mustDeleteSet(t, owner.ApiClient, setId)
 
-	sets := client.ListSets(t, token, aWhileAgo(), soon()).DecodeSets(t)
+	sets := helpers.MustListSets(t, owner.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
 	deleted, found := helpers.FindSet(sets, setId)
 
 	require.True(t, found, "a deleted set should still be reported so other devices drop it")
-	assert.NotNil(t, deleted.DeletedAt, "the set is not marked as deleted")
+	assert.False(t, deleted.DeletedAt.Null, "the set is not marked as deleted")
 }
 
 func TestADeletedSetCannotBeReadAnyMore(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "gone@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, token, helpers.WriteSet{Title: "Gone"})
-	require.Equal(t, http.StatusNoContent, client.DeleteSet(t, setId, token).StatusCode)
+	owner := aPlayer(t)
 
-	assert.Equal(t, http.StatusNotFound, client.GetSet(t, setId, token).StatusCode,
-		"a deleted set should not be readable")
-	assert.Equal(t, http.StatusNotFound, client.DeleteSet(t, setId, token).StatusCode,
-		"deleting a set that is already gone is not a server error")
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Gone", nil, nil))
+	mustDeleteSet(t, owner.ApiClient, setId)
+
+	res, err := owner.GetSet(t.Context(), api.GetSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetSetNotFound{}, res, "a deleted set should not be readable, got %#v", res)
+
+	again, err := owner.DeleteSet(t.Context(), api.DeleteSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.DeleteSetNotFound{}, again,
+		"deleting a set that is already gone is not a server error, got %#v", again)
 }
 
 // A device that has been offline can still be holding a set that was deleted
 // elsewhere. Editing it says the set should exist again, which is the only way
 // back for a set that was deleted by mistake.
 func TestWritingADeletedSetAgainBringsItBack(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "backagain@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, token, helpers.WriteSet{Title: "Cancelled"})
-	require.Equal(t, http.StatusNoContent, client.DeleteSet(t, setId, token).StatusCode)
+	owner := aPlayer(t)
 
-	client.MustPutSet(t, setId, token, helpers.WriteSet{Title: "Back on"})
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Cancelled", nil, nil))
+	mustDeleteSet(t, owner.ApiClient, setId)
 
-	revived := client.GetSet(t, setId, token).DecodeSet(t)
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Back on", nil, nil))
+
+	revived := helpers.MustGetSet(t, owner.ApiClient, setId)
 	assert.Equal(t, "Back on", revived.Title)
-	assert.Nil(t, revived.DeletedAt)
+	assert.True(t, revived.DeletedAt.Null)
 }
 
 // A device that was offline while a set was edited should get it on its next
 // sync, which is what the change window is for.
 func TestOnlyTheSetsChangedInTheWindowAreListed(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "window@test.localhost")
+	t.Parallel()
 
-	setId := uuid.NewString()
-	client.MustPutSet(t, setId, token, helpers.WriteSet{Title: "Recent"})
+	owner := aPlayer(t)
 
-	inWindow := client.ListSets(t, token, aWhileAgo(), soon()).DecodeSets(t)
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Recent", nil, nil))
+
+	inWindow := helpers.MustListSets(t, owner.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
 	_, found := helpers.FindSet(inWindow, setId)
 	assert.True(t, found, "a set changed just now should be in a window that covers now")
 
-	beforeWindow := client.ListSets(t, token,
-		time.Now().Add(-48*time.Hour), time.Now().Add(-24*time.Hour)).DecodeSets(t)
+	beforeWindow := helpers.MustListSets(t, owner.ApiClient, api.ListSetsParams{
+		ChangesSince: time.Now().Add(-48 * time.Hour),
+		ChangesUntil: time.Now().Add(-24 * time.Hour),
+	})
 	_, found = helpers.FindSet(beforeWindow, setId)
 	assert.False(t, found, "a set changed today is not in a window that ended yesterday")
 }
 
 func TestListingSetsRequiresAChangeWindow(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "nowindow@test.localhost")
+	t.Parallel()
+
+	owner := aPlayer(t)
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+	token := tokenOf(t, owner)
 
 	tests := []struct {
 		name string
 		path string
 	}{
 		{name: "no parameters", path: "/sets"},
-		{name: "only Changes-Since", path: "/sets?Changes-Since=20240101T000000"},
-		{name: "only Changes-Until", path: "/sets?Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Since", path: "/sets?Changes-Since=yesterday&Changes-Until=20240101T000000"},
+		{name: "only Changes-Since", path: "/sets?Changes-Since=2024-01-01T00:00:00Z"},
+		{name: "only Changes-Until", path: "/sets?Changes-Until=2024-01-01T00:00:00Z"},
+		{name: "malformed Changes-Since", path: "/sets?Changes-Since=yesterday&Changes-Until=2024-01-01T00:00:00Z"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: tt.path, Token: token})
+			res := raw.Do(t, helpers.Request{Method: http.MethodGet, Path: tt.path, Token: token})
 
 			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
 				"listing sets with %s should be rejected: %s", tt.name, res.Text())
@@ -529,7 +572,10 @@ func TestListingSetsRequiresAChangeWindow(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSetsRequireAValidToken(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
+	t.Parallel()
+
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
 	setId := uuid.NewString()
 
 	for _, tt := range []struct {
@@ -538,12 +584,12 @@ func TestSetsRequireAValidToken(t *testing.T) {
 		path   string
 	}{
 		{name: "reading one", method: http.MethodGet, path: "/sets/" + setId},
-		{name: "listing", method: http.MethodGet, path: "/sets?Changes-Since=20240101T000000&Changes-Until=20240101T000000"},
+		{name: "listing", method: http.MethodGet, path: "/sets?Changes-Since=2024-01-01T00:00:00Z&Changes-Until=2024-01-01T00:00:00Z"},
 		{name: "writing", method: http.MethodPut, path: "/sets/" + setId},
 		{name: "deleting", method: http.MethodDelete, path: "/sets/" + setId},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: tt.method, Path: tt.path})
+			res := raw.Do(t, helpers.Request{Method: tt.method, Path: tt.path})
 			assert.Equal(t, http.StatusUnauthorized, res.StatusCode, res.Text())
 		})
 	}
@@ -552,35 +598,56 @@ func TestSetsRequireAValidToken(t *testing.T) {
 // A set names scores and changes nothing about them, so building one asks no
 // more of a user than reading the scores in it.
 func TestSetsRequireTheViewerRole(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
+	t.Parallel()
 
-	withoutRole := idp.IssueTokenForEmail(t, "noroles@test.localhost")
-	res := client.PutSet(t, uuid.NewString(), withoutRole, helpers.WriteSet{Title: "Nope"})
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+	client.Security.Token = idp.IssueToken(t)
 
-	assert.Equal(t, http.StatusForbidden, res.StatusCode, res.Text())
+	res, err := client.PutSet(t.Context(),
+		helpers.WriteSetOf("Nope", nil, nil),
+		api.PutSetParams{SetId: uuid.New()})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetForbidden{}, res, "got %#v", res)
 }
 
 func TestASetIdMustBeAnId(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "malformed@test.localhost")
+	t.Parallel()
 
-	res := client.GetSet(t, "not-a-set-id", token)
+	owner := aPlayer(t)
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+
+	res := raw.Do(t, helpers.Request{
+		Method: http.MethodGet,
+		Path:   "/sets/not-a-set-id",
+		Token:  tokenOf(t, owner),
+	})
 
 	assert.Lessf(t, res.StatusCode, http.StatusInternalServerError,
 		"a malformed set id should not be a server error, got %d: %s", res.StatusCode, res.Text())
 }
 
 func TestAnUnknownSetIsNotFound(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "unknown@test.localhost")
+	t.Parallel()
 
-	assert.Equal(t, http.StatusNotFound, client.GetSet(t, uuid.NewString(), token).StatusCode)
+	owner := aPlayer(t)
+
+	res, err := owner.GetSet(t.Context(), api.GetSetParams{SetId: uuid.New()})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetSetNotFound{}, res, "got %#v", res)
 }
 
 func TestUnsupportedMethodsOnSetsAreRejected(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "methods@test.localhost")
+	t.Parallel()
+
+	owner := aPlayer(t)
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+	token := tokenOf(t, owner)
 
 	for _, tt := range []struct {
 		method string
@@ -592,7 +659,7 @@ func TestUnsupportedMethodsOnSetsAreRejected(t *testing.T) {
 		{method: http.MethodDelete, path: "/sets"},
 	} {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: tt.method, Path: tt.path, Token: token})
+			res := raw.Do(t, helpers.Request{Method: tt.method, Path: tt.path, Token: token})
 
 			assert.Equalf(t, http.StatusMethodNotAllowed, res.StatusCode,
 				"%s %s should not be allowed: %s", tt.method, tt.path, res.Text())
@@ -601,16 +668,38 @@ func TestUnsupportedMethodsOnSetsAreRejected(t *testing.T) {
 }
 
 func TestABodyThatIsNotASetIsRejected(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	token := aPlayer(t, "garbage@test.localhost")
+	t.Parallel()
 
-	res := client.Do(t, helpers.Request{
+	owner := aPlayer(t)
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+
+	res := raw.Do(t, helpers.Request{
 		Method:      http.MethodPut,
 		Path:        "/sets/" + uuid.NewString(),
-		Token:       token,
+		Token:       tokenOf(t, owner),
 		ContentType: "application/json",
 		Body:        "not json at all",
 	})
 
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode, res.Text())
+}
+
+// ---------------------------------------------------------------------------
+// HELPERS
+// ---------------------------------------------------------------------------
+
+func mustDeleteSet(t *testing.T, client *helpers.ApiClient, setId uuid.UUID) {
+	t.Helper()
+
+	res, err := client.DeleteSet(t.Context(), api.DeleteSetParams{SetId: setId})
+	require.NoErrorf(t, err, "failed to delete set %s", setId)
+	require.IsTypef(t, &api.DeleteSetNoContent{}, res, "failed to delete set %s: %#v", setId, res)
+}
+
+// tokenOf is the token a player calls with, for the tests that reach past the
+// generated client and build a request by hand.
+func tokenOf(t *testing.T, p player) string {
+	t.Helper()
+	return p.Security.Token
 }

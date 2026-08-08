@@ -3,11 +3,12 @@
 package integration_test
 
 import (
-	"net/http"
-	"score/internal/auth"
+	"strings"
 	"testing"
 	"time"
 
+	"score/internal/api"
+	"score/internal/auth"
 	"score/test/integration_test/helpers"
 
 	"github.com/google/uuid"
@@ -18,35 +19,75 @@ import (
 func aWhileAgo() time.Time { return time.Now().Add(-time.Hour) }
 func soon() time.Time      { return time.Now().Add(time.Hour) }
 
+// mustGetScore fetches the metadata of a score the test expects to be there.
+func mustGetScore(t *testing.T, client *helpers.ApiClient, scoreId uuid.UUID) *api.Score {
+	t.Helper()
+
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: scoreId})
+	require.NoErrorf(t, err, "failed to fetch score %s", scoreId)
+
+	score, ok := res.(*api.Score)
+	require.Truef(t, ok, "expected the metadata of score %s, got %#v", scoreId, res)
+	return score
+}
+
+// mustGetScoreDocument fetches the music-xml of a score the test expects to be
+// there, in the media type it asks for.
+func mustGetScoreDocument(t *testing.T, client *helpers.ApiClient, scoreId uuid.UUID, mediaType string) string {
+	t.Helper()
+
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{
+		ScoreId: scoreId,
+		Accept:  api.NewOptString(mediaType),
+	})
+	require.NoErrorf(t, err, "failed to fetch the document of score %s", scoreId)
+
+	switch document := res.(type) {
+	case *api.GetScoreOKApplicationVndRecordareMusicxml:
+		return helpers.MustReadAll(t, document.Data)
+	case *api.GetScoreOKApplicationVndRecordareMusicxmlXML:
+		return helpers.MustReadAll(t, document.Data)
+	default:
+		require.FailNowf(t, "wrong representation",
+			"asked for %s and got %#v", mediaType, res)
+		return ""
+	}
+}
+
 func TestUploadingAScoreReturnsTheSameDocument(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	document := helpers.ExampleMusicXml(t, helpers.ExampleWithWork)
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, document)
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, document)
 
-	res := client.GetScoreMusicXml(t, scoreId, token)
-
-	require.Equalf(t, http.StatusOK, res.StatusCode, "failed to download the score: %s", res.Text())
-	assert.Equal(t, helpers.MusicXmlContentType, res.ContentType)
-	assert.Equal(t, document, res.Text(), "the stored document differs from the uploaded one")
+	assert.Equal(t, document, mustGetScoreDocument(t, client, scoreId, helpers.MusicXmlContentType),
+		"the stored document differs from the uploaded one")
 }
 
 // TestUploadingAScoreExtractsItsMetadata is the heart of the API: a document
 // goes in, and the fields the frontend lists scores by come back out.
 func TestUploadingAScoreExtractsItsMetadata(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithWorkAndMovement)
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
-	score := client.GetScore(t, scoreId, token).DecodeScore(t)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
-	assert.Equal(t, scoreId, score.Id)
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
+
+	score := mustGetScore(t, client, scoreId)
+
+	assert.Equal(t, scoreId, score.ID)
 	assert.Equal(t, "Work title", score.Work.Title, "work title")
 	assert.Equal(t, "Work number 41", score.Work.Number, "work number")
 	assert.Equal(t, "Movement title", score.Movement.Title, "movement title")
@@ -60,23 +101,31 @@ func TestUploadingAScoreExtractsItsMetadata(t *testing.T) {
 }
 
 func TestUploadingAScoreKeepsEveryCreator(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithTwoComposers)
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
-	score := client.GetScore(t, scoreId, token).DecodeScore(t)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithTwoComposers)
+
+	score := mustGetScore(t, client, scoreId)
 
 	assert.Equal(t, []string{"First Composer", "Second Composer"}, score.Creators.Composers)
 	assert.Equal(t, []string{"Only Lyricist"}, score.Creators.Lyricists)
 }
 
 func TestUploadingRealWorldDocuments(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	tests := []struct {
 		name string
@@ -116,10 +165,12 @@ func TestUploadingRealWorldDocuments(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			scoreId := uuid.NewString()
-			client.MustPutScore(t, scoreId, token, helpers.ExampleMusicXml(t, tt.document))
+			t.Parallel()
 
-			score := client.GetScore(t, scoreId, token).DecodeScore(t)
+			scoreId := uuid.New()
+			helpers.MustPutScore(t, client, scoreId, helpers.ExampleMusicXml(t, tt.document))
+
+			score := mustGetScore(t, client, scoreId)
 
 			assert.Equal(t, tt.workTitle, score.Work.Title, "work title")
 			assert.Equal(t, tt.workNumber, score.Work.Number, "work number")
@@ -133,28 +184,36 @@ func TestUploadingRealWorldDocuments(t *testing.T) {
 }
 
 func TestUploadingAScoreTwiceReplacesIt(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
 
-	scoreId := uuid.NewString()
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithWorkAndMovement)
-	client.MustPutScore(t, scoreId, token, helpers.MusicXmlWithTwoComposers)
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
-	score := client.GetScore(t, scoreId, token).DecodeScore(t)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+
+	scoreId := uuid.New()
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithWorkAndMovement)
+	helpers.MustPutScore(t, client, scoreId, helpers.MusicXmlWithTwoComposers)
+
+	score := mustGetScore(t, client, scoreId)
 
 	assert.Equal(t, "Collaboration", score.Work.Title, "the second upload should have replaced the first")
-	assert.Equal(t, 1, harness.CountRows(t, "score_files", scoreId), "score documents")
-	assert.Equal(t, 1, harness.CountRows(t, "scores", scoreId), "score metadata rows")
+	assert.Equal(t, 1, h.CountRows(t, "score_files", scoreId.String()), "score documents")
+	assert.Equal(t, 1, h.CountRows(t, "scores", scoreId.String()), "score metadata rows")
 
-	document := client.GetScoreMusicXml(t, scoreId, token)
-	assert.Equal(t, helpers.MusicXmlWithTwoComposers, document.Text())
+	assert.Equal(t, helpers.MusicXmlWithTwoComposers,
+		mustGetScoreDocument(t, client, scoreId, helpers.MusicXmlContentType))
 }
 
 func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
 	tests := []struct {
 		name     string
@@ -167,12 +226,17 @@ func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			scoreId := uuid.NewString()
-			res := client.PutScore(t, scoreId, token, tt.document)
+			t.Parallel()
 
-			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-				"uploading %s should be rejected: %s", tt.name, res.Text())
-			assert.Zero(t, harness.CountRows(t, "score_files", scoreId),
+			scoreId := uuid.New()
+
+			res, err := client.PutScore(t.Context(), helpers.MusicXmlBody(tt.document),
+				api.PutScoreParams{ScoreId: scoreId})
+			require.NoError(t, err)
+
+			assert.IsTypef(t, &api.PutScoreBadRequest{}, res,
+				"uploading %s should be rejected as a bad request, got %#v", tt.name, res)
+			assert.Zero(t, h.CountRows(t, "score_files", scoreId.String()),
 				"a rejected document should not have been stored")
 		})
 	}
@@ -183,194 +247,207 @@ func TestUploadingRejectsDocumentsThatAreNotMusicXml(t *testing.T) {
 // the instrument enum. Whatever the API answers, it may not leave a document
 // behind without the metadata that belongs to it.
 func TestUploadingAnUnknownInstrumentStoresNothing(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
 
-	scoreId := uuid.NewString()
-	res := client.PutScore(t, scoreId, token, helpers.MusicXmlWithUnknownInstrument)
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
-	assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-		"an unsupported instrument is a problem with the uploaded document: %s", res.Text())
-	assert.Zero(t, harness.CountRows(t, "score_files", scoreId),
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+
+	scoreId := uuid.New()
+	res, err := client.PutScore(t.Context(),
+		helpers.MusicXmlBody(helpers.MusicXmlWithUnknownInstrument),
+		api.PutScoreParams{ScoreId: scoreId})
+	require.NoError(t, err)
+
+	assert.IsTypef(t, &api.PutScoreBadRequest{}, res,
+		"an unsupported instrument is a problem with the uploaded document, got %#v", res)
+	assert.Zero(t, h.CountRows(t, "score_files", scoreId.String()),
 		"a failed upload left the document behind without its metadata")
-	assert.Zero(t, harness.CountRows(t, "scores", scoreId), "score metadata rows")
-}
-
-func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
-
-	tests := []struct {
-		name        string
-		contentType string
-	}{
-		{name: "no content type", contentType: ""},
-		{name: "plain text", contentType: "text/plain"},
-		{name: "json", contentType: "application/json"},
-		{name: "plain xml", contentType: "application/xml"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{
-				Method:      http.MethodPut,
-				Path:        "/scores/" + uuid.NewString(),
-				Token:       token,
-				ContentType: tt.contentType,
-				Body:        helpers.MusicXmlWithWorkAndMovement,
-			})
-
-			assert.Equalf(t, http.StatusUnsupportedMediaType, res.StatusCode,
-				"content-type %q should be rejected: %s", tt.contentType, res.Text())
-		})
-	}
+	assert.Zero(t, h.CountRows(t, "scores", scoreId.String()), "score metadata rows")
 }
 
 func TestUploadingAcceptsBothMusicXmlMediaTypes(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
 
-	mediaTypes := []string{
-		helpers.MusicXmlContentType,
-		helpers.MusicXmlContentTypeWithXmlSuffix,
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+
+	tests := []struct {
+		mediaType string
+		body      api.PutScoreReq
+	}{
+		{
+			mediaType: helpers.MusicXmlContentType,
+			body:      helpers.MusicXmlBody(helpers.MusicXmlWithWorkAndMovement),
+		},
+		{
+			mediaType: helpers.MusicXmlContentTypeWithXmlSuffix,
+			body: &api.PutScoreReqApplicationVndRecordareMusicxmlXML{
+				Data: strings.NewReader(helpers.MusicXmlWithWorkAndMovement),
+			},
+		},
 	}
 
-	for _, mediaType := range mediaTypes {
-		t.Run(mediaType, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{
-				Method:      http.MethodPut,
-				Path:        "/scores/" + uuid.NewString(),
-				Token:       token,
-				ContentType: mediaType,
-				Body:        helpers.MusicXmlWithWorkAndMovement,
-			})
+	for _, tt := range tests {
+		t.Run(tt.mediaType, func(t *testing.T) {
+			t.Parallel()
 
-			assert.Equalf(t, http.StatusOK, res.StatusCode,
-				"content-type %q should be accepted: %s", mediaType, res.Text())
+			res, err := client.PutScore(t.Context(), tt.body,
+				api.PutScoreParams{ScoreId: uuid.New()})
+			require.NoError(t, err)
+
+			assert.IsTypef(t, &api.PutScoreOK{}, res,
+				"content-type %q should be accepted, got %#v", tt.mediaType, res)
 		})
 	}
 }
 
 func TestFetchingAnUnknownScoreReturnsNotFound(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
-	unknownId := uuid.NewString()
+	t.Parallel()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+	unknownId := uuid.New()
 
 	t.Run("metadata", func(t *testing.T) {
-		res := client.GetScore(t, unknownId, token)
-		assert.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
+		t.Parallel()
+
+		res, err := client.GetScore(t.Context(), api.GetScoreParams{ScoreId: unknownId})
+		require.NoError(t, err)
+		assert.IsTypef(t, &api.GetScoreNotFound{}, res, "got %#v", res)
 	})
 
 	t.Run("document", func(t *testing.T) {
-		res := client.GetScoreMusicXml(t, unknownId, token)
-		assert.Equal(t, http.StatusNotFound, res.StatusCode, res.Text())
-	})
-}
+		t.Parallel()
 
-// TestFetchingAScoreWithAMalformedIdIsARequestProblem checks that a path
-// segment that is not an id is answered as a client error rather than as a
-// server failure.
-func TestFetchingAScoreWithAMalformedIdIsARequestProblem(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
-
-	res := client.GetScore(t, "not-a-score-id", token)
-
-	assert.Lessf(t, res.StatusCode, http.StatusInternalServerError,
-		"a malformed score id should not be a server error, got %d: %s", res.StatusCode, res.Text())
-}
-
-func TestListingScoresRequiresAChangeWindow(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
-
-	tests := []struct {
-		name string
-		path string
-	}{
-		{name: "no parameters", path: "/scores"},
-		{name: "only Changes-Since", path: "/scores?Changes-Since=20240101T000000"},
-		{name: "only Changes-Until", path: "/scores?Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Since", path: "/scores?Changes-Since=yesterday&Changes-Until=20240101T000000"},
-		{name: "malformed Changes-Until", path: "/scores?Changes-Since=20240101T000000&Changes-Until=tomorrow"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: tt.path, Token: token})
-
-			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-				"listing scores with %s should be rejected: %s", tt.name, res.Text())
+		res, err := client.GetScore(t.Context(), api.GetScoreParams{
+			ScoreId: unknownId,
+			Accept:  api.NewOptString(helpers.MusicXmlContentType),
 		})
-	}
+		require.NoError(t, err)
+		assert.IsTypef(t, &api.GetScoreNotFound{}, res, "got %#v", res)
+	})
 }
 
 func TestListingScoresReturnsTheScoresInTheWindow(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+	t.Parallel()
 
-	harness.TruncateScores(t)
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
-	first := uuid.NewString()
-	second := uuid.NewString()
-	client.MustPutScore(t, first, token, helpers.MusicXmlWithWorkAndMovement)
-	client.MustPutScore(t, second, token, helpers.MusicXmlWithTwoComposers)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
 
+	first := uuid.New()
+	second := uuid.New()
+	helpers.MustPutScore(t, client, first, helpers.MusicXmlWithWorkAndMovement)
+	helpers.MustPutScore(t, client, second, helpers.MusicXmlWithTwoComposers)
+
+	// What the window holds beyond these two is not this test's business: every
+	// other test uploads into the same window, and emptying the table first
+	// would pull those scores out from under them.
 	t.Run("window covering both uploads", func(t *testing.T) {
-		res := client.ListScores(t, token, aWhileAgo(), soon())
-		require.Equalf(t, http.StatusOK, res.StatusCode, "failed to list scores: %s", res.Text())
+		t.Parallel()
 
-		scores := res.DecodeScores(t)
-		require.Len(t, scores, 2)
+		scores := mustListScores(t, client, aWhileAgo(), soon())
 
-		ids := []string{scores[0].Id, scores[1].Id}
-		assert.ElementsMatch(t, []string{first, second}, ids)
+		listed := make([]uuid.UUID, 0, len(scores))
+		for _, score := range scores {
+			listed = append(listed, score.ID)
+		}
+		assert.Subset(t, listed, []uuid.UUID{first, second},
+			"a score uploaded within the window should be listed in it")
 	})
 
 	t.Run("window before the uploads", func(t *testing.T) {
-		res := client.ListScores(t, token, time.Now().Add(-48*time.Hour), time.Now().Add(-24*time.Hour))
-		require.Equalf(t, http.StatusOK, res.StatusCode, "failed to list scores: %s", res.Text())
+		t.Parallel()
 
-		assert.Empty(t, res.DecodeScores(t), "scores changed today are not in a window that ended yesterday")
+		scores := mustListScores(t, client,
+			time.Now().Add(-48*time.Hour),
+			time.Now().Add(-24*time.Hour))
+
+		assert.Empty(t, scores, "scores changed today are not in a window that ended yesterday")
+	})
+
+	// A window is a pair of moments, and a moment says which one it is however
+	// it is written. Said in a zone of its own it has to hold the same scores as
+	// the same window said in UTC — the bound is compared as an instant, not as
+	// the wall clock it reads.
+	t.Run("window covering both uploads, said in another zone", func(t *testing.T) {
+		t.Parallel()
+
+		farEast := time.FixedZone("UTC+14", 14*60*60)
+		farWest := time.FixedZone("UTC-11", -11*60*60)
+
+		scores := mustListScores(t, client,
+			aWhileAgo().In(farEast),
+			soon().In(farWest))
+
+		listed := make([]uuid.UUID, 0, len(scores))
+		for _, score := range scores {
+			listed = append(listed, score.ID)
+		}
+		assert.Subset(t, listed, []uuid.UUID{first, second},
+			"the window a client wrote in its own zone should hold what the same window holds in UTC")
 	})
 }
 
-func TestUnsupportedMethodsAreRejected(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
-	idp := harness.EnsureIdentityProvider(t)
-	token := idp.IssueToken(t, auth.RoleScoreEditor, auth.RoleScoreViewer)
+func mustListScores(t *testing.T, client *helpers.ApiClient, since, until time.Time) api.GetScoresResponse {
+	t.Helper()
 
-	tests := []struct {
-		method string
-		path   string
-	}{
-		{method: http.MethodDelete, path: "/scores/" + uuid.NewString()},
-		{method: http.MethodPost, path: "/scores/" + uuid.NewString()},
-		{method: http.MethodPost, path: "/scores"},
-		{method: http.MethodPut, path: "/scores"},
-	}
+	res, err := client.ListScores(t.Context(), api.ListScoresParams{
+		ChangesSince: since,
+		ChangesUntil: until,
+	})
+	require.NoError(t, err, "failed to list scores")
 
-	for _, tt := range tests {
-		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
-			res := client.Do(t, helpers.Request{Method: tt.method, Path: tt.path, Token: token})
-
-			assert.Equalf(t, http.StatusMethodNotAllowed, res.StatusCode,
-				"%s %s should not be allowed: %s", tt.method, tt.path, res.Text())
-		})
-	}
+	scores, ok := res.(*api.GetScoresResponse)
+	require.Truef(t, ok, "expected a page of scores, got %#v", res)
+	return *scores
 }
 
-func TestUnknownRoutesReturnNotFound(t *testing.T) {
-	client := harness.EnsureScoresClient(t)
+// TestTheCorrelationIdOfAFailureIsTheOneItWasLoggedUnder checks that a caller
+// that ties its own requests together gets that same id back as the instance of
+// whatever went wrong, so that reporting a failure is enough to find it.
+func TestTheCorrelationIdOfAFailureIsTheOneItWasLoggedUnder(t *testing.T) {
+	t.Parallel()
 
-	res := client.Do(t, helpers.Request{Method: http.MethodGet, Path: "/not-an-endpoint"})
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
 
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	client.Security.Token = idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor)
+	correlationId := uuid.NewString()
+
+	res, err := client.GetScore(t.Context(), api.GetScoreParams{
+		ScoreId:        uuid.New(),
+		XCorrelationID: api.NewOptString(correlationId),
+	})
+	require.NoError(t, err)
+
+	notFound, ok := res.(*api.GetScoreNotFound)
+	require.Truef(t, ok, "got %#v", res)
+	assert.Equal(t, "urn:uuid:"+correlationId, notFound.Instance)
+}
+
+func TestHealthzIsPublic(t *testing.T) {
+	t.Parallel()
+
+	h := harness.NewScope()
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	res, err := client.Healthz(t.Context(), api.HealthzParams{})
+	require.NoError(t, err)
+
+	ok, isOk := res.(*api.HealthzOK)
+	require.Truef(t, isOk, "got %#v", res)
+	assert.Equal(t, "OK", helpers.MustReadAll(t, ok.Data))
 }

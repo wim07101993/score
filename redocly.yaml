@@ -1,0 +1,79 @@
+# Settings of the linter that reads api/openapi-spec.yaml.
+#
+# The generator only ever sees one document, and it is happy with plenty that a
+# reader of the API would not be: a path nobody can reach, an operation with no
+# summary, a `$ref` into a file that is not there. This is what checks the
+# document as a document rather than as input to ogen, and CI runs it on every
+# change.
+#
+# Run it the same way CI does with:
+#
+#     npx --yes @redocly/cli@2.44.1 lint
+#
+# It is `redocly.yaml` rather than `.redocly.yaml` because that is the name the
+# CLI looks for on its own; with the dot it has to be pointed at with --config.
+#
+# https://redocly.com/docs/cli/rules
+
+apis:
+  score@v1:
+    root: api/openapi-spec.yaml
+
+extends:
+  # Everything Redocly recommends, with its warnings counted as failures. A
+  # warning nobody has to act on is one everybody stops reading.
+  - recommended-strict
+
+rules:
+  # The document is spread over a file per thing, so a reference that does not
+  # land is the mistake that is easiest to make and hardest to see. It was also
+  # the one this layout actually shipped: a `$ref` at a file that had been
+  # renamed out from under it.
+  no-unresolved-refs: error
+  spec-strict-refs: error
+
+  # Every operation has to say who may call it, and say it in terms the document
+  # defines. A security scheme that was renamed and left behind is how an
+  # operation quietly stops being protected.
+  security-defined: error
+
+  # ogen names the generated Go handler after the operationId, so an operation
+  # without one, or with one that collides, is a build failure a long way from
+  # its cause.
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-operationId-url-safe: error
+
+  # What an endpoint is and what it answers, in prose, next to the endpoint.
+  operation-summary: error
+  operation-description: error
+  operation-tag-defined: error
+  tag-description: error
+
+  # Every operation says how it succeeds and how it is turned down. The failures
+  # are a file per status in api/responses, so there is no excuse for an
+  # operation that documents only the happy path.
+  operation-2xx-response: error
+  operation-4xx-response: error
+
+  # Paths, and the parameters they promise.
+  path-params-defined: error
+  path-declaration-must-exist: error
+  no-ambiguous-paths: error
+  no-identical-paths: error
+  no-http-verbs-in-paths: error
+
+  # Schemas that describe something that cannot exist, and examples that do not
+  # match the schema they sit under.
+  no-schema-type-mismatch: error
+  no-enum-type-mismatch: error
+  no-required-schema-properties-undefined: error
+  no-invalid-schema-examples: error
+  no-invalid-media-type-examples: error
+
+  # Nothing carried along that nothing points at.
+  no-unused-components: error
+
+  no-server-trailing-slash: error
+  info-license: error
+  struct: error

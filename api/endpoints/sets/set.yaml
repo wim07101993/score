@@ -1,0 +1,73 @@
+# A set as it is read back.
+#
+# This file is not a document of its own. It is the body the set endpoints
+# write, and it is read through the references their methods.yaml files make
+# into it. What a client sends to write one is a different shape, in
+# write_set.yaml next to this: most of what is below is not the client's to
+# state.
+
+type: object
+description: |
+  A playlist for a gig: an ordered list of scores, each with the key it is
+  played in and the parts that are on screen.
+
+  A set says how a score is played, never what it is. Nothing in it changes a
+  score, and two sets can play the same score in different keys without either
+  of them changing it.
+required:
+  - id
+  - title
+  - description
+  - entries
+  - shared_with
+  - is_owner
+  - last_changed_at
+  - deleted_at
+properties:
+  id:
+    type: string
+    format: uuid
+    description: The id the set was stored under.
+  title:
+    type: string
+    examples: [Zomerbar 12 juli]
+  description:
+    type: string
+    description: Whatever the player needs to remember about the gig as a whole.
+  entries:
+    type: array
+    description: The scores that are played, in playing order.
+    items:
+      $ref: 'set_entry.yaml'
+  shared_with:
+    type: array
+    description: |
+      The addresses the set is readable by.
+
+      Only filled in for the owner; for everyone else it is empty. Who else
+      someone shares with is not the business of the people they share with.
+    items:
+      type: string
+      format: email
+    examples:
+      - [bas@example.com]
+  is_owner:
+    type: boolean
+    description: |
+      Whether this set is the caller's to change. A set that is only shared
+      with the caller can be read but not written or deleted.
+  last_changed_at:
+    type: string
+    format: date-time
+    description: When the set was last written.
+  deleted_at:
+    # A union with `null` rather than `nullable: true`: this is OpenAPI 3.1,
+    # where a schema is JSON Schema and `nullable` is no longer a keyword.
+    type: [string, 'null']
+    format: date-time
+    description: |
+      When the set was deleted, or null while it still exists.
+
+      A deleted set is kept rather than removed, and it is still returned by
+      the change window, so that a client holding a copy learns that it is gone
+      instead of syncing it back.

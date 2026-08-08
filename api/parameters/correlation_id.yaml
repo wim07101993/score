@@ -1,0 +1,14 @@
+name: X-Correlation-ID
+in: header
+required: false
+description: |
+  An id a caller ties its own requests together with. The server logs the
+  request under it and answers a failure with it as the `instance` of the
+  problem, so that reporting a failure is enough to find it. A caller that
+  sends nothing, or sends something that is not a uuid, is given one.
+# Not `format: uuid`, though a caller should send one. Declaring the format
+# would have the server turn a request down over a header that carries no
+# meaning for it: the id is an aid to finding a failure afterwards, not part of
+# what is being asked. Anything that is not a uuid is replaced by one instead.
+schema:
+  type: string

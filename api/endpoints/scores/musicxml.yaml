@@ -1,0 +1,13 @@
+# The document itself.
+#
+# This file is not a document of its own. It is the MusicXML a score is stored
+# as and handed back as — the one representation the get and the put of a single
+# score share — and it is read through the references they make into it.
+
+type: string
+# Not a format JSON Schema knows; it is how ogen is told to hand the body over
+# as a stream rather than decode it. Without it the generator refuses the
+# operation outright: a MusicXML media type is not one it can turn into a Go
+# type on its own.
+format: binary
+description: A MusicXML document.
