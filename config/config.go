@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"score/internal/oidc"
@@ -10,7 +11,6 @@ import (
 	"score/internal/storage"
 
 	"github.com/kelseyhightower/envconfig"
-	errorspkg "github.com/pkg/errors"
 )
 
 type Config struct {
@@ -27,7 +27,7 @@ type Config struct {
 func FromFile(configPath string) (*Config, error) {
 	f, err := os.Open(configPath)
 	if err != nil {
-		return nil, errorspkg.Wrap(err, "failed to open config file")
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
 	defer func(f *os.File) {
 		err := f.Close()
@@ -40,7 +40,7 @@ func FromFile(configPath string) (*Config, error) {
 	decoder := json.NewDecoder(f)
 	err = decoder.Decode(cfg)
 	if err != nil {
-		return nil, errorspkg.Wrap(err, "failed to parse config file")
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 	return cfg, nil
 }
@@ -49,7 +49,7 @@ func FromEnv() (*Config, error) {
 	cfg := &Config{}
 	err := envconfig.Process("", cfg)
 	if err != nil {
-		return nil, errorspkg.Wrap(err, "failed to parse environment variables")
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
 	}
 	return cfg, nil
 }
@@ -95,7 +95,7 @@ func (cfg *Config) Validate() error {
 	if cfg.TokenIntrospectionUrl == "" {
 		errs = append(errs, errors.New("no token introspection endpoint specified in configuration"))
 	} else if _, err := url.ParseRequestURI(cfg.TokenIntrospectionUrl); err != nil {
-		errs = append(errs, errorspkg.Wrap(err, "the given token introspection url is not a valid url"))
+		errs = append(errs, fmt.Errorf("the given token introspection url is not a valid url: %w", err))
 	}
 
 	if cfg.TokenIntrospectionClientId == "" {

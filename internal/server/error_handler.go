@@ -2,12 +2,12 @@ package server
 
 import (
 	"context"
+	"errors"
 	"mime"
 	"net/http"
 	"score/internal/api"
 	"score/internal/logging"
 
-	"github.com/go-faster/errors"
 	"github.com/ogen-go/ogen/ogenerrors"
 	slogctx "github.com/veqryn/slog-context"
 )
