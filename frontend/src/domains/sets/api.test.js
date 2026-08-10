@@ -67,7 +67,7 @@ test('a window nothing was said about covers everything up to now', async () => 
 test('a set is written as json, under the id it was given', async () => {
   const setId = 'c0ffee00-0000-4000-8000-000000000000';
   const {request} = await called({status: 200, body: '{"id":"' + setId + '"}'}, (api) =>
-    api.putSet(setId, 'a-token', {title: 'Zomerbar', description: '', entries: [], shared_with: []}));
+    api.putSet(setId, 'a-token', {title: 'Zomerbar', description: '', shared_with: []}));
 
   assert.equal(request.url, `http://localhost/sets/${setId}`);
   assert.equal(request.options.method, 'PUT');
@@ -108,7 +108,7 @@ test('a failure carries the code the API says to branch on', async () => {
   };
 
   const {error} = await called({status: 400, body: JSON.stringify(problem)}, (api) =>
-    api.putSet('a-set', 'a-token', {title: '', description: '', entries: [], shared_with: []}));
+    api.putSet('a-set', 'a-token', {title: '', description: '', shared_with: []}));
 
   assert.ok(error instanceof SetsApiError);
   assert.equal(error.status, 400);

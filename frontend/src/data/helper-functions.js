@@ -33,7 +33,7 @@ export function getScoreTitle(score) {
 }
 
 /**
- * Calle the healthz endpoint and returns whether the response is ok.
+ * Calls the healthz endpoint and returns whether the response is ok.
  *
  * @param healthzEndpoint {URL}
  * @return {Promise<boolean>}

@@ -129,9 +129,13 @@ export class SetsApi {
   }
 
   /**
-   * Stores the set under the given id, replacing whatever was there, and hands
-   * back the set as it now reads — including the entry ids the server minted
-   * for it.
+   * Stores what the set is — the gig, and who may read it — under the given id,
+   * and hands back the set as it now reads.
+   *
+   * What is played in it is not written here and is not touched by writing
+   * here: an entry is a resource of its own, put into the set and taken out
+   * again one at a time. So a set is created empty and filled afterwards, and
+   * correcting a title never restates the running order.
    *
    * @param setId {string}
    * @param authToken {string}

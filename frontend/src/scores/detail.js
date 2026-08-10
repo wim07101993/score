@@ -54,10 +54,16 @@ let scoreParts = [];
  * The set this score is being played from, when it is being played from one:
  * which set it is, and which of its entries this is.
  *
- * An entry is pointed at by where it comes in the set rather than by its id.
- * The server mints those again on every write — an entry names an entry of the
- * set as it reads now and nothing beyond that — and what stays put across a
- * write is the order.
+ * An entry is pointed at by its id rather than by where it comes in the set. An
+ * id is the client's to name and stays that entry's for as long as the entry is
+ * in the set, while the place it is played at moves under it every time
+ * somebody reorders the gig — and a link that has been sitting in a browser
+ * since before that would then open the right score and read it out of the
+ * wrong entry.
+ *
+ * Where it comes in the set is still worth holding on to, since that is what
+ * the way through the set is drawn from, but it is looked up from the id rather
+ * than carried in the link.
  *
  * @type {{set: import("../domains/sets/database.js").ScoreSet, index: number,
  *   entry: import("../domains/sets/database.js").SetEntry}|null}
@@ -227,14 +233,24 @@ async function _readSetContext() {
   // Which entry it is has to have been said: a set with nothing said about
   // which of its entries this is, is a score that happens to be in a set, and
   // reading that as the first one would play it in the wrong key.
-  const entryParam = urlParams.get('entry');
-  const index = /^\d+$/.test(entryParam ?? '') ? Number(entryParam) : -1;
-  if (set == null || index < 0 || index >= set.entries.length) {
-    console.log(`no entry ${entryParam} in set ${setId}`);
+  const entryId = urlParams.get('entry');
+  const index = set?.entries.findIndex((candidate) => candidate.id === entryId) ?? -1;
+  if (set == null || index < 0) {
+    console.log(`no entry ${entryId} in set ${setId}`);
     return;
   }
 
-  setContext = {set, index, entry: set.entries[index]};
+  // The entry has to be an entry of this score. An entry can be written to
+  // play a different score than it used to, and a link made before that would
+  // otherwise hand this score the key and the hidden parts of a song it is
+  // not. The score is what the page is of, so the set is what gives way.
+  const entry = set.entries[index];
+  if (entry.score_id !== scoreId) {
+    console.log(`entry ${entryId} of set ${setId} is not this score`);
+    return;
+  }
+
+  setContext = {set, index, entry};
 }
 
 /** Writes the set controls, and points the way through the set. */
@@ -295,7 +311,7 @@ function _pointAt(button, index) {
   button.href = `detail.html?${new URLSearchParams({
     id: set.entries[index].score_id,
     set: set.id,
-    entry: `${index}`,
+    entry: set.entries[index].id,
   }).toString()}`;
 }
 
@@ -333,14 +349,18 @@ async function onSaveViewToSetClicked() {
     return;
   }
 
-  const {set, index, entry} = setContext;
+  const {set, entry} = setContext;
   saveViewToSetButton.disabled = true;
   try {
     const saved = await app.setRepository.saveEntryView(set.id, entry.id, {
       transposition: scoreView.transposition - (entry.transposition ?? 0),
       hidden_parts: [...scoreView.hiddenPartIds],
     });
-    setContext = {set: saved, index, entry: saved.entries[index]};
+    // Where the entry comes in the set is read again rather than kept: a sync
+    // can have reordered the gig while this was being written, and taking the
+    // place it used to be at would put somebody else's song on the screen.
+    const moved = saved.entries.findIndex((candidate) => candidate.id === entry.id);
+    setContext = moved < 0 ? null : {set: saved, index: moved, entry: saved.entries[moved]};
     _drawSetControls();
   } catch (error) {
     console.error('failed to save how this score is read', error);

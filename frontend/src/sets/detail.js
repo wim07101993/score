@@ -423,18 +423,19 @@ function _numberInput(semitones, disabled, onChange) {
 }
 
 /**
- * Where an entry is played from. An entry is pointed at by where it comes in
- * the set, which is what the score page walks through to go from one song to
- * the next.
+ * Where an entry is played from. An entry is pointed at by its id, which stays
+ * that entry's for as long as it is in the set — where it comes in the running
+ * order does not, and a link is read long after it was made.
  *
  * @param index {number}
  * @return {string}
  */
 function _entryUrl(index) {
+  const entry = _entries()[index];
   const search = new URLSearchParams({
-    id: _entries()[index].score_id,
+    id: entry.score_id,
     set: draft.id,
-    entry: `${index}`,
+    entry: entry.id,
   });
   return `../scores/detail.html?${search.toString()}`;
 }
