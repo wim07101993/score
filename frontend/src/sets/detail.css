@@ -1,0 +1,218 @@
+body {
+    margin: 0;
+}
+
+header {
+    position: sticky;
+    top: 0;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: var(--second-background);
+    z-index: 100;
+}
+
+#set-state {
+    color: #444444;
+    font-size: 0.8rem;
+}
+
+main {
+    padding: 8px;
+}
+
+section {
+    margin-bottom: 24px;
+}
+
+section > h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+#about-section {
+    display: grid;
+    gap: 4px;
+}
+
+#title-input,
+#description-input,
+#shared-with-input,
+#score-filter {
+    padding: 6px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    background-color: var(--background);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#title-input {
+    font-size: 1.2rem;
+}
+
+/* THE SCORES THAT ARE PLAYED */
+
+#entries-list {
+    padding-left: 24px;
+    margin: 0;
+}
+
+#entries-list > li {
+    margin-bottom: 8px;
+}
+
+.entry {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 8px;
+    padding: 8px;
+    border: 1px solid var(--primary-color);
+    border-radius: 10px;
+    background-color: var(--background);
+}
+
+.entry-title {
+    font-weight: bold;
+    align-self: center;
+}
+
+.entry-missing {
+    font-weight: normal;
+    color: #884444;
+}
+
+.entry-buttons {
+    display: flex;
+    gap: 4px;
+    align-items: start;
+}
+
+.entry-buttons > button,
+.entry-buttons > a {
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.entry-buttons > button:disabled,
+.entry-buttons > a[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.entry-controls {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.entry-description {
+    flex: 1 1 12rem;
+    min-width: 8rem;
+    padding: 4px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    background-color: var(--second-background);
+}
+
+.entry-transposition {
+    width: 3.5rem;
+    padding: 4px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    background-color: var(--second-background);
+}
+
+.entry-transpose,
+.entry-parts {
+    font-size: 0.8rem;
+    color: #444444;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+/* What the band does and what one player reads on top of it are two halves of
+   one number, so they are boxed as one thing: the two of them in the order they
+   add, and what they come to after. Wrapping rather than one long line, since
+   the whole of it is wider than a phone. */
+.entry-transpose {
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    padding: 2px 6px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+}
+
+.entry-transpose-field {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.entry-transpose-total,
+.entry-parts {
+    font-style: italic;
+    white-space: nowrap;
+}
+
+.entry-transpose-clamped {
+    color: #884444;
+}
+
+/* ADDING A SCORE */
+
+#score-picker {
+    display: grid;
+    gap: 4px;
+    max-height: 20rem;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.score-option {
+    text-align: left;
+    padding: 8px;
+    border: 1px solid var(--primary-color);
+    border-radius: 10px;
+    background-color: var(--background);
+    cursor: pointer;
+}
+
+.score-option > .score-option-creators {
+    display: block;
+    font-size: 0.8rem;
+    color: #444444;
+}
+
+/* DELETING */
+
+#delete-button {
+    padding: 6px 12px;
+    border: 1px solid #884444;
+    border-radius: 4px;
+    background: transparent;
+    color: #884444;
+    cursor: pointer;
+}
+
+#forbidden-notice {
+    margin: 8px;
+}
+
+@media screen and (min-width: 60rem) {
+    main {
+        margin: auto;
+        width: 60rem;
+    }
+}

@@ -20,6 +20,27 @@ type DeleteSetBadRequest ProblemDetails
 
 func (*DeleteSetBadRequest) deleteSetRes() {}
 
+type DeleteSetEntryBadRequest ProblemDetails
+
+func (*DeleteSetEntryBadRequest) deleteSetEntryRes() {}
+
+type DeleteSetEntryForbidden ProblemDetails
+
+func (*DeleteSetEntryForbidden) deleteSetEntryRes() {}
+
+// DeleteSetEntryNoContent is response for DeleteSetEntry operation.
+type DeleteSetEntryNoContent struct{}
+
+func (*DeleteSetEntryNoContent) deleteSetEntryRes() {}
+
+type DeleteSetEntryNotFound ProblemDetails
+
+func (*DeleteSetEntryNotFound) deleteSetEntryRes() {}
+
+type DeleteSetEntryUnauthorized ProblemDetails
+
+func (*DeleteSetEntryUnauthorized) deleteSetEntryRes() {}
+
 type DeleteSetForbidden ProblemDetails
 
 func (*DeleteSetForbidden) deleteSetRes() {}
@@ -36,6 +57,55 @@ func (*DeleteSetNotFound) deleteSetRes() {}
 type DeleteSetUnauthorized ProblemDetails
 
 func (*DeleteSetUnauthorized) deleteSetRes() {}
+
+// How one player looks at one entry of a set.
+//
+// A set says what the band plays; a view says what one player looks at while they play it. The two are
+// kept apart because they are not the same decision: playing a song a tone down is the band's, and
+// reading it in another key because of the instrument it is played on is the player's own. A saxophone
+// player transposing their part changes nothing for the pianist, and the pianist wanting the piano
+// staff alone on screen changes nothing for the singer.
+//
+// A view belongs to whoever asked for the set. Everyone the set is shared with has their own, everyone
+// can write their own without being the owner of the set, and nobody is told anything about anybody
+// else's.
+//
+// An entry that a player has never looked at differently has the view every entry starts with: as
+// written, every part on screen.
+// Ref: #
+type EntryView struct {
+	// How far this player reads the score from where the band plays it, in semitones, negative for down.
+	//
+	// It is on top of the entry's own transposition rather than instead of it: the entry says the band
+	// plays this one a tone down, and this says the player reads that a fifth up. What ends up on screen
+	// is the two together, brought back inside the octave either way that the player offers when they add
+	// up past it.
+	Transposition int `json:"transposition"`
+	// The parts of the score this player has off screen, by their MusicXML part id.
+	HiddenParts []string `json:"hidden_parts"`
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *EntryView) GetTransposition() int {
+	return s.Transposition
+}
+
+// GetHiddenParts returns the value of HiddenParts.
+func (s *EntryView) GetHiddenParts() []string {
+	return s.HiddenParts
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *EntryView) SetTransposition(val int) {
+	s.Transposition = val
+}
+
+// SetHiddenParts sets the value of HiddenParts.
+func (s *EntryView) SetHiddenParts(val []string) {
+	s.HiddenParts = val
+}
+
+func (*EntryView) putSetEntryViewRes() {}
 
 type GetScoreBadRequest ProblemDetails
 
@@ -397,7 +467,9 @@ const (
 	ProblemDetailsErrorCodeMissingRole          ProblemDetailsErrorCode = "missing_role"
 	ProblemDetailsErrorCodeScoreNotFound        ProblemDetailsErrorCode = "score_not_found"
 	ProblemDetailsErrorCodeSetNotFound          ProblemDetailsErrorCode = "set_not_found"
+	ProblemDetailsErrorCodeSetEntryNotFound     ProblemDetailsErrorCode = "set_entry_not_found"
 	ProblemDetailsErrorCodeInvalidSet           ProblemDetailsErrorCode = "invalid_set"
+	ProblemDetailsErrorCodeInvalidSetEntry      ProblemDetailsErrorCode = "invalid_set_entry"
 	ProblemDetailsErrorCodeUnknownScore         ProblemDetailsErrorCode = "unknown_score"
 	ProblemDetailsErrorCodeNotSetOwner          ProblemDetailsErrorCode = "not_set_owner"
 	ProblemDetailsErrorCodeEndpointNotFound     ProblemDetailsErrorCode = "endpoint_not_found"
@@ -416,7 +488,9 @@ func (ProblemDetailsErrorCode) AllValues() []ProblemDetailsErrorCode {
 		ProblemDetailsErrorCodeMissingRole,
 		ProblemDetailsErrorCodeScoreNotFound,
 		ProblemDetailsErrorCodeSetNotFound,
+		ProblemDetailsErrorCodeSetEntryNotFound,
 		ProblemDetailsErrorCodeInvalidSet,
+		ProblemDetailsErrorCodeInvalidSetEntry,
 		ProblemDetailsErrorCodeUnknownScore,
 		ProblemDetailsErrorCodeNotSetOwner,
 		ProblemDetailsErrorCodeEndpointNotFound,
@@ -442,7 +516,11 @@ func (s ProblemDetailsErrorCode) MarshalText() ([]byte, error) {
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeSetNotFound:
 		return []byte(s), nil
+	case ProblemDetailsErrorCodeSetEntryNotFound:
+		return []byte(s), nil
 	case ProblemDetailsErrorCodeInvalidSet:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeInvalidSetEntry:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeUnknownScore:
 		return []byte(s), nil
@@ -484,8 +562,14 @@ func (s *ProblemDetailsErrorCode) UnmarshalText(data []byte) error {
 	case ProblemDetailsErrorCodeSetNotFound:
 		*s = ProblemDetailsErrorCodeSetNotFound
 		return nil
+	case ProblemDetailsErrorCodeSetEntryNotFound:
+		*s = ProblemDetailsErrorCodeSetEntryNotFound
+		return nil
 	case ProblemDetailsErrorCodeInvalidSet:
 		*s = ProblemDetailsErrorCodeInvalidSet
+		return nil
+	case ProblemDetailsErrorCodeInvalidSetEntry:
+		*s = ProblemDetailsErrorCodeInvalidSetEntry
 		return nil
 	case ProblemDetailsErrorCodeUnknownScore:
 		*s = ProblemDetailsErrorCodeUnknownScore
@@ -605,6 +689,54 @@ func (*PutScoreUnsupportedMediaType) putScoreRes() {}
 type PutSetBadRequest ProblemDetails
 
 func (*PutSetBadRequest) putSetRes() {}
+
+type PutSetEntryBadRequest ProblemDetails
+
+func (*PutSetEntryBadRequest) putSetEntryRes() {}
+
+type PutSetEntryForbidden ProblemDetails
+
+func (*PutSetEntryForbidden) putSetEntryRes() {}
+
+type PutSetEntryNotFound ProblemDetails
+
+func (*PutSetEntryNotFound) putSetEntryRes() {}
+
+type PutSetEntryRequestEntityTooLarge ProblemDetails
+
+func (*PutSetEntryRequestEntityTooLarge) putSetEntryRes() {}
+
+type PutSetEntryUnauthorized ProblemDetails
+
+func (*PutSetEntryUnauthorized) putSetEntryRes() {}
+
+type PutSetEntryUnsupportedMediaType ProblemDetails
+
+func (*PutSetEntryUnsupportedMediaType) putSetEntryRes() {}
+
+type PutSetEntryViewBadRequest ProblemDetails
+
+func (*PutSetEntryViewBadRequest) putSetEntryViewRes() {}
+
+type PutSetEntryViewForbidden ProblemDetails
+
+func (*PutSetEntryViewForbidden) putSetEntryViewRes() {}
+
+type PutSetEntryViewNotFound ProblemDetails
+
+func (*PutSetEntryViewNotFound) putSetEntryViewRes() {}
+
+type PutSetEntryViewRequestEntityTooLarge ProblemDetails
+
+func (*PutSetEntryViewRequestEntityTooLarge) putSetEntryViewRes() {}
+
+type PutSetEntryViewUnauthorized ProblemDetails
+
+func (*PutSetEntryViewUnauthorized) putSetEntryViewRes() {}
+
+type PutSetEntryViewUnsupportedMediaType ProblemDetails
+
+func (*PutSetEntryViewUnsupportedMediaType) putSetEntryViewRes() {}
 
 type PutSetForbidden ProblemDetails
 
@@ -917,6 +1049,10 @@ func (s *Set) SetDeletedAt(val NilDateTime) {
 func (*Set) getSetRes() {}
 func (*Set) putSetRes() {}
 
+// One score as it is played at one point in a gig.
+//
+// Everything here but `view` is the same for everyone the set is shared with: it is what the band
+// does, and it is the owner's to say. `view` is the caller's own and nobody else's.
 // Ref: #
 type SetEntry struct {
 	// The id of this entry.
@@ -924,25 +1060,37 @@ type SetEntry struct {
 	// It belongs to the entry rather than to the score, because the same score may be played more than
 	// once in a gig, each time with its own key and its own note next to it.
 	//
-	// It is given out by the server and is not something a client states. Writing a set replaces its
-	// entries whole, so an entry is given a new id every time the set it is in is written: it names an
-	// entry of the set as it reads now, and nothing beyond that. What is stable across a write is the
-	// order the entries are in.
+	// It is the client's to name — an entry is written at `/sets/{setId}/entries/{entryId}` — and it
+	// stays the entry's for as long as the entry is in the set, so that what a player has said about how
+	// they look at it keeps pointing at the same thing. An id that is already an entry of another set is
+	// refused rather than taken over.
 	ID uuid.UUID `json:"id"`
+	// Where in the running order this one is played, counting from zero.
+	//
+	// The entries of a set come back in playing order, so this says nothing the order does not; it is here
+	// for a client holding one entry on its own, which the order of a list it is not looking at cannot
+	// tell.
+	Position int `json:"position"`
 	// The score that is played.
 	ScoreID uuid.UUID `json:"score_id"`
 	// Whatever the player needs to remember about this one.
 	Description string `json:"description"`
-	// How far the score is transposed, in semitones, negative for down. The range is the one the player
-	// offers.
+	// How far the band plays this one from where it is written, in semitones, negative for down. It is the
+	// arrangement rather than anyone's own reading of it: everybody the set is shared with plays it in
+	// this key, and what one player reads it as on top of that is in their `view`.
 	Transposition int `json:"transposition"`
-	// The parts of the score that are off screen, by their MusicXML part id.
-	HiddenParts []string `json:"hidden_parts"`
+	// How the caller looks at this entry, which is theirs alone.
+	View EntryView `json:"view"`
 }
 
 // GetID returns the value of ID.
 func (s *SetEntry) GetID() uuid.UUID {
 	return s.ID
+}
+
+// GetPosition returns the value of Position.
+func (s *SetEntry) GetPosition() int {
+	return s.Position
 }
 
 // GetScoreID returns the value of ScoreID.
@@ -960,14 +1108,19 @@ func (s *SetEntry) GetTransposition() int {
 	return s.Transposition
 }
 
-// GetHiddenParts returns the value of HiddenParts.
-func (s *SetEntry) GetHiddenParts() []string {
-	return s.HiddenParts
+// GetView returns the value of View.
+func (s *SetEntry) GetView() EntryView {
+	return s.View
 }
 
 // SetID sets the value of ID.
 func (s *SetEntry) SetID(val uuid.UUID) {
 	s.ID = val
+}
+
+// SetPosition sets the value of Position.
+func (s *SetEntry) SetPosition(val int) {
+	s.Position = val
 }
 
 // SetScoreID sets the value of ScoreID.
@@ -985,21 +1138,54 @@ func (s *SetEntry) SetTransposition(val int) {
 	s.Transposition = val
 }
 
+// SetView sets the value of View.
+func (s *SetEntry) SetView(val EntryView) {
+	s.View = val
+}
+
+func (*SetEntry) putSetEntryRes() {}
+
+// A view as the player states it. It is the read view whole: there is nothing about a view the server
+// decides, and a write replaces it rather than adding to it.
+// Ref: #
+type WriteEntryView struct {
+	// How far this player reads the score from where the band plays it, in semitones, negative for down.
+	Transposition int `json:"transposition"`
+	// The parts of the score this player has off screen, by their MusicXML part id. They are replaced
+	// rather than merged: this is the whole of the list.
+	HiddenParts []string `json:"hidden_parts"`
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *WriteEntryView) GetTransposition() int {
+	return s.Transposition
+}
+
+// GetHiddenParts returns the value of HiddenParts.
+func (s *WriteEntryView) GetHiddenParts() []string {
+	return s.HiddenParts
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *WriteEntryView) SetTransposition(val int) {
+	s.Transposition = val
+}
+
 // SetHiddenParts sets the value of HiddenParts.
-func (s *SetEntry) SetHiddenParts(val []string) {
+func (s *WriteEntryView) SetHiddenParts(val []string) {
 	s.HiddenParts = val
 }
 
-// A set as the client states it.
+// A set as the client states it: what the gig is, and who may read it.
+//
+// What is played is not here. An entry is a resource of its own, written and taken out one at a time
+// at `/sets/{setId}/entries/{entryId}`, so a set is created empty and filled afterwards. That is what
+// keeps the running order from being restated every time a title is corrected, and what lets a client
+// that added one song send one song.
 // Ref: #
 type WriteSet struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	// The scores that are played, in playing order.
-	//
-	// They are replaced rather than merged: this is the whole of the list, and what is not in it is no
-	// longer in the set.
-	Entries []WriteSetEntry `json:"entries"`
 	// The addresses the set should be readable by.
 	//
 	// They are compared in lower case, since an address says nothing about who it belongs to by the case
@@ -1019,11 +1205,6 @@ func (s *WriteSet) GetDescription() string {
 	return s.Description
 }
 
-// GetEntries returns the value of Entries.
-func (s *WriteSet) GetEntries() []WriteSetEntry {
-	return s.Entries
-}
-
 // GetSharedWith returns the value of SharedWith.
 func (s *WriteSet) GetSharedWith() []string {
 	return s.SharedWith
@@ -1039,31 +1220,39 @@ func (s *WriteSet) SetDescription(val string) {
 	s.Description = val
 }
 
-// SetEntries sets the value of Entries.
-func (s *WriteSet) SetEntries(val []WriteSetEntry) {
-	s.Entries = val
-}
-
 // SetSharedWith sets the value of SharedWith.
 func (s *WriteSet) SetSharedWith(val []string) {
 	s.SharedWith = val
 }
 
-// One score as it is played at one point in a gig, as the client states it.
+// One score as it is played at one point in a gig, as the owner of the set states it.
 //
-// It is the read entry without `id`: which row an entry is stored as is the server's to decide, and a
-// client that could name it could point a second set's entry at the first set's row.
+// It says what the band does and nothing about how anyone looks at it: a view belongs to a player
+// rather than to a set, and is written by the player it belongs to at
+// `/sets/{setId}/entries/{entryId}/view`. Writing an entry therefore leaves every player's view of it
+// alone, the owner's own included.
+//
+// Which entry it is, is in the path rather than here.
 // Ref: #
 type WriteSetEntry struct {
 	// The score that is played.
 	ScoreID uuid.UUID `json:"score_id"`
 	// Whatever the player needs to remember about this one.
 	Description string `json:"description"`
-	// How far the score is transposed, in semitones, negative for down. The range is the one the player
-	// offers.
+	// How far the band plays this one from where it is written, in semitones, negative for down.
 	Transposition int `json:"transposition"`
-	// The parts of the score that are off screen, by their MusicXML part id.
-	HiddenParts []string `json:"hidden_parts"`
+	// Where in the running order it is played, counting from zero.
+	//
+	// The set is closed up around it: an entry written at a place the set already has an entry in puts
+	// that one and everything after it back by one, and an entry that is already in the set and is written
+	// at another place moves there, with everything between shifting to make room. What the rest are
+	// numbered afterwards is the server's, and it is always nought upwards with no gaps.
+	//
+	// A place beyond the end of the set is the end of the set rather than a refusal. A client whose idea
+	// of the set is a little out of date — one catching up after a gig it spent offline — is saying
+	// where this song goes, and the nearest place it can go is a better answer to that than a rejected
+	// write.
+	Position int `json:"position"`
 }
 
 // GetScoreID returns the value of ScoreID.
@@ -1081,9 +1270,9 @@ func (s *WriteSetEntry) GetTransposition() int {
 	return s.Transposition
 }
 
-// GetHiddenParts returns the value of HiddenParts.
-func (s *WriteSetEntry) GetHiddenParts() []string {
-	return s.HiddenParts
+// GetPosition returns the value of Position.
+func (s *WriteSetEntry) GetPosition() int {
+	return s.Position
 }
 
 // SetScoreID sets the value of ScoreID.
@@ -1101,9 +1290,9 @@ func (s *WriteSetEntry) SetTransposition(val int) {
 	s.Transposition = val
 }
 
-// SetHiddenParts sets the value of HiddenParts.
-func (s *WriteSetEntry) SetHiddenParts(val []string) {
-	s.HiddenParts = val
+// SetPosition sets the value of Position.
+func (s *WriteSetEntry) SetPosition(val int) {
+	s.Position = val
 }
 
 // XxxUnknownErrorStatusCode wraps ProblemDetails with StatusCode.

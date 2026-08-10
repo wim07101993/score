@@ -39,6 +39,9 @@ var oauth2ScopesOAuth2 = map[string][]string{
 	DeleteSetOperation: []string{
 		"score_viewer",
 	},
+	DeleteSetEntryOperation: []string{
+		"score_viewer",
+	},
 	GetScoreOperation: []string{
 		"score_viewer",
 	},
@@ -55,6 +58,12 @@ var oauth2ScopesOAuth2 = map[string][]string{
 		"score_editor",
 	},
 	PutSetOperation: []string{
+		"score_viewer",
+	},
+	PutSetEntryOperation: []string{
+		"score_viewer",
+	},
+	PutSetEntryViewOperation: []string{
 		"score_viewer",
 	},
 }

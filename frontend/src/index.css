@@ -1,7 +1,13 @@
 header {
     display: grid;
-    grid-template-columns: auto auto;
-    justify-content: space-between;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    column-gap: 16px;
+}
+
+#sets-button,
+#profile-button {
+    place-self: center;
 }
 
 #upload-button {

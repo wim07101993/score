@@ -1,0 +1,95 @@
+parameters:
+  - $ref: '../../../../../parameters/set_id.yaml'
+  - $ref: '../../../../../parameters/entry_id.yaml'
+  - $ref: '../../../../../parameters/correlation_id.yaml'
+
+put:
+  operationId: putSetEntry
+  summary: Put one score into a set, or change how it is played.
+  description: |
+    Stores the entry under the given id and returns it as it now reads,
+    including where in the running order it ended up and how the caller looks
+    at it.
+
+    An entry is its own resource because a set is not rewritten to change one
+    song in it: a client that added a song sends that song, and a client that
+    is catching up after a gig it spent offline sends the songs it changed
+    rather than a running order that may have moved on without it.
+
+    The id is the client's to name, and naming it is what lets a player say how
+    they read a song before either has reached the server. An id that already
+    belongs to an entry of another set is refused rather than taken over: it
+    would point this set's entry at what another set's players said about
+    theirs.
+
+    Only the owner of a set can write its entries: what the band plays is the
+    set, and the set is theirs. How anybody reads it is not — that is
+    `/sets/{setId}/entries/{entryId}/view`, which everyone the set is shared
+    with writes for themselves.
+
+    Requires the `score_viewer` role.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  requestBody:
+    required: true
+    description: The entry as the owner states it.
+    content:
+      application/json:
+        schema:
+          $ref: '../../../write_set_entry.yaml'
+  responses:
+    '200':
+      description: The entry as it now reads.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../set_entry.yaml'
+    '400':
+      $ref: '../../../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../../../responses/404_not_found.yaml'
+    '413':
+      $ref: '../../../../../responses/413_content_too_large.yaml'
+    '415':
+      $ref: '../../../../../responses/415_unsupported_media_type.yaml'
+    default:
+      $ref: '../../../../../responses/xxx_unknown_error.yaml'
+
+delete:
+  operationId: deleteSetEntry
+  summary: Take one score out of a set.
+  description: |
+    Removes the entry and closes the running order up around it. What every
+    player said about how they look at it goes with it: it was about a song
+    that is no longer played.
+
+    Unlike a set, an entry is removed rather than kept as a headstone. A client
+    that is holding a copy learns it is gone from the set it is in, which it
+    reads whole.
+
+    Only the owner of a set can take an entry out of it. An entry that is not
+    there, is not in the set that was named, or is in a set the caller cannot
+    read, are all answered the same way.
+
+    Requires the `score_viewer` role.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  responses:
+    '204':
+      description: The entry is no longer in the set.
+    '400':
+      $ref: '../../../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../../../responses/404_not_found.yaml'
+    default:
+      $ref: '../../../../../responses/xxx_unknown_error.yaml'

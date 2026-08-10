@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="profile.css">
+</head>
+
+<body>
+
+<header>
+    <a id="home-button" href="/">Scores</a>
+    <h1 id="title">Profile</h1>
+    <button type="button" id="refresh-button">Ask the provider again</button>
+</header>
+
+<main>
+
+    <section id="failure-section" hidden>
+        <h2>The app did not start</h2>
+        <pre id="failure"></pre>
+    </section>
+
+    <section id="user-section">
+        <h2>You</h2>
+        <dl id="user"></dl>
+        <p id="user-source"></p>
+    </section>
+
+    <section id="roles-section">
+        <h2>What this app lets you do</h2>
+        <dl id="roles"></dl>
+        <p id="roles-explanation"></p>
+    </section>
+
+    <section id="claims-section">
+        <h2>Everything the provider said about you</h2>
+        <p id="claims-explanation">
+            This is the answer of the user-info endpoint, as it came back. The
+            roles above are read out of one claim of it; which one is said
+            below.
+        </p>
+        <pre id="claims"></pre>
+    </section>
+
+    <section id="config-section">
+        <h2>What this app is talking to</h2>
+        <dl id="config"></dl>
+    </section>
+
+    <section id="storage-section">
+        <h2>What is kept on this device</h2>
+        <dl id="storage"></dl>
+    </section>
+
+    <section id="actions-section">
+        <h2>Starting over</h2>
+        <p>
+            None of this signs you out at the provider; it only forgets what
+            this device knows.
+        </p>
+        <div id="actions">
+            <button type="button" id="sign-in-again-button">
+                Forget my tokens and sign in again
+            </button>
+            <button type="button" id="update-app-button">
+                Fetch the newest version of the app
+            </button>
+        </div>
+    </section>
+
+</main>
+
+<script src="profile.js" type="module"></script>
+</body>
+</html>

@@ -71,7 +71,9 @@ properties:
       - missing_role
       - score_not_found
       - set_not_found
+      - set_entry_not_found
       - invalid_set
+      - invalid_set_entry
       - unknown_score
       - not_set_owner
       - endpoint_not_found

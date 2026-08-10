@@ -1,0 +1,45 @@
+type: object
+description: |
+  How one player looks at one entry of a set.
+
+  A set says what the band plays; a view says what one player looks at while
+  they play it. The two are kept apart because they are not the same decision:
+  playing a song a tone down is the band's, and reading it in another key
+  because of the instrument it is played on is the player's own. A saxophone
+  player transposing their part changes nothing for the pianist, and the
+  pianist wanting the piano staff alone on screen changes nothing for the
+  singer.
+
+  A view belongs to whoever asked for the set. Everyone the set is shared with
+  has their own, everyone can write their own without being the owner of the
+  set, and nobody is told anything about anybody else's.
+
+  An entry that a player has never looked at differently has the view every
+  entry starts with: as written, every part on screen.
+required:
+  - transposition
+  - hidden_parts
+properties:
+  transposition:
+    type: integer
+    minimum: -12
+    maximum: 12
+    description: |
+      How far this player reads the score from where the band plays it, in
+      semitones, negative for down.
+
+      It is on top of the entry's own transposition rather than instead of it:
+      the entry says the band plays this one a tone down, and this says the
+      player reads that a fifth up. What ends up on screen is the two together,
+      brought back inside the octave either way that the player offers when
+      they add up past it.
+    examples: [9]
+  hidden_parts:
+    type: array
+    description: |
+      The parts of the score this player has off screen, by their MusicXML part
+      id.
+    items:
+      type: string
+    examples:
+      - [P2, P3]

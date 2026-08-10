@@ -1,3 +1,5 @@
+import {canBeReached} from "../../data/helper-functions.js";
+
 const scopes = ['openid', 'email', 'profile', 'offline_access'];
 
 export class OidcConfig {
@@ -111,9 +113,17 @@ export class OidcApi {
     );
   }
 
+  /**
+   * Whether the provider is there to be asked.
+   *
+   * A provider that cannot be reached is answered `false` rather than thrown
+   * about: this is asked to find out whether to work from what is kept on the
+   * device, and a network that is down is the very case it is asked in.
+   *
+   * @return {Promise<boolean>}
+   */
   async canBeReached() {
-    const response = await fetch(this._oidcConfig.healthzEndpoint);
-    return response.ok;
+    return await canBeReached(this._oidcConfig.healthzEndpoint);
   }
 
   /**
@@ -371,14 +381,25 @@ export class UserInfoResponse {
    * Which claims a user-info response carries is up to the provider, so every
    * one of these can be absent.
    *
+   * The claims it was read out of are kept alongside it. What a provider
+   * answers with is the one thing that explains why this app thinks what it
+   * thinks about a user — which is worth being able to show when it thinks
+   * something the user disagrees with.
+   *
    * @param name {string|null}
    * @param subject {string|null}
+   * @param email {string|null}
    * @param roles {Object|null}
+   * @param claims {Object|null} the answer this was read out of
+   * @param rolesKey {string|null} the claim the roles were looked for under
    */
-  constructor(name, subject, roles) {
+  constructor(name, subject, email, roles, claims = null, rolesKey = null) {
     this.name = name;
     this.subject = subject;
+    this.email = email;
     this.roles = roles;
+    this.claims = claims;
+    this.rolesKey = rolesKey;
   }
 
   /**
@@ -403,7 +424,36 @@ export class UserInfoResponse {
     return new UserInfoResponse(
       response['name'] ?? null,
       response['sub'] ?? null,
-      response[rolesKey] ?? null
+      response['email'] ?? null,
+      response[rolesKey] ?? null,
+      response,
+      rolesKey
+    );
+  }
+
+  /**
+   * The same user, read back from what {@link JSON.stringify} made of one.
+   *
+   * What comes out of `JSON.parse` is a plain object: it carries the fields but
+   * none of the methods, so `isScoreViewer` on it is not `false` but `undefined`
+   * — and every question this app asks about a user is asked that way. Reading
+   * it back into a user is what keeps a user who is kept on the device from
+   * being a user with no roles at all.
+   *
+   * @param json {Object|null}
+   * @return {UserInfoResponse|null}
+   */
+  static fromJson(json) {
+    if (json == null || typeof json !== 'object') {
+      return null;
+    }
+    return new UserInfoResponse(
+      json.name ?? null,
+      json.subject ?? null,
+      json.email ?? null,
+      json.roles ?? null,
+      json.claims ?? null,
+      json.rolesKey ?? null
     );
   }
 }
