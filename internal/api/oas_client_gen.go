@@ -41,6 +41,21 @@ type Invoker interface {
 	//
 	// DELETE /sets/{setId}
 	DeleteSet(ctx context.Context, params DeleteSetParams) (DeleteSetRes, error)
+	// DeleteSetEntry invokes deleteSetEntry operation.
+	//
+	// Removes the entry and closes the running order up around it. What every player said about how they
+	// look at it goes with it: it was about a song that is no longer played.
+	//
+	// Unlike a set, an entry is removed rather than kept as a headstone. A client that is holding a copy
+	// learns it is gone from the set it is in, which it reads whole.
+	//
+	// Only the owner of a set can take an entry out of it. An entry that is not there, is not in the set
+	// that was named, or is in a set the caller cannot read, are all answered the same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /sets/{setId}/entries/{entryId}
+	DeleteSetEntry(ctx context.Context, params DeleteSetEntryParams) (DeleteSetEntryRes, error)
 	// GetScore invokes getScore operation.
 	//
 	// Returns either the metadata of the score or the MusicXML document it was extracted from, whichever
@@ -116,6 +131,45 @@ type Invoker interface {
 	//
 	// PUT /sets/{setId}
 	PutSet(ctx context.Context, request *WriteSet, params PutSetParams) (PutSetRes, error)
+	// PutSetEntry invokes putSetEntry operation.
+	//
+	// Stores the entry under the given id and returns it as it now reads, including where in the running
+	// order it ended up and how the caller looks at it.
+	//
+	// An entry is its own resource because a set is not rewritten to change one song in it: a client that
+	// added a song sends that song, and a client that is catching up after a gig it spent offline sends
+	// the songs it changed rather than a running order that may have moved on without it.
+	//
+	// The id is the client's to name, and naming it is what lets a player say how they read a song before
+	// either has reached the server. An id that already belongs to an entry of another set is refused
+	// rather than taken over: it would point this set's entry at what another set's players said about
+	// theirs.
+	//
+	// Only the owner of a set can write its entries: what the band plays is the set, and the set is
+	// theirs. How anybody reads it is not — that is `/sets/{setId}/entries/{entryId}/view`, which
+	// everyone the set is shared with writes for themselves.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// PUT /sets/{setId}/entries/{entryId}
+	PutSetEntry(ctx context.Context, request *WriteSetEntry, params PutSetEntryParams) (PutSetEntryRes, error)
+	// PutSetEntryView invokes putSetEntryView operation.
+	//
+	// Stores the caller's own view of this entry, replacing whatever they had said before, and returns it
+	// as it now reads.
+	//
+	// Anyone who can read the set can write their own view of its entries: it says nothing about the set
+	// and changes nothing anybody else sees, so it asks no more of a player than reading the set does.
+	// Being the owner is neither needed nor enough to write somebody else's — there is no way to write a
+	// view that is not your own.
+	//
+	// A set the caller cannot read, and an entry that is not in the set named, are answered the same way
+	// as one that is not there at all.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// PUT /sets/{setId}/entries/{entryId}/view
+	PutSetEntryView(ctx context.Context, request *WriteEntryView, params PutSetEntryViewParams) (PutSetEntryViewRes, error)
 }
 
 // Client implements OAS client.
@@ -306,6 +360,182 @@ func (c *Client) sendDeleteSet(ctx context.Context, params DeleteSetParams) (res
 
 	stage = "DecodeResponse"
 	result, err := decodeDeleteSetResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// DeleteSetEntry invokes deleteSetEntry operation.
+//
+// Removes the entry and closes the running order up around it. What every player said about how they
+// look at it goes with it: it was about a song that is no longer played.
+//
+// Unlike a set, an entry is removed rather than kept as a headstone. A client that is holding a copy
+// learns it is gone from the set it is in, which it reads whole.
+//
+// Only the owner of a set can take an entry out of it. An entry that is not there, is not in the set
+// that was named, or is in a set the caller cannot read, are all answered the same way.
+//
+// Requires the `score_viewer` role.
+//
+// DELETE /sets/{setId}/entries/{entryId}
+func (c *Client) DeleteSetEntry(ctx context.Context, params DeleteSetEntryParams) (DeleteSetEntryRes, error) {
+	res, err := c.sendDeleteSetEntry(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendDeleteSetEntry(ctx context.Context, params DeleteSetEntryParams) (res DeleteSetEntryRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("deleteSetEntry"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/sets/{setId}/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, DeleteSetEntryOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/sets/"
+	{
+		// Encode "setId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "setId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.SetId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, DeleteSetEntryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeDeleteSetEntryResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -1372,6 +1602,374 @@ func (c *Client) sendPutSet(ctx context.Context, request *WriteSet, params PutSe
 
 	stage = "DecodeResponse"
 	result, err := decodePutSetResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PutSetEntry invokes putSetEntry operation.
+//
+// Stores the entry under the given id and returns it as it now reads, including where in the running
+// order it ended up and how the caller looks at it.
+//
+// An entry is its own resource because a set is not rewritten to change one song in it: a client that
+// added a song sends that song, and a client that is catching up after a gig it spent offline sends
+// the songs it changed rather than a running order that may have moved on without it.
+//
+// The id is the client's to name, and naming it is what lets a player say how they read a song before
+// either has reached the server. An id that already belongs to an entry of another set is refused
+// rather than taken over: it would point this set's entry at what another set's players said about
+// theirs.
+//
+// Only the owner of a set can write its entries: what the band plays is the set, and the set is
+// theirs. How anybody reads it is not — that is `/sets/{setId}/entries/{entryId}/view`, which
+// everyone the set is shared with writes for themselves.
+//
+// Requires the `score_viewer` role.
+//
+// PUT /sets/{setId}/entries/{entryId}
+func (c *Client) PutSetEntry(ctx context.Context, request *WriteSetEntry, params PutSetEntryParams) (PutSetEntryRes, error) {
+	res, err := c.sendPutSetEntry(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPutSetEntry(ctx context.Context, request *WriteSetEntry, params PutSetEntryParams) (res PutSetEntryRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("putSetEntry"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/sets/{setId}/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PutSetEntryOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/sets/"
+	{
+		// Encode "setId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "setId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.SetId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PUT", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePutSetEntryRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, PutSetEntryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodePutSetEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PutSetEntryView invokes putSetEntryView operation.
+//
+// Stores the caller's own view of this entry, replacing whatever they had said before, and returns it
+// as it now reads.
+//
+// Anyone who can read the set can write their own view of its entries: it says nothing about the set
+// and changes nothing anybody else sees, so it asks no more of a player than reading the set does.
+// Being the owner is neither needed nor enough to write somebody else's — there is no way to write a
+// view that is not your own.
+//
+// A set the caller cannot read, and an entry that is not in the set named, are answered the same way
+// as one that is not there at all.
+//
+// Requires the `score_viewer` role.
+//
+// PUT /sets/{setId}/entries/{entryId}/view
+func (c *Client) PutSetEntryView(ctx context.Context, request *WriteEntryView, params PutSetEntryViewParams) (PutSetEntryViewRes, error) {
+	res, err := c.sendPutSetEntryView(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPutSetEntryView(ctx context.Context, request *WriteEntryView, params PutSetEntryViewParams) (res PutSetEntryViewRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("putSetEntryView"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/sets/{setId}/entries/{entryId}/view"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PutSetEntryViewOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [5]string
+	pathParts[0] = "/sets/"
+	{
+		// Encode "setId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "setId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.SetId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	pathParts[4] = "/view"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PUT", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePutSetEntryViewRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, PutSetEntryViewOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodePutSetEntryViewResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

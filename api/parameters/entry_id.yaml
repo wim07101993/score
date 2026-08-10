@@ -1,0 +1,7 @@
+name: entryId
+in: path
+required: true
+description: The entry of the set, as it was given back by a read of the set.
+schema:
+  type: string
+  format: uuid

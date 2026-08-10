@@ -2,6 +2,7 @@ import {buildScoreListItem, registerScoreListItem} from "./components/score-list
 import {App} from "./app.js";
 
 const uploadButton = document.getElementById('upload-button');
+const setsButton = document.getElementById('sets-button');
 const scoreList = document.getElementById('score-list');
 
 const app = new App('config.json');
@@ -28,10 +29,14 @@ function _initScoreEditor() {
 async function _initScoreViewer() {
   if (app.user?.isScoreViewer !== true) {
     scoreList.hidden = true;
+    setsButton.hidden = true;
     console.log('no score viewer');
     return;
   }
 
+  // A set names scores but changes nothing about them, so keeping one asks no
+  // more of a user than reading the scores in it.
+  setsButton.hidden = false;
   scoreList.hidden = false;
   _buildScoreListItems();
   await app.updateScores();
@@ -46,6 +51,17 @@ async function main() {
 
   _initScoreEditor();
   await _initScoreViewer();
+
+  // Whatever was written to a set while there was nothing to send it to is
+  // still owed to the server, and any page with a network is a chance to send
+  // it: waiting for the player to open the sets again is waiting for nothing.
+  if (app.user?.isScoreViewer === true) {
+    try {
+      await app.updateSets();
+    } catch (error) {
+      console.error('failed to sync the sets', error);
+    }
+  }
 }
 
 await main();

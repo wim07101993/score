@@ -1,10 +1,17 @@
 type: object
+description: |
+  One score as it is played at one point in a gig.
+
+  Everything here but `view` is the same for everyone the set is shared with:
+  it is what the band does, and it is the owner's to say. `view` is the
+  caller's own and nobody else's.
 required:
   - id
   - score_id
   - description
   - transposition
-  - hidden_parts
+  - position
+  - view
 properties:
   id:
     type: string
@@ -16,11 +23,21 @@ properties:
       may be played more than once in a gig, each time with its own key and its
       own note next to it.
 
-      It is given out by the server and is not something a client states.
-      Writing a set replaces its entries whole, so an entry is given a new id
-      every time the set it is in is written: it names an entry of the set as
-      it reads now, and nothing beyond that. What is stable across a write is
-      the order the entries are in.
+      It is the client's to name — an entry is written at
+      `/sets/{setId}/entries/{entryId}` — and it stays the entry's for as long
+      as the entry is in the set, so that what a player has said about how they
+      look at it keeps pointing at the same thing. An id that is already an
+      entry of another set is refused rather than taken over.
+  position:
+    type: integer
+    minimum: 0
+    description: |
+      Where in the running order this one is played, counting from zero.
+
+      The entries of a set come back in playing order, so this says nothing the
+      order does not; it is here for a client holding one entry on its own,
+      which the order of a list it is not looking at cannot tell.
+    examples: [3]
   score_id:
     type: string
     format: uuid
@@ -35,14 +52,11 @@ properties:
     minimum: -12
     maximum: 12
     description: |
-      How far the score is transposed, in semitones, negative for down. The
-      range is the one the player offers.
+      How far the band plays this one from where it is written, in semitones,
+      negative for down. It is the arrangement rather than anyone's own reading
+      of it: everybody the set is shared with plays it in this key, and what
+      one player reads it as on top of that is in their `view`.
     examples: [-2]
-  hidden_parts:
-    type: array
-    description: |
-      The parts of the score that are off screen, by their MusicXML part id.
-    items:
-      type: string
-    examples:
-      - [P2]
+  view:
+    description: How the caller looks at this entry, which is theirs alone.
+    $ref: 'entry_view.yaml'

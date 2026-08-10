@@ -1,0 +1,26 @@
+type: object
+description: |
+  A view as the player states it. It is the read view whole: there is nothing
+  about a view the server decides, and a write replaces it rather than adding
+  to it.
+required:
+  - transposition
+  - hidden_parts
+properties:
+  transposition:
+    type: integer
+    minimum: -12
+    maximum: 12
+    description: |
+      How far this player reads the score from where the band plays it, in
+      semitones, negative for down.
+    examples: [9]
+  hidden_parts:
+    type: array
+    description: |
+      The parts of the score this player has off screen, by their MusicXML part
+      id. They are replaced rather than merged: this is the whole of the list.
+    items:
+      type: string
+    examples:
+      - [P2, P3]

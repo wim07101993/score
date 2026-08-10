@@ -15,9 +15,9 @@ func Get(ctx context.Context, db *pgxpool.Conn, setId string, user User) (*Set, 
 	slogctx.Info(ctx, "getting set", slog.String("setId", setId))
 
 	const query = selectSets + `
-		WHERE s.id = @id
-			AND (s.owner_subject = @subject OR sh.email IS NOT NULL)
-			AND s.deletedAt IS NULL`
+		WHERE id = @id
+			AND (owner_subject = @subject OR shared)
+			AND deletedAt IS NULL`
 
 	rows, err := db.Query(ctx, query, pgx.NamedArgs{
 		"id":      setId,
@@ -52,9 +52,9 @@ func List(
 	slogctx.Info(ctx, "getting sets")
 
 	const query = selectSets + `
-		WHERE (s.owner_subject = @subject OR sh.email IS NOT NULL)
-			AND s.lastChangedAt >= @since AND s.lastChangedAt <= @until
-		ORDER BY s.lastChangedAt DESC`
+		WHERE (owner_subject = @subject OR shared)
+			AND last_changed_at >= @since AND last_changed_at <= @until
+		ORDER BY last_changed_at DESC`
 
 	rows, err := db.Query(ctx, query, pgx.NamedArgs{
 		"subject": user.Subject,

@@ -18,7 +18,22 @@ export function getListProperty(parent, listTag, elementTag) {
 }
 
 /**
- * Calle the healthz endpoint and returns whether the response is ok.
+ * What to call a score.
+ *
+ * A score is titled by the work it is part of, and by the movement when the
+ * work has no title of its own — a document that only ever names one of the two
+ * is common enough that a score with no title at all is worth being ready for.
+ *
+ * @param score {Object|null}
+ * @returns {string}
+ */
+export function getScoreTitle(score) {
+  const title = score?.work?.title ?? score?.movement?.title ?? '';
+  return `${title}`.trim() === '' ? 'Untitled score' : title;
+}
+
+/**
+ * Calls the healthz endpoint and returns whether the response is ok.
  *
  * @param healthzEndpoint {URL}
  * @return {Promise<boolean>}

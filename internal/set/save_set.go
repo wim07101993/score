@@ -7,29 +7,22 @@ import (
 	"log/slog"
 	"time"
 
-	"score/internal/storage"
-
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	slogctx "github.com/veqryn/slog-context"
 )
 
-// Save creates or replaces a set.
+// Save creates or replaces what a set is: its title, what it is about, and who
+// may read it. What is played in it is not touched — that is SaveEntry and
+// DeleteEntry, one entry at a time.
 //
 // A set that is not there yet belongs to whoever writes it; one that is can
-// only be written by its owner, which is ErrNotSetOwner. It answers
-// ErrInvalidSet for a set the caller has to fix, and ErrUnknownScore for an
-// entry pointing at a score that does not exist.
+// only be written by its owner, which is ErrNotSetOwner.
 //
-// The whole of it is one transaction: a set is its title, its entries and its
-// shares together, and half of a replacement is not a set anybody asked for.
+// It is one transaction: a set and the addresses it is readable by are written
+// together, and half of a replacement is not a set anybody asked for.
 func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write WriteSet) error {
 	slogctx.Info(ctx, "saving set", slog.String("setId", setId))
-
-	if err := validate(write); err != nil {
-		return err
-	}
 
 	tx, err := db.Begin(ctx)
 	if err != nil {
@@ -72,39 +65,11 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 		return fmt.Errorf("failed to save the set: %w", err)
 	}
 
-	// The entries are replaced rather than merged: they are an ordered list,
-	// and what the client sends is the whole of it.
-	_, err = tx.Exec(ctx, `DELETE FROM set_entries WHERE set_id = @set_id`, pgx.NamedArgs{"set_id": setId})
-	if err != nil {
-		return fmt.Errorf("failed to clear the entries of the set: %w", err)
-	}
-
-	const insertEntryQuery = `
-		INSERT INTO set_entries (id, set_id, position, score_id, description, transposition, hidden_parts)
-		VALUES (@id, @set_id, @position, @score_id, @description, @transposition, @hidden_parts)`
-
-	for position, entry := range write.Entries {
-		_, err = tx.Exec(ctx, insertEntryQuery, pgx.NamedArgs{
-			// Minted here rather than taken from the client: which row an entry
-			// is stored as is not theirs to name. Every write replaces the
-			// entries, so every write mints them again.
-			"id":            uuid.NewString(),
-			"set_id":        setId,
-			"position":      position,
-			"score_id":      entry.ScoreId,
-			"description":   entry.Description,
-			"transposition": entry.Transposition,
-			"hidden_parts":  emptyWhenNil(entry.HiddenParts),
-		})
-		if err != nil {
-			// The only thing a set entry points at is a score, so a row that
-			// points at something missing is a score that is not there.
-			if storage.IsForeignKeyViolation(err) {
-				return &ErrUnknownScore{ScoreId: entry.ScoreId}
-			}
-			return fmt.Errorf("failed to save an entry of the set: %w", err)
-		}
-	}
+	// The entries are left exactly as they are. What is played is a resource of
+	// its own — one entry at a time, at /sets/{setId}/entries/{entryId} — so
+	// correcting a title is correcting a title, and a client that has not
+	// looked at the running order in a while cannot undo it by saying nothing
+	// about it.
 
 	_, err = tx.Exec(ctx, `DELETE FROM set_shares WHERE set_id = @set_id`, pgx.NamedArgs{"set_id": setId})
 	if err != nil {
@@ -125,19 +90,14 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 	return nil
 }
 
-// validate checks what the store cannot. Nothing here rejects a repeated
-// score: the same song may come round twice in a gig, and each time it does is
-// its own entry with its own place, note and key.
-func validate(write WriteSet) error {
-	for i, entry := range write.Entries {
-		if entry.ScoreId == "" {
-			return &ErrInvalidSet{Reason: fmt.Sprintf("entry %d has no score", i)}
-		}
-		if entry.Transposition < MinTransposition || entry.Transposition > MaxTransposition {
-			return &ErrInvalidSet{Reason: fmt.Sprintf(
-				"entry %d is transposed by %d semitones, which is outside the range %d..%d",
-				i, entry.Transposition, MinTransposition, MaxTransposition)}
-		}
+// validateTransposition holds both halves of a transposition to the range the
+// player offers: the entry's, which is where the band plays a song, and the
+// view's, which is how far one player reads it from there.
+func validateTransposition(semitones int, what string) error {
+	if semitones < MinTransposition || semitones > MaxTransposition {
+		return &ErrInvalidSet{Reason: fmt.Sprintf(
+			"%s is transposed by %d semitones, which is outside the range %d..%d",
+			what, semitones, MinTransposition, MaxTransposition)}
 	}
 	return nil
 }
