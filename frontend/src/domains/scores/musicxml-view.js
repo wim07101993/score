@@ -126,7 +126,12 @@ export function intervalFor(semitones, fifths) {
  *
  * @param pitch {Pitch}
  * @param interval {Interval}
- * @return {Pitch} the pitch unchanged if it is not a note this understands
+ * @return {Pitch} a new pitch, or the very object it was given back again when
+ *   that is not a note this understands. Handing back the same object rather
+ *   than a copy of it is how a caller tells the two apart, and a caller writing
+ *   into a document needs to: what it was given is what was in the document,
+ *   and writing that back out through here would put a misreading of it in the
+ *   document's place.
  */
 export function transposePitch(pitch, interval) {
   const step = STEPS.indexOf(pitch.step);
@@ -304,8 +309,8 @@ function _transpose(document, semitones) {
   // and one at every change of key after that.
   for (const key of [...document.getElementsByTagName('key')]) {
     const fifths = _child(key, 'fifths');
-    const written = Number(fifths?.textContent);
-    if (fifths != null && Number.isFinite(written)) {
+    const written = _numberIn(fifths, NaN);
+    if (Number.isFinite(written)) {
       fifths.textContent = `${transposeFifths(written, interval)}`;
     }
   }
@@ -338,7 +343,7 @@ function _transpose(document, semitones) {
  */
 function _openingFifths(document) {
   for (const key of document.getElementsByTagName('key')) {
-    const fifths = Number(_child(key, 'fifths')?.textContent);
+    const fifths = _numberIn(_child(key, 'fifths'), NaN);
     if (Number.isFinite(fifths)) {
       return fifths;
     }
@@ -367,14 +372,24 @@ function _transposePitchLike(element, tags, interval) {
   const octave = octaveTag == null ? null : _child(element, octaveTag);
   const alter = _child(element, alterTag);
 
-  const moved = transposePitch({
+  const written = {
     step: `${step.textContent}`.trim(),
     // Something with no octave is a letter and nothing more: a chord symbol is
     // not written at a height. Any octave will do to move it, as long as the
     // one that comes back out is thrown away.
-    octave: octave == null ? 4 : Number(octave.textContent),
-    alter: alter == null ? 0 : Number(alter.textContent),
-  }, interval);
+    octave: _numberIn(octave, 4),
+    alter: _numberIn(alter, 0),
+  };
+
+  // A note this cannot read is left in the document exactly as it was found.
+  // Transposing hands back what it was given when it does not understand it,
+  // and putting that back through here would write the misreading down rather
+  // than the note: an octave that was never a number would be saved as the
+  // word NaN, and a score that was merely strange would come out broken.
+  const moved = transposePitch(written, interval);
+  if (moved === written) {
+    return null;
+  }
 
   step.textContent = moved.step;
   if (octave != null) {
@@ -444,6 +459,27 @@ function _rewriteAccidental(note, alter) {
     return;
   }
   accidental.textContent = named;
+}
+
+/**
+ * A number written in the document, or NaN when what is written there is not
+ * one.
+ *
+ * Nothing at all counts as not one. Reading an empty element as a zero is the
+ * language's idea rather than the document's, and a zero is a real answer —
+ * an octave, a key of no sharps and no flats — so it would be taken for
+ * something the score said and written back as though it had.
+ *
+ * @param element {Element|null}
+ * @param fallback {number} what an element that is not there at all means
+ * @return {number}
+ */
+function _numberIn(element, fallback) {
+  if (element == null) {
+    return fallback;
+  }
+  const written = `${element.textContent}`.trim();
+  return written === '' ? NaN : Number(written);
 }
 
 /**

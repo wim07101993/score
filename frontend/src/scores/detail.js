@@ -163,7 +163,7 @@ function _drawPartControls() {
  */
 function _syncDownloadMenu() {
   const asViewed = scoreView != null && !scoreView.isPristine;
-  downloadMusicXmlButton.innerText = asViewed
+  downloadMusicXmlButton.textContent = asViewed
     ? 'Score file, as on screen (.musicxml)'
     : 'Score file, as written (.musicxml)';
   downloadSvgButton.disabled = scoreView == null;

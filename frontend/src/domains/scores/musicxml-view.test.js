@@ -225,7 +225,11 @@ test('a note keeps its distance from every other note', () => {
   }
 });
 
-test('something that is not a note is left the way it is', () => {
+test('something that is not a note is handed straight back', () => {
+  // The very object and not a copy of it. That identity is what tells a caller
+  // writing into a document that there was nothing here it could read, and
+  // without it the unreadable value would be written back into the score as
+  // the word NaN.
   const interval = intervalFor(3, 0);
 
   for (const notANote of [
@@ -233,8 +237,18 @@ test('something that is not a note is left the way it is', () => {
     {step: '', alter: 0, octave: 4},
     {step: 'C', alter: 0, octave: NaN},
     {step: 'C', alter: NaN, octave: 4},
+    {step: 'C', alter: 0, octave: Infinity},
   ]) {
-    assert.deepEqual(transposePitch(notANote, interval), notANote);
+    assert.equal(transposePitch(notANote, interval), notANote);
+  }
+});
+
+test('a note this can read is never handed straight back', () => {
+  // The other half of it: a caller telling the two apart by identity would
+  // quietly stop transposing anything if a real note ever came back unchanged.
+  for (const semitones of DISTANCES) {
+    const note = {step: 'C', alter: 0, octave: 4};
+    assert.notEqual(transposePitch(note, intervalFor(semitones, 0)), note);
   }
 });
 
