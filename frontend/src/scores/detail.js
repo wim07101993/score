@@ -1,5 +1,6 @@
 import {App} from "../app.js";
 import {ScoreRenderer} from "../domains/scores/osmd-score-view.js";
+import {musicXmlForView} from "../domains/scores/musicxml-view.js";
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 const renderer = new ScoreRenderer(osmd);
@@ -7,7 +8,9 @@ const renderer = new ScoreRenderer(osmd);
 const fileInput = document.getElementById('file-input');
 const uploadForm = document.getElementById('upload-form');
 const uploadButton = document.getElementById('upload-button');
-const downloadButton = document.getElementById('download-button');
+const downloadMenu = document.getElementById('download-menu');
+const downloadSvgButton = document.getElementById('download-svg-button');
+const downloadMusicXmlButton = document.getElementById('download-musicxml-button');
 const scoreMusicXml = document.getElementById('score-musicxml');
 
 const viewControls = document.getElementById('score-view-controls');
@@ -151,8 +154,25 @@ function _drawPartControls() {
   }
 }
 
+/**
+ * Says what the two downloads would hand over right now.
+ *
+ * A score nobody has changed the look of is written out as the file it was
+ * uploaded as, so there is no point in the menu claiming otherwise; once
+ * something has been transposed or taken off the screen, it says so.
+ */
+function _syncDownloadMenu() {
+  const asViewed = scoreView != null && !scoreView.isPristine;
+  downloadMusicXmlButton.innerText = asViewed
+    ? 'Score file, as on screen (.musicxml)'
+    : 'Score file, as written (.musicxml)';
+  downloadSvgButton.disabled = scoreView == null;
+}
+
 /** Puts the controls back in step with the view they are controlling. */
 function _syncViewControls() {
+  _syncDownloadMenu();
+
   if (scoreView == null) {
     return;
   }
@@ -204,22 +224,71 @@ async function onUploadFormSubmit(event) {
   window.location = `detail.html?id=${scoreId}`;
 }
 
-async function onDownloadButtonClicked() {
-  if (scoreId == null || musicXml == null) {
-    alert('This score cannot be downloaded because it has not been loaded or saved yet.');
-    return;
-  }
-  const user = await app.updateAuth();
-  if (await user?.isScoreViewer !== true) {
+// ----------------------------------------------------------------------------
+// TAKING A SCORE AWAY
+// ----------------------------------------------------------------------------
+
+/**
+ * Both of these are the score as it is being looked at rather than as it was
+ * uploaded: the parts that are off screen are not in either of them, and both
+ * are in the key it is being read in. A score nobody has touched comes out as
+ * the file the editor uploaded, which is what it was before there was anything
+ * to touch.
+ */
+
+async function onDownloadSvgClicked() {
+  downloadMenu.open = false;
+  if (!await _mayDownload()) {
     return;
   }
 
-  const blob = new Blob([musicXml], {type: 'application/vnd.recordare.musicxml'});
+  const svg = renderer.toSvg();
+  if (svg == null) {
+    alert('There is nothing on screen to take a copy of yet.');
+    return;
+  }
+  _download(new Blob([svg], {type: 'image/svg+xml'}), `${scoreId}.svg`);
+}
+
+async function onDownloadMusicXmlClicked() {
+  downloadMenu.open = false;
+  if (!await _mayDownload()) {
+    return;
+  }
+
+  let written;
+  try {
+    written = musicXmlForView(musicXml, scoreView);
+  } catch (error) {
+    console.error('failed to write the score out the way it is being looked at', error);
+    alert(`This score could not be written out: ${error.message ?? error}`);
+    return;
+  }
+  _download(
+    new Blob([written], {type: 'application/vnd.recordare.musicxml'}),
+    `${scoreId}.musicxml`);
+}
+
+/** @return {Promise<boolean>} */
+async function _mayDownload() {
+  if (scoreId == null || musicXml == null) {
+    alert('This score cannot be downloaded because it has not been loaded or saved yet.');
+    return false;
+  }
+  const user = await app.updateAuth();
+  return await user?.isScoreViewer === true;
+}
+
+/**
+ * @param blob {Blob}
+ * @param filename {string}
+ */
+function _download(blob, filename) {
   const url = window.URL.createObjectURL(blob);
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${scoreId}.musicxml`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
 
@@ -244,14 +313,14 @@ function _initScoreEditor() {
 
 async function _initScoreViewer() {
   if (app.user?.isScoreViewer !== true) {
-    downloadButton.hidden = true;
+    downloadMenu.hidden = true;
     scoreMusicXml.hidden = true;
     viewControls.hidden = true;
     console.log('no score viewer');
     return;
   }
 
-  downloadButton.hidden = false;
+  downloadMenu.hidden = false;
   scoreMusicXml.hidden = false;
 
   if (scoreId != null) {
@@ -274,7 +343,17 @@ async function main() {
 
   fileInput.addEventListener('change', onFileSelected);
   uploadForm.addEventListener('submit', onUploadFormSubmit);
-  downloadButton.addEventListener('click', onDownloadButtonClicked);
+  downloadSvgButton.addEventListener('click', onDownloadSvgClicked);
+  downloadMusicXmlButton.addEventListener('click', onDownloadMusicXmlClicked);
+  _syncDownloadMenu();
+
+  // A menu that is left open over the score once it has been finished with is
+  // in the way, and clicking off it is how a menu is put away.
+  document.addEventListener('click', (event) => {
+    if (!downloadMenu.contains(event.target)) {
+      downloadMenu.open = false;
+    }
+  });
 
   // Redrawing a score is expensive enough that doing it for every pixel of a
   // drag is not worth it, so dragging only moves the number and letting go

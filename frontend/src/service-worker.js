@@ -1,7 +1,7 @@
 // Bump this whenever a cached file changes: fetches are answered from the cache
 // before the network, so an installed client goes on serving the previous
 // version of every file below until the cache is a different one.
-const cacheName = "score-cache-v0.4";
+const cacheName = "score-cache-v0.5";
 const cacheUrls = [
   "/",
   "/assets/icons/artist.svg",
@@ -13,6 +13,7 @@ const cacheUrls = [
   "/domains/auth/oidc-api.js",
   "/domains/scores/api.js",
   "/domains/scores/database.js",
+  "/domains/scores/musicxml-view.js",
   "/domains/scores/osmd-score-view.js",
   "/domains/scores/repository.js",
   "/domains/scores/score-view.js",

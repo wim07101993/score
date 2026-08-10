@@ -30,15 +30,60 @@ header > *{
     justify-self: center;
 }
 
-#download-button {
+#download-menu {
     grid-area: download-button;
     justify-self: right;
-    background: transparent;
-    border: transparent;
     margin-right: 4px;
+    /* What the menu hangs off. */
+    position: relative;
 }
-#download-button:hover > svg {
+
+#download-button {
+    cursor: pointer;
+    padding: 2px;
+    /* A summary is a marker and its contents, and here it is only the icon. */
+    list-style: none;
+}
+
+#download-button::-webkit-details-marker {
+    display: none;
+}
+
+#download-button:hover > svg,
+#download-menu[open] > #download-button > svg {
     fill: #444444;
+}
+
+/* The menu hangs off the header rather than sitting in it: the header is a grid
+   of fixed areas and it is pinned over the score, so a panel in the flow would
+   push the music down the page every time it was opened. */
+#download-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    background-color: var(--second-background);
+}
+
+#download-panel > button {
+    padding: 4px 8px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#download-panel > button:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 
 #score-view-controls {

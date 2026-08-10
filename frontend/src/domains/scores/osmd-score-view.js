@@ -16,6 +16,8 @@ import {ScoreView} from './score-view.js';
  * @property {string} name what to call the part in a control
  */
 
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
 export class ScoreRenderer {
   /**
    * @param osmd {Object} an OpenSheetMusicDisplay bound to a container
@@ -81,6 +83,83 @@ export class ScoreRenderer {
   }
 
   /**
+   * What is on the screen, as a picture of it.
+   *
+   * This is the one way out of here that is the view and not the score: a
+   * drawing of the parts that are showing, in the key they are being read in,
+   * laid out exactly as they are being read. It is what to print and what to
+   * hand to somebody who only wants to play it, and it is not a score any more
+   * — nothing can be transposed out of it again.
+   *
+   * A score of several pages is stacked into one picture rather than handed
+   * back a page at a time, since what was asked for was the score.
+   *
+   * @return {string|null} null when there is nothing drawn to take a copy of
+   */
+  toSvg() {
+    const pages = this._pages();
+    if (pages.length === 0) {
+      return null;
+    }
+
+    const svg = document.implementation.createDocument(SVG_NAMESPACE, 'svg', null);
+    const sheet = svg.documentElement;
+
+    let width = 0;
+    let height = 0;
+    for (const page of pages) {
+      const size = _sizeOf(page);
+      const copy = svg.importNode(page, true);
+      // A page keeps its own coordinates and is placed as a whole, which is
+      // what nesting one drawing inside another is for.
+      copy.setAttribute('x', '0');
+      copy.setAttribute('y', `${height}`);
+      copy.setAttribute('width', `${size.width}`);
+      copy.setAttribute('height', `${size.height}`);
+      sheet.appendChild(copy);
+
+      width = Math.max(width, size.width);
+      height += size.height;
+    }
+
+    sheet.setAttribute('xmlns', SVG_NAMESPACE);
+    sheet.setAttribute('width', `${width}`);
+    sheet.setAttribute('height', `${height}`);
+    sheet.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    // On the page the score is drawn on whatever the app is drawn on, and the
+    // font it is set in comes from the app's own stylesheet. A file has neither
+    // of those behind it, so both have to be said here or the score arrives
+    // transparent and in somebody else's font.
+    const style = svg.createElementNS(SVG_NAMESPACE, 'style');
+    style.textContent = 'text { font-family: serif; }';
+    const paper = svg.createElementNS(SVG_NAMESPACE, 'rect');
+    paper.setAttribute('width', '100%');
+    paper.setAttribute('height', '100%');
+    paper.setAttribute('fill', '#ffffff');
+    sheet.prepend(style, paper);
+
+    return new XMLSerializer().serializeToString(svg);
+  }
+
+  /**
+   * The drawing of each page, in the order they are read.
+   *
+   * @return {SVGSVGElement[]} empty unless the score is being drawn as svg
+   * @private
+   */
+  _pages() {
+    const pages = [];
+    for (const backend of this._osmd?.Drawer?.Backends ?? []) {
+      const page = backend.getSvgElement?.();
+      if (page != null) {
+        pages.push(page);
+      }
+    }
+    return pages;
+  }
+
+  /**
    * @param view {ScoreView}
    * @private
    */
@@ -141,6 +220,22 @@ export function readParts(osmd) {
     parts.push({id: id, name: name === '' ? `Part ${index + 1}` : name});
   });
   return parts;
+}
+
+/**
+ * How big a drawn page is. The size is on the drawing itself, but a drawing
+ * that has been laid out and never sized is measured off the screen instead.
+ *
+ * @param page {SVGSVGElement}
+ * @return {{width: number, height: number}}
+ */
+function _sizeOf(page) {
+  const width = Number.parseFloat(page.getAttribute('width'));
+  const height = Number.parseFloat(page.getAttribute('height'));
+  return {
+    width: Number.isFinite(width) ? width : page.clientWidth,
+    height: Number.isFinite(height) ? height : page.clientHeight,
+  };
 }
 
 /**
