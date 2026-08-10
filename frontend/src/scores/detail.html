@@ -16,14 +16,34 @@
             Upload
         </button>
     </form>
-    <button id="download-button" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="20px"
-             height="20px"
-             viewBox="0 0 20 20">
-            <path d="M13 8V2H7v6H2l8 8l8-8h-5zM0 18h20v2H0v-2z"/>
-        </svg>
-    </button>
+    <details id="download-menu" hidden>
+        <!-- There is nothing here but an icon, so the name of the control has
+             to be said out loud: a tooltip is for whoever is already looking at
+             it with a mouse, and is not something a screen reader can be
+             relied on to read out. -->
+        <summary id="download-button" aria-label="Download this score"
+                 title="Download this score">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="20px"
+                 height="20px"
+                 viewBox="0 0 20 20"
+                 aria-hidden="true"
+                 focusable="false">
+                <path d="M13 8V2H7v6H2l8 8l8-8h-5zM0 18h20v2H0v-2z"/>
+            </svg>
+        </summary>
+
+        <div id="download-panel">
+            <button type="button" id="download-svg-button"
+                    title="A picture of the score exactly as it is on screen. For printing and for reading; it cannot be opened as a score again.">
+                Sheet music, as on screen (.svg)
+            </button>
+            <button type="button" id="download-musicxml-button"
+                    title="The score itself, which opens in other music software and can be uploaded here again.">
+                Score file (.musicxml)
+            </button>
+        </div>
+    </details>
 
     <div id="set-controls" hidden>
         <a id="set-previous-button" title="The score before this one">◀</a>
