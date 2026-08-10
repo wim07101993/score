@@ -1,7 +1,7 @@
 // Bump this whenever a cached file changes: fetches are answered from the cache
 // before the network, so an installed client goes on serving the previous
 // version of every file below until the cache is a different one.
-const cacheName = "score-cache-v0.9";
+const cacheName = "score-cache-v0.10";
 // A directory is listed by the url a page is actually asked for, never as
 // "<dir>/index.html": the file server answers that spelling with a redirect to
 // the directory, and a redirect is not something that can be cached or handed

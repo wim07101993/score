@@ -1,0 +1,53 @@
+parameters:
+  - $ref: '../../../../../../parameters/set_id.yaml'
+  - $ref: '../../../../../../parameters/entry_id.yaml'
+  - $ref: '../../../../../../parameters/correlation_id.yaml'
+
+put:
+  operationId: putSetEntryView
+  summary: Say how you look at one entry of a set.
+  description: |
+    Stores the caller's own view of this entry, replacing whatever they had
+    said before, and returns it as it now reads.
+
+    Anyone who can read the set can write their own view of its entries: it
+    says nothing about the set and changes nothing anybody else sees, so it
+    asks no more of a player than reading the set does. Being the owner is
+    neither needed nor enough to write somebody else's — there is no way to
+    write a view that is not your own.
+
+    A set the caller cannot read, and an entry that is not in the set named, are
+    answered the same way as one that is not there at all.
+
+    Requires the `score_viewer` role.
+  tags: [sets]
+  security:
+    - oauth2: [score_viewer]
+  requestBody:
+    required: true
+    description: The view as the player states it.
+    content:
+      application/json:
+        schema:
+          $ref: '../../../../write_entry_view.yaml'
+  responses:
+    '200':
+      description: The view as it now reads.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../../entry_view.yaml'
+    '400':
+      $ref: '../../../../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../../../../responses/404_not_found.yaml'
+    '413':
+      $ref: '../../../../../../responses/413_content_too_large.yaml'
+    '415':
+      $ref: '../../../../../../responses/415_unsupported_media_type.yaml'
+    default:
+      $ref: '../../../../../../responses/xxx_unknown_error.yaml'
