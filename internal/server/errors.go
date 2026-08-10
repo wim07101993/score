@@ -44,6 +44,15 @@ var (
 		api.ProblemDetailsErrorCodeSetNotFound,
 		"no set found with the given id",
 	)
+	// ErrSetEntryNotFound is the answer to writing a view of an entry that is
+	// not there, is not in the set that was named, or is in a set the caller
+	// cannot read. Telling those apart would answer questions about other
+	// people's sets.
+	ErrSetEntryNotFound = api.NewProblemDetailsError(
+		http.StatusNotFound,
+		api.ProblemDetailsErrorCodeSetEntryNotFound,
+		"no entry found with the given id in the given set",
+	)
 	// ErrNotSetOwner is only ever the answer to writing a set that is shared
 	// with the caller. Reading one they may not see at all is ErrSetNotFound:
 	// saying "not yours" about a set would say that it exists.
@@ -56,6 +65,11 @@ var (
 		http.StatusBadRequest,
 		api.ProblemDetailsErrorCodeInvalidSet,
 		"invalid set",
+	)
+	ErrInvalidSetEntry = api.NewProblemDetailsError(
+		http.StatusBadRequest,
+		api.ProblemDetailsErrorCodeInvalidSetEntry,
+		"invalid set entry",
 	)
 	ErrUnknownScore = api.NewProblemDetailsError(
 		http.StatusBadRequest,
@@ -102,6 +116,21 @@ var (
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
 		"failed to get sets page",
+	)
+	ErrSaveSetEntry = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to save the entry of a set",
+	)
+	ErrDeleteSetEntry = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to delete the entry of a set",
+	)
+	ErrSaveSetEntryView = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to save the view of a set entry",
 	)
 	// ErrNoUserInfo is a request that got past the security handler without a
 	// caller on it. Nothing should be able to arrange that, so it is a fault

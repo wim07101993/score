@@ -67,7 +67,7 @@ func TestCreatingASetStoresWhatWasGiven(t *testing.T) {
 	owner := aPlayer(t)
 
 	setId := uuid.New()
-	write := helpers.WriteSetOf("Zomerbar 12 juli", nil, nil)
+	write := helpers.WriteSetOf("Zomerbar 12 juli", nil)
 	write.Description = "outside, two sets of 45"
 	helpers.MustPutSet(t, owner.ApiClient, setId, write)
 
@@ -91,12 +91,71 @@ func TestASetIsPlayedInTheOrderItWasGivenIn(t *testing.T) {
 	first, second, third := aScore(t), aScore(t), aScore(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Running order",
-		[]api.WriteSetEntry{helpers.AnEntry(third), helpers.AnEntry(first), helpers.AnEntry(second)}, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Running order", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, third, first, second)
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
 	assert.Equal(t, []uuid.UUID{third, first, second}, helpers.ScoreIdsOf(saved))
+	assert.Equal(t, []int{0, 1, 2}, positionsOf(saved),
+		"the places should be nought upwards with no gaps in them")
+}
+
+// An entry written at a place the set already has an entry in puts that one and
+// everything after it back by one.
+func TestAnEntryPutInTheMiddleOfASetPushesTheRestBack(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	first, second, squeezedIn := aScore(t), aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Squeeze", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, first, second)
+
+	saved := helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(),
+		helpers.AnEntry(squeezedIn, 1))
+
+	assert.Equal(t, 1, saved.Position, "the entry should be handed back where it ended up")
+	set := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.Equal(t, []uuid.UUID{first, squeezedIn, second}, helpers.ScoreIdsOf(set))
+	assert.Equal(t, []int{0, 1, 2}, positionsOf(set))
+}
+
+// A client catching up after a gig it spent offline is saying where a song
+// goes, and the nearest place it can go is a better answer than a refusal.
+func TestAnEntryPutPastTheEndOfASetGoesAtTheEnd(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	first, late := aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Past the end", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, first)
+
+	saved := helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), helpers.AnEntry(late, 99))
+
+	assert.Equal(t, 1, saved.Position)
+	assert.Equal(t, []uuid.UUID{first, late},
+		helpers.ScoreIdsOf(helpers.MustGetSet(t, owner.ApiClient, setId)))
+}
+
+func TestTakingAnEntryOutOfASetClosesTheOrderUp(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	first, second, third := aScore(t), aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Dropped", nil))
+	entries := helpers.MustFillSet(t, owner.ApiClient, setId, first, second, third)
+
+	helpers.MustDeleteEntry(t, owner.ApiClient, setId, entries[0].ID)
+
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.Equal(t, []uuid.UUID{second, third}, helpers.ScoreIdsOf(saved))
+	assert.Equal(t, []int{0, 1}, positionsOf(saved), "the set was left with a gap in it")
 }
 
 func TestReorderingASetIsSavedAsTheNewOrder(t *testing.T) {
@@ -104,18 +163,21 @@ func TestReorderingASetIsSavedAsTheNewOrder(t *testing.T) {
 
 	owner := aPlayer(t)
 	first, second := aScore(t), aScore(t)
-	firstEntry, secondEntry := helpers.AnEntry(first), helpers.AnEntry(second)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Before", []api.WriteSetEntry{firstEntry, secondEntry}, nil))
-	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("After", []api.WriteSetEntry{secondEntry, firstEntry}, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Before", nil))
+	entries := helpers.MustFillSet(t, owner.ApiClient, setId, first, second)
+
+	// Moving one song is writing that one song, at the place it moves to.
+	moved := helpers.TheSameEntry(*entries[1])
+	moved.Position = 0
+	helpers.MustPutEntry(t, owner.ApiClient, setId, entries[1].ID, moved)
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
 	assert.Equal(t, []uuid.UUID{second, first}, helpers.ScoreIdsOf(saved))
-	assert.Equal(t, "After", saved.Title)
+	assert.Equal(t, []int{0, 1}, positionsOf(saved))
+	assert.Equal(t, entries[1].ID, saved.Entries[0].ID, "a song that moved was given a new id")
 }
 
 // A song can come round twice in a gig, and the second time is its own entry:
@@ -126,18 +188,20 @@ func TestTheSameScoreCanBePlayedTwiceInASet(t *testing.T) {
 	owner := aPlayer(t)
 	scoreId := aScore(t)
 
-	opener := api.WriteSetEntry{
+	opener := &api.WriteSetEntry{
 		ScoreID:     scoreId,
-		Description: "opener, full band", Transposition: 0, HiddenParts: []string{},
+		Description: "opener, full band", Transposition: 0, Position: 0,
 	}
-	encore := api.WriteSetEntry{
+	encore := &api.WriteSetEntry{
 		ScoreID:     scoreId,
-		Description: "encore, voice only", Transposition: -2, HiddenParts: []string{"P2"},
+		Description: "encore, down a tone", Transposition: -2, Position: 2,
 	}
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Twice round",
-		[]api.WriteSetEntry{opener, helpers.AnEntry(aScore(t)), encore}, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Twice round", nil))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), opener)
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), helpers.AnEntry(aScore(t), 1))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), encore)
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
@@ -147,40 +211,44 @@ func TestTheSameScoreCanBePlayedTwiceInASet(t *testing.T) {
 
 	assert.Equal(t, "opener, full band", saved.Entries[0].Description)
 	assert.Equal(t, 0, saved.Entries[0].Transposition)
-	assert.Empty(t, saved.Entries[0].HiddenParts)
 
-	assert.Equal(t, "encore, voice only", saved.Entries[2].Description)
+	assert.Equal(t, "encore, down a tone", saved.Entries[2].Description)
 	assert.Equal(t, -2, saved.Entries[2].Transposition, "the two times round are played in different keys")
-	assert.Equal(t, []string{"P2"}, saved.Entries[2].HiddenParts)
+
+	assert.NotEqual(t, saved.Entries[0].ID, saved.Entries[2].ID,
+		"the same score twice is two entries, and each carries its own views")
 }
 
 // ---------------------------------------------------------------------------
 // HOW A SCORE IS PLAYED IN THIS SET
 // ---------------------------------------------------------------------------
 
-// The key and the parts on screen are what the player needs back when they open
-// a score from inside a set, so they have to survive the round trip exactly.
-func TestHowAScoreIsPlayedIsKeptWithTheSet(t *testing.T) {
+// The key the band plays a song in is what every player needs back when they
+// open it from inside a set, so it has to survive the round trip exactly.
+func TestTheKeyTheBandPlaysInIsKeptWithTheSet(t *testing.T) {
 	t.Parallel()
 
 	owner := aPlayer(t)
 	scoreId := aScore(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Arrangements",
-		[]api.WriteSetEntry{{
-			ScoreID:       scoreId,
-			Description:   "down a third for the singer",
-			Transposition: -4,
-			HiddenParts:   []string{"P2", "P3"},
-		}}, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Arrangements", nil))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
+		ScoreID:       scoreId,
+		Description:   "down a third for the singer",
+		Transposition: -4,
+	})
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
 	require.Len(t, saved.Entries, 1)
 	assert.Equal(t, -4, saved.Entries[0].Transposition)
-	assert.Equal(t, []string{"P2", "P3"}, saved.Entries[0].HiddenParts)
 	assert.Equal(t, "down a third for the singer", saved.Entries[0].Description)
+
+	// Nobody has said anything about how they look at it, which is the view
+	// every entry starts with: as written, every part on screen.
+	assert.Equal(t, 0, saved.Entries[0].View.Transposition)
+	assert.Empty(t, saved.Entries[0].View.HiddenParts)
 }
 
 // Playing a score in another key is a property of the set, not of the score.
@@ -197,10 +265,11 @@ func TestPlayingAScoreInAnotherKeyLeavesTheScoreAlone(t *testing.T) {
 	scoreId := uuid.New()
 	helpers.MustPutScore(t, editor, scoreId, helpers.MusicXmlWithWorkAndMovement)
 
-	helpers.MustPutSet(t, owner.ApiClient, uuid.New(), helpers.WriteSetOf("Transposed",
-		[]api.WriteSetEntry{{
-			ScoreID: scoreId, Transposition: 5, HiddenParts: []string{},
-		}}, nil))
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Transposed", nil))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
+		ScoreID: scoreId, Transposition: 5,
+	})
 
 	document := mustGetScoreDocument(t, editor, scoreId, helpers.MusicXmlContentType)
 	assert.Equal(t, helpers.MusicXmlWithWorkAndMovement, document,
@@ -219,15 +288,17 @@ func TestASetRefusesATranspositionItCannotPlay(t *testing.T) {
 	h := harness.NewScope()
 	raw := helpers.Ensure(t, h.RawClient, "RawClient")
 
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Out of range", nil))
+
 	for _, semitones := range []int{13, -13, 200} {
 		body := fmt.Sprintf(
-			`{"title":"Out of range","description":"","shared_with":[],"entries":[
-				{"id":%q,"score_id":%q,"description":"","transposition":%d,"hidden_parts":[]}]}`,
-			uuid.NewString(), scoreId, semitones)
+			`{"score_id":%q,"description":"","transposition":%d,"position":0}`,
+			scoreId, semitones)
 
 		res := raw.Do(t, helpers.Request{
 			Method:      http.MethodPut,
-			Path:        "/sets/" + uuid.NewString(),
+			Path:        fmt.Sprintf("/sets/%s/entries/%s", setId, uuid.NewString()),
 			Token:       tokenOf(t, owner),
 			ContentType: "application/json",
 			Body:        body,
@@ -236,6 +307,33 @@ func TestASetRefusesATranspositionItCannotPlay(t *testing.T) {
 		assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
 			"a transposition of %d semitones should be refused: %s", semitones, res.Text())
 	}
+
+	assert.Empty(t, helpers.MustGetSet(t, owner.ApiClient, setId).Entries,
+		"a refused entry should not have been stored")
+}
+
+// A place before the start of a set is not a place. Past the end is, and is the
+// end of the set; there is no such forgiving reading of a negative one.
+func TestAnEntryRefusesAPlaceBeforeTheStartOfTheSet(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+	h := harness.NewScope()
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Before the start", nil))
+
+	res := raw.Do(t, helpers.Request{
+		Method:      http.MethodPut,
+		Path:        fmt.Sprintf("/sets/%s/entries/%s", setId, uuid.NewString()),
+		Token:       tokenOf(t, owner),
+		ContentType: "application/json",
+		Body:        fmt.Sprintf(`{"score_id":%q,"description":"","transposition":0,"position":-1}`, scoreId),
+	})
+
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode, res.Text())
 }
 
 func TestASetRefusesAScoreThatDoesNotExist(t *testing.T) {
@@ -244,18 +342,18 @@ func TestASetRefusesAScoreThatDoesNotExist(t *testing.T) {
 	owner := aPlayer(t)
 
 	setId := uuid.New()
-	res, err := owner.PutSet(t.Context(),
-		helpers.WriteSetOf("Ghost", []api.WriteSetEntry{helpers.AnEntry(uuid.New())}, nil),
-		api.PutSetParams{SetId: setId})
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Ghost", nil))
+
+	res, err := owner.PutSetEntry(t.Context(), helpers.AnEntry(uuid.New(), 0),
+		api.PutSetEntryParams{SetId: setId, EntryId: uuid.New()})
 
 	require.NoError(t, err)
-	badRequest, ok := res.(*api.PutSetBadRequest)
-	require.Truef(t, ok, "a set naming a score that does not exist should be refused, got %#v", res)
+	badRequest, ok := res.(*api.PutSetEntryBadRequest)
+	require.Truef(t, ok, "an entry naming a score that does not exist should be refused, got %#v", res)
 	assert.Equal(t, api.ProblemDetailsErrorCodeUnknownScore, badRequest.ErrorCode)
 
-	got, err := owner.GetSet(t.Context(), api.GetSetParams{SetId: setId})
-	require.NoError(t, err)
-	assert.IsTypef(t, &api.GetSetNotFound{}, got, "a refused set should not have been stored, got %#v", got)
+	assert.Empty(t, helpers.MustGetSet(t, owner.ApiClient, setId).Entries,
+		"a refused entry should not have been stored")
 }
 
 // Two entries a client cannot tell apart are still two entries. Nothing about
@@ -265,11 +363,12 @@ func TestTwoIdenticalEntriesAreKeptAsTwo(t *testing.T) {
 	t.Parallel()
 
 	owner := aPlayer(t)
-	entry := helpers.AnEntry(aScore(t))
+	scoreId := aScore(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Twice", []api.WriteSetEntry{entry, entry}, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Twice", nil))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), helpers.AnEntry(scoreId, 0))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), helpers.AnEntry(scoreId, 1))
 
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
@@ -278,34 +377,24 @@ func TestTwoIdenticalEntriesAreKeptAsTwo(t *testing.T) {
 		"each entry should have been stored under an id of its own")
 }
 
-// The id of an entry is the server's. A client that states one is stating a
-// field the write shape does not have, and it changes nothing about what is
-// stored.
-func TestAnEntryIdFromTheClientIsIgnored(t *testing.T) {
+// An entry a client names keeps that id, which is what lets a client that made
+// an entry up while it had no network say how it looks at it before the entry
+// has ever reached the server.
+func TestAnEntryTheClientNamedKeepsThatId(t *testing.T) {
 	t.Parallel()
 
 	owner := aPlayer(t)
 	scoreId := aScore(t)
-	h := harness.NewScope()
-	raw := helpers.Ensure(t, h.RawClient, "RawClient")
 
-	claimed := uuid.NewString()
-	setId := uuid.NewString()
+	named := uuid.New()
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Named", nil))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, named, helpers.AnEntry(scoreId, 0))
 
-	res := raw.Do(t, helpers.Request{
-		Method:      http.MethodPut,
-		Path:        "/sets/" + setId,
-		Token:       tokenOf(t, owner),
-		ContentType: "application/json",
-		Body: fmt.Sprintf(
-			`{"title":"Not yours to name","description":"","shared_with":[],"entries":[
-				{"id":%q,"score_id":%q,"description":"","transposition":0,"hidden_parts":[]}]}`,
-			claimed, scoreId),
-	})
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
-	require.Equal(t, http.StatusOK, res.StatusCode, res.Text())
-	assert.NotContains(t, res.Text(), claimed,
-		"the id the client made up was stored: %s", res.Text())
+	require.Len(t, saved.Entries, 1)
+	assert.Equal(t, named, saved.Entries[0].ID)
 }
 
 // ---------------------------------------------------------------------------
@@ -318,7 +407,7 @@ func TestASetIsNotVisibleToEveryone(t *testing.T) {
 	owner, stranger := aPlayer(t), aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Private", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Private", nil))
 
 	res, err := stranger.GetSet(t.Context(), api.GetSetParams{SetId: setId})
 
@@ -334,7 +423,7 @@ func TestListingSetsOnlyShowsYourOwn(t *testing.T) {
 	owner, stranger := aPlayer(t), aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Mine", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Mine", nil))
 
 	window := api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()}
 
@@ -353,10 +442,10 @@ func TestOnlyTheOwnerCanChangeASet(t *testing.T) {
 	owner, meddler := aPlayer(t), aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Kept", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Kept", nil))
 
 	res, err := meddler.PutSet(t.Context(),
-		helpers.WriteSetOf("Meddled with", nil, nil),
+		helpers.WriteSetOf("Meddled with", nil),
 		api.PutSetParams{SetId: setId})
 
 	require.NoError(t, err)
@@ -376,12 +465,12 @@ func TestASharedSetCanBeReadByThePersonItIsSharedWith(t *testing.T) {
 	scoreId := aScore(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Friday night",
-		[]api.WriteSetEntry{{
-			ScoreID:       scoreId,
-			Transposition: 2, Description: "count it in", HiddenParts: []string{},
-		}},
-		[]string{bandMember.Email}))
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Friday night", []string{bandMember.Email}))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
+		ScoreID:       scoreId,
+		Transposition: 2, Description: "count it in",
+	})
 
 	shared := helpers.MustGetSet(t, bandMember.ApiClient, setId)
 
@@ -399,7 +488,7 @@ func TestASharedSetIsInTheListOfThePersonItIsSharedWith(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Saturday night", nil, []string{bandMember.Email}))
+		helpers.WriteSetOf("Saturday night", []string{bandMember.Email}))
 
 	sets := helpers.MustListSets(t, bandMember.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
@@ -418,7 +507,7 @@ func TestSharingIgnoresTheCaseOfAnAddress(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Case", nil, []string{strings.ToUpper(bandMember.Email)}))
+		helpers.WriteSetOf("Case", []string{strings.ToUpper(bandMember.Email)}))
 
 	assert.Equal(t, "Case", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
 }
@@ -432,10 +521,10 @@ func TestSharingASetDoesNotAllowChangingIt(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Read only", nil, []string{bandMember.Email}))
+		helpers.WriteSetOf("Read only", []string{bandMember.Email}))
 
 	write, err := bandMember.PutSet(t.Context(),
-		helpers.WriteSetOf("Rewritten", nil, nil),
+		helpers.WriteSetOf("Rewritten", nil),
 		api.PutSetParams{SetId: setId})
 	require.NoError(t, err)
 	assert.IsTypef(t, &api.PutSetForbidden{}, write, "got %#v", write)
@@ -458,7 +547,7 @@ func TestThePeopleASetIsSharedWithAreOnlyShownToTheOwner(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Who else", nil, []string{singer.Email, trumpet.Email}))
+		helpers.WriteSetOf("Who else", []string{singer.Email, trumpet.Email}))
 
 	asOwner := helpers.MustGetSet(t, owner.ApiClient, setId)
 	assert.ElementsMatch(t, []string{singer.Email, trumpet.Email}, asOwner.SharedWith)
@@ -504,11 +593,11 @@ func TestUnsharingASetTakesItAway(t *testing.T) {
 
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Shared for now", nil, []string{bandMember.Email}))
+		helpers.WriteSetOf("Shared for now", []string{bandMember.Email}))
 	require.Equal(t, "Shared for now", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
 
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Shared for now", nil, nil))
+		helpers.WriteSetOf("Shared for now", nil))
 
 	res, err := bandMember.GetSet(t.Context(), api.GetSetParams{SetId: setId})
 	require.NoError(t, err)
@@ -529,7 +618,7 @@ func TestADeletedSetIsReportedAsDeletedRatherThanVanishing(t *testing.T) {
 	owner := aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Cancelled gig", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Cancelled gig", nil))
 	mustDeleteSet(t, owner.ApiClient, setId)
 
 	sets := helpers.MustListSets(t, owner.ApiClient,
@@ -546,7 +635,7 @@ func TestADeletedSetCannotBeReadAnyMore(t *testing.T) {
 	owner := aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Gone", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Gone", nil))
 	mustDeleteSet(t, owner.ApiClient, setId)
 
 	res, err := owner.GetSet(t.Context(), api.GetSetParams{SetId: setId})
@@ -568,10 +657,10 @@ func TestWritingADeletedSetAgainBringsItBack(t *testing.T) {
 	owner := aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Cancelled", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Cancelled", nil))
 	mustDeleteSet(t, owner.ApiClient, setId)
 
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Back on", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Back on", nil))
 
 	revived := helpers.MustGetSet(t, owner.ApiClient, setId)
 	assert.Equal(t, "Back on", revived.Title)
@@ -586,7 +675,7 @@ func TestOnlyTheSetsChangedInTheWindowAreListed(t *testing.T) {
 	owner := aPlayer(t)
 
 	setId := uuid.New()
-	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Recent", nil, nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Recent", nil))
 
 	inWindow := helpers.MustListSets(t, owner.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
@@ -668,7 +757,7 @@ func TestSetsRequireTheViewerRole(t *testing.T) {
 	client.Security.Token = idp.IssueToken(t)
 
 	res, err := client.PutSet(t.Context(),
-		helpers.WriteSetOf("Nope", nil, nil),
+		helpers.WriteSetOf("Nope", nil),
 		api.PutSetParams{SetId: uuid.New()})
 
 	require.NoError(t, err)
@@ -748,8 +837,409 @@ func TestABodyThatIsNotASetIsRejected(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// WHAT ONE PLAYER LOOKS AT
+// ---------------------------------------------------------------------------
+
+// The whole of it: a set says what the band plays, and how one player reads it
+// is nobody else's business. The saxophone player wants their part a sixth up
+// and the vocals next to it; the pianist wants the piano staff alone, in the
+// key it is written in. Both are looking at the same entry of the same set.
+func TestTwoPlayersLookAtTheSameEntryTheirOwnWay(t *testing.T) {
+	t.Parallel()
+
+	sax, pianist := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, sax.ApiClient, setId,
+		helpers.WriteSetOf("Zomerbar", []string{pianist.Email}))
+	entryId := helpers.MustPutEntry(t, sax.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
+		ScoreID: scoreId, Transposition: -2, Description: "count it in",
+	}).ID
+
+	helpers.MustPutEntryView(t, sax.ApiClient, setId, entryId, helpers.AView(9, "P3"))
+	helpers.MustPutEntryView(t, pianist.ApiClient, setId, entryId, helpers.AView(0, "P1", "P2"))
+
+	asTheSaxSeesIt := helpers.MustGetSet(t, sax.ApiClient, setId)
+	asThePianistSeesIt := helpers.MustGetSet(t, pianist.ApiClient, setId)
+
+	assert.Equal(t, 9, asTheSaxSeesIt.Entries[0].View.Transposition)
+	assert.Equal(t, []string{"P3"}, asTheSaxSeesIt.Entries[0].View.HiddenParts)
+
+	assert.Equal(t, 0, asThePianistSeesIt.Entries[0].View.Transposition,
+		"the pianist was handed the key the saxophone player reads in")
+	assert.Equal(t, []string{"P1", "P2"}, asThePianistSeesIt.Entries[0].View.HiddenParts,
+		"the pianist was handed the parts the saxophone player has off screen")
+
+	// What the band does is the same for both of them.
+	assert.Equal(t, -2, asTheSaxSeesIt.Entries[0].Transposition)
+	assert.Equal(t, -2, asThePianistSeesIt.Entries[0].Transposition)
+	assert.Equal(t, "count it in", asThePianistSeesIt.Entries[0].Description)
+}
+
+// Writing a view is not writing the set, so it asks no more of a player than
+// reading the set does. A band member who cannot change a note of the running
+// order can still say how they read it.
+func TestSomeoneASetIsSharedWithWritesTheirOwnViewButNotTheSet(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Kept", []string{bandMember.Email}))
+	entryId := helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)[0].ID
+
+	saved := helpers.MustPutEntryView(t, bandMember.ApiClient, setId, entryId, helpers.AView(-3, "P2"))
+	assert.Equal(t, -3, saved.Transposition)
+
+	// The set itself is the owner's, and a view changed nothing about it.
+	res, err := bandMember.PutSet(t.Context(),
+		helpers.WriteSetOf("Renamed", nil),
+		api.PutSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetForbidden{}, res, "got %#v", res)
+
+	asTheOwnerSeesIt := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.Equal(t, "Kept", asTheOwnerSeesIt.Title)
+	assert.Equal(t, 0, asTheOwnerSeesIt.Entries[0].View.Transposition,
+		"the owner was handed the view somebody else wrote")
+}
+
+// The reason an entry keeps its id across a write: what the players said about
+// how they look at it hangs off that id, and an owner tidying up the running
+// order should not throw the band's reading of it away.
+func TestRewritingASetLeavesEveryPlayersViewAlone(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+	first, second := aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Friday", []string{bandMember.Email}))
+	helpers.MustFillSet(t, owner.ApiClient, setId, first, second)
+
+	before := helpers.MustGetSet(t, owner.ApiClient, setId)
+	helpers.MustPutEntryView(t, bandMember.ApiClient, setId, before.Entries[0].ID, helpers.AView(9, "P2"))
+
+	// The owner renames the set and changes a note on the first song.
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Friday, second version", []string{bandMember.Email}))
+	changed := helpers.TheSameEntry(before.Entries[0])
+	changed.Description = "straight into the next"
+	helpers.MustPutEntry(t, owner.ApiClient, setId, before.Entries[0].ID, changed)
+
+	after := helpers.MustGetSet(t, bandMember.ApiClient, setId)
+
+	require.Len(t, after.Entries, 2)
+	assert.Equal(t, before.Entries[0].ID, after.Entries[0].ID, "an entry that stayed was given a new id")
+	assert.Equal(t, "straight into the next", after.Entries[0].Description)
+	assert.Equal(t, 9, after.Entries[0].View.Transposition,
+		"writing the entry threw away how a player reads it")
+	assert.Equal(t, []string{"P2"}, after.Entries[0].View.HiddenParts)
+}
+
+// Swapping two entries has both of them wanting the place the other is in, for
+// as long as the write takes.
+func TestReorderingASetKeepsTheEntriesAndTheirViews(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	first, second := aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Before", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, first, second)
+
+	before := helpers.MustGetSet(t, owner.ApiClient, setId)
+	helpers.MustPutEntryView(t, owner.ApiClient, setId, before.Entries[1].ID, helpers.AView(-5))
+
+	moved := helpers.TheSameEntry(before.Entries[1])
+	moved.Position = 0
+	helpers.MustPutEntry(t, owner.ApiClient, setId, before.Entries[1].ID, moved)
+
+	after := helpers.MustGetSet(t, owner.ApiClient, setId)
+
+	assert.Equal(t, []uuid.UUID{second, first}, helpers.ScoreIdsOf(after))
+	assert.Equal(t, before.Entries[1].ID, after.Entries[0].ID)
+	assert.Equal(t, -5, after.Entries[0].View.Transposition,
+		"a view should follow the entry it belongs to rather than the place it was in")
+	assert.Equal(t, 0, after.Entries[1].View.Transposition)
+}
+
+// An entry that is out of the set is out of it: what the players said about how
+// they looked at it was about a song that is no longer played.
+func TestAnEntryTakenOutOfASetTakesTheViewsOfItAlong(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Friday", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)
+
+	before := helpers.MustGetSet(t, owner.ApiClient, setId)
+	helpers.MustPutEntryView(t, owner.ApiClient, setId, before.Entries[0].ID, helpers.AView(7, "P2"))
+
+	// Taken out, and the same song put back as a new entry.
+	helpers.MustDeleteEntry(t, owner.ApiClient, setId, before.Entries[0].ID)
+	helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)
+
+	after := helpers.MustGetSet(t, owner.ApiClient, setId)
+
+	require.Len(t, after.Entries, 1)
+	assert.NotEqual(t, before.Entries[0].ID, after.Entries[0].ID)
+	assert.Equal(t, 0, after.Entries[0].View.Transposition,
+		"a new entry started life with somebody's view of the one it replaced")
+	assert.Empty(t, after.Entries[0].View.HiddenParts)
+}
+
+// A sync asks for everything that changed for the caller since it last asked.
+// A view is a change to the set for the player who wrote it — it is what their
+// other devices have to learn about — and no change at all for anybody else.
+func TestAViewChangesTheSetForThePlayerWhoWroteItAndNobodyElse(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Windows", []string{bandMember.Email}))
+	entryId := helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)[0].ID
+
+	// A moment after the set was written and before the view is, and a whole
+	// second at that: a window is asked for as an RFC 3339 moment, which carries
+	// no fraction of a second, so a start inside the second the set was written
+	// in arrives as a start before it.
+	between := time.Now().Add(time.Second).Truncate(time.Second)
+	time.Sleep(time.Until(between) + 10*time.Millisecond)
+
+	helpers.MustPutEntryView(t, bandMember.ApiClient, setId, entryId, helpers.AView(9))
+
+	forTheBandMember := helpers.MustListSets(t, bandMember.ApiClient,
+		api.ListSetsParams{ChangesSince: between, ChangesUntil: soon()})
+	_, inTheirWindow := helpers.FindSet(forTheBandMember, setId)
+	assert.True(t, inTheirWindow,
+		"a player's own view should reach their other devices, and a sync only asks about what changed")
+
+	forTheOwner := helpers.MustListSets(t, owner.ApiClient,
+		api.ListSetsParams{ChangesSince: between, ChangesUntil: soon()})
+	_, inTheOwnersWindow := helpers.FindSet(forTheOwner, setId)
+	assert.False(t, inTheOwnersWindow,
+		"somebody else's view was handed to the owner as a change to their set")
+}
+
+// ---------------------------------------------------------------------------
+// WHAT A VIEW REFUSES
+// ---------------------------------------------------------------------------
+
+func TestAViewOfAnEntryThatIsNotInTheSetIsNotFound(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	setId, otherSetId := uuid.New(), uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Ours", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)
+	helpers.MustPutSet(t, owner.ApiClient, otherSetId, helpers.WriteSetOf("Another", nil))
+	helpers.MustFillSet(t, owner.ApiClient, otherSetId, scoreId)
+
+	entryOfTheOtherSet := helpers.MustGetSet(t, owner.ApiClient, otherSetId).Entries[0].ID
+
+	for name, entryId := range map[string]uuid.UUID{
+		"an entry that was never written": uuid.New(),
+		"an entry of another set":         entryOfTheOtherSet,
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := owner.PutSetEntryView(t.Context(), helpers.AView(2),
+				api.PutSetEntryViewParams{SetId: setId, EntryId: entryId})
+
+			require.NoError(t, err)
+			assert.IsTypef(t, &api.PutSetEntryViewNotFound{}, res, "got %#v", res)
+		})
+	}
+}
+
+// Saying "not yours" about a set would say that it exists.
+func TestAViewCannotBeWrittenOnASetTheCallerCannotRead(t *testing.T) {
+	t.Parallel()
+
+	owner, stranger := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Private", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)
+	entryId := helpers.MustGetSet(t, owner.ApiClient, setId).Entries[0].ID
+
+	res, err := stranger.PutSetEntryView(t.Context(), helpers.AView(2),
+		api.PutSetEntryViewParams{SetId: setId, EntryId: entryId})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetEntryViewNotFound{}, res, "got %#v", res)
+}
+
+func TestAViewRefusesATranspositionThePlayerCannotShow(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Range", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)
+	entryId := helpers.MustGetSet(t, owner.ApiClient, setId).Entries[0].ID
+
+	res, err := owner.PutSetEntryView(t.Context(), helpers.AView(13),
+		api.PutSetEntryViewParams{SetId: setId, EntryId: entryId})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetEntryViewBadRequest{}, res, "got %#v", res)
+}
+
+// An entry id is scoped to the set it is in. Taking one over would point this
+// set's entry at what another set's players said about theirs.
+func TestASetRefusesAnEntryThatBelongsToAnotherSet(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	otherSetId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, otherSetId, helpers.WriteSetOf("Another", nil))
+	helpers.MustFillSet(t, owner.ApiClient, otherSetId, scoreId)
+	entryOfTheOtherSet := helpers.MustGetSet(t, owner.ApiClient, otherSetId).Entries[0]
+
+	ourSetId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, ourSetId, helpers.WriteSetOf("Ours", nil))
+
+	res, err := owner.PutSetEntry(t.Context(), helpers.TheSameEntry(entryOfTheOtherSet),
+		api.PutSetEntryParams{SetId: ourSetId, EntryId: entryOfTheOtherSet.ID})
+
+	require.NoError(t, err)
+	badRequest, ok := res.(*api.PutSetEntryBadRequest)
+	require.Truef(t, ok, "got %#v", res)
+	assert.Equal(t, api.ProblemDetailsErrorCodeInvalidSetEntry, badRequest.ErrorCode)
+	assert.Empty(t, helpers.MustGetSet(t, owner.ApiClient, ourSetId).Entries)
+	assert.Len(t, helpers.MustGetSet(t, owner.ApiClient, otherSetId).Entries, 1,
+		"the other set lost the entry it was holding")
+}
+
+// Only the owner arranges a set: what the band plays is the set, and the set is
+// theirs. How anybody reads it is not, which is the view.
+func TestOnlyTheOwnerWritesTheEntriesOfASet(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Theirs", []string{bandMember.Email}))
+	entry := helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)[0]
+
+	written, err := bandMember.PutSetEntry(t.Context(), helpers.AnEntry(scoreId, 0),
+		api.PutSetEntryParams{SetId: setId, EntryId: uuid.New()})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetEntryForbidden{}, written, "got %#v", written)
+
+	deleted, err := bandMember.DeleteSetEntry(t.Context(),
+		api.DeleteSetEntryParams{SetId: setId, EntryId: entry.ID})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.DeleteSetEntryForbidden{}, deleted, "got %#v", deleted)
+
+	assert.Len(t, helpers.MustGetSet(t, owner.ApiClient, setId).Entries, 1,
+		"a set was arranged by someone who does not own it")
+}
+
+// Saying "not yours" about a set would say that it exists.
+func TestAnEntryOfASetTheCallerCannotSeeIsNotFound(t *testing.T) {
+	t.Parallel()
+
+	owner, stranger := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Private", nil))
+	entry := helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)[0]
+
+	written, err := stranger.PutSetEntry(t.Context(), helpers.AnEntry(scoreId, 0),
+		api.PutSetEntryParams{SetId: setId, EntryId: uuid.New()})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetEntryNotFound{}, written, "got %#v", written)
+
+	deleted, err := stranger.DeleteSetEntry(t.Context(),
+		api.DeleteSetEntryParams{SetId: setId, EntryId: entry.ID})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.DeleteSetEntryNotFound{}, deleted, "got %#v", deleted)
+}
+
+func TestTakingOutAnEntryThatIsNotInTheSetIsNotFound(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Empty", nil))
+
+	res, err := owner.DeleteSetEntry(t.Context(),
+		api.DeleteSetEntryParams{SetId: setId, EntryId: uuid.New()})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.DeleteSetEntryNotFound{}, res, "got %#v", res)
+}
+
+func TestAnEntryOfASetThatIsNotThereIsNotFound(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+
+	res, err := owner.PutSetEntry(t.Context(), helpers.AnEntry(aScore(t), 0),
+		api.PutSetEntryParams{SetId: uuid.New(), EntryId: uuid.New()})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetEntryNotFound{}, res, "got %#v", res)
+}
+
+// Correcting a title is correcting a title. Before entries were their own
+// resource this was a real hazard: a client that had not looked at the running
+// order in a while could undo it by saying nothing about it.
+func TestWritingASetLeavesWhatIsPlayedInItAlone(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	first, second := aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Friday", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, first, second)
+
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Friday, corrected", nil))
+
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.Equal(t, "Friday, corrected", saved.Title)
+	assert.Equal(t, []uuid.UUID{first, second}, helpers.ScoreIdsOf(saved),
+		"correcting the title emptied the set")
+}
+
+// ---------------------------------------------------------------------------
 // HELPERS
 // ---------------------------------------------------------------------------
+
+// positionsOf is where the entries of a set say they are played, which should
+// always be nought upwards with no gaps in it.
+func positionsOf(set *api.Set) []int {
+	positions := make([]int, 0, len(set.Entries))
+	for _, entry := range set.Entries {
+		positions = append(positions, entry.Position)
+	}
+	return positions
+}
 
 func mustDeleteSet(t *testing.T, client *helpers.ApiClient, setId uuid.UUID) {
 	t.Helper()

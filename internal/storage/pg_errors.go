@@ -21,6 +21,10 @@ const (
 
 	// pgForeignKeyViolation is a row pointing at something that is not there.
 	pgForeignKeyViolation = "23503"
+
+	// pgUniqueViolation is a row that is already there, under a key something
+	// said there could only be one of.
+	pgUniqueViolation = "23505"
 )
 
 // IsInvalidTextRepresentation reports whether err is postgres refusing a value
@@ -33,6 +37,12 @@ func IsInvalidTextRepresentation(err error) bool {
 // pointing at something that does not exist.
 func IsForeignKeyViolation(err error) bool {
 	return hasCode(err, pgForeignKeyViolation)
+}
+
+// IsUniqueViolation reports whether err is postgres refusing a row for already
+// having one under that key.
+func IsUniqueViolation(err error) bool {
+	return hasCode(err, pgUniqueViolation)
 }
 
 func hasCode(err error, code string) bool {

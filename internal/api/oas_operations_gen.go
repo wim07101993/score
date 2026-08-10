@@ -6,12 +6,15 @@ package api
 type OperationName = string
 
 const (
-	DeleteSetOperation  OperationName = "DeleteSet"
-	GetScoreOperation   OperationName = "GetScore"
-	GetSetOperation     OperationName = "GetSet"
-	HealthzOperation    OperationName = "Healthz"
-	ListScoresOperation OperationName = "ListScores"
-	ListSetsOperation   OperationName = "ListSets"
-	PutScoreOperation   OperationName = "PutScore"
-	PutSetOperation     OperationName = "PutSet"
+	DeleteSetOperation       OperationName = "DeleteSet"
+	DeleteSetEntryOperation  OperationName = "DeleteSetEntry"
+	GetScoreOperation        OperationName = "GetScore"
+	GetSetOperation          OperationName = "GetSet"
+	HealthzOperation         OperationName = "Healthz"
+	ListScoresOperation      OperationName = "ListScores"
+	ListSetsOperation        OperationName = "ListSets"
+	PutScoreOperation        OperationName = "PutScore"
+	PutSetOperation          OperationName = "PutSet"
+	PutSetEntryOperation     OperationName = "PutSetEntry"
+	PutSetEntryViewOperation OperationName = "PutSetEntryView"
 )

@@ -1,5 +1,6 @@
 import {App} from "../app.js";
 import {ScoreRenderer} from "../domains/scores/osmd-score-view.js";
+import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 const renderer = new ScoreRenderer(osmd);
@@ -15,6 +16,14 @@ const transpositionInput = document.getElementById('transposition-input');
 const transpositionOutput = document.getElementById('transposition-output');
 const partsList = document.getElementById('parts-list');
 const resetViewButton = document.getElementById('reset-view-button');
+
+const setControls = document.getElementById('set-controls');
+const setButton = document.getElementById('set-button');
+const setPosition = document.getElementById('set-position');
+const setPreviousButton = document.getElementById('set-previous-button');
+const setNextButton = document.getElementById('set-next-button');
+const setEntryDescription = document.getElementById('set-entry-description');
+const saveViewToSetButton = document.getElementById('save-view-to-set-button');
 
 const app = new App('../config.json');
 
@@ -40,6 +49,20 @@ let scoreView = null;
  * @type {import("../domains/scores/osmd-score-view.js").ScorePart[]}
  */
 let scoreParts = [];
+
+/**
+ * The set this score is being played from, when it is being played from one:
+ * which set it is, and which of its entries this is.
+ *
+ * An entry is pointed at by where it comes in the set rather than by its id.
+ * The server mints those again on every write — an entry names an entry of the
+ * set as it reads now and nothing beyond that — and what stays put across a
+ * write is the order.
+ *
+ * @type {{set: import("../domains/sets/database.js").ScoreSet, index: number,
+ *   entry: import("../domains/sets/database.js").SetEntry}|null}
+ */
+let setContext = null;
 
 /**
  * @param event {Event}
@@ -168,6 +191,162 @@ function _syncViewControls() {
   }
 
   resetViewButton.disabled = scoreView.isPristine;
+  _syncSetControls();
+}
+
+// ----------------------------------------------------------------------------
+// PLAYING FROM A SET
+// ----------------------------------------------------------------------------
+
+/**
+ * Works out which set this score is being played from, if any.
+ *
+ * A set that this device has never heard of is asked for once — a link into a
+ * set can be followed on a device that has not synced since it was shared —
+ * and, failing that, the score is shown for itself.
+ *
+ * @return {Promise<void>}
+ */
+async function _readSetContext() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const setId = urlParams.get('set');
+  if (setId == null) {
+    return;
+  }
+
+  let set = app.setRepository.getSet(setId);
+  if (set == null) {
+    try {
+      await app.updateSets();
+    } catch (error) {
+      console.error('failed to sync the sets', error);
+    }
+    set = app.setRepository.getSet(setId);
+  }
+
+  // Which entry it is has to have been said: a set with nothing said about
+  // which of its entries this is, is a score that happens to be in a set, and
+  // reading that as the first one would play it in the wrong key.
+  const entryParam = urlParams.get('entry');
+  const index = /^\d+$/.test(entryParam ?? '') ? Number(entryParam) : -1;
+  if (set == null || index < 0 || index >= set.entries.length) {
+    console.log(`no entry ${entryParam} in set ${setId}`);
+    return;
+  }
+
+  setContext = {set, index, entry: set.entries[index]};
+}
+
+/** Writes the set controls, and points the way through the set. */
+function _drawSetControls() {
+  if (setContext == null) {
+    setControls.hidden = true;
+    return;
+  }
+
+  const {set, index, entry} = setContext;
+  setControls.hidden = false;
+
+  setButton.href = `../sets/detail.html?${new URLSearchParams({id: set.id}).toString()}`;
+  setButton.innerText = set.title.trim() === '' ? 'Untitled set' : set.title;
+  setPosition.innerText = `${index + 1} of ${set.entries.length}`;
+  setEntryDescription.innerText = entry.description ?? '';
+
+  _pointAt(setPreviousButton, index - 1);
+  _pointAt(setNextButton, index + 1);
+
+  // Everyone the set is shared with, not only whoever owns it: how a player
+  // reads a song is theirs, and saying so changes nothing anybody else sees.
+  saveViewToSetButton.hidden = false;
+
+  _syncSetControls();
+}
+
+/**
+ * How far the score is read from where it is written: the key the band plays it
+ * in, plus how far this player reads it from there.
+ *
+ * The two are added rather than one replacing the other, and the sum is held to
+ * the range the player offers — an octave either way is as far as the control
+ * goes, whatever the two of them add up to.
+ *
+ * @param entry {import("../domains/sets/database.js").SetEntry}
+ * @return {number}
+ */
+function _transpositionOfEntry(entry) {
+  const band = entry.transposition ?? 0;
+  const player = entry.view?.transposition ?? 0;
+  return Math.min(MAX_TRANSPOSITION, Math.max(MIN_TRANSPOSITION, band + player));
+}
+
+/**
+ * @param button {HTMLElement}
+ * @param index {number}
+ */
+function _pointAt(button, index) {
+  const set = setContext.set;
+  if (index < 0 || index >= set.entries.length) {
+    button.removeAttribute('href');
+    button.setAttribute('aria-disabled', 'true');
+    return;
+  }
+
+  button.removeAttribute('aria-disabled');
+  button.href = `detail.html?${new URLSearchParams({
+    id: set.entries[index].score_id,
+    set: set.id,
+    entry: `${index}`,
+  }).toString()}`;
+}
+
+/**
+ * Whether the way the score is on screen is the way the set says it is played.
+ * While it is, there is nothing to save.
+ */
+function _syncSetControls() {
+  if (setContext == null || scoreView == null) {
+    return;
+  }
+  saveViewToSetButton.disabled = _viewMatchesEntry();
+}
+
+/** @return {boolean} */
+function _viewMatchesEntry() {
+  const hidden = setContext.entry.view?.hidden_parts ?? [];
+  return _transpositionOfEntry(setContext.entry) === scoreView.transposition
+    && hidden.length === scoreView.hiddenPartIds.length
+    && hidden.every((partId) => scoreView.isHidden(partId));
+}
+
+/**
+ * Writes the way this player is looking at the score into the set, so that it
+ * opens that way the next time they play it.
+ *
+ * It is their own reading of it and nobody else's: the saxophone player saving
+ * their key changes nothing for the pianist. Neither the score nor the set is
+ * touched — what the band does is the owner's to say, and what is stored here
+ * is only how far this player reads it from there, which is what is on screen
+ * less the key the band plays it in.
+ */
+async function onSaveViewToSetClicked() {
+  if (setContext == null || scoreView == null) {
+    return;
+  }
+
+  const {set, index, entry} = setContext;
+  saveViewToSetButton.disabled = true;
+  try {
+    const saved = await app.setRepository.saveEntryView(set.id, entry.id, {
+      transposition: scoreView.transposition - (entry.transposition ?? 0),
+      hidden_parts: [...scoreView.hiddenPartIds],
+    });
+    setContext = {set: saved, index, entry: saved.entries[index]};
+    _drawSetControls();
+  } catch (error) {
+    console.error('failed to save how this score is read', error);
+    alert(`This view could not be saved: ${error}`);
+    _syncSetControls();
+  }
 }
 
 /** Writes the number on the transposition control, signed so up reads as up. */
@@ -258,6 +437,15 @@ async function _initScoreViewer() {
     musicXml = await app.scoreRepository.getMusicXml(scoreId);
     if (musicXml != null) {
       await _showScore(musicXml);
+      if (setContext != null) {
+        // The score opens the way the band plays it and the way this player
+        // reads it: the entry says the band is a tone down, the view says this
+        // player reads that a fifth up, and what goes on screen is the two
+        // together.
+        _queueViewChange((view) => view
+          .withTransposition(_transpositionOfEntry(setContext.entry))
+          .withHiddenParts(setContext.entry.view?.hidden_parts ?? []));
+      }
       try {
         await app.scoreRepository.updateScoreLastViewedAt(scoreId);
       } catch (error) {
@@ -286,8 +474,15 @@ async function main() {
   viewControls.addEventListener('toggle', _syncScoreOffset);
   window.addEventListener('resize', _syncScoreOffset);
 
+  saveViewToSetButton.addEventListener('click', onSaveViewToSetClicked);
+
   const urlParams = new URLSearchParams(window.location.search);
   scoreId = urlParams.get('id');
+
+  await _readSetContext();
+  _drawSetControls();
+  _syncScoreOffset();
+
   _initScoreEditor();
   await _initScoreViewer();
 }

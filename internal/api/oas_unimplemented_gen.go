@@ -28,6 +28,24 @@ func (UnimplementedHandler) DeleteSet(ctx context.Context, params DeleteSetParam
 	return r, ht.ErrNotImplemented
 }
 
+// DeleteSetEntry implements deleteSetEntry operation.
+//
+// Removes the entry and closes the running order up around it. What every player said about how they
+// look at it goes with it: it was about a song that is no longer played.
+//
+// Unlike a set, an entry is removed rather than kept as a headstone. A client that is holding a copy
+// learns it is gone from the set it is in, which it reads whole.
+//
+// Only the owner of a set can take an entry out of it. An entry that is not there, is not in the set
+// that was named, or is in a set the caller cannot read, are all answered the same way.
+//
+// Requires the `score_viewer` role.
+//
+// DELETE /sets/{setId}/entries/{entryId}
+func (UnimplementedHandler) DeleteSetEntry(ctx context.Context, params DeleteSetEntryParams) (r DeleteSetEntryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetScore implements getScore operation.
 //
 // Returns either the metadata of the score or the MusicXML document it was extracted from, whichever
@@ -121,6 +139,51 @@ func (UnimplementedHandler) PutScore(ctx context.Context, req PutScoreReq, param
 //
 // PUT /sets/{setId}
 func (UnimplementedHandler) PutSet(ctx context.Context, req *WriteSet, params PutSetParams) (r PutSetRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// PutSetEntry implements putSetEntry operation.
+//
+// Stores the entry under the given id and returns it as it now reads, including where in the running
+// order it ended up and how the caller looks at it.
+//
+// An entry is its own resource because a set is not rewritten to change one song in it: a client that
+// added a song sends that song, and a client that is catching up after a gig it spent offline sends
+// the songs it changed rather than a running order that may have moved on without it.
+//
+// The id is the client's to name, and naming it is what lets a player say how they read a song before
+// either has reached the server. An id that already belongs to an entry of another set is refused
+// rather than taken over: it would point this set's entry at what another set's players said about
+// theirs.
+//
+// Only the owner of a set can write its entries: what the band plays is the set, and the set is
+// theirs. How anybody reads it is not — that is `/sets/{setId}/entries/{entryId}/view`, which
+// everyone the set is shared with writes for themselves.
+//
+// Requires the `score_viewer` role.
+//
+// PUT /sets/{setId}/entries/{entryId}
+func (UnimplementedHandler) PutSetEntry(ctx context.Context, req *WriteSetEntry, params PutSetEntryParams) (r PutSetEntryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// PutSetEntryView implements putSetEntryView operation.
+//
+// Stores the caller's own view of this entry, replacing whatever they had said before, and returns it
+// as it now reads.
+//
+// Anyone who can read the set can write their own view of its entries: it says nothing about the set
+// and changes nothing anybody else sees, so it asks no more of a player than reading the set does.
+// Being the owner is neither needed nor enough to write somebody else's — there is no way to write a
+// view that is not your own.
+//
+// A set the caller cannot read, and an entry that is not in the set named, are answered the same way
+// as one that is not there at all.
+//
+// Requires the `score_viewer` role.
+//
+// PUT /sets/{setId}/entries/{entryId}/view
+func (UnimplementedHandler) PutSetEntryView(ctx context.Context, req *WriteEntryView, params PutSetEntryViewParams) (r PutSetEntryViewRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

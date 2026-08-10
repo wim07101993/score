@@ -1,15 +1,19 @@
 type: object
 description: |
-  One score as it is played at one point in a gig, as the client states it.
+  One score as it is played at one point in a gig, as the owner of the set
+  states it.
 
-  It is the read entry without `id`: which row an entry is stored as is the
-  server's to decide, and a client that could name it could point a second set's
-  entry at the first set's row.
+  It says what the band does and nothing about how anyone looks at it: a view
+  belongs to a player rather than to a set, and is written by the player it
+  belongs to at `/sets/{setId}/entries/{entryId}/view`. Writing an entry
+  therefore leaves every player's view of it alone, the owner's own included.
+
+  Which entry it is, is in the path rather than here.
 required:
   - score_id
   - description
   - transposition
-  - hidden_parts
+  - position
 properties:
   score_id:
     type: string
@@ -25,14 +29,25 @@ properties:
     minimum: -12
     maximum: 12
     description: |
-      How far the score is transposed, in semitones, negative for down. The
-      range is the one the player offers.
+      How far the band plays this one from where it is written, in semitones,
+      negative for down.
     examples: [-2]
-  hidden_parts:
-    type: array
+  position:
+    type: integer
+    minimum: 0
     description: |
-      The parts of the score that are off screen, by their MusicXML part id.
-    items:
-      type: string
-    examples:
-      - [P2]
+      Where in the running order it is played, counting from zero.
+
+      The set is closed up around it: an entry written at a place the set
+      already has an entry in puts that one and everything after it back by
+      one, and an entry that is already in the set and is written at another
+      place moves there, with everything between shifting to make room. What
+      the rest are numbered afterwards is the server's, and it is always
+      nought upwards with no gaps.
+
+      A place beyond the end of the set is the end of the set rather than a
+      refusal. A client whose idea of the set is a little out of date — one
+      catching up after a gig it spent offline — is saying where this song
+      goes, and the nearest place it can go is a better answer to that than a
+      rejected write.
+    examples: [3]

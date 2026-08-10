@@ -88,6 +88,131 @@ func (h *Handler) PutSet(ctx context.Context, req *api.WriteSet, params api.PutS
 	return mapSetToApi(saved)
 }
 
+// PutSetEntry puts one score into a set, or changes how it is played.
+//
+// An entry is its own resource because a set is not rewritten to change one
+// song in it: a client that added a song sends that song. What the band plays
+// is the set and the set is the owner's, so only they may write it; how anybody
+// reads it is PutSetEntryView, which everyone writes for themselves.
+func (h *Handler) PutSetEntry(
+	ctx context.Context,
+	req *api.WriteSetEntry,
+	params api.PutSetEntryParams,
+) (api.PutSetEntryRes, error) {
+	user, err := callerOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConn, err := h.db.Provide(ctx)
+	if err != nil {
+		return nil, ErrSaveSetEntry.WithParent(err)
+	}
+	defer dbConn.Release()
+
+	saved, err := set.SaveEntry(
+		ctx,
+		dbConn,
+		params.SetId.String(),
+		params.EntryId.String(),
+		user,
+		set.WriteEntry{
+			ScoreId:       req.ScoreID.String(),
+			Description:   req.Description,
+			Transposition: req.Transposition,
+			Position:      req.Position,
+		})
+	if err != nil {
+		return nil, saveSetEntryFailed(err)
+	}
+
+	entry, err := mapEntryToApi(*saved)
+	if err != nil {
+		return nil, err
+	}
+	return entry, nil
+}
+
+// DeleteSetEntry takes one score out of a set.
+func (h *Handler) DeleteSetEntry(
+	ctx context.Context,
+	params api.DeleteSetEntryParams,
+) (api.DeleteSetEntryRes, error) {
+	user, err := callerOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConn, err := h.db.Provide(ctx)
+	if err != nil {
+		return nil, ErrDeleteSetEntry.WithParent(err)
+	}
+	defer dbConn.Release()
+
+	err = set.DeleteEntry(ctx, dbConn, params.SetId.String(), params.EntryId.String(), user)
+	switch {
+	case errors.Is(err, set.ErrSetNotFound):
+		return nil, ErrSetNotFound
+	case errors.Is(err, set.ErrSetEntryNotFound):
+		return nil, ErrSetEntryNotFound
+	case errors.Is(err, set.ErrNotSetOwner):
+		return nil, ErrNotSetOwner
+	case err != nil:
+		return nil, ErrDeleteSetEntry.WithParent(err)
+	}
+
+	return &api.DeleteSetEntryNoContent{}, nil
+}
+
+// PutSetEntryView stores how the caller looks at one entry of a set.
+//
+// It asks no more of a caller than reading the set does: a view says nothing
+// about the set and changes nothing anybody else sees, so everyone the set is
+// shared with writes their own. Whose view it is comes from the token rather
+// than from the request, so there is no way to write somebody else's.
+func (h *Handler) PutSetEntryView(
+	ctx context.Context,
+	req *api.WriteEntryView,
+	params api.PutSetEntryViewParams,
+) (api.PutSetEntryViewRes, error) {
+	user, err := callerOf(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConn, err := h.db.Provide(ctx)
+	if err != nil {
+		return nil, ErrSaveSetEntryView.WithParent(err)
+	}
+	defer dbConn.Release()
+
+	saved, err := set.SaveEntryView(
+		ctx,
+		dbConn,
+		params.SetId.String(),
+		params.EntryId.String(),
+		user,
+		set.WriteEntryView{
+			Transposition: req.Transposition,
+			HiddenParts:   req.HiddenParts,
+		})
+	if err != nil {
+		if errors.Is(err, set.ErrSetEntryNotFound) {
+			return nil, ErrSetEntryNotFound
+		}
+		var invalid *set.ErrInvalidSet
+		if errors.As(err, &invalid) {
+			return nil, ErrInvalidSet.
+				WithAdditionalData("reason", invalid.Reason).
+				WithParent(err)
+		}
+		return nil, ErrSaveSetEntryView.WithParent(err)
+	}
+
+	view := mapEntryViewToApi(*saved)
+	return &view, nil
+}
+
 func (h *Handler) DeleteSet(ctx context.Context, params api.DeleteSetParams) (api.DeleteSetRes, error) {
 	user, err := callerOf(ctx)
 	if err != nil {
@@ -118,6 +243,21 @@ func saveSetFailed(err error) error {
 			WithParent(err)
 	}
 
+	if errors.Is(err, set.ErrNotSetOwner) {
+		return ErrNotSetOwner
+	}
+
+	return ErrSaveSet.WithParent(err)
+}
+
+func saveSetEntryFailed(err error) error {
+	var invalid *set.ErrInvalidSetEntry
+	if errors.As(err, &invalid) {
+		return ErrInvalidSetEntry.
+			WithAdditionalData("reason", invalid.Reason).
+			WithParent(err)
+	}
+
 	var unknownScore *set.ErrUnknownScore
 	if errors.As(err, &unknownScore) {
 		return ErrUnknownScore.
@@ -125,11 +265,14 @@ func saveSetFailed(err error) error {
 			WithParent(err)
 	}
 
-	if errors.Is(err, set.ErrNotSetOwner) {
+	switch {
+	case errors.Is(err, set.ErrSetNotFound):
+		return ErrSetNotFound
+	case errors.Is(err, set.ErrNotSetOwner):
 		return ErrNotSetOwner
 	}
 
-	return ErrSaveSet.WithParent(err)
+	return ErrSaveSetEntry.WithParent(err)
 }
 
 func callerOf(ctx context.Context) (set.User, error) {
@@ -148,22 +291,11 @@ func mapSetToApi(stored *set.Set) (*api.Set, error) {
 
 	entries := make([]api.SetEntry, 0, len(stored.Entries))
 	for _, entry := range stored.Entries {
-		entryId, err := uuid.Parse(entry.Id)
+		mapped, err := mapEntryToApi(entry)
 		if err != nil {
-			return nil, ErrUnknown.WithParent(err)
+			return nil, err
 		}
-		scoreId, err := uuid.Parse(entry.ScoreId)
-		if err != nil {
-			return nil, ErrUnknown.WithParent(err)
-		}
-
-		entries = append(entries, api.SetEntry{
-			ID:            entryId,
-			ScoreID:       scoreId,
-			Description:   entry.Description,
-			Transposition: entry.Transposition,
-			HiddenParts:   entry.HiddenParts,
-		})
+		entries = append(entries, *mapped)
 	}
 
 	deletedAt := api.NilDateTime{Null: true}
@@ -183,21 +315,44 @@ func mapSetToApi(stored *set.Set) (*api.Set, error) {
 	}, nil
 }
 
-func mapWriteSetFromApi(req *api.WriteSet) set.WriteSet {
-	entries := make([]set.WriteEntry, 0, len(req.Entries))
-	for _, entry := range req.Entries {
-		entries = append(entries, set.WriteEntry{
-			ScoreId:       entry.ScoreID.String(),
-			Description:   entry.Description,
-			Transposition: entry.Transposition,
-			HiddenParts:   entry.HiddenParts,
-		})
+func mapEntryToApi(entry set.Entry) (*api.SetEntry, error) {
+	entryId, err := uuid.Parse(entry.Id)
+	if err != nil {
+		return nil, ErrUnknown.WithParent(err)
+	}
+	scoreId, err := uuid.Parse(entry.ScoreId)
+	if err != nil {
+		return nil, ErrUnknown.WithParent(err)
 	}
 
+	return &api.SetEntry{
+		ID:            entryId,
+		ScoreID:       scoreId,
+		Description:   entry.Description,
+		Position:      entry.Position,
+		Transposition: entry.Transposition,
+		View:          mapEntryViewToApi(entry.View),
+	}, nil
+}
+
+// mapEntryViewToApi keeps an absent list an empty one: an entry nobody has
+// looked at differently has every part on screen, which is a list of no parts
+// rather than no list.
+func mapEntryViewToApi(view set.EntryView) api.EntryView {
+	hidden := view.HiddenParts
+	if hidden == nil {
+		hidden = []string{}
+	}
+	return api.EntryView{
+		Transposition: view.Transposition,
+		HiddenParts:   hidden,
+	}
+}
+
+func mapWriteSetFromApi(req *api.WriteSet) set.WriteSet {
 	return set.WriteSet{
 		Title:       req.Title,
 		Description: req.Description,
-		Entries:     entries,
 		SharedWith:  req.SharedWith,
 	}
 }

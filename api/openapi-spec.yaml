@@ -45,6 +45,10 @@ paths:
     $ref: './endpoints/sets/methods.yaml'
   /sets/{setId}:
     $ref: './endpoints/sets/by_id/methods.yaml'
+  /sets/{setId}/entries/{entryId}:
+    $ref: './endpoints/sets/by_id/entries/by_id/methods.yaml'
+  /sets/{setId}/entries/{entryId}/view:
+    $ref: './endpoints/sets/by_id/entries/by_id/view/methods.yaml'
   /healthz:
     $ref: './endpoints/healthz/methods.yaml'
 

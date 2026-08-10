@@ -112,6 +112,62 @@ test('a score with a hidden part is no longer pristine', () => {
 });
 
 // ---------------------------------------------------------------------------
+// OPENING A SCORE THE WAY A SET SAYS IT IS PLAYED
+// ---------------------------------------------------------------------------
+
+// A set names the parts that are off screen all at once. Putting them off one
+// by one would depend on the order they happen to be in — the last one would be
+// refused whenever the ones before it left only itself on screen.
+test('a set of hidden parts replaces whatever was hidden before', () => {
+  const view = ScoreView.forParts(PARTS).withPartVisible('P1', false);
+
+  const asPlayed = view.withHiddenParts(['P2', 'P3']);
+
+  assert.deepEqual(asPlayed.hiddenPartIds, ['P2', 'P3']);
+  assert.deepEqual(asPlayed.visiblePartIds, ['P1'], 'the part that was hidden before should be back');
+});
+
+test('hiding no parts at all puts every part back on screen', () => {
+  const view = ScoreView.forParts(PARTS).withPartVisible('P2', false);
+
+  assert.deepEqual(view.withHiddenParts([]).visiblePartIds, PARTS);
+});
+
+// A set is written against the score as it was then, and a score that has been
+// uploaded again since may no longer have the part that was hidden.
+test('a part the score no longer has is passed over rather than refused', () => {
+  const view = ScoreView.forParts(PARTS).withHiddenParts(['P2', 'a-part-that-was-removed']);
+
+  assert.deepEqual(view.hiddenPartIds, ['P2']);
+});
+
+test('a set that hides every part there is leaves the score on screen', () => {
+  const view = ScoreView.forParts(PARTS);
+
+  const unchanged = view.withHiddenParts(PARTS);
+
+  assert.equal(unchanged, view, 'a score with nothing on it is not a view of anything');
+});
+
+test('hiding the parts that are already hidden changes nothing', () => {
+  const view = ScoreView.forParts(PARTS).withHiddenParts(['P3', 'P1']);
+
+  assert.equal(view.withHiddenParts(['P1', 'P3']), view);
+});
+
+test('the hidden parts keep the order the score lists them in', () => {
+  const view = ScoreView.forParts(PARTS).withHiddenParts(['P3', 'P1']);
+
+  assert.deepEqual(view.hiddenPartIds, ['P1', 'P3']);
+});
+
+test('a transposition survives a change of which parts are on screen', () => {
+  const view = ScoreView.forParts(PARTS).withTransposition(-2).withHiddenParts(['P2']);
+
+  assert.equal(view.transposition, -2);
+});
+
+// ---------------------------------------------------------------------------
 // IMMUTABILITY
 // ---------------------------------------------------------------------------
 

@@ -22,15 +22,10 @@ type User struct {
 	Email   string
 }
 
-// NewUser is how a caller from the auth layer becomes one this package can
-// compare shares against.
 func NewUser(subject, email string) User {
 	return User{Subject: subject, Email: NormalizeEmail(email)}
 }
 
-// NormalizeEmail puts an address in the one form shares are stored and compared
-// in. Addresses are handed around by people typing them, so the case they
-// arrive in says nothing about who they belong to.
 func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
@@ -39,13 +34,32 @@ func NormalizeEmail(email string) string {
 // window of them: they select the same columns, in the order scanSets reads
 // them, and differ only in what they filter by.
 //
-// The join is what makes a share readable: a row survives it when the caller
-// owns the set or their address is on it, and `sh.email IS NOT NULL` in the
-// clauses below is how the second of those is asked.
+// The join on shares is what makes one readable: a row survives it when the
+// caller owns the set or their address is on it, which the clauses below ask
+// as `shared`.
+//
+// A set is last changed at the later of two moments, and which two depends on
+// who is asking. One is when the set itself was written, which is the same for
+// everybody. The other is when the caller last said something about how they
+// look at one of its entries, which is theirs alone. A sync asks for
+// everything that changed for the caller since it last asked, and a view they
+// wrote on another device is exactly that — while somebody else writing theirs
+// is not, and does not turn up here.
 const selectSets = `
-	SELECT s.id, s.owner_subject, s.title, s.description, s.lastChangedAt, s.deletedAt
-	FROM sets AS s
-	LEFT JOIN set_shares AS sh ON sh.set_id = s.id AND sh.email = @email`
+	SELECT id, owner_subject, title, description, last_changed_at, deletedAt
+	FROM (
+		SELECT s.id, s.owner_subject, s.title, s.description, s.deletedAt,
+		       (sh.email IS NOT NULL) AS shared,
+		       GREATEST(s.lastChangedAt, COALESCE(v.last_changed_at, s.lastChangedAt)) AS last_changed_at
+		FROM sets AS s
+		LEFT JOIN set_shares AS sh ON sh.set_id = s.id AND sh.email = @email
+		LEFT JOIN LATERAL (
+			SELECT max(ev.last_changed_at) AS last_changed_at
+			FROM set_entry_views AS ev
+			JOIN set_entries AS e ON e.id = ev.entry_id
+			WHERE e.set_id = s.id AND ev.user_subject = @subject
+		) AS v ON TRUE
+	) AS sets_for_caller`
 
 func scanSets(rows pgx.Rows, user User) ([]*Set, error) {
 	defer rows.Close()
@@ -103,29 +117,43 @@ func fillIn(ctx context.Context, db *pgxpool.Conn, sets []*Set, user User) error
 		ids = append(ids, s.Id)
 	}
 
+	// The join is what makes a view the caller's own: it matches on the subject
+	// of whoever is asking, so a player is handed what they said and nothing
+	// about what anybody else said. An entry nobody has looked at differently
+	// has no row at all, and the coalesced defaults are the view every entry
+	// starts with — as written, every part on screen.
 	const entriesQuery = `
-		SELECT set_id, id, score_id, description, transposition, hidden_parts
-		FROM set_entries
-		WHERE set_id = ANY(@ids)
-		ORDER BY set_id, position`
+		SELECT e.set_id, e.id, e.score_id, e.description, e.position, e.transposition,
+		       COALESCE(v.transposition, 0), COALESCE(v.hidden_parts, '{}')
+		FROM set_entries AS e
+		LEFT JOIN set_entry_views AS v ON v.entry_id = e.id AND v.user_subject = @subject
+		WHERE e.set_id = ANY(@ids)
+		ORDER BY e.set_id, e.position`
 
-	rows, err := db.Query(ctx, entriesQuery, pgx.NamedArgs{"ids": ids})
+	rows, err := db.Query(ctx, entriesQuery, pgx.NamedArgs{"ids": ids, "subject": user.Subject})
 	if err != nil {
 		return err
 	}
 	for rows.Next() {
 		var (
-			setId         string
-			entry         Entry
-			transposition int16
-			hiddenParts   pgtype.Array[string]
+			setId             string
+			entry             Entry
+			position          int32
+			transposition     int16
+			viewTransposition int16
+			hiddenParts       pgtype.Array[string]
 		)
-		if err := rows.Scan(&setId, &entry.Id, &entry.ScoreId, &entry.Description, &transposition, &hiddenParts); err != nil {
+		if err := rows.Scan(&setId, &entry.Id, &entry.ScoreId, &entry.Description, &position,
+			&transposition, &viewTransposition, &hiddenParts); err != nil {
 			rows.Close()
 			return err
 		}
+		entry.Position = int(position)
 		entry.Transposition = int(transposition)
-		entry.HiddenParts = emptyWhenNil(hiddenParts.Elements)
+		entry.View = EntryView{
+			Transposition: int(viewTransposition),
+			HiddenParts:   emptyWhenNil(hiddenParts.Elements),
+		}
 
 		if s := byId[setId]; s != nil {
 			s.Entries = append(s.Entries, entry)
