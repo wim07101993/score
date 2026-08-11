@@ -3,68 +3,84 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Set detail</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Set</title>
     <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="detail.css">
 </head>
 
 <body>
 
-<header>
-    <a id="back-button" href="./">Sets</a>
-    <span id="set-state"></span>
-    <button type="button" id="save-button" disabled>Save</button>
+<header class="topbar">
+    <div class="page topbar-inner">
+        <a id="back-button" class="button button--quiet button--icon" href="./" aria-label="Back to the sets">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+            </svg>
+        </a>
+        <span id="set-state" class="muted"></span>
+        <button type="button" id="save-button" class="button button--primary" disabled>Save</button>
+    </div>
 </header>
 
-<main id="set-detail" hidden>
+<main id="set-detail" class="page stack stack--loose" hidden>
 
-    <section id="about-section">
-        <label for="title-input">Title</label>
-        <input type="text" id="title-input" placeholder="Zomerbar 12 juli"/>
+    <section id="about-section" class="card stack">
+        <div class="stack stack--tight">
+            <label class="label" for="title-input">Title</label>
+            <input type="text" id="title-input" class="input" placeholder="Zomerbar 12 juli"/>
+        </div>
 
-        <label for="description-input">About the gig</label>
-        <textarea id="description-input" rows="2"
-                  placeholder="two sets of forty minutes, break at ten"></textarea>
+        <div class="stack stack--tight">
+            <label class="label" for="description-input">About the gig</label>
+            <textarea id="description-input" class="input" rows="2"
+                      placeholder="two sets of forty minutes, break at ten"></textarea>
+        </div>
     </section>
 
-    <section id="entries-section">
+    <section id="entries-section" class="stack">
         <h2>Played in this order</h2>
         <ol id="entries-list"></ol>
-        <p id="no-entries-notice">
+        <p id="no-entries-notice" class="muted">
             Nothing in this set yet. Add the scores that are played below.
         </p>
-        <p id="unsaved-set-notice" hidden>
+        <p id="unsaved-set-notice" class="notice" hidden>
             Save the set first. What is played in it is stored song by song, so
             there has to be a set to put them in.
         </p>
     </section>
 
-    <section id="add-score-section">
+    <section id="add-score-section" class="stack">
         <h2>Add a score</h2>
-        <label for="score-filter">Filter</label>
-        <input type="search" id="score-filter" placeholder="title, creator or tag"/>
+        <div class="stack stack--tight">
+            <label class="label" for="score-filter">Filter</label>
+            <input type="search" id="score-filter" class="input" placeholder="title, creator or tag"/>
+        </div>
         <div id="score-picker"></div>
-        <p id="no-scores-notice" hidden>
+        <p id="no-scores-notice" class="muted" hidden>
             No scores on this device to add. They arrive with the next sync.
         </p>
     </section>
 
-    <section id="sharing-section">
+    <section id="sharing-section" class="stack">
         <h2>Shared with</h2>
-        <label for="shared-with-input">
-            One address per line. Everyone here can read the set and play from
-            it; changing it stays yours.
-        </label>
-        <textarea id="shared-with-input" rows="3" placeholder="bas@example.com"></textarea>
+        <div class="stack stack--tight">
+            <label class="label" for="shared-with-input">
+                One address per line. Everyone here can read the set and play
+                from it; changing it stays yours.
+            </label>
+            <textarea id="shared-with-input" class="input" rows="3"
+                      placeholder="bas@example.com"></textarea>
+        </div>
     </section>
 
     <section id="delete-section">
-        <button type="button" id="delete-button">Delete this set</button>
+        <button type="button" id="delete-button" class="button button--danger">Delete this set</button>
     </section>
 
 </main>
 
-<p id="forbidden-notice" hidden>
+<p id="forbidden-notice" class="page muted" hidden>
     Sets are for score viewers, and this account is not one.
 </p>
 

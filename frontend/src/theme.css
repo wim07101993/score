@@ -1,11 +1,388 @@
-* {
-    font-family: sans-serif;
-}
+/*
+ * The look of the app, in one place: what the colours, the spacing and the type
+ * are, and what the plain elements do with them. Nothing here knows about any
+ * one page.
+ *
+ * It is written as tokens rather than as rules so that a page says what a thing
+ * IS — a raised surface, quiet text, the space between related things — and not
+ * what colour it happens to be this month. Changing the app's character is then
+ * changing this file, and dark mode is the same tokens with other values behind
+ * them rather than a second set of rules to keep in step.
+ */
+
+/* ---------------------------------------------------------------------------
+ * TOKENS
+ * ------------------------------------------------------------------------ */
 
 :root {
-    --primary-color: #5b64b9;
-    --secondary-color: #dfbdea;
-    --accent-color: #e8abbc;
-    --background: #cce0fa;
-    --second-background: #c0c7ed
+  /* Which ways round the world can be here. Without this a browser paints
+     everything it draws itself — the inside of a text box, a checkbox, a
+     scrollbar, a dropdown — in its light colours whatever the page is doing
+     around them, and a value typed into a box comes out black on a dark box. */
+  color-scheme: light dark;
+
+  /* Type. One system stack, so the app is set in whatever the device already
+     considers readable, and nothing is waiting on a font to arrive. */
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.55;
+
+  /* Space. A scale rather than whatever number looked right, so that things
+     that belong together are spaced alike across every page. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-1: 6px;
+  --radius-2: 10px;
+  --radius-3: 16px;
+  --radius-round: 999px;
+
+  /* How wide a column of text or controls is allowed to get. Sheet music is
+     exempt: it is as wide as the screen. */
+  --measure: 56rem;
+
+  /* The smallest thing worth tapping with a thumb, on a stand, in a hurry. */
+  --tap: 2.75rem;
+
+  /* Colour. The brand is the indigo the app has always been; the neutrals are
+     tinted a little towards it rather than being flat grey, which is what stops
+     a page of cards looking like a spreadsheet. */
+  --brand: #4a53a8;
+  --brand-hover: #3c4491;
+  --brand-text: #ffffff;
+  --brand-soft: #e9ebf8;
+  --brand-quiet: #6b73c4;
+
+  --accent: #c76f8b;
+  --accent-soft: #fbeaf0;
+
+  --surface-1: #f6f7fc;
+  --surface-2: #ffffff;
+  --surface-3: #eceffa;
+  --surface-sunken: #e4e8f6;
+
+  --text-1: #191b26;
+  --text-2: #565c73;
+  --text-3: #838aa3;
+
+  --border: #dbdfee;
+  --border-strong: #bcc2da;
+
+  --danger: #a33b3b;
+  --danger-soft: #fbecec;
+
+  --shadow-1: 0 1px 2px rgb(25 27 38 / 0.06);
+  --shadow-2: 0 2px 8px rgb(25 27 38 / 0.08), 0 1px 2px rgb(25 27 38 / 0.04);
+  --shadow-3: 0 8px 28px rgb(25 27 38 / 0.14), 0 2px 6px rgb(25 27 38 / 0.06);
+
+  /* Sheet music is ink on paper in every light. OSMD draws the notes black, so
+     the page it is drawn on stays paper whatever the rest of the app is doing —
+     a dark surface under black noteheads is not a score anybody can read. */
+  --paper: #ffffff;
+  --ink: #101010;
+
+  --ease: 150ms cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* What the app used to call these. Kept so that a page which has not been
+     rewritten yet still gets sensible colours. */
+  --primary-color: var(--brand);
+  --background: var(--surface-2);
+  --second-background: var(--surface-3);
+  --secondary-color: var(--brand-soft);
+  --accent-color: var(--accent-soft);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand: #98a0ec;
+    --brand-hover: #aeb5f2;
+    --brand-text: #14161f;
+    --brand-soft: #262a40;
+    --brand-quiet: #7d85cf;
+
+    --accent: #e4a0b6;
+    --accent-soft: #35222a;
+
+    --surface-1: #101119;
+    --surface-2: #181a24;
+    --surface-3: #212433;
+    --surface-sunken: #0b0c12;
+
+    --text-1: #eceef7;
+    --text-2: #a5abc2;
+    --text-3: #767d96;
+
+    --border: #2c3042;
+    --border-strong: #3d4256;
+
+    --danger: #e58989;
+    --danger-soft: #3a2224;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-3: 0 8px 28px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * THE PLAIN ELEMENTS
+ * ------------------------------------------------------------------------ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* `hidden` is how every page here says "not now", and the browser says it with
+   `display: none` at the lowest strength there is — so the moment a rule gives
+   the same element a `display` of its own, hiding it stops working and nobody
+   finds out until something empty is on screen. Said once, loudly, for all of
+   them. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  color: var(--text-1);
+  background-color: var(--surface-1);
+  /* A phone held in one hand at a gig should not bounce the header around. */
+  overscroll-behavior-y: none;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  line-height: var(--leading-tight);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--brand);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* Anything focused by keyboard is visibly focused, everywhere, once. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-1);
+}
+
+img, svg {
+  max-width: 100%;
+}
+
+/* A form control inherits neither the page's font nor its colour — a browser
+   gives it its own and leaves it there. So every box, everywhere, starts from
+   the text the page is set in, and a stylesheet that gives a box a background
+   and forgets to give it a colour cannot make it unreadable. */
+input, textarea, select, button {
+  font: inherit;
+  color: inherit;
+}
+
+::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * THE FEW THINGS EVERY PAGE BUILDS OUT OF
+ * ------------------------------------------------------------------------ */
+
+/* A column of content that stops getting wider on a laptop. */
+.page {
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding: var(--space-4);
+}
+
+/* Things stacked with one gap between them, which is most of every layout. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.stack--tight { gap: var(--space-2); }
+.stack--loose { gap: var(--space-5); }
+
+/* Things in a row that wraps rather than overflowing, which on a phone is the
+   difference between a control being reachable and being gone. */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-3);
+  background-color: var(--surface-2);
+  box-shadow: var(--shadow-1);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-2);
+  background-color: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--ease), border-color var(--ease),
+              box-shadow var(--ease), transform var(--ease);
+}
+.button:hover:not(:disabled):not([aria-disabled="true"]) {
+  background-color: var(--surface-3);
+  border-color: var(--brand-quiet);
+}
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.button:disabled,
+.button[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.button--primary {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-text);
+  box-shadow: var(--shadow-1);
+}
+.button--primary:hover:not(:disabled) {
+  background-color: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+.button--quiet {
+  border-color: transparent;
+  background-color: transparent;
+}
+.button--quiet:hover:not(:disabled) {
+  background-color: var(--surface-3);
+  border-color: transparent;
+}
+
+.button--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background-color: transparent;
+}
+.button--danger:hover:not(:disabled) {
+  background-color: var(--danger-soft);
+}
+
+/* A button that is only an icon still has to be as big as a thumb. */
+.button--icon {
+  min-width: var(--tap);
+  padding: 0;
+}
+.button--icon > svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-2);
+  background-color: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+}
+.input::placeholder {
+  color: var(--text-3);
+}
+.input:disabled {
+  background-color: var(--surface-3);
+  color: var(--text-2);
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* A small piece of said-in-passing text: a tag, a count, a key. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-round);
+  background-color: var(--brand-soft);
+  color: var(--brand);
+  font-size: var(--text-sm);
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+}
+
+/* Said to a screen reader and to nobody else. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

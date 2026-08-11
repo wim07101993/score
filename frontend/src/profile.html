@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Profile</title>
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="profile.css">
@@ -10,34 +11,43 @@
 
 <body>
 
-<header>
-    <a id="home-button" href="/">Scores</a>
-    <h1 id="title">Profile</h1>
-    <button type="button" id="refresh-button">Ask the provider again</button>
+<header class="topbar">
+    <div class="page topbar-inner">
+        <a id="home-button" class="button button--quiet button--icon" href="/" aria-label="Back to the scores">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+            </svg>
+        </a>
+        <h1 id="title">Profile</h1>
+        <button type="button" id="refresh-button" class="button">
+            <span class="wide-only">Ask the provider again</span>
+            <span class="narrow-only" aria-hidden="true">Refresh</span>
+        </button>
+    </div>
 </header>
 
-<main>
+<main class="page stack stack--loose">
 
-    <section id="failure-section" hidden>
+    <section id="failure-section" class="card stack" hidden>
         <h2>The app did not start</h2>
         <pre id="failure"></pre>
     </section>
 
-    <section id="user-section">
+    <section id="user-section" class="card stack">
         <h2>You</h2>
         <dl id="user"></dl>
-        <p id="user-source"></p>
+        <p id="user-source" class="muted"></p>
     </section>
 
-    <section id="roles-section">
+    <section id="roles-section" class="card stack">
         <h2>What this app lets you do</h2>
         <dl id="roles"></dl>
-        <p id="roles-explanation"></p>
+        <p id="roles-explanation" class="muted"></p>
     </section>
 
-    <section id="claims-section">
+    <section id="claims-section" class="card stack">
         <h2>Everything the provider said about you</h2>
-        <p id="claims-explanation">
+        <p id="claims-explanation" class="muted">
             This is the answer of the user-info endpoint, as it came back. The
             roles above are read out of one claim of it; which one is said
             below.
@@ -45,27 +55,27 @@
         <pre id="claims"></pre>
     </section>
 
-    <section id="config-section">
+    <section id="config-section" class="card stack">
         <h2>What this app is talking to</h2>
         <dl id="config"></dl>
     </section>
 
-    <section id="storage-section">
+    <section id="storage-section" class="card stack">
         <h2>What is kept on this device</h2>
         <dl id="storage"></dl>
     </section>
 
-    <section id="actions-section">
+    <section id="actions-section" class="card stack">
         <h2>Starting over</h2>
-        <p>
+        <p class="muted">
             None of this signs you out at the provider; it only forgets what
             this device knows.
         </p>
         <div id="actions">
-            <button type="button" id="sign-in-again-button">
+            <button type="button" id="sign-in-again-button" class="button">
                 Forget my tokens and sign in again
             </button>
-            <button type="button" id="update-app-button">
+            <button type="button" id="update-app-button" class="button">
                 Fetch the newest version of the app
             </button>
         </div>

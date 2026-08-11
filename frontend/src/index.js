@@ -1,19 +1,20 @@
-import {buildScoreListItem, registerScoreListItem} from "./components/score-list-item.component.js";
+import {buildScoreCard} from "./components/score-card.component.js";
 import {App} from "./app.js";
 
 const uploadButton = document.getElementById('upload-button');
 const setsButton = document.getElementById('sets-button');
 const scoreList = document.getElementById('score-list');
+const emptyNotice = document.getElementById('empty-notice');
 
 const app = new App('config.json');
 
 function _buildScoreListItems() {
-  scoreList.innerHTML = '';
+  scoreList.replaceChildren();
   const sortedScores = app.scoreRepository.scores.sort((a, b) => (b.last_viewed_at ?? 0) - (a.last_viewed_at ?? 0));
   for (const score of sortedScores) {
-    const listItem = buildScoreListItem(score);
-    scoreList.appendChild(listItem);
+    scoreList.appendChild(buildScoreCard(score));
   }
+  emptyNotice.hidden = sortedScores.length > 0;
 }
 
 function _initScoreEditor() {
@@ -30,6 +31,7 @@ async function _initScoreViewer() {
   if (app.user?.isScoreViewer !== true) {
     scoreList.hidden = true;
     setsButton.hidden = true;
+    emptyNotice.hidden = true;
     console.log('no score viewer');
     return;
   }
@@ -43,8 +45,6 @@ async function _initScoreViewer() {
 }
 
 async function main() {
-  registerScoreListItem();
-
   await app.initialize();
 
   app.scoreRepository.addScoreChangesListener(() => _buildScoreListItems());

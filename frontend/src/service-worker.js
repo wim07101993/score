@@ -1,7 +1,7 @@
 // Bump this whenever a cached file changes: fetches are answered from the cache
 // before the network, so an installed client goes on serving the previous
 // version of every file below until the cache is a different one.
-const cacheName = "score-cache-v0.11";
+const cacheName = "score-cache-v0.13";
 // A directory is listed by the url a page is actually asked for, never as
 // "<dir>/index.html": the file server answers that spelling with a redirect to
 // the directory, and a redirect is not something that can be cached or handed
@@ -11,8 +11,8 @@ const cacheUrls = [
   "/assets/icons/artist.svg",
   "/assets/icons/instrument.svg",
   "/assets/icons/tag.svg",
-  "/components/score-list-item.component.js",
-  "/components/set-list-item.component.js",
+  "/components/score-card.component.js",
+  "/components/set-card.component.js",
   "/data/helper-functions.js",
   "/data/translations.js",
   "/domains/auth/oidc-api.js",
@@ -26,10 +26,14 @@ const cacheUrls = [
   "/domains/sets/api.js",
   "/domains/sets/database.js",
   "/domains/sets/repository.js",
+  "/packages/lit-core.3.3.3.min.js",
   "/packages/open_sheet_music_display.1.8.9.min.js",
   "/scores/detail.css",
   "/scores/detail.html",
   "/scores/detail.js",
+  "/scores/perform.css",
+  "/scores/perform.html",
+  "/scores/perform.js",
   "/sets/",
   "/sets/detail.css",
   "/sets/detail.html",

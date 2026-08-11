@@ -1,104 +1,115 @@
-body {
-    margin: 0;
-}
+/*
+ * One gig: what it is, what is played in it, in what order, in what key, and
+ * who else can read it.
+ */
 
-header {
+.topbar {
     position: sticky;
     top: 0;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    z-index: 10;
+    background-color: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
-    background-color: var(--second-background);
-    z-index: 100;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
 }
 
+/* Whether the set is saved, sitting between the way back and the way to save
+   it, which is the order those three things are thought about in. */
 #set-state {
-    color: #444444;
-    font-size: 0.8rem;
-}
-
-main {
-    padding: 8px;
-}
-
-section {
-    margin-bottom: 24px;
-}
-
-section > h2 {
-    font-size: 1.1rem;
-    margin-bottom: 8px;
-}
-
-#about-section {
-    display: grid;
-    gap: 4px;
-}
-
-#title-input,
-#description-input,
-#shared-with-input,
-#score-filter {
-    padding: 6px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    background-color: var(--background);
-    width: 100%;
-    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #title-input {
-    font-size: 1.2rem;
+    font-size: var(--text-lg);
+    font-weight: 600;
+}
+
+.notice {
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-2);
+    background-color: var(--surface-2);
+    color: var(--text-2);
+    font-size: var(--text-sm);
 }
 
 /* THE SCORES THAT ARE PLAYED */
 
 #entries-list {
-    padding-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
     margin: 0;
+    padding-left: var(--space-5);
 }
 
-#entries-list > li {
-    margin-bottom: 8px;
+#entries-list > li::marker {
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
 }
 
 .entry {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 4px 8px;
-    padding: 8px;
-    border: 1px solid var(--primary-color);
-    border-radius: 10px;
-    background-color: var(--background);
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2);
+    background-color: var(--surface-2);
+    box-shadow: var(--shadow-1);
 }
 
 .entry-title {
-    font-weight: bold;
     align-self: center;
+    font-weight: 600;
+    overflow-wrap: anywhere;
 }
 
+/* A song the set names but this device has not got. It is still part of the
+   gig, which is why it is shown at all rather than left out. */
 .entry-missing {
-    font-weight: normal;
-    color: #884444;
+    font-weight: 400;
+    color: var(--danger);
+    font-style: italic;
 }
 
 .entry-buttons {
     display: flex;
-    gap: 4px;
+    gap: var(--space-1);
     align-items: start;
 }
 
 .entry-buttons > button,
 .entry-buttons > a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-1);
     background: transparent;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    padding: 2px 6px;
-    cursor: pointer;
-    text-decoration: none;
     color: inherit;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.entry-buttons > button:hover:not(:disabled),
+.entry-buttons > a:hover {
+    background-color: var(--surface-3);
+    border-color: var(--brand-quiet);
 }
 
 .entry-buttons > button:disabled,
@@ -111,34 +122,41 @@ section > h2 {
     grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
     align-items: center;
 }
 
 .entry-description {
     flex: 1 1 12rem;
     min-width: 8rem;
-    padding: 4px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    background-color: var(--second-background);
+    min-height: 2.25rem;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-1);
+    background-color: var(--surface-1);
+    color: inherit;
+    font-size: var(--text-sm);
 }
 
 .entry-transposition {
     width: 3.5rem;
-    padding: 4px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    background-color: var(--second-background);
+    min-height: 2.25rem;
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-1);
+    background-color: var(--surface-1);
+    color: inherit;
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
 }
 
 .entry-transpose,
 .entry-parts {
-    font-size: 0.8rem;
-    color: #444444;
     display: flex;
-    gap: 4px;
     align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--text-2);
 }
 
 /* What the band does and what one player reads on top of it are two halves of
@@ -147,16 +165,16 @@ section > h2 {
    the whole of it is wider than a phone. */
 .entry-transpose {
     flex-wrap: wrap;
-    gap: 2px 6px;
-    padding: 2px 6px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-1);
 }
 
 .entry-transpose-field {
     display: flex;
-    gap: 4px;
     align-items: center;
+    gap: var(--space-1);
     white-space: nowrap;
 }
 
@@ -167,52 +185,56 @@ section > h2 {
 }
 
 .entry-transpose-clamped {
-    color: #884444;
+    color: var(--danger);
+    font-style: normal;
+}
+
+.entry-parts > button {
+    min-height: 2rem;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-1);
+    background: transparent;
+    color: inherit;
+    font-size: var(--text-xs);
+    cursor: pointer;
 }
 
 /* ADDING A SCORE */
 
 #score-picker {
     display: grid;
-    gap: 4px;
-    max-height: 20rem;
+    gap: var(--space-2);
+    max-height: 22rem;
     overflow-y: auto;
-    margin-top: 8px;
 }
 
 .score-option {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2);
+    background-color: var(--surface-2);
+    color: inherit;
     text-align: left;
-    padding: 8px;
-    border: 1px solid var(--primary-color);
-    border-radius: 10px;
-    background-color: var(--background);
     cursor: pointer;
+    transition: border-color var(--ease), background-color var(--ease);
+}
+
+.score-option:hover {
+    border-color: var(--brand-quiet);
+    background-color: var(--surface-3);
 }
 
 .score-option > .score-option-creators {
-    display: block;
-    font-size: 0.8rem;
-    color: #444444;
+    color: var(--text-2);
+    font-size: var(--text-sm);
 }
 
 /* DELETING */
 
-#delete-button {
-    padding: 6px 12px;
-    border: 1px solid #884444;
-    border-radius: 4px;
-    background: transparent;
-    color: #884444;
-    cursor: pointer;
-}
-
 #forbidden-notice {
-    margin: 8px;
-}
-
-@media screen and (min-width: 60rem) {
-    main {
-        margin: auto;
-        width: 60rem;
-    }
+    padding-block: var(--space-6);
 }

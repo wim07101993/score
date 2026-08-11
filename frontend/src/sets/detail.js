@@ -437,7 +437,9 @@ function _entryUrl(index) {
     set: draft.id,
     entry: entry.id,
   });
-  return `../scores/detail.html?${search.toString()}`;
+  // Straight to the music. Opening a song of a gig is opening it to play it,
+  // not to read who wrote it.
+  return `../scores/perform.html?${search.toString()}`;
 }
 
 // ----------------------------------------------------------------------------

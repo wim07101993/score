@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Sets</title>
     <link rel="stylesheet" href="../theme.css">
     <link rel="stylesheet" href="index.css">
@@ -10,30 +11,37 @@
 
 <body>
 
-<header>
-    <a id="home-button" href="/">Scores</a>
-    <h1 id="title">Sets</h1>
-    <a id="new-set-button" hidden href="detail.html">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24px"
-             height="24px"
-             viewBox="0 0 20 20">
-            <path d="M9 9V2h2v7h7v2h-7v7H9v-7H2V9h7z"/>
-        </svg>
-    </a>
+<header class="topbar">
+    <div class="page topbar-inner">
+        <a id="home-button" class="button button--quiet button--icon" href="/" aria-label="Back to the scores">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+            </svg>
+        </a>
+        <h1 id="title">Sets</h1>
+        <a id="new-set-button" class="button button--primary" hidden href="detail.html">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="18" height="18"
+                 aria-hidden="true" focusable="false" style="fill: currentColor">
+                <path d="M9 9V2h2v7h7v2h-7v7H9v-7H2V9h7z"/>
+            </svg>
+            <span class="wide-only">New set</span>
+        </a>
+    </div>
 </header>
 
-<p id="offline-notice" hidden>
-    The server cannot be reached. What is here is what this device knows; edits
-    are kept and sent as soon as it can be reached again.
-</p>
+<main class="page stack stack--loose">
+    <p id="offline-notice" class="notice" hidden>
+        The server cannot be reached. What is here is what this device knows;
+        edits are kept and sent as soon as it can be reached again.
+    </p>
 
-<div id="set-list"></div>
+    <div id="set-list"></div>
 
-<p id="empty-notice" hidden>
-    No sets yet. A set is a playlist for a gig: the scores that are played, in
-    playing order, each in the key it is played in.
-</p>
+    <p id="empty-notice" class="muted" hidden>
+        No sets yet. A set is a playlist for a gig: the scores that are played,
+        in playing order, each in the key it is played in.
+    </p>
+</main>
 
 <script src="index.js" type="module"></script>
 <script>
