@@ -1,0 +1,16 @@
+{
+  "oidc": {
+    "clientId": "385771488877215747",
+    "redirectUri": "http://localhost:3000/",
+    "nativeRedirectUri": "app.wvl.score://callback",
+    "desktopRedirectUri": "http://localhost:7005/",
+    "authorizationEndpoint": "https://auth.wvl.app/oauth/v2/authorize",
+    "tokenEndpoint": "https://auth.wvl.app/oauth/v2/token",
+    "userInfoEndpoint": "https://auth.wvl.app/oidc/v1/userinfo",
+    "healthzEndpoint": "https://auth.wvl.app/auth/v1/healthz",
+    "rolesKey": "urn:zitadel:iam:org:project:roles"
+  },
+  "api": {
+    "baseUrl": "http://localhost:7001"
+  }
+}
