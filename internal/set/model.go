@@ -7,6 +7,12 @@ const (
 	MaxTransposition = 12
 )
 
+const (
+	MinZoom     = 0.5
+	MaxZoom     = 4
+	DefaultZoom = 1
+)
+
 type Set struct {
 	Id          string `json:"id"`
 	Title       string `json:"title"`
@@ -33,8 +39,11 @@ type Set struct {
 // is what the band does, and it is the owner's to say. View is the caller's own
 // and nobody else's.
 type Entry struct {
-	Id          string `json:"id"`
-	ScoreId     string `json:"score_id"`
+	Id string `json:"id"`
+
+	// ScoreId is the score that is played, and nil for a song that has none.
+	ScoreId *string `json:"score_id"`
+
 	Description string `json:"description"`
 
 	// Position is where in the running order this one is played, counting from
@@ -65,6 +74,7 @@ type EntryView struct {
 	// Transposition is on top of the entry's rather than instead of it.
 	Transposition int      `json:"transposition"`
 	HiddenParts   []string `json:"hidden_parts"`
+	Zoom          float64  `json:"zoom"`
 }
 
 // WriteSet is what a set is, as the client states it: the gig, and who may read
@@ -84,9 +94,11 @@ type WriteSet struct {
 // Which entry it is, is not here either: it is named by whoever writes it, in
 // the path.
 type WriteEntry struct {
-	ScoreId       string `json:"score_id"`
-	Description   string `json:"description"`
-	Transposition int    `json:"transposition"`
+	// ScoreId is the score that is played, and nil for a song that is on paper
+	// rather than in here.
+	ScoreId       *string `json:"score_id"`
+	Description   string  `json:"description"`
+	Transposition int     `json:"transposition"`
 
 	// Position is where in the running order it goes, counting from zero. The
 	// set is closed up around it, and a place beyond the end of the set is the
@@ -99,4 +111,5 @@ type WriteEntry struct {
 type WriteEntryView struct {
 	Transposition int      `json:"transposition"`
 	HiddenParts   []string `json:"hidden_parts"`
+	Zoom          float64  `json:"zoom"`
 }

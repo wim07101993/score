@@ -33,6 +33,30 @@ export function getScoreTitle(score) {
 }
 
 /**
+ * Text as searching compares it: in lower case and without its accents.
+ *
+ * Somebody looking for Fauré's Après un rêve types what their keyboard makes
+ * easy, and a search that only matches what the engraver typed is a search that
+ * cannot find half the repertoire. It goes both ways — the needle and the score
+ * are put through this — so `apres` finds `Après` and `Après` finds a score
+ * somebody uploaded as `Apres`.
+ *
+ * Splitting the accents off the letters they sit on is what normalising to NFD
+ * does, which leaves them as marks of their own to drop. Letters that are not
+ * an accented anything, such as ø, are left as they are: they are letters, not
+ * decorated ones, and no amount of normalising turns one into an o.
+ *
+ * @param text {string|null|undefined}
+ * @return {string}
+ */
+export function forSearch(text) {
+  return `${text ?? ''}`
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
+
+/**
  * Calls the healthz endpoint and returns whether the response is ok.
  *
  * @param healthzEndpoint {URL}

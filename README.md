@@ -167,10 +167,12 @@ new.
 ### A set says what the band plays; a view says what one player looks at
 
 An entry carries the key the band plays a song in, which is the arrangement and
-the same for everybody. How far one player reads it from there, and which parts
-they have on screen, is theirs: the saxophone player wants their part a sixth up
-with the vocals next to it, the pianist wants the piano staff alone in the
-written key, and both are looking at the same entry of the same set.
+the same for everybody. How far one player reads it from there, which parts they
+have on screen, and how big it is drawn, is theirs: the saxophone player wants
+their part a sixth up with the vocals next to it, the pianist wants the piano
+staff alone in the written key, and the one with the tablet across the room
+wants all of it twice the size. All of them are looking at the same entry of the
+same set.
 
 So an entry carries a `view` as well, and that view belongs to whoever asked for
 the set. Everyone it is shared with has their own, everyone writes their own
@@ -187,9 +189,38 @@ describe and the score page opens with.
 
 Which parts are off screen is set while playing rather than while writing the
 set: the parts a score has are in its document, and the document is not read
-until the score is drawn. So the score page carries a button that writes the way
-it is currently being looked at back into the view of the entry it was opened
-from — as that player's own reading of it, never as the set's.
+until the score is drawn. The same goes for how big it is drawn, which is a
+pinch on the music itself. So the score page writes the way it is being looked
+at back into the view of the entry it was opened from — as that player's own
+reading of it, never as the set's.
+
+It writes it as the player changes it, the way everything else about a set is
+written as it is changed. There is nothing to press: transposing a song at a
+gig and then having to remember to say so is a way of losing it. The writes are
+held back a moment, since dragging a transposition across an octave is a
+handful of changes and what is worth storing is where they came to rest, and
+anything still waiting goes out when the page is left. A score that is still
+opening the way the set says it is played writes nothing at all — what is on
+screen then is the page catching up, not the player reading.
+
+A pinch is answered by drawing the score again rather than by stretching what is
+on screen: the music is laid out to the width it has, so a score that is blown
+up is broken over more systems and stays as wide as the screen. Music that had
+to be scrolled sideways would be unreadable at a gig. While the fingers are
+still down it is stretched, since redrawing every pixel of a pinch would leave
+the music trailing behind them, and what is stretched is exactly what letting go
+draws.
+
+### Not every song has a score
+
+Half of what a band plays is on paper, in a folder, on a stand. A running order
+that could only name what has been uploaded is not the running order, so an
+entry may have no score at all: a place in the gig with nothing to open, called
+by whatever is written next to it. The way through a set steps to it like any
+other song and says what it is when it gets there — stepping over it would have
+the player looking at the wrong song when the band starts the next one. When
+somebody gets round to uploading it, the same entry is given a score and keeps
+its place and everything anybody said about it.
 
 ### Three resources, not one
 

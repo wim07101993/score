@@ -1,5 +1,5 @@
 import {App} from "../app.js";
-import {getScoreTitle} from "../data/helper-functions.js";
+import {forSearch, getScoreTitle} from "../data/helper-functions.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 
 const setState = document.getElementById('set-state');
@@ -18,6 +18,8 @@ const unsavedSetNotice = document.getElementById('unsaved-set-notice');
 const scoreFilter = document.getElementById('score-filter');
 const scorePicker = document.getElementById('score-picker');
 const noScoresNotice = document.getElementById('no-scores-notice');
+const paperEntryInput = document.getElementById('paper-entry-input');
+const addPaperEntryButton = document.getElementById('add-paper-entry-button');
 
 const sharingSection = document.getElementById('sharing-section');
 const addScoreSection = document.getElementById('add-score-section');
@@ -145,6 +147,7 @@ function _markDirty() {
 
 function _drawEntries() {
   const entries = _entries();
+  const typing = _fieldBeingTypedIn();
 
   entriesList.replaceChildren();
   noEntriesNotice.hidden = entries.length > 0 || !isStored;
@@ -154,6 +157,83 @@ function _drawEntries() {
     item.appendChild(_buildEntry(entry, index, entries.length));
     entriesList.appendChild(item);
   });
+
+  _goOnTypingIn(typing);
+}
+
+/**
+ * Which box the player is typing in, so that it can be found again in the list
+ * that is about to replace this one.
+ *
+ * Every song of a set is written as it is changed, and a write draws the list
+ * afresh — so clicking out of one song's note and straight into the next one's
+ * writes the first, throws away every box on the page, and leaves the cursor in
+ * a box that no longer exists. Which song and which of its boxes it was, is
+ * what survives that; where the boxes happen to be in the list is not, since a
+ * write can move them.
+ *
+ * @return {{entryId: string, field: string, start: number|null,
+ *   end: number|null}|null} null when nobody is typing in one
+ */
+function _fieldBeingTypedIn() {
+  const focused = document.activeElement;
+  const entry = focused?.closest?.('.entry');
+  if (entry == null || focused.dataset.field == null) {
+    return null;
+  }
+
+  return {
+    entryId: entry.dataset.entryId,
+    field: focused.dataset.field,
+    start: _cursorAt(focused, 'selectionStart'),
+    end: _cursorAt(focused, 'selectionEnd'),
+  };
+}
+
+/**
+ * Where the cursor is in a box, and nothing for a box that has no answer to
+ * that: a number box refuses to be asked, and putting a cursor back in one is
+ * not worth an exception.
+ *
+ * @param input {HTMLInputElement}
+ * @param which {string}
+ * @return {number|null}
+ */
+function _cursorAt(input, which) {
+  try {
+    return input[which];
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Puts the cursor back where it was, in the box that has taken the place of the
+ * one it was in.
+ *
+ * A box that is no longer there — its song was taken out of the set, or the
+ * button it was on has become one there is nothing to do with — is left alone
+ * rather than guessed at.
+ *
+ * @param typing {{entryId: string, field: string, start: number|null,
+ *   end: number|null}|null}
+ */
+function _goOnTypingIn(typing) {
+  if (typing == null) {
+    return;
+  }
+
+  const entry = entriesList.querySelector(
+    `.entry[data-entry-id="${CSS.escape(typing.entryId)}"]`);
+  const input = entry?.querySelector(`[data-field="${CSS.escape(typing.field)}"]`);
+  if (input == null || input.disabled) {
+    return;
+  }
+
+  input.focus();
+  if (typing.start != null && input.setSelectionRange != null) {
+    input.setSelectionRange(typing.start, typing.end);
+  }
 }
 
 /**
@@ -165,11 +245,24 @@ function _drawEntries() {
 function _buildEntry(entry, index, count) {
   const container = document.createElement('div');
   container.className = 'entry';
+  // Which song this is, so that the box somebody is typing in can be found
+  // again after the list has been drawn afresh.
+  container.dataset.entryId = entry.id;
 
-  const score = app.scoreRepository.scores.find((candidate) => candidate.id === entry.score_id);
+  const score = entry.score_id == null
+    ? null
+    : app.scoreRepository.scores.find((candidate) => candidate.id === entry.score_id);
   const title = document.createElement('span');
   title.className = 'entry-title';
-  if (score == null) {
+  if (entry.score_id == null) {
+    // A song that is played from paper. It has no score to take a title from,
+    // so it is called by what is written next to it — and a song nobody has
+    // written anything next to yet is still a song in the gig.
+    title.classList.add('entry-on-paper');
+    const written = `${entry.description ?? ''}`.trim();
+    title.innerText = written === '' ? 'A song, played from paper' : written;
+    title.title = 'Played from paper; there is no score here to open.';
+  } else if (score == null) {
     title.classList.add('entry-missing');
     title.innerText = 'Not on this device yet';
     title.title = entry.score_id;
@@ -234,6 +327,7 @@ function _buildEntryControls(entry) {
   const description = document.createElement('input');
   description.type = 'text';
   description.className = 'entry-description';
+  description.dataset.field = 'description';
   description.value = entry.description;
   description.placeholder = 'capo 2, second verse only, straight into the next';
   description.disabled = !isOwner;
@@ -267,7 +361,7 @@ function _buildTransposition(entry) {
   group.appendChild(document.createTextNode('transpose'));
 
   // What the band does, which is the owner's to say and the same for everyone.
-  const band = _numberInput(entry.transposition, !isOwner, (semitones) =>
+  const band = _numberInput(entry.transposition, !isOwner, 'band', (semitones) =>
     _writeEntry({id: entry.id, transposition: semitones}));
   group.appendChild(_transpositionField('band', band,
     'The key the band plays this one in, counted in semitones from where it is written. Everyone sees this.'));
@@ -278,7 +372,7 @@ function _buildTransposition(entry) {
   group.appendChild(plus);
 
   // What this player does on top of it, which is theirs and nobody else's.
-  const mine = _numberInput(entry.view.transposition, false, (semitones) =>
+  const mine = _numberInput(entry.view.transposition, false, 'me', (semitones) =>
     _saveMyView(entry.id, {transposition: semitones, hidden_parts: entry.view.hidden_parts}));
   group.appendChild(_transpositionField('me', mine,
     'How far you read it on top of the band, again in semitones. Only you see this.'));
@@ -366,7 +460,7 @@ function _buildParts(entry) {
  * changed rather than waiting for a save button: an entry is a resource of its
  * own, so there is nothing it has to be saved along with.
  *
- * @param entry {{id?: string, score_id?: string, description?: string,
+ * @param entry {{id?: string, score_id?: string|null, description?: string,
  *   transposition?: number, position?: number}}
  * @return {Promise<void>}
  */
@@ -384,13 +478,26 @@ async function _writeEntry(entry) {
 /**
  * Stores how this player reads one entry.
  *
+ * A view is written whole rather than a field at a time, so what the caller has
+ * not said is filled in from how the entry is read now. Saying only that the
+ * key has changed is not saying to read the song at the size every other one is
+ * drawn at, or to put the parts that are off screen back on it.
+ *
  * @param entryId {string}
- * @param view {{transposition: number, hidden_parts: string[]}}
+ * @param view {{transposition?: number, hidden_parts?: string[],
+ *   zoom?: number}}
  * @return {Promise<void>}
  */
 async function _saveMyView(entryId, view) {
+  const read = _entries().find((candidate) => candidate.id === entryId)?.view;
+  const whole = {
+    transposition: view.transposition ?? read?.transposition ?? 0,
+    hidden_parts: view.hidden_parts ?? read?.hidden_parts ?? [],
+    zoom: view.zoom ?? read?.zoom ?? 1,
+  };
+
   try {
-    await app.setRepository.saveEntryView(draft.id, entryId, view);
+    await app.setRepository.saveEntryView(draft.id, entryId, whole);
   } catch (error) {
     console.error('failed to save how this entry is read', error);
     alert(`How you read this one could not be saved: ${error}`);
@@ -402,13 +509,16 @@ async function _saveMyView(entryId, view) {
 /**
  * @param semitones {number}
  * @param disabled {boolean}
+ * @param field {string} which of an entry's boxes this is, so that it can be
+ *   found again after the list is drawn afresh
  * @param onChange {function(number)}
  * @return {HTMLElement}
  */
-function _numberInput(semitones, disabled, onChange) {
+function _numberInput(semitones, disabled, field, onChange) {
   const input = document.createElement('input');
   input.type = 'number';
   input.className = 'entry-transposition';
+  input.dataset.field = field;
   input.min = `${MIN_TRANSPOSITION}`;
   input.max = `${MAX_TRANSPOSITION}`;
   input.step = '1';
@@ -432,11 +542,16 @@ function _numberInput(semitones, disabled, onChange) {
  */
 function _entryUrl(index) {
   const entry = _entries()[index];
+  // A song that is played from paper has no score to name. It opens all the
+  // same: what is on the screen then is which song it is and where in the gig
+  // it comes, with the way on to the next one.
   const search = new URLSearchParams({
-    id: entry.score_id,
     set: draft.id,
     entry: entry.id,
   });
+  if (entry.score_id != null) {
+    search.set('id', entry.score_id);
+  }
   // Straight to the music. Opening a song of a gig is opening it to play it,
   // not to read who wrote it.
   return `../scores/perform.html?${search.toString()}`;
@@ -452,7 +567,7 @@ function _drawScorePicker() {
   const scores = app.scoreRepository.scores;
   noScoresNotice.hidden = scores.length > 0;
 
-  const needle = scoreFilter.value.trim().toLowerCase();
+  const needle = forSearch(scoreFilter.value.trim());
   const matching = scores
     .filter((score) => needle === '' || _searchTextOf(score).includes(needle))
     .sort((a, b) => getScoreTitle(a).localeCompare(getScoreTitle(b)));
@@ -489,15 +604,29 @@ function _buildScoreOption(score) {
 }
 
 /**
+ * Puts a song into the set that this app has no score of.
+ *
+ * It goes in at the end, which is where a song being added to a gig goes, and
+ * is called by what was typed. Nothing is asked of that text: a blank line in a
+ * running order is a thing people write, and the entry can be named later the
+ * same way any other is.
+ */
+async function onAddPaperEntryClicked() {
+  const description = paperEntryInput.value.trim();
+  paperEntryInput.value = '';
+  await _writeEntry({score_id: null, description: description});
+}
+
+/**
  * @param score {Object}
  * @return {string}
  */
 function _searchTextOf(score) {
-  return [
+  return forSearch([
     getScoreTitle(score),
     _creatorsOf(score),
     ...(score.tags ?? []),
-  ].join(' ').toLowerCase();
+  ].join(' '));
 }
 
 /**
@@ -619,6 +748,15 @@ async function main() {
   });
   sharedWithInput.addEventListener('input', _markDirty);
   scoreFilter.addEventListener('input', _drawScorePicker);
+  addPaperEntryButton.addEventListener('click', onAddPaperEntryClicked);
+  // Typing the name of a song and pressing enter is how a list like this is
+  // filled in; reaching for the button every time is not.
+  paperEntryInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      onAddPaperEntryClicked();
+    }
+  });
   saveButton.addEventListener('click', _save);
   deleteButton.addEventListener('click', _delete);
 

@@ -22,22 +22,103 @@ body {
     padding-right: env(safe-area-inset-right);
 }
 
+/* Three columns rather than a row of things pushed about: the two outer ones
+   share whatever is left over equally, so the song in the middle sits in the
+   middle of the bar and not merely in the middle of the space the buttons left
+   it. */
 #bar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-2);
 }
 
-#score-title {
-    flex: 1 1 auto;
+.bar-side {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     min-width: 0;
+}
+
+.bar-side--end {
+    justify-content: flex-end;
+}
+
+#bar-middle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    /* Whatever the song is called, the bar is the width of the screen. */
+    min-width: 0;
+}
+
+/* What is being played and where in the gig it comes, one above the other and
+   both taking whatever room the buttons either side of them leave. */
+#song {
+    min-width: 0;
+    text-align: center;
+}
+
+#score-title {
     font-size: var(--text-md);
     font-weight: 600;
     /* One line, whatever the song is called. */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* WHERE IN THE GIG THIS IS */
+
+#song-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    font-size: var(--text-sm);
+    color: var(--text-2);
+    /* One line, however long the gig is called and however much the player
+       wrote next to this song. */
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* A flex item will not shrink below what is written in it unless it is told it
+   may, and one that cannot shrink is one that runs off the end of the line
+   rather than trailing off with a dot dot dot. */
+#song-line > * {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* A dot between whichever of them there is something to say. Anything with
+   nothing before it starts the line, so nothing ever opens with a dot. */
+#song-line > :not(:empty) ~ :not(:empty)::before {
+    content: '·';
+    margin: 0 var(--space-1);
+}
+
+#set-position {
+    font-variant-numeric: tabular-nums;
+    flex: none;
+}
+
+/* Whatever the player needs to remember about this one, which is the reason to
+   look up from the music at all. */
+#set-entry-description {
+    font-style: italic;
+}
+
+/* The one thing here worth looking up from the music for: what the player did
+   to the song is not stored, and they are the only one who can know that. */
+#reading-state {
+    flex: none;
+}
+
+#reading-state.reading-state--failed {
+    color: var(--danger);
 }
 
 /* A summary that opens a panel over the music rather than pushing it down. */
@@ -110,47 +191,21 @@ body {
     height: 1.05rem;
 }
 
-/* WHERE IN THE GIG THIS IS */
+/* A SONG THAT IS PLAYED FROM PAPER */
 
-#set-controls {
+/* Big enough to read from the stand at a glance, which is the whole of what
+   this page has to say when there is nothing to draw. */
+#paper-notice {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
     gap: var(--space-2);
-    padding: 0 var(--space-2) var(--space-2);
-    border-top: 1px solid var(--border);
-    padding-top: var(--space-2);
+    align-items: center;
+    text-align: center;
+    padding-top: var(--space-7);
 }
 
-#set-button {
-    text-decoration: none;
-    max-width: 14rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#set-position {
-    font-variant-numeric: tabular-nums;
-}
-
-/* Whatever the player needs to remember about this one, which is the reason to
-   look up from the music at all. */
-#set-entry-description {
-    flex: 1 1 8rem;
-    min-width: 0;
-    font-style: italic;
-    color: var(--text-2);
-    font-size: var(--text-sm);
-}
-
-#set-entry-description:empty {
-    display: none;
-}
-
-#save-view-to-set-button {
-    min-height: 2.25rem;
-    padding: 0 var(--space-3);
-    font-size: var(--text-sm);
+.paper-line {
+    font-size: var(--text-md);
 }
 
 /* THE MUSIC */
@@ -165,6 +220,16 @@ body {
        down and left the app's own background showing under it would read as a
        page that failed to finish loading. */
     min-height: 100vh;
+    /* One finger scrolls down the music as it always did; two fingers are a
+       pinch, and this is what keeps the browser from taking them for its own
+       zoom before the page ever hears about them. */
+    touch-action: pan-y;
+}
+
+/* While the fingers are still on the glass the music is stretched rather than
+   drawn again, which is a thing screens are good at and this says so. */
+#score-musicxml.is-pinching {
+    will-change: transform;
 }
 
 #score-musicxml * {

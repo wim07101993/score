@@ -14,15 +14,61 @@
      it and no script has to measure anything to keep the two apart. -->
 <header id="chrome">
     <div id="bar">
-        <a id="back-button" class="button button--quiet button--icon" href="detail.html"
-           aria-label="Back to the score">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
-            </svg>
-        </a>
+        <div class="bar-side">
+            <!-- Out of the song and up a level: to the gig when the song was
+                 opened from one, and to the score itself otherwise. It carries
+                 the icon of wherever it goes rather than one arrow for both —
+                 an arrow next to the arrow that steps back through the running
+                 order is two ways back, and neither says which. -->
+            <a id="back-button" class="button button--quiet button--icon" href="detail.html"
+               aria-label="Back to the score">
+                <svg id="back-to-score-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                     aria-hidden="true" focusable="false">
+                    <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+                </svg>
+                <svg id="back-to-set-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                     aria-hidden="true" focusable="false" hidden>
+                    <path d="M2 3h16v2.4H2zM2 8.8h16v2.4H2zM2 14.6h16V17H2z"/>
+                </svg>
+            </a>
+        </div>
 
-        <h1 id="score-title">Playing</h1>
+        <!-- What is being played, where in the gig it comes, and the way on
+             either side of it. The arrows sit against the song they lead away
+             from, which is where a hand reaches for them, and the whole of it
+             sits in the middle of the bar whatever is at the edges. -->
+        <div id="bar-middle">
+            <a id="set-previous-button" class="button button--quiet button--icon" hidden
+               aria-label="The song before this one" title="The song before this one">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+                </svg>
+            </a>
 
+            <div id="song">
+                <h1 id="score-title">Playing</h1>
+                <div id="song-line" hidden>
+                    <span id="set-name"></span>
+                    <span id="set-position"></span>
+                    <span id="set-entry-description"></span>
+                    <!-- How this player reads a song is written as they change
+                         it, the way everything else about a set is. This is
+                         only a word about it having happened, and it goes away
+                         again. -->
+                    <span id="reading-state" aria-live="polite" hidden
+                          title="Only you see this. What the band plays is the owner's to say."></span>
+                </div>
+            </div>
+
+            <a id="set-next-button" class="button button--quiet button--icon" hidden
+               aria-label="The song after this one" title="The song after this one">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M7.4 2.6l1.4-1.4L17.6 10l-8.8 8.8l-1.4-1.4L14.8 10z"/>
+                </svg>
+            </a>
+        </div>
+
+        <div class="bar-side bar-side--end">
         <details id="download-menu" class="menu" hidden>
             <summary class="button button--quiet button--icon" id="download-button"
                      aria-label="Download this score" title="Download this score">
@@ -71,30 +117,7 @@
                 </button>
             </div>
         </details>
-    </div>
-
-    <!-- Where in the gig this is. Only there when the score was opened from a
-         set, and the one thing on this page worth reading mid-song. -->
-    <div id="set-controls" hidden>
-        <a id="set-previous-button" class="button button--quiet button--icon"
-           aria-label="The score before this one" title="The score before this one">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
-            </svg>
-        </a>
-        <a id="set-button" class="chip" title="Back to the set"></a>
-        <span id="set-position" class="muted"></span>
-        <a id="set-next-button" class="button button--quiet button--icon"
-           aria-label="The score after this one" title="The score after this one">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                <path d="M7.4 2.6l1.4-1.4L17.6 10l-8.8 8.8l-1.4-1.4L14.8 10z"/>
-            </svg>
-        </a>
-        <span id="set-entry-description"></span>
-        <button type="button" id="save-view-to-set-button" class="button" hidden disabled
-                title="Only you see this. What the band plays is the owner's to say.">
-            Save as how I read it
-        </button>
+        </div>
     </div>
 </header>
 
@@ -102,6 +125,13 @@
     There is no score to play here.
     <a href="/">Back to the list</a>
 </p>
+
+<!-- A song of the gig that this app has no score of: it is in a folder, on the
+     stand. There is nothing to draw, but there is still a song and a way on to
+     the next one, so the set controls above stay exactly as they are. -->
+<section id="paper-notice" class="page" hidden>
+    <p class="paper-line">This one is played from paper.</p>
+</section>
 
 <main id="score-musicxml" hidden></main>
 

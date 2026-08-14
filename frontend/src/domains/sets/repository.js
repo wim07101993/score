@@ -8,6 +8,7 @@ import {
 } from "./api.js";
 import {OidcApi} from "../auth/oidc-api.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../scores/score-view.js";
+import {clampZoom} from "../scores/pinch-zoom.js";
 
 /**
  * The sets, as this device has them.
@@ -165,8 +166,13 @@ export class SetsRepository {
    * {@link saveEntryView}, which everyone the set is shared with does for
    * themselves.
    *
+   * An entry may have no score at all: half of what a band plays is on paper,
+   * in a folder, on a stand, and a running order that could only name what has
+   * been uploaded is not the running order. Such an entry is a place in the gig
+   * with nothing to open, called by its description.
+   *
    * @param setId {string}
-   * @param entry {{id?: string, score_id: string, description?: string,
+   * @param entry {{id?: string, score_id?: string|null, description?: string,
    *   transposition?: number, position?: number}}
    * @return {Promise<ScoreSet>}
    */
@@ -177,7 +183,11 @@ export class SetsRepository {
     const known = existing.entries.find((candidate) => candidate.id === entryId);
     const written = new SetEntry(
       entryId,
-      entry.score_id ?? known?.score_id,
+      // Which song it is is asked for by name rather than by whether it is
+      // filled in: `null` is a song that is played off paper, and reading that
+      // as nothing said would put the score back on an entry somebody has just
+      // said has none.
+      _scoreIdOf('score_id' in entry ? entry.score_id : known?.score_id),
       entry.description ?? known?.description ?? '',
       _transpositionOf(entry.transposition ?? known?.transposition),
       // How this user reads it is theirs and is written on its own, so an entry
@@ -185,8 +195,15 @@ export class SetsRepository {
       known?.view ?? new EntryView(),
       known?.synced ?? false);
 
+    // Where it goes when nothing was said about where it goes: where it already
+    // is, and the end of the set for a song that is not in it yet. Saying only
+    // that a song is now called something else is not saying to move it, and a
+    // gig whose running order rearranged itself because somebody corrected a
+    // note next to a song is a gig played in the wrong order.
     const others = existing.entries.filter((candidate) => candidate.id !== entryId);
-    const position = Math.min(Math.max(entry.position ?? others.length, 0), others.length);
+    const whereItIs = existing.entries.findIndex((candidate) => candidate.id === entryId);
+    const asked = entry.position ?? (whereItIs < 0 ? others.length : whereItIs);
+    const position = Math.min(Math.max(asked, 0), others.length);
 
     await this._store([_withEntries(
       existing,
@@ -257,7 +274,8 @@ export class SetsRepository {
    *
    * @param setId {string}
    * @param entryId {string}
-   * @param view {{transposition?: number, hidden_parts?: string[]}}
+   * @param view {{transposition?: number, hidden_parts?: string[],
+   *   zoom?: number}}
    * @return {Promise<ScoreSet>}
    */
   async saveEntryView(setId, entryId, view) {
@@ -543,7 +561,10 @@ export class SetsRepository {
         }
 
         const stored = await this._api.putEntryView(setId, entryId, accessToken,
-          new WriteEntryViewDto(entry.view.transposition, [...entry.view.hidden_parts]));
+          new WriteEntryViewDto(
+            entry.view.transposition,
+            [...entry.view.hidden_parts],
+            entry.view.zoom));
         await this._store([_withEntryView(this._sets.get(setId), entryId, _viewOf(stored), false)]);
       } catch (error) {
         if (!(error instanceof SetsApiError) || error.isWorthRetrying) {
@@ -1013,7 +1034,7 @@ function _entryOf(entry) {
     // at a gig and says how they read it has to be able to say both before
     // either has been sent anywhere.
     entry.id ?? crypto.randomUUID(),
-    entry.score_id,
+    _scoreIdOf(entry.score_id),
     entry.description ?? '',
     _transpositionOf(entry.transposition),
     _viewOf(entry.view),
@@ -1033,7 +1054,26 @@ function _entryOf(entry) {
 function _viewOf(view) {
   return new EntryView(
     _transpositionOf(view?.transposition),
-    Array.isArray(view?.hidden_parts) ? [...view.hidden_parts] : []);
+    Array.isArray(view?.hidden_parts) ? [...view.hidden_parts] : [],
+    // A view that was stored before there was such a thing as a size, or one
+    // that came from a server that has not been updated yet, is a score drawn
+    // the size it is written at.
+    view?.zoom == null ? 1 : clampZoom(Number(view.zoom)));
+}
+
+/**
+ * The score an entry is of, and null for a song that has none.
+ *
+ * A blank is nothing rather than a score with no name: a form hands over what
+ * was typed into it, and what nobody typed a score into is a song that is
+ * played off paper.
+ *
+ * @param scoreId {*}
+ * @return {string|null}
+ * @private
+ */
+function _scoreIdOf(scoreId) {
+  return scoreId == null || `${scoreId}`.trim() === '' ? null : `${scoreId}`;
 }
 
 /**

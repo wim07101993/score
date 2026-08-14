@@ -75,6 +75,20 @@
     overflow-wrap: anywhere;
 }
 
+/* A song that is played from paper. It has no score here and never had one,
+   which is a fact about the gig rather than something to put right, so it is
+   shown as an ordinary song and not as a warning. */
+.entry-on-paper {
+    font-weight: 600;
+}
+
+.entry-on-paper::after {
+    content: ' · on paper';
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text-2);
+}
+
 /* A song the set names but this device has not got. It is still part of the
    gig, which is why it is shown at all rather than left out. */
 .entry-missing {
@@ -207,6 +221,19 @@
     gap: var(--space-2);
     max-height: 22rem;
     overflow-y: auto;
+}
+
+/* The song and the button that adds it, side by side, with the box taking
+   whatever room is left. */
+#paper-entry-row {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+#paper-entry-row > .input {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .score-option {

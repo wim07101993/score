@@ -16,9 +16,12 @@ required:
   - position
 properties:
   score_id:
-    type: string
+    type: [string, 'null']
     format: uuid
-    description: The score that is played.
+    description: |
+      The score that is played, or `null` for a song that has none — one that
+      is on paper rather than in here. Such an entry is called by its
+      `description`.
   description:
     type: string
     description: |

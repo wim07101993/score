@@ -197,6 +197,7 @@ class FakeApi {
     const view = {
       transposition: writeView.transposition,
       hidden_parts: writeView.hidden_parts,
+      zoom: writeView.zoom,
     };
     this.viewPuts.push({setId, entryId, view});
     this.views.set(entryId, view);
@@ -373,8 +374,9 @@ test('what a form left out is filled in with what the API insists on', async () 
     transposition: 0,
     position: 0,
   });
-  assert.deepEqual({...saved.entries[0].view}, {transposition: 0, hidden_parts: []},
-    'an entry nobody has looked at differently is as written, every part on screen');
+  assert.deepEqual({...saved.entries[0].view}, {transposition: 0, hidden_parts: [], zoom: 1},
+    'an entry nobody has looked at differently is as written, every part on screen, '
+    + 'at the size it is written at');
 });
 
 test('a transposition further than the player offers is brought back to it', async () => {
@@ -673,6 +675,23 @@ test('a song is put in at the place it is given, and at the end when it is not',
   assert.equal(api.entryPuts.at(-1).writeEntry.position, 1);
 });
 
+test('a song that is written without being moved stays where it is', async () => {
+  const setId = 'a1b2c3d4-e5f6-4789-8a1b-2c3d4e5f6a7c';
+  const {repository, api} = aRepository([aSet(setId, {entries: []})]);
+  await repository.init();
+  await repository.syncWithApi();
+  await repository.saveEntry(setId, {id: 'first', score_id: 'a'});
+  await repository.saveEntry(setId, {id: 'second', score_id: 'b'});
+  await repository.saveEntry(setId, {id: 'third', score_id: 'c'});
+
+  const saved = await repository.saveEntry(setId, {id: 'first', description: 'capo 2'});
+
+  assert.deepEqual(saved.entries.map((entry) => entry.id), ['first', 'second', 'third'],
+    'saying what a song is called should not rearrange the gig');
+  assert.equal(saved.entries[0].description, 'capo 2');
+  assert.equal(api.entryPuts.at(-1).writeEntry.position, 0);
+});
+
 test('a song that moves is sent as the one song that moved', async () => {
   const setId = 'e5f6a7b8-c9d0-4123-8e4f-5a6b7c8d9e0f';
   const {repository, api} = aRepository([aSet(setId, {entries: []})]);
@@ -803,6 +822,67 @@ test('only the owner of a set arranges it', async () => {
 });
 
 // ----------------------------------------------------------------------------
+// SONGS THAT ARE NOT IN HERE
+// ----------------------------------------------------------------------------
+
+test('a song that is played from paper is part of the running order', async () => {
+  const setId = 'b2c3d4e5-f6a7-4890-8b1c-2d3e4f5a6b7d';
+  const {repository, database, api} = aRepository([aSet(setId, {entries: []})]);
+  await repository.init();
+  await repository.syncWithApi();
+
+  api.online = false;
+  const saved = await repository.saveEntry(setId, {score_id: A_SCORE});
+  const withPaper = await repository.saveEntry(setId, {
+    score_id: null,
+    description: 'Blue Bossa — red folder',
+  });
+
+  assert.equal(withPaper.entries.length, 2);
+  assert.equal(withPaper.entries[1].score_id, null);
+  assert.equal(withPaper.entries[1].description, 'Blue Bossa — red folder');
+  assert.equal(database.rows.get(setId).entries[1].score_id, null,
+    'it should have reached the database, not just the copy in memory');
+  assert.equal(saved.entries[0].score_id, A_SCORE, 'the songs that have a score keep it');
+
+  api.online = true;
+  await repository.syncWithApi();
+
+  assert.equal(api.entryPuts.at(-1).writeEntry.score_id, null);
+  assert.deepEqual(repository.getSet(setId).pending_entries, []);
+});
+
+test('a song on paper keeps having no score when something else about it is written', async () => {
+  const setId = 'c3d4e5f6-a7b8-4901-8c2d-3e4f5a6b7c8e';
+  const {repository} = aRepository([aSet(setId, {entries: []})]);
+  await repository.init();
+  await repository.syncWithApi();
+  const entryId = (await repository.saveEntry(setId, {score_id: null, description: 'the medley'}))
+    .entries[0].id;
+
+  const saved = await repository.saveEntry(setId, {id: entryId, transposition: -2});
+
+  assert.equal(saved.entries[0].score_id, null,
+    'saying what key it is played in should not have given it a score');
+  assert.equal(saved.entries[0].description, 'the medley');
+});
+
+test('a song on paper is given a score when somebody uploads it', async () => {
+  const setId = 'd4e5f6a7-b8c9-4012-8d3e-4f5a6b7c8d9f';
+  const {repository} = aRepository([aSet(setId, {entries: []})]);
+  await repository.init();
+  await repository.syncWithApi();
+  const entryId = (await repository.saveEntry(setId, {score_id: null, description: 'the medley'}))
+    .entries[0].id;
+
+  const saved = await repository.saveEntry(setId, {id: entryId, score_id: A_SCORE});
+
+  assert.equal(saved.entries[0].score_id, A_SCORE);
+  assert.equal(saved.entries[0].description, 'the medley',
+    'it is the same song in the same place in the gig');
+});
+
+// ----------------------------------------------------------------------------
 // HOW THIS PLAYER READS IT
 // ----------------------------------------------------------------------------
 
@@ -816,9 +896,61 @@ test('a view is stored and sent the way a set is', async () => {
   const saved = await repository.saveEntryView(setId, entryId, {transposition: 9, hidden_parts: ['P3']});
 
   assert.equal(api.viewPuts.length, 1);
-  assert.deepEqual(api.viewPuts[0].view, {transposition: 9, hidden_parts: ['P3']});
+  assert.deepEqual(api.viewPuts[0].view, {transposition: 9, hidden_parts: ['P3'], zoom: 1});
   assert.equal(saved.entries[0].view.transposition, 9);
   assert.deepEqual(saved.pending_views, [], 'nothing should still be owed');
+});
+
+test('how big a player draws a score is part of how they read it', async () => {
+  const setId = 'e5f6a7b8-c9d0-4123-8e4f-5a6b7c8d9e1a';
+  const {repository, database, api} = aRepository([aSet(setId)]);
+  await repository.init();
+  await repository.syncWithApi();
+  const entryId = repository.getSet(setId).entries[0].id;
+
+  api.online = false;
+  const saved = await repository.saveEntryView(setId, entryId,
+    {transposition: 0, hidden_parts: [], zoom: 2.5});
+
+  assert.equal(saved.entries[0].view.zoom, 2.5);
+  assert.equal(database.rows.get(setId).entries[0].view.zoom, 2.5,
+    'it should have reached the database, so the song opens that size at the gig');
+
+  api.online = true;
+  await repository.syncWithApi();
+
+  assert.equal(api.viewPuts.at(-1).view.zoom, 2.5);
+});
+
+test('a score is read at the size it is written at until somebody says otherwise', async () => {
+  const setId = 'f6a7b8c9-d0e1-4234-8f5a-6b7c8d9e1a2b';
+  const {repository} = aRepository([aSet(setId)]);
+  await repository.init();
+  await repository.syncWithApi();
+  const entryId = repository.getSet(setId).entries[0].id;
+
+  // A set from a server that has never heard of a size, and a view written by
+  // a page that says nothing about one.
+  assert.equal(repository.getSet(setId).entries[0].view.zoom, 1);
+
+  const saved = await repository.saveEntryView(setId, entryId, {transposition: 3});
+  assert.equal(saved.entries[0].view.zoom, 1);
+});
+
+test('a size no score can be drawn at is brought back to one that can', async () => {
+  const setId = 'a7b8c9d0-e1f2-4345-8a6b-7c8d9e1a2b3c';
+  const {repository} = aRepository([aSet(setId)]);
+  await repository.init();
+  await repository.syncWithApi();
+  const entryId = repository.getSet(setId).entries[0].id;
+
+  // The server refuses a size outside the range, and a write that is refused is
+  // an edit that was made at a gig and thrown away.
+  const tooBig = await repository.saveEntryView(setId, entryId, {zoom: 99});
+  assert.equal(tooBig.entries[0].view.zoom, 4);
+
+  const tooSmall = await repository.saveEntryView(setId, entryId, {zoom: 0.01});
+  assert.equal(tooSmall.entries[0].view.zoom, 0.5);
 });
 
 test('a view written with nothing at the other end is kept and sent at the next sync', async () => {

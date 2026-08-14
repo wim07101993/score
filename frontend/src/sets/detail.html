@@ -51,7 +51,7 @@
     </section>
 
     <section id="add-score-section" class="stack">
-        <h2>Add a score</h2>
+        <h2>Add a song</h2>
         <div class="stack stack--tight">
             <label class="label" for="score-filter">Filter</label>
             <input type="search" id="score-filter" class="input" placeholder="title, creator or tag"/>
@@ -60,6 +60,23 @@
         <p id="no-scores-notice" class="muted" hidden>
             No scores on this device to add. They arrive with the next sync.
         </p>
+
+        <!-- Half of what a band plays is in a folder on the stand. A running
+             order that could only name what has been uploaded is not the
+             running order. -->
+        <div class="stack stack--tight" id="paper-entry-section">
+            <label class="label" for="paper-entry-input">
+                Or a song that is not in here — one that is played from paper.
+                What you write next to it is what it is called.
+            </label>
+            <div id="paper-entry-row">
+                <input type="text" id="paper-entry-input" class="input"
+                       placeholder="Blue Bossa — red folder"/>
+                <button type="button" id="add-paper-entry-button" class="button">
+                    Add
+                </button>
+            </div>
+        </div>
     </section>
 
     <section id="sharing-section" class="stack">

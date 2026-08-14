@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
+	"github.com/google/uuid"
 	"github.com/ogen-go/ogen/json"
 	"github.com/ogen-go/ogen/validate"
 )
@@ -338,11 +339,16 @@ func (s *EntryView) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
+	{
+		e.FieldStart("zoom")
+		e.Float64(s.Zoom)
+	}
 }
 
-var jsonFieldsNameOfEntryView = [2]string{
+var jsonFieldsNameOfEntryView = [3]string{
 	0: "transposition",
 	1: "hidden_parts",
+	2: "zoom",
 }
 
 // Decode decodes EntryView from json.
@@ -351,6 +357,7 @@ func (s *EntryView) Decode(d *jx.Decoder) error {
 		return errors.New("invalid: unable to decode EntryView to nil")
 	}
 	var requiredBitSet [1]uint8
+	s.setDefaults()
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -386,6 +393,18 @@ func (s *EntryView) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hidden_parts\"")
 			}
+		case "zoom":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Float64()
+				s.Zoom = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"zoom\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -396,7 +415,7 @@ func (s *EntryView) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1118,6 +1137,87 @@ func (s NilDateTime) MarshalJSON() ([]byte, error) {
 func (s *NilDateTime) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d, json.DecodeDateTime)
+}
+
+// Encode encodes uuid.UUID as json.
+func (o NilUUID) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	json.EncodeUUID(e, o.Value)
+}
+
+// Decode decodes uuid.UUID from json.
+func (o *NilUUID) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilUUID to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v uuid.UUID
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	v, err := json.DecodeUUID(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilUUID) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilUUID) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes float64 as json.
+func (o OptFloat64) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Float64(float64(o.Value))
+}
+
+// Decode decodes float64 from json.
+func (o *OptFloat64) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptFloat64 to nil")
+	}
+	o.Set = true
+	v, err := d.Float64()
+	if err != nil {
+		return err
+	}
+	o.Value = float64(v)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptFloat64) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptFloat64) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
 }
 
 // Encode implements json.Marshaler.
@@ -3142,7 +3242,7 @@ func (s *SetEntry) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("score_id")
-		json.EncodeUUID(e, s.ScoreID)
+		s.ScoreID.Encode(e)
 	}
 	{
 		e.FieldStart("description")
@@ -3203,9 +3303,7 @@ func (s *SetEntry) Decode(d *jx.Decoder) error {
 		case "score_id":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ScoreID = v
-				if err != nil {
+				if err := s.ScoreID.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -3323,11 +3421,18 @@ func (s *WriteEntryView) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
+	{
+		if s.Zoom.Set {
+			e.FieldStart("zoom")
+			s.Zoom.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfWriteEntryView = [2]string{
+var jsonFieldsNameOfWriteEntryView = [3]string{
 	0: "transposition",
 	1: "hidden_parts",
+	2: "zoom",
 }
 
 // Decode decodes WriteEntryView from json.
@@ -3336,6 +3441,7 @@ func (s *WriteEntryView) Decode(d *jx.Decoder) error {
 		return errors.New("invalid: unable to decode WriteEntryView to nil")
 	}
 	var requiredBitSet [1]uint8
+	s.setDefaults()
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -3370,6 +3476,16 @@ func (s *WriteEntryView) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hidden_parts\"")
+			}
+		case "zoom":
+			if err := func() error {
+				s.Zoom.Reset()
+				if err := s.Zoom.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"zoom\"")
 			}
 		default:
 			return d.Skip()
@@ -3580,7 +3696,7 @@ func (s *WriteSetEntry) Encode(e *jx.Encoder) {
 func (s *WriteSetEntry) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("score_id")
-		json.EncodeUUID(e, s.ScoreID)
+		s.ScoreID.Encode(e)
 	}
 	{
 		e.FieldStart("description")
@@ -3615,9 +3731,7 @@ func (s *WriteSetEntry) Decode(d *jx.Decoder) error {
 		case "score_id":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ScoreID = v
-				if err != nil {
+				if err := s.ScoreID.Decode(d); err != nil {
 					return err
 				}
 				return nil

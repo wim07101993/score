@@ -19,6 +19,7 @@ description: |
 required:
   - transposition
   - hidden_parts
+  - zoom
 properties:
   transposition:
     type: integer
@@ -43,3 +44,19 @@ properties:
       type: string
     examples:
       - [P2, P3]
+  zoom:
+    type: number
+    format: double
+    minimum: 0.5
+    maximum: 4
+    default: 1
+    description: |
+      How big this player draws the score, where 1 is the size it is written
+      at.
+
+      It belongs with the key they read it in and the parts they have on
+      screen, for the same reason those do: it is about the player and the
+      screen they read from rather than about the music. The one reading at
+      arm's length off a tablet on a stand and the one holding a phone are two
+      answers to the same question, and neither is the score's.
+    examples: [1.5]
