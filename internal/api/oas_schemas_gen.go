@@ -83,6 +83,13 @@ type EntryView struct {
 	Transposition int `json:"transposition"`
 	// The parts of the score this player has off screen, by their MusicXML part id.
 	HiddenParts []string `json:"hidden_parts"`
+	// How big this player draws the score, where 1 is the size it is written at.
+	//
+	// It belongs with the key they read it in and the parts they have on screen, for the same reason those
+	// do: it is about the player and the screen they read from rather than about the music. The one
+	// reading at arm's length off a tablet on a stand and the one holding a phone are two answers to the
+	// same question, and neither is the score's.
+	Zoom float64 `json:"zoom"`
 }
 
 // GetTransposition returns the value of Transposition.
@@ -95,6 +102,11 @@ func (s *EntryView) GetHiddenParts() []string {
 	return s.HiddenParts
 }
 
+// GetZoom returns the value of Zoom.
+func (s *EntryView) GetZoom() float64 {
+	return s.Zoom
+}
+
 // SetTransposition sets the value of Transposition.
 func (s *EntryView) SetTransposition(val int) {
 	s.Transposition = val
@@ -103,6 +115,11 @@ func (s *EntryView) SetTransposition(val int) {
 // SetHiddenParts sets the value of HiddenParts.
 func (s *EntryView) SetHiddenParts(val []string) {
 	s.HiddenParts = val
+}
+
+// SetZoom sets the value of Zoom.
+func (s *EntryView) SetZoom(val float64) {
+	s.Zoom = val
 }
 
 func (*EntryView) putSetEntryViewRes() {}
@@ -268,6 +285,51 @@ func (o NilDateTime) Or(d time.Time) time.Time {
 	return d
 }
 
+// NewNilUUID returns new NilUUID with value set to v.
+func NewNilUUID(v uuid.UUID) NilUUID {
+	return NilUUID{
+		Value: v,
+	}
+}
+
+// NilUUID is nullable uuid.UUID.
+type NilUUID struct {
+	Value uuid.UUID
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilUUID) SetTo(v uuid.UUID) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilUUID) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilUUID) SetToNull() {
+	o.Null = true
+	var v uuid.UUID
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilUUID) Get() (v uuid.UUID, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 type OAuth2 struct {
 	Token  string
 	Scopes []string
@@ -291,6 +353,52 @@ func (s *OAuth2) SetToken(val string) {
 // SetScopes sets the value of Scopes.
 func (s *OAuth2) SetScopes(val []string) {
 	s.Scopes = val
+}
+
+// NewOptFloat64 returns new OptFloat64 with value set to v.
+func NewOptFloat64(v float64) OptFloat64 {
+	return OptFloat64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptFloat64 is optional float64.
+type OptFloat64 struct {
+	Value float64
+	Set   bool
+}
+
+// IsSet returns true if OptFloat64 was set.
+func (o OptFloat64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptFloat64) Reset() {
+	var v float64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptFloat64) SetTo(v float64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptFloat64) Get() (v float64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptFloat64) Or(d float64) float64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
 }
 
 // NewOptString returns new OptString with value set to v.
@@ -1071,8 +1179,13 @@ type SetEntry struct {
 	// for a client holding one entry on its own, which the order of a list it is not looking at cannot
 	// tell.
 	Position int `json:"position"`
-	// The score that is played.
-	ScoreID uuid.UUID `json:"score_id"`
+	// The score that is played, or `null` for a song that has none.
+	//
+	// Half of what a band plays is on paper, in a folder, on a stand. An entry without a score is that:
+	// what is played and where in the gig it comes, with nothing to open. It is called by its
+	// `description`, which is the only thing there is to go by when there is no score to take a title
+	// from.
+	ScoreID NilUUID `json:"score_id"`
 	// Whatever the player needs to remember about this one.
 	Description string `json:"description"`
 	// How far the band plays this one from where it is written, in semitones, negative for down. It is the
@@ -1094,7 +1207,7 @@ func (s *SetEntry) GetPosition() int {
 }
 
 // GetScoreID returns the value of ScoreID.
-func (s *SetEntry) GetScoreID() uuid.UUID {
+func (s *SetEntry) GetScoreID() NilUUID {
 	return s.ScoreID
 }
 
@@ -1124,7 +1237,7 @@ func (s *SetEntry) SetPosition(val int) {
 }
 
 // SetScoreID sets the value of ScoreID.
-func (s *SetEntry) SetScoreID(val uuid.UUID) {
+func (s *SetEntry) SetScoreID(val NilUUID) {
 	s.ScoreID = val
 }
 
@@ -1154,6 +1267,13 @@ type WriteEntryView struct {
 	// The parts of the score this player has off screen, by their MusicXML part id. They are replaced
 	// rather than merged: this is the whole of the list.
 	HiddenParts []string `json:"hidden_parts"`
+	// How big this player draws the score, where 1 is the size it is written at.
+	//
+	// It is not required, and a body that leaves it out is read as the size the score is written at. A
+	// client that was written before there was such a thing as a size is still saying something true about
+	// the key and the parts, and refusing what it queued up over a field it has never heard of would throw
+	// that away.
+	Zoom OptFloat64 `json:"zoom"`
 }
 
 // GetTransposition returns the value of Transposition.
@@ -1166,6 +1286,11 @@ func (s *WriteEntryView) GetHiddenParts() []string {
 	return s.HiddenParts
 }
 
+// GetZoom returns the value of Zoom.
+func (s *WriteEntryView) GetZoom() OptFloat64 {
+	return s.Zoom
+}
+
 // SetTransposition sets the value of Transposition.
 func (s *WriteEntryView) SetTransposition(val int) {
 	s.Transposition = val
@@ -1174,6 +1299,11 @@ func (s *WriteEntryView) SetTransposition(val int) {
 // SetHiddenParts sets the value of HiddenParts.
 func (s *WriteEntryView) SetHiddenParts(val []string) {
 	s.HiddenParts = val
+}
+
+// SetZoom sets the value of Zoom.
+func (s *WriteEntryView) SetZoom(val OptFloat64) {
+	s.Zoom = val
 }
 
 // A set as the client states it: what the gig is, and who may read it.
@@ -1235,8 +1365,9 @@ func (s *WriteSet) SetSharedWith(val []string) {
 // Which entry it is, is in the path rather than here.
 // Ref: #
 type WriteSetEntry struct {
-	// The score that is played.
-	ScoreID uuid.UUID `json:"score_id"`
+	// The score that is played, or `null` for a song that has none — one that is on paper rather than in
+	// here. Such an entry is called by its `description`.
+	ScoreID NilUUID `json:"score_id"`
 	// Whatever the player needs to remember about this one.
 	Description string `json:"description"`
 	// How far the band plays this one from where it is written, in semitones, negative for down.
@@ -1256,7 +1387,7 @@ type WriteSetEntry struct {
 }
 
 // GetScoreID returns the value of ScoreID.
-func (s *WriteSetEntry) GetScoreID() uuid.UUID {
+func (s *WriteSetEntry) GetScoreID() NilUUID {
 	return s.ScoreID
 }
 
@@ -1276,7 +1407,7 @@ func (s *WriteSetEntry) GetPosition() int {
 }
 
 // SetScoreID sets the value of ScoreID.
-func (s *WriteSetEntry) SetScoreID(val uuid.UUID) {
+func (s *WriteSetEntry) SetScoreID(val NilUUID) {
 	s.ScoreID = val
 }
 

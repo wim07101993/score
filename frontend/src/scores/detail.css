@@ -1,195 +1,135 @@
-body {
-    margin: 0;
+/*
+ * What a score is, before anybody plays it: what it is called, who wrote it,
+ * what it is for, and the one button that matters.
+ */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--surface-2);
+    border-bottom: 1px solid var(--border);
 }
 
-header {
-    position: fixed;
-    width: 100%;
-    display: grid;
-    background-color: var(--second-background);
-    grid-template-columns: auto auto auto;
-    grid-template-rows: auto;
-    grid-template-areas:
-        "home-button upload-form download-button"
-        "set-controls set-controls set-controls"
-        "view-controls view-controls view-controls";
-    grid-column-gap: 4px;
-    z-index: 100;
-}
-header > *{
-    align-content: center;
-}
-
-#home-button {
-    grid-area: home-button;
-    justify-self: left;
-    margin-left: 4px;
-}
-
-#upload-form {
-    grid-area: upload-form;
-    justify-self: center;
-}
-
-#download-menu {
-    grid-area: download-button;
-    justify-self: right;
-    margin-right: 4px;
-    /* What the menu hangs off. */
-    position: relative;
-}
-
-#download-button {
-    cursor: pointer;
-    padding: 2px;
-    /* A summary is a marker and its contents, and here it is only the icon. */
-    list-style: none;
-}
-
-#download-button::-webkit-details-marker {
-    display: none;
-}
-
-#download-button:hover > svg,
-#download-menu[open] > #download-button > svg {
-    fill: #444444;
-}
-
-/* The menu hangs off the header rather than sitting in it: the header is a grid
-   of fixed areas and it is pinned over the score, so a panel in the flow would
-   push the music down the page every time it was opened. */
-#download-panel {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 101;
+.topbar-inner {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 4px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    background-color: var(--second-background);
-}
-
-#download-panel > button {
-    padding: 4px 8px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    background: transparent;
-    cursor: pointer;
-    text-align: left;
-    white-space: nowrap;
-}
-
-#download-panel > button:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
-/* PLAYING FROM A SET */
-
-#set-controls {
-    grid-area: set-controls;
-    display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    margin: 0 4px 4px 4px;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
 }
 
-#set-controls > a {
-    text-decoration: none;
-    color: inherit;
-    padding: 2px 6px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
+.topbar-title {
+    font-weight: 600;
+    color: var(--text-2);
 }
 
-#set-controls > a[aria-disabled="true"] {
-    opacity: 0.4;
-}
+/* THE SCORE ITSELF */
 
-#set-button {
-    font-weight: bold;
-}
-
-#set-position {
-    font-variant-numeric: tabular-nums;
-}
-
-/* Whatever the player needs to remember about this one, which is the reason to
-   look at the header at all while playing. */
-#set-entry-description {
-    flex: 1 1 8rem;
-    font-style: italic;
-}
-#set-entry-description:empty {
-    display: none;
-}
-
-#save-view-to-set-button {
-    padding: 2px 6px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    background: transparent;
-    cursor: pointer;
-}
-#save-view-to-set-button:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
-
-#score-view-controls {
-    grid-area: view-controls;
-    margin: 0 4px 4px 4px;
-}
-
-#score-view-controls > summary {
-    cursor: pointer;
-    padding: 2px 0;
-}
-
-#score-view-panel {
+/* The title and the way into the music, which is what the page is for. Given
+   the room to be read across a room, since that is where a phone on a stand
+   is. */
+.hero {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 8px;
-    padding-top: 4px;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
 }
 
-#score-view-panel fieldset {
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    margin: 0;
+.hero-title {
     min-width: 0;
 }
 
-#transposition {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+.hero h1 {
+    overflow-wrap: break-word;
 }
 
-#transposition-output {
-    min-width: 3ch;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+.hero-movement {
+    color: var(--text-2);
+    font-size: var(--text-lg);
 }
 
-/* The parts of a score are a list of unknown length, so it scrolls rather than
-   pushing the score off the screen. */
-#parts-list {
+.hero .button--primary {
+    flex: 0 0 auto;
+    padding-inline: var(--space-5);
+}
+
+/* WHAT IS KNOWN ABOUT IT */
+
+/* Label above value rather than beside it: the values are lists of names that
+   wrap, and a two-column table of them turns into a staircase on a phone. */
+.facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--space-4);
+}
+
+.fact {
     display: flex;
     flex-direction: column;
-    max-height: 8em;
-    overflow-y: auto;
+    gap: var(--space-1);
+    min-width: 0;
 }
 
-#parts-list > label {
-    white-space: nowrap;
+.fact-value {
+    overflow-wrap: break-word;
 }
 
-#score-musicxml * {
-    font-family: serif;
+.fact-value--quiet {
+    color: var(--text-3);
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+/* WHERE IT IS PLAYED */
+
+.set-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.set-link {
+    text-decoration: none;
+}
+
+/* CHANGING THE FILE */
+
+.file-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.file-field input[type="file"] {
+    flex: 1 1 14rem;
+    min-width: 0;
+    font-size: var(--text-sm);
+    color: var(--text-2);
+}
+
+.file-field input[type="file"]::file-selector-button {
+    min-height: 2.25rem;
+    margin-right: var(--space-3);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-2);
+    background-color: var(--surface-2);
+    color: var(--text-1);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+
+.section-title {
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }

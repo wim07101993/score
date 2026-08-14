@@ -1,5 +1,5 @@
 import {App} from "../app.js";
-import {buildSetListItem, registerSetListItem} from "../components/set-list-item.component.js";
+import {buildSetCard} from "../components/set-card.component.js";
 
 const newSetButton = document.getElementById('new-set-button');
 const setList = document.getElementById('set-list');
@@ -12,14 +12,12 @@ function _buildSetListItems() {
   setList.replaceChildren();
   const sets = app.setRepository.sets;
   for (const set of sets) {
-    setList.appendChild(buildSetListItem(set));
+    setList.appendChild(buildSetCard(set));
   }
   emptyNotice.hidden = sets.length > 0;
 }
 
 async function main() {
-  registerSetListItem();
-
   await app.initialize();
 
   if (app.user?.isScoreViewer !== true) {

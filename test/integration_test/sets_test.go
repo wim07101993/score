@@ -189,11 +189,11 @@ func TestTheSameScoreCanBePlayedTwiceInASet(t *testing.T) {
 	scoreId := aScore(t)
 
 	opener := &api.WriteSetEntry{
-		ScoreID:     scoreId,
+		ScoreID:     api.NewNilUUID(scoreId),
 		Description: "opener, full band", Transposition: 0, Position: 0,
 	}
 	encore := &api.WriteSetEntry{
-		ScoreID:     scoreId,
+		ScoreID:     api.NewNilUUID(scoreId),
 		Description: "encore, down a tone", Transposition: -2, Position: 2,
 	}
 
@@ -206,8 +206,8 @@ func TestTheSameScoreCanBePlayedTwiceInASet(t *testing.T) {
 	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
 
 	require.Len(t, saved.Entries, 3)
-	assert.Equal(t, scoreId, saved.Entries[0].ScoreID)
-	assert.Equal(t, scoreId, saved.Entries[2].ScoreID)
+	assert.Equal(t, scoreId, saved.Entries[0].ScoreID.Value)
+	assert.Equal(t, scoreId, saved.Entries[2].ScoreID.Value)
 
 	assert.Equal(t, "opener, full band", saved.Entries[0].Description)
 	assert.Equal(t, 0, saved.Entries[0].Transposition)
@@ -234,7 +234,7 @@ func TestTheKeyTheBandPlaysInIsKeptWithTheSet(t *testing.T) {
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Arrangements", nil))
 	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
-		ScoreID:       scoreId,
+		ScoreID:       api.NewNilUUID(scoreId),
 		Description:   "down a third for the singer",
 		Transposition: -4,
 	})
@@ -268,7 +268,7 @@ func TestPlayingAScoreInAnotherKeyLeavesTheScoreAlone(t *testing.T) {
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Transposed", nil))
 	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
-		ScoreID: scoreId, Transposition: 5,
+		ScoreID: api.NewNilUUID(scoreId), Transposition: 5,
 	})
 
 	document := mustGetScoreDocument(t, editor, scoreId, helpers.MusicXmlContentType)
@@ -468,7 +468,7 @@ func TestASharedSetCanBeReadByThePersonItIsSharedWith(t *testing.T) {
 	helpers.MustPutSet(t, owner.ApiClient, setId,
 		helpers.WriteSetOf("Friday night", []string{bandMember.Email}))
 	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
-		ScoreID:       scoreId,
+		ScoreID:       api.NewNilUUID(scoreId),
 		Transposition: 2, Description: "count it in",
 	})
 
@@ -854,7 +854,7 @@ func TestTwoPlayersLookAtTheSameEntryTheirOwnWay(t *testing.T) {
 	helpers.MustPutSet(t, sax.ApiClient, setId,
 		helpers.WriteSetOf("Zomerbar", []string{pianist.Email}))
 	entryId := helpers.MustPutEntry(t, sax.ApiClient, setId, uuid.New(), &api.WriteSetEntry{
-		ScoreID: scoreId, Transposition: -2, Description: "count it in",
+		ScoreID: api.NewNilUUID(scoreId), Transposition: -2, Description: "count it in",
 	}).ID
 
 	helpers.MustPutEntryView(t, sax.ApiClient, setId, entryId, helpers.AView(9, "P3"))
@@ -1033,9 +1033,155 @@ func TestAViewChangesTheSetForThePlayerWhoWroteItAndNobodyElse(t *testing.T) {
 		"somebody else's view was handed to the owner as a change to their set")
 }
 
+// How big a player draws a score is theirs the way the key they read it in is:
+// the one with the tablet on a stand across the room and the one holding a
+// phone are looking at the same entry of the same set.
+func TestHowBigAPlayerDrawsAScoreIsTheirOwn(t *testing.T) {
+	t.Parallel()
+
+	onAStand, onAPhone := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, onAStand.ApiClient, setId,
+		helpers.WriteSetOf("Two screens", []string{onAPhone.Email}))
+	entryId := helpers.MustFillSet(t, onAStand.ApiClient, setId, scoreId)[0].ID
+
+	saved := helpers.MustPutEntryView(t, onAStand.ApiClient, setId, entryId,
+		helpers.AViewAtZoom(0, 2.5, "P2"))
+	assert.InDelta(t, 2.5, saved.Zoom, 0.0001, "the size should come back as it was written")
+
+	helpers.MustPutEntryView(t, onAPhone.ApiClient, setId, entryId, helpers.AViewAtZoom(0, 0.75))
+
+	asTheStandSeesIt := helpers.MustGetSet(t, onAStand.ApiClient, setId)
+	asThePhoneSeesIt := helpers.MustGetSet(t, onAPhone.ApiClient, setId)
+
+	assert.InDelta(t, 2.5, asTheStandSeesIt.Entries[0].View.Zoom, 0.0001)
+	assert.InDelta(t, 0.75, asThePhoneSeesIt.Entries[0].View.Zoom, 0.0001,
+		"the phone was handed the size the stand reads at")
+}
+
+// An entry nobody has said anything about is drawn the size it is written at,
+// and so is one whose view was written by a client that has never heard of
+// drawing it any bigger. Such a client is still saying something true about the
+// key and the parts, and throwing that away over a field it does not know about
+// would lose an edit it made at a gig.
+func TestAScoreIsDrawnAsItIsWrittenUntilSomebodySaysOtherwise(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("As written", nil))
+	entryId := helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)[0].ID
+
+	neverLookedAt := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.InDelta(t, 1, neverLookedAt.Entries[0].View.Zoom, 0.0001)
+
+	saved := helpers.MustPutEntryView(t, owner.ApiClient, setId, entryId, helpers.AView(3, "P2"))
+	assert.InDelta(t, 1, saved.Zoom, 0.0001,
+		"a view that says nothing about the size should be read as the size it is written at")
+
+	written := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.Equal(t, 3, written.Entries[0].View.Transposition,
+		"what it did say should have been kept")
+	assert.InDelta(t, 1, written.Entries[0].View.Zoom, 0.0001)
+}
+
+// ---------------------------------------------------------------------------
+// SONGS THAT ARE NOT IN HERE
+// ---------------------------------------------------------------------------
+
+// Half of what a band plays is on paper. A running order that could only name
+// what has been uploaded is not the running order, so an entry may have no
+// score: a place in the gig with nothing to open, called by whatever is written
+// next to it.
+func TestASetHoldsASongThatHasNoScore(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Half on paper", nil))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(), helpers.AnEntry(scoreId, 0))
+	onPaper := helpers.MustPutEntry(t, owner.ApiClient, setId, uuid.New(),
+		helpers.APaperEntry("Blue Bossa — red folder", 1))
+
+	assert.True(t, onPaper.ScoreID.Null, "the entry should have come back with no score")
+	assert.Equal(t, "Blue Bossa — red folder", onPaper.Description)
+
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
+
+	require.Len(t, saved.Entries, 2)
+	assert.Equal(t, scoreId, saved.Entries[0].ScoreID.Value)
+	assert.False(t, saved.Entries[0].ScoreID.Null)
+	assert.True(t, saved.Entries[1].ScoreID.Null)
+	assert.Equal(t, "Blue Bossa — red folder", saved.Entries[1].Description)
+}
+
+// A song on paper takes its place in the gig like any other, and the songs that
+// do have a score close up around it.
+func TestASongOnPaperIsPlayedWhereItIsPutInTheRunningOrder(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	first, last := aScore(t), aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Paper in the middle", nil))
+	helpers.MustFillSet(t, owner.ApiClient, setId, first, last)
+	paperId := uuid.New()
+	helpers.MustPutEntry(t, owner.ApiClient, setId, paperId, helpers.APaperEntry("the medley", 1))
+
+	saved := helpers.MustGetSet(t, owner.ApiClient, setId)
+
+	require.Len(t, saved.Entries, 3)
+	assert.Equal(t, []uuid.UUID{first, uuid.Nil, last}, helpers.ScoreIdsOf(saved))
+	assert.Equal(t, paperId, saved.Entries[1].ID)
+	assert.Equal(t, []int{0, 1, 2}, positionsOf(saved))
+
+	// And it can be given a score later, when somebody gets round to uploading
+	// it: it is the same song in the same place in the gig.
+	uploaded := aScore(t)
+	helpers.MustPutEntry(t, owner.ApiClient, setId, paperId,
+		&api.WriteSetEntry{ScoreID: api.NewNilUUID(uploaded), Description: "the medley", Position: 1})
+
+	after := helpers.MustGetSet(t, owner.ApiClient, setId)
+	assert.Equal(t, []uuid.UUID{first, uploaded, last}, helpers.ScoreIdsOf(after))
+}
+
 // ---------------------------------------------------------------------------
 // WHAT A VIEW REFUSES
 // ---------------------------------------------------------------------------
+
+// A size outside the range the player offers is a client that is wrong rather
+// than a reading that went too far, so it is refused rather than brought back
+// into range.
+func TestAViewRefusesASizeAScoreCannotBeDrawnAt(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Out of range", nil))
+	entryId := helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)[0].ID
+
+	for name, zoom := range map[string]float64{
+		"bigger than the player draws":  4.5,
+		"smaller than the player draws": 0.1,
+	} {
+		t.Run(name, func(t *testing.T) {
+			res, err := owner.PutSetEntryView(t.Context(), helpers.AViewAtZoom(0, zoom),
+				api.PutSetEntryViewParams{SetId: setId, EntryId: entryId})
+
+			require.NoError(t, err)
+			assert.IsTypef(t, &api.PutSetEntryViewBadRequest{}, res, "got %#v", res)
+		})
+	}
+}
 
 func TestAViewOfAnEntryThatIsNotInTheSetIsNotFound(t *testing.T) {
 	t.Parallel()

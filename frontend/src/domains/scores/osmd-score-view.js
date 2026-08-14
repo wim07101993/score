@@ -1,4 +1,5 @@
 import {ScoreView} from './score-view.js';
+import {clampZoom, DEFAULT_ZOOM} from './pinch-zoom.js';
 
 /**
  * Draws a score with OpenSheetMusicDisplay the way a {@link ScoreView}
@@ -34,11 +35,48 @@ export class ScoreRenderer {
      * @type {number}
      */
     this._appliedTransposition = 0;
+    /**
+     * How big the music is drawn. Not part of the view: it says nothing about
+     * the music, only about how close the player is sitting to it.
+     * @type {number}
+     */
+    this._zoom = DEFAULT_ZOOM;
   }
 
   /** @return {ScorePart[]} */
   get parts() {
     return this._parts;
+  }
+
+  /** @return {number} */
+  get zoom() {
+    return this._zoom;
+  }
+
+  /**
+   * Draws the same music bigger or smaller.
+   *
+   * This is a redraw rather than a stretch of what is already there: OSMD lays
+   * the score out to the width it has, so a score that is blown up is broken
+   * over more systems and stays as wide as the screen. Which is the point —
+   * music that had to be scrolled sideways would be unreadable at a gig.
+   *
+   * @param zoom {number}
+   * @return {number} the zoom that is now on screen, which is the one asked for
+   *   unless that was past either end of the range
+   */
+  setZoom(zoom) {
+    const clamped = clampZoom(zoom);
+    if (clamped === this._zoom) {
+      return clamped;
+    }
+
+    this._zoom = clamped;
+    if (this._musicXml != null) {
+      this._osmd.Zoom = clamped;
+      this._osmd.render();
+    }
+    return clamped;
   }
 
   /**
@@ -183,6 +221,11 @@ export class ScoreRenderer {
     }
     sheet.Transpose = view.transposition;
     this._appliedTransposition = view.transposition;
+
+    // Reading the score again to transpose it draws it at OSMD's own size, so
+    // how big it is being read at is said here rather than only when it
+    // changes.
+    this._osmd.Zoom = this._zoom;
 
     // The drawing is built from the parsed sheet, so it has to be rebuilt
     // before rendering or none of the above is on screen.

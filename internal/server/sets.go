@@ -117,7 +117,7 @@ func (h *Handler) PutSetEntry(
 		params.EntryId.String(),
 		user,
 		set.WriteEntry{
-			ScoreId:       req.ScoreID.String(),
+			ScoreId:       scoreIdFromApi(req.ScoreID),
 			Description:   req.Description,
 			Transposition: req.Transposition,
 			Position:      req.Position,
@@ -195,6 +195,7 @@ func (h *Handler) PutSetEntryView(
 		set.WriteEntryView{
 			Transposition: req.Transposition,
 			HiddenParts:   req.HiddenParts,
+			Zoom:          req.Zoom.Or(set.DefaultZoom),
 		})
 	if err != nil {
 		if errors.Is(err, set.ErrSetEntryNotFound) {
@@ -320,9 +321,14 @@ func mapEntryToApi(entry set.Entry) (*api.SetEntry, error) {
 	if err != nil {
 		return nil, ErrUnknown.WithParent(err)
 	}
-	scoreId, err := uuid.Parse(entry.ScoreId)
-	if err != nil {
-		return nil, ErrUnknown.WithParent(err)
+
+	scoreId := api.NilUUID{Null: true}
+	if entry.ScoreId != nil {
+		parsed, err := uuid.Parse(*entry.ScoreId)
+		if err != nil {
+			return nil, ErrUnknown.WithParent(err)
+		}
+		scoreId = api.NewNilUUID(parsed)
 	}
 
 	return &api.SetEntry{
@@ -335,6 +341,16 @@ func mapEntryToApi(entry set.Entry) (*api.SetEntry, error) {
 	}, nil
 }
 
+// scoreIdFromApi is the score an entry names, and nothing at all for a song
+// that has none.
+func scoreIdFromApi(scoreId api.NilUUID) *string {
+	if scoreId.Null {
+		return nil
+	}
+	asString := scoreId.Value.String()
+	return &asString
+}
+
 // mapEntryViewToApi keeps an absent list an empty one: an entry nobody has
 // looked at differently has every part on screen, which is a list of no parts
 // rather than no list.
@@ -343,9 +359,15 @@ func mapEntryViewToApi(view set.EntryView) api.EntryView {
 	if hidden == nil {
 		hidden = []string{}
 	}
+	zoom := view.Zoom
+	if zoom == 0 {
+		zoom = set.DefaultZoom
+	}
+
 	return api.EntryView{
 		Transposition: view.Transposition,
 		HiddenParts:   hidden,
+		Zoom:          zoom,
 	}
 }
 

@@ -1,32 +1,133 @@
-header {
-    display: grid;
-    grid-template-columns: 1fr auto auto auto;
+/*
+ * The list of scores: the first thing anybody sees, and the way in to
+ * everything else.
+ */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+    display: flex;
     align-items: center;
-    column-gap: 16px;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
 }
 
-#sets-button,
-#profile-button {
-    place-self: center;
+.topbar-inner > h1 {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-#upload-button {
-    place-self: center;
-    margin-right: 8px;
+/* A row of controls beside a heading only fits while the screen is wide enough
+   for both. Below that the words go and the icons stay, rather than the title
+   and the buttons growing into one another. */
+@media (max-width: 32rem) {
+    .topbar-inner {
+        gap: var(--space-1);
+    }
+
+    .topbar-inner > h1 {
+        font-size: var(--text-xl);
+    }
+
+    .topbar-inner .button {
+        padding-inline: var(--space-2);
+    }
+
+    .wide-only {
+        display: none;
+    }
+
+    #upload-button {
+        min-width: var(--tap);
+        padding-inline: 0;
+    }
 }
-#upload-button:hover > svg {
-    fill: #444444;
+
+#empty-notice {
+    padding-block: var(--space-6);
+    text-align: center;
 }
+
+/* THE CARDS */
 
 #score-list {
     display: grid;
-    grid-auto-flow: row;
-    grid-row-gap: 8px;
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    padding-bottom: var(--space-7);
 }
 
-@media screen and (min-width: 60rem) {
-    #score-list {
-        margin: auto;
-        width: 60rem;
+.score-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    height: 100%;
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-3);
+    background-color: var(--surface-2);
+    box-shadow: var(--shadow-1);
+    color: inherit;
+    text-decoration: none;
+    /* The border is there from the start and only changes colour, so nothing
+       shifts by a pixel when the pointer arrives. */
+    transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
+}
+
+.score-card:hover {
+    border-color: var(--brand-quiet);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+}
+
+.score-card-title {
+    font-size: var(--text-lg);
+    overflow-wrap: break-word;
+}
+
+.score-card-line {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    min-width: 0;
+}
+
+.score-card-line > span {
+    overflow-wrap: anywhere;
+}
+
+.score-card-icon {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin-top: 0.2em;
+    opacity: 0.55;
+}
+
+@media (prefers-color-scheme: dark) {
+    /* The icons are black line art, which is invisible on a dark card. */
+    .score-card-icon {
+        filter: invert(1);
+        opacity: 0.65;
     }
+}
+
+/* Tags sit at the bottom of the card whatever length the rest came out. */
+.score-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    margin-top: auto;
+    padding-top: var(--space-1);
 }

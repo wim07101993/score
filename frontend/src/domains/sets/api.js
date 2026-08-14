@@ -367,7 +367,8 @@ export class SetEntryDto {
    *
    * @param {string} id the entry's for as long as it is in the set, a rewrite
    *   of the set included
-   * @param {string} score_id
+   * @param {string|null} score_id the score that is played, and null for a song
+   *   that has none — one that is played off paper
    * @param {string} description
    * @param {number} transposition how far the band plays this one from where
    *   it is written, in semitones, negative for down
@@ -389,10 +390,13 @@ export class EntryViewDto {
    *   it: the entry says the band plays this one a tone down, this says the
    *   player reads that a fifth up
    * @param {string[]} hidden_parts the parts this player has off screen
+   * @param {number} zoom how big this player draws it, where 1 is the size it
+   *   is written at
    */
-  constructor(transposition, hidden_parts) {
+  constructor(transposition, hidden_parts, zoom = 1) {
     this.transposition = transposition;
     this.hidden_parts = hidden_parts;
+    this.zoom = zoom;
   }
 }
 
@@ -400,10 +404,12 @@ export class WriteEntryViewDto {
   /**
    * @param {number} transposition
    * @param {string[]} hidden_parts
+   * @param {number} zoom
    */
-  constructor(transposition, hidden_parts) {
+  constructor(transposition, hidden_parts, zoom = 1) {
     this.transposition = transposition;
     this.hidden_parts = hidden_parts;
+    this.zoom = zoom;
   }
 }
 
@@ -433,7 +439,8 @@ export class WriteSetEntryDto {
    *
    * Which entry it is, is not here either: it is named in the path.
    *
-   * @param {string} score_id
+   * @param {string|null} score_id the score that is played, and null for a song
+   *   that is played off paper
    * @param {string} description
    * @param {number} transposition how far the band plays it from where it is
    *   written

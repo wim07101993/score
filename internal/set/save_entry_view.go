@@ -39,6 +39,9 @@ func SaveEntryView(
 	if err := validateTransposition(write.Transposition, "the view"); err != nil {
 		return nil, err
 	}
+	if err := validateZoom(write.Zoom); err != nil {
+		return nil, err
+	}
 
 	// Whether the caller may write here is whether they may read the set the
 	// entry is in, which is the same join a read of a set is made of.
@@ -67,11 +70,12 @@ func SaveEntryView(
 	}
 
 	const upsertQuery = `
-		INSERT INTO set_entry_views (entry_id, user_subject, transposition, hidden_parts, last_changed_at)
-		VALUES (@entry_id, @user_subject, @transposition, @hidden_parts, @last_changed_at)
+		INSERT INTO set_entry_views (entry_id, user_subject, transposition, hidden_parts, zoom, last_changed_at)
+		VALUES (@entry_id, @user_subject, @transposition, @hidden_parts, @zoom, @last_changed_at)
 		ON CONFLICT (entry_id, user_subject) DO UPDATE SET
 			transposition = EXCLUDED.transposition,
 			hidden_parts = EXCLUDED.hidden_parts,
+			zoom = EXCLUDED.zoom,
 			last_changed_at = EXCLUDED.last_changed_at`
 
 	_, err = db.Exec(ctx, upsertQuery, pgx.NamedArgs{
@@ -79,6 +83,7 @@ func SaveEntryView(
 		"user_subject":  user.Subject,
 		"transposition": write.Transposition,
 		"hidden_parts":  emptyWhenNil(write.HiddenParts),
+		"zoom":          write.Zoom,
 		// A view is a change to the set as far as the player who wrote it is
 		// concerned, and this is what says so: the set is last changed for them
 		// at the later of its own moment and this one, which is how a view
@@ -93,5 +98,15 @@ func SaveEntryView(
 	return &EntryView{
 		Transposition: write.Transposition,
 		HiddenParts:   emptyWhenNil(write.HiddenParts),
+		Zoom:          write.Zoom,
 	}, nil
+}
+
+func validateZoom(zoom float64) error {
+	if zoom < MinZoom || zoom > MaxZoom {
+		return &ErrInvalidSet{Reason: fmt.Sprintf(
+			"the score is drawn at %g times its size, which is outside the range %g..%g",
+			zoom, MinZoom, MaxZoom)}
+	}
+	return nil
 }

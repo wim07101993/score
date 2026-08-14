@@ -180,7 +180,12 @@ export class SetEntry {
    *   entry keeps its id across a write of the set, which is what lets a view
    *   of it go on pointing at the same thing; an entry added here is named
    *   here, and the server keeps the name.
-   * @param {string} score_id
+   * @param {string|null} score_id the score that is played, and null for a song
+   *   that is played off paper. Half of what a band plays is in a folder on a
+   *   stand rather than in here, and a running order that could only name what
+   *   has been uploaded is not the running order. Such an entry is called by
+   *   its description, which is all there is to go by without a score to take a
+   *   title from.
    * @param {string} description
    * @param {number} transposition how far the band plays this one from where
    *   it is written, in semitones, negative for down
@@ -212,9 +217,14 @@ export class EntryView {
   /**
    * @param {number} transposition semitones on top of the entry's own
    * @param {string[]} hidden_parts by MusicXML part id
+   * @param {number} zoom how big this player draws it, where 1 is the size it
+   *   is written at. It is theirs for the same reason the rest of a view is:
+   *   the player with a tablet on a stand across the room and the one holding a
+   *   phone are looking at the same song.
    */
-  constructor(transposition = 0, hidden_parts = []) {
+  constructor(transposition = 0, hidden_parts = [], zoom = 1) {
     this.transposition = transposition;
     this.hidden_parts = hidden_parts;
+    this.zoom = zoom;
   }
 }

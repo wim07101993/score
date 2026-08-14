@@ -24,3 +24,19 @@ properties:
       type: string
     examples:
       - [P2, P3]
+  zoom:
+    type: number
+    format: double
+    minimum: 0.5
+    maximum: 4
+    default: 1
+    description: |
+      How big this player draws the score, where 1 is the size it is written
+      at.
+
+      It is not required, and a body that leaves it out is read as the size the
+      score is written at. A client that was written before there was such a
+      thing as a size is still saying something true about the key and the
+      parts, and refusing what it queued up over a field it has never heard of
+      would throw that away.
+    examples: [1.5]

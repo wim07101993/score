@@ -39,9 +39,15 @@ properties:
       which the order of a list it is not looking at cannot tell.
     examples: [3]
   score_id:
-    type: string
+    type: [string, 'null']
     format: uuid
-    description: The score that is played.
+    description: |
+      The score that is played, or `null` for a song that has none.
+
+      Half of what a band plays is on paper, in a folder, on a stand. An entry
+      without a score is that: what is played and where in the gig it comes,
+      with nothing to open. It is called by its `description`, which is the
+      only thing there is to go by when there is no score to take a title from.
   description:
     type: string
     description: |

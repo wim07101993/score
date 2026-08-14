@@ -124,7 +124,7 @@ func fillIn(ctx context.Context, db *pgxpool.Conn, sets []*Set, user User) error
 	// starts with — as written, every part on screen.
 	const entriesQuery = `
 		SELECT e.set_id, e.id, e.score_id, e.description, e.position, e.transposition,
-		       COALESCE(v.transposition, 0), COALESCE(v.hidden_parts, '{}')
+		       COALESCE(v.transposition, 0), COALESCE(v.hidden_parts, '{}'), COALESCE(v.zoom, 1)
 		FROM set_entries AS e
 		LEFT JOIN set_entry_views AS v ON v.entry_id = e.id AND v.user_subject = @subject
 		WHERE e.set_id = ANY(@ids)
@@ -142,9 +142,10 @@ func fillIn(ctx context.Context, db *pgxpool.Conn, sets []*Set, user User) error
 			transposition     int16
 			viewTransposition int16
 			hiddenParts       pgtype.Array[string]
+			zoom              float32
 		)
 		if err := rows.Scan(&setId, &entry.Id, &entry.ScoreId, &entry.Description, &position,
-			&transposition, &viewTransposition, &hiddenParts); err != nil {
+			&transposition, &viewTransposition, &hiddenParts, &zoom); err != nil {
 			rows.Close()
 			return err
 		}
@@ -153,6 +154,7 @@ func fillIn(ctx context.Context, db *pgxpool.Conn, sets []*Set, user User) error
 		entry.View = EntryView{
 			Transposition: int(viewTransposition),
 			HiddenParts:   emptyWhenNil(hiddenParts.Elements),
+			Zoom:          float64(zoom),
 		}
 
 		if s := byId[setId]; s != nil {

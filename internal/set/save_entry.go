@@ -113,7 +113,7 @@ func SaveEntry(
 		// The only thing a set entry points at is a score, so a row that points
 		// at something missing is a score that is not there.
 		if storage.IsForeignKeyViolation(err) {
-			return nil, &ErrUnknownScore{ScoreId: write.ScoreId}
+			return nil, &ErrUnknownScore{ScoreId: valueOr(write.ScoreId, "")}
 		}
 		return nil, fmt.Errorf("failed to save the entry: %w", err)
 	}
@@ -303,21 +303,23 @@ func touchSet(ctx context.Context, tx pgx.Tx, setId string) error {
 // entry starts with when they have never said.
 func viewOfEntry(ctx context.Context, tx pgx.Tx, entryId string, user User) (*EntryView, error) {
 	const query = `
-		SELECT transposition, hidden_parts
+		SELECT transposition, hidden_parts, zoom
 		FROM set_entry_views
 		WHERE entry_id = @entry_id AND user_subject = @user_subject`
 
 	var (
 		transposition int16
 		hiddenParts   pgtype.Array[string]
+		zoom          float32
 	)
 	err := tx.QueryRow(ctx, query, pgx.NamedArgs{
 		"entry_id":     entryId,
 		"user_subject": user.Subject,
-	}).Scan(&transposition, &hiddenParts)
+	}).Scan(&transposition, &hiddenParts, &zoom)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		return &EntryView{HiddenParts: []string{}}, nil
+		// As written, every part on screen, at the size it is written at.
+		return &EntryView{HiddenParts: []string{}, Zoom: DefaultZoom}, nil
 	case err != nil:
 		return nil, fmt.Errorf("failed to read the view of the entry: %w", err)
 	}
@@ -325,14 +327,11 @@ func viewOfEntry(ctx context.Context, tx pgx.Tx, entryId string, user User) (*En
 	return &EntryView{
 		Transposition: int(transposition),
 		HiddenParts:   emptyWhenNil(hiddenParts.Elements),
+		Zoom:          float64(zoom),
 	}, nil
 }
 
-// validateEntry checks what the store cannot.
 func validateEntry(write WriteEntry) error {
-	if write.ScoreId == "" {
-		return &ErrInvalidSetEntry{Reason: "the entry has no score"}
-	}
 	if write.Position < 0 {
 		return &ErrInvalidSetEntry{Reason: fmt.Sprintf(
 			"the entry is played at position %d, which is before the start of the set", write.Position)}
@@ -343,6 +342,13 @@ func validateEntry(write WriteEntry) error {
 			write.Transposition, MinTransposition, MaxTransposition)}
 	}
 	return nil
+}
+
+func valueOr[T any](value *T, fallback T) T {
+	if value == nil {
+		return fallback
+	}
+	return *value
 }
 
 func without(order []string, id string) []string {

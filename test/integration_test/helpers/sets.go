@@ -58,11 +58,12 @@ func FindSet(sets api.GetSetsResponse, setId uuid.UUID) (api.Set, bool) {
 }
 
 // ScoreIdsOf is the scores of a set in playing order, which is what a test
-// about ordering compares.
+// about ordering compares. A song that is played off paper has no score and
+// comes back as the nil uuid, which no score has.
 func ScoreIdsOf(set *api.Set) []uuid.UUID {
 	ids := make([]uuid.UUID, 0, len(set.Entries))
 	for _, entry := range set.Entries {
-		ids = append(ids, entry.ScoreID)
+		ids = append(ids, entry.ScoreID.Value)
 	}
 	return ids
 }
@@ -71,8 +72,19 @@ func ScoreIdsOf(set *api.Set) []uuid.UUID {
 // plays as written, which nobody has said anything about how they look at.
 func AnEntry(scoreId uuid.UUID, position int) *api.WriteSetEntry {
 	return &api.WriteSetEntry{
-		ScoreID:  scoreId,
+		ScoreID:  api.NewNilUUID(scoreId),
 		Position: position,
+	}
+}
+
+// APaperEntry is a song that is played from paper rather than from here: a
+// place in the running order with nothing to open, called by whatever is
+// written next to it.
+func APaperEntry(description string, position int) *api.WriteSetEntry {
+	return &api.WriteSetEntry{
+		ScoreID:     api.NilUUID{Null: true},
+		Description: description,
+		Position:    position,
 	}
 }
 
@@ -163,6 +175,8 @@ func MustPutEntryView(
 }
 
 // AView is how a player says they look at an entry, with the lists filled in.
+// It says nothing about how big they draw it, which is a client that has never
+// heard of drawing it any bigger and is read as the size it is written at.
 func AView(transposition int, hiddenParts ...string) *api.WriteEntryView {
 	if hiddenParts == nil {
 		hiddenParts = []string{}
@@ -171,6 +185,13 @@ func AView(transposition int, hiddenParts ...string) *api.WriteEntryView {
 		Transposition: transposition,
 		HiddenParts:   hiddenParts,
 	}
+}
+
+// AViewAtZoom is the same, from a player who has said how big they draw it.
+func AViewAtZoom(transposition int, zoom float64, hiddenParts ...string) *api.WriteEntryView {
+	view := AView(transposition, hiddenParts...)
+	view.Zoom = api.NewOptFloat64(zoom)
+	return view
 }
 
 // WriteSetOf is a set as a client states it, with the lists filled in. They are
