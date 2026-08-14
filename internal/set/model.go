@@ -8,9 +8,9 @@ const (
 )
 
 const (
-	MinZoom     = 0.5
-	MaxZoom     = 4
-	DefaultZoom = 1
+	MinZoom     float64 = 0.5
+	MaxZoom     float64 = 4
+	DefaultZoom float64 = 1
 )
 
 type Set struct {
