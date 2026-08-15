@@ -12,6 +12,11 @@ import 'package:flutter/services.dart';
 class Config {
   const Config({required this.oidc, required this.api});
 
+  factory Config.fromJson(Map<String, dynamic> json) => Config(
+        oidc: OidcConfig.fromJson(json['oidc'] as Map<String, dynamic>),
+        api: ApiConfig.fromJson(json['api'] as Map<String, dynamic>),
+      );
+
   final OidcConfig oidc;
   final ApiConfig api;
 
@@ -19,20 +24,15 @@ class Config {
     final text = await rootBundle.loadString(asset);
     return Config.fromJson(jsonDecode(text) as Map<String, dynamic>);
   }
-
-  factory Config.fromJson(Map<String, dynamic> json) => Config(
-        oidc: OidcConfig.fromJson(json['oidc'] as Map<String, dynamic>),
-        api: ApiConfig.fromJson(json['api'] as Map<String, dynamic>),
-      );
 }
 
 class ApiConfig {
   const ApiConfig({required this.baseUrl});
 
-  final Uri baseUrl;
-
   factory ApiConfig.fromJson(Map<String, dynamic> json) =>
       ApiConfig(baseUrl: _uri(json['baseUrl']));
+
+  final Uri baseUrl;
 
   /// The address of one of the API's paths. The base is written with a trailing
   /// slash or without one depending on who wrote the file, so it is not trusted
@@ -57,6 +57,22 @@ class OidcConfig {
     required this.healthzEndpoint,
     required this.rolesKey,
   });
+
+  factory OidcConfig.fromJson(Map<String, dynamic> json) => OidcConfig(
+        clientId: '${json['clientId']}',
+        redirectUri: _uri(json['redirectUri']),
+        nativeRedirectUri: json['nativeRedirectUri'] == null
+            ? Uri.parse('app.wvl.score://callback')
+            : _uri(json['nativeRedirectUri']),
+        desktopRedirectUri: json['desktopRedirectUri'] == null
+            ? Uri.parse('http://localhost:7005/')
+            : _uri(json['desktopRedirectUri']),
+        authorizationEndpoint: _uri(json['authorizationEndpoint']),
+        tokenEndpoint: _uri(json['tokenEndpoint']),
+        userInfoEndpoint: _uri(json['userInfoEndpoint']),
+        healthzEndpoint: _uri(json['healthzEndpoint']),
+        rolesKey: '${json['rolesKey']}',
+      );
 
   final String clientId;
 
@@ -90,22 +106,6 @@ class OidcConfig {
   /// The claim the roles of a user are read out of. Which one that is, is the
   /// provider's business — Zitadel puts them under a urn.
   final String rolesKey;
-
-  factory OidcConfig.fromJson(Map<String, dynamic> json) => OidcConfig(
-        clientId: '${json['clientId']}',
-        redirectUri: _uri(json['redirectUri']),
-        nativeRedirectUri: json['nativeRedirectUri'] == null
-            ? Uri.parse('app.wvl.score://callback')
-            : _uri(json['nativeRedirectUri']),
-        desktopRedirectUri: json['desktopRedirectUri'] == null
-            ? Uri.parse('http://localhost:7005/')
-            : _uri(json['desktopRedirectUri']),
-        authorizationEndpoint: _uri(json['authorizationEndpoint']),
-        tokenEndpoint: _uri(json['tokenEndpoint']),
-        userInfoEndpoint: _uri(json['userInfoEndpoint']),
-        healthzEndpoint: _uri(json['healthzEndpoint']),
-        rolesKey: '${json['rolesKey']}',
-      );
 }
 
 Uri _uri(Object? value) => Uri.parse('$value');

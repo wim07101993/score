@@ -59,6 +59,22 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  String? _rolesExplanation(
+      Map<String, dynamic>? roles, Map<String, dynamic>? claims, String key) {
+    if (roles == null) {
+      final sent = claims?.keys.toList() ?? const [];
+      return sent.isEmpty
+          ? 'The provider sent no claims this app could read.'
+          : 'The roles are read out of the claim named "$key", and the answer'
+              ' does not have one. What it does have: ${sent.join(', ')}.';
+    }
+    if (roles['score_viewer'] != null) {
+      return null;
+    }
+    return 'The claim "$key" is there, but "score_viewer" is not one of the'
+        ' roles in it.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
@@ -171,22 +187,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
-  }
-
-  String? _rolesExplanation(
-      Map<String, dynamic>? roles, Map<String, dynamic>? claims, String key) {
-    if (roles == null) {
-      final sent = claims?.keys.toList() ?? const [];
-      return sent.isEmpty
-          ? 'The provider sent no claims this app could read.'
-          : 'The roles are read out of the claim named "$key", and the answer'
-              ' does not have one. What it does have: ${sent.join(', ')}.';
-    }
-    if (roles['score_viewer'] != null) {
-      return null;
-    }
-    return 'The claim "$key" is there, but "score_viewer" is not one of the'
-        ' roles in it.';
   }
 }
 

@@ -22,11 +22,11 @@ import 'package:uuid/uuid.dart';
 class SetsRepository extends ChangeNotifier {
   SetsRepository(this._store, this._api, this._oidc);
 
+  static const _uuid = Uuid();
+
   final LocalStore _store;
   final SetsApi _api;
   final OidcApi _oidc;
-
-  static const _uuid = Uuid();
 
   /// Every set that is kept here, the deleted ones included.
   final Map<String, ScoreSet> _sets = {};

@@ -114,11 +114,11 @@ class ScoreDrawing {
     required this.height,
   });
 
+  static const empty = ScoreDrawing(prims: [], width: 0, height: 0);
+
   final List<Prim> prims;
 
   /// In staff spaces.
   final double width;
   final double height;
-
-  static const empty = ScoreDrawing(prims: [], width: 0, height: 0);
 }

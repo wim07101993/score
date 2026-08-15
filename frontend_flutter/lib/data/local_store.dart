@@ -22,6 +22,11 @@ class LocalStore {
   /// ever downloaded into memory to draw a list of their titles.
   final Database _documents;
 
+  final _scores = stringMapStoreFactory.store('scores');
+  final _sets = stringMapStoreFactory.store('sets');
+  final _settings = StoreRef<String, String>('settings');
+  final _files = StoreRef<String, String>('musicxml');
+
   static Future<LocalStore> open() async {
     final data = await openDatabase('score');
     final documents = await openDatabase('score_documents');
@@ -35,11 +40,6 @@ class LocalStore {
         await newDatabaseFactoryMemory().openDatabase('score'),
         await newDatabaseFactoryMemory().openDatabase('score_documents'),
       );
-
-  final _scores = stringMapStoreFactory.store('scores');
-  final _sets = stringMapStoreFactory.store('sets');
-  final _settings = StoreRef<String, String>('settings');
-  final _files = StoreRef<String, String>('musicxml');
 
   // -------------------------------------------------------------------------
   // WHAT IS KNOWN ABOUT THE SCORES AND THE SETS

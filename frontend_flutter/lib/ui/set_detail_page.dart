@@ -26,12 +26,12 @@ class SetDetailPage extends StatefulWidget {
 
 class _SetDetailPageState extends State<SetDetailPage> {
   static const _uuid = Uuid();
-
-  late String _setId;
   final _title = TextEditingController();
   final _description = TextEditingController();
   final _sharedWith = TextEditingController();
   final _filter = TextEditingController();
+
+  late String _setId;
 
   /// Whether what has been typed says something the stored set does not.
   bool _dirty = false;
@@ -193,67 +193,6 @@ class _SetDetailPageState extends State<SetDetailPage> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    if (app.user?.isScoreViewer != true) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Set')),
-        body: const Center(
-          child: Text('Sets are for score viewers, and this account is not one.'),
-        ),
-      );
-    }
-
-    return ListenableBuilder(
-      listenable: app.sets,
-      builder: (context, _) {
-        final set = _stored;
-        final owner = _isOwner;
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(set?.displayTitle ?? 'New set'),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(child: Text(_stateOf(set))),
-              ),
-              if (owner)
-                TextButton(
-                  onPressed: _dirty ? _save : null,
-                  child: const Text('Save'),
-                ),
-            ],
-          ),
-          body: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _about(owner),
-                    const SizedBox(height: 24),
-                    _entries(app, set, owner),
-                    const SizedBox(height: 24),
-                    if (owner && _isStored) _picker(app),
-                    if (owner) ...[
-                      const SizedBox(height: 24),
-                      _sharing(),
-                      const SizedBox(height: 32),
-                      if (_isStored)
-                        OutlinedButton.icon(
-                          onPressed: _delete,
-                          icon: const Icon(Icons.delete_outline),
-                          label: const Text('Delete this set'),
-                        ),
-                    ],
-                  ],
-                ),
-        );
-      },
-    );
-  }
-
   String _stateOf(ScoreSet? set) {
     if (!_isOwner) {
       return set?.owesAnything == true
@@ -410,6 +349,67 @@ class _SetDetailPageState extends State<SetDetailPage> {
       ],
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppScope.of(context);
+    if (app.user?.isScoreViewer != true) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Set')),
+        body: const Center(
+          child: Text('Sets are for score viewers, and this account is not one.'),
+        ),
+      );
+    }
+
+    return ListenableBuilder(
+      listenable: app.sets,
+      builder: (context, _) {
+        final set = _stored;
+        final owner = _isOwner;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(set?.displayTitle ?? 'New set'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(child: Text(_stateOf(set))),
+              ),
+              if (owner)
+                TextButton(
+                  onPressed: _dirty ? _save : null,
+                  child: const Text('Save'),
+                ),
+            ],
+          ),
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _about(owner),
+                    const SizedBox(height: 24),
+                    _entries(app, set, owner),
+                    const SizedBox(height: 24),
+                    if (owner && _isStored) _picker(app),
+                    if (owner) ...[
+                      const SizedBox(height: 24),
+                      _sharing(),
+                      const SizedBox(height: 32),
+                      if (_isStored)
+                        OutlinedButton.icon(
+                          onPressed: _delete,
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Delete this set'),
+                        ),
+                    ],
+                  ],
+                ),
+        );
+      },
+    );
+  }
 }
 
 /// One song of the set: what it is, how the band plays it, and how this player
@@ -439,6 +439,28 @@ class _EntryCard extends StatelessWidget {
   final void Function(String description) onDescription;
   final void Function(int semitones) onBandTransposition;
   final Future<void> Function() onRemove;
+
+  Future<void> _saveMyView(
+    BuildContext context, {
+    required int transposition,
+    required List<String> hiddenParts,
+  }) async {
+    try {
+      await AppScope.read(context).sets.saveEntryView(
+            setId,
+            entry.id,
+            transposition: transposition,
+            hiddenParts: hiddenParts,
+          );
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('How you read this one could not be saved:'
+              ' $error')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -574,28 +596,6 @@ class _EntryCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _saveMyView(
-    BuildContext context, {
-    required int transposition,
-    required List<String> hiddenParts,
-  }) async {
-    try {
-      await AppScope.read(context).sets.saveEntryView(
-            setId,
-            entry.id,
-            transposition: transposition,
-            hiddenParts: hiddenParts,
-          );
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('How you read this one could not be saved:'
-              ' $error')),
-        );
-      }
-    }
   }
 }
 

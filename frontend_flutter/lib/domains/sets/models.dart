@@ -44,6 +44,53 @@ class ScoreSet {
     this.pendingEntries = const [],
   });
 
+  /// A set the way the API hands it over, as one this app keeps: the moments as
+  /// dates rather than as the strings they arrive as, and nothing owed.
+  factory ScoreSet.fromApi(Map<String, dynamic> json, DateTime syncedAt) =>
+      ScoreSet(
+        id: '${json['id']}',
+        title: '${json['title'] ?? ''}',
+        description: '${json['description'] ?? ''}',
+        entries: [
+          for (final entry in (json['entries'] as List? ?? []))
+            SetEntry.fromApi((entry as Map).cast<String, dynamic>()),
+        ],
+        sharedWith: [
+          for (final address in (json['shared_with'] as List? ?? [])) '$address',
+        ],
+        isOwner: json['is_owner'] == true,
+        lastChangedAt:
+            _date(json['last_changed_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+        deletedAt: _date(json['deleted_at']),
+        lastSyncedAt: syncedAt,
+      );
+
+  factory ScoreSet.fromJson(Map<String, Object?> json) => ScoreSet(
+        id: '${json['id']}',
+        title: '${json['title'] ?? ''}',
+        description: '${json['description'] ?? ''}',
+        entries: [
+          for (final entry in (json['entries'] as List? ?? []))
+            SetEntry.fromJson((entry as Map).cast<String, Object?>()),
+        ],
+        sharedWith: [
+          for (final address in (json['shared_with'] as List? ?? [])) '$address',
+        ],
+        isOwner: json['is_owner'] != false,
+        lastChangedAt: _date(json['last_changed_at']) ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+        deletedAt: _date(json['deleted_at']),
+        lastSyncedAt: _date(json['last_synced_at']),
+        pendingChange: json['pending_change'] as String?,
+        pendingViews: [
+          for (final id in (json['pending_views'] as List? ?? [])) '$id',
+        ],
+        pendingEntries: [
+          for (final owed in (json['pending_entries'] as List? ?? []))
+            PendingEntry.fromJson((owed as Map).cast<String, Object?>()),
+        ],
+      );
+
   final String id;
   final String title;
   final String description;
@@ -124,27 +171,6 @@ class ScoreSet {
         pendingEntries: pendingEntries ?? this.pendingEntries,
       );
 
-  /// A set the way the API hands it over, as one this app keeps: the moments as
-  /// dates rather than as the strings they arrive as, and nothing owed.
-  factory ScoreSet.fromApi(Map<String, dynamic> json, DateTime syncedAt) =>
-      ScoreSet(
-        id: '${json['id']}',
-        title: '${json['title'] ?? ''}',
-        description: '${json['description'] ?? ''}',
-        entries: [
-          for (final entry in (json['entries'] as List? ?? []))
-            SetEntry.fromApi((entry as Map).cast<String, dynamic>()),
-        ],
-        sharedWith: [
-          for (final address in (json['shared_with'] as List? ?? [])) '$address',
-        ],
-        isOwner: json['is_owner'] == true,
-        lastChangedAt:
-            _date(json['last_changed_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: _date(json['deleted_at']),
-        lastSyncedAt: syncedAt,
-      );
-
   Map<String, Object?> toJson() => {
         'id': id,
         'title': title,
@@ -159,32 +185,6 @@ class ScoreSet {
         'pending_views': pendingViews,
         'pending_entries': [for (final owed in pendingEntries) owed.toJson()],
       };
-
-  factory ScoreSet.fromJson(Map<String, Object?> json) => ScoreSet(
-        id: '${json['id']}',
-        title: '${json['title'] ?? ''}',
-        description: '${json['description'] ?? ''}',
-        entries: [
-          for (final entry in (json['entries'] as List? ?? []))
-            SetEntry.fromJson((entry as Map).cast<String, Object?>()),
-        ],
-        sharedWith: [
-          for (final address in (json['shared_with'] as List? ?? [])) '$address',
-        ],
-        isOwner: json['is_owner'] != false,
-        lastChangedAt: _date(json['last_changed_at']) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: _date(json['deleted_at']),
-        lastSyncedAt: _date(json['last_synced_at']),
-        pendingChange: json['pending_change'] as String?,
-        pendingViews: [
-          for (final id in (json['pending_views'] as List? ?? [])) '$id',
-        ],
-        pendingEntries: [
-          for (final owed in (json['pending_entries'] as List? ?? []))
-            PendingEntry.fromJson((owed as Map).cast<String, Object?>()),
-        ],
-      );
 }
 
 /// One score in a set.
@@ -200,6 +200,25 @@ class SetEntry {
     this.view = const EntryView(),
     this.synced = false,
   });
+
+  factory SetEntry.fromApi(Map<String, dynamic> json) => SetEntry(
+        id: '${json['id']}',
+        scoreId: '${json['score_id']}',
+        description: '${json['description'] ?? ''}',
+        transposition: transpositionOf(json['transposition']),
+        view: EntryView.fromJson(json['view']),
+        // Everything the API hands over is on the server by definition.
+        synced: true,
+      );
+
+  factory SetEntry.fromJson(Map<String, Object?> json) => SetEntry(
+        id: '${json['id']}',
+        scoreId: '${json['score_id']}',
+        description: '${json['description'] ?? ''}',
+        transposition: transpositionOf(json['transposition']),
+        view: EntryView.fromJson(json['view']),
+        synced: json['synced'] == true,
+      );
 
   /// What this entry is called, here and on the server.
   ///
@@ -248,16 +267,6 @@ class SetEntry {
         synced: synced ?? this.synced,
       );
 
-  factory SetEntry.fromApi(Map<String, dynamic> json) => SetEntry(
-        id: '${json['id']}',
-        scoreId: '${json['score_id']}',
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: EntryView.fromJson(json['view']),
-        // Everything the API hands over is on the server by definition.
-        synced: true,
-      );
-
   Map<String, Object?> toJson() => {
         'id': id,
         'score_id': scoreId,
@@ -266,15 +275,6 @@ class SetEntry {
         'view': view.toJson(),
         'synced': synced,
       };
-
-  factory SetEntry.fromJson(Map<String, Object?> json) => SetEntry(
-        id: '${json['id']}',
-        scoreId: '${json['score_id']}',
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: EntryView.fromJson(json['view']),
-        synced: json['synced'] == true,
-      );
 }
 
 /// How one player looks at one entry: on top of the key the band plays it in,
@@ -286,12 +286,6 @@ class SetEntry {
 class EntryView {
   const EntryView({this.transposition = 0, this.hiddenParts = const []});
 
-  /// Semitones on top of the entry's own.
-  final int transposition;
-
-  /// By MusicXML part id.
-  final List<String> hiddenParts;
-
   factory EntryView.fromJson(Object? json) {
     if (json is! Map) return const EntryView();
     return EntryView(
@@ -302,6 +296,12 @@ class EntryView {
     );
   }
 
+  /// Semitones on top of the entry's own.
+  final int transposition;
+
+  /// By MusicXML part id.
+  final List<String> hiddenParts;
+
   Map<String, Object?> toJson() =>
       {'transposition': transposition, 'hidden_parts': hiddenParts};
 }
@@ -310,15 +310,15 @@ class EntryView {
 class PendingEntry {
   const PendingEntry(this.id, this.action);
 
+  factory PendingEntry.fromJson(Map<String, Object?> json) =>
+      PendingEntry('${json['id']}', '${json['action']}');
+
   final String id;
 
   /// One of [PendingChange].
   final String action;
 
   Map<String, Object?> toJson() => {'id': id, 'action': action};
-
-  factory PendingEntry.fromJson(Map<String, Object?> json) =>
-      PendingEntry('${json['id']}', '${json['action']}');
 }
 
 /// A transposition the API will take: a whole number of semitones, within the

@@ -191,11 +191,6 @@ class Smufl {
   static const tremolo2 = Glyph('tremolo2', '\u{E221}', 0.596, -0.604, 0.596, 0.748, -0.748);
   static const tremolo3 = Glyph('tremolo3', '\u{E222}', 0.6, -0.6, 0.6, 1.112, -1.12);
 
-  /// Looks a glyph up by its SMuFL name. `null` when it is not one of the
-  /// glyphs carried over here, which is the renderer's cue to draw nothing
-  /// rather than to draw the wrong thing.
-  static Glyph? byName(String name) => _byName[name];
-
   static const Map<String, Glyph> _byName = {
     'noteheadDoubleWhole': noteheadDoubleWhole,
     'noteheadWhole': noteheadWhole,
@@ -312,4 +307,9 @@ class Smufl {
     'tremolo2': tremolo2,
     'tremolo3': tremolo3,
   };
+
+  /// Looks a glyph up by its SMuFL name. `null` when it is not one of the
+  /// glyphs carried over here, which is the renderer's cue to draw nothing
+  /// rather than to draw the wrong thing.
+  static Glyph? byName(String name) => _byName[name];
 }

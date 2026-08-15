@@ -24,40 +24,6 @@ class ScoreApp extends StatefulWidget {
 class _ScoreAppState extends State<ScoreApp> {
   late final Future<App> _app = App.start();
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<App>(
-      future: _app,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return _starting(failure: snapshot.error);
-        }
-        final app = snapshot.data;
-        if (app == null) {
-          return _starting();
-        }
-
-        return AppScope(
-          app: app,
-          child: ListenableBuilder(
-            // The one thing above the app that a page can change. Everything
-            // else here is settled by the time anything is drawn.
-            listenable: app.settings,
-            builder: (context, _) => MaterialApp(
-              title: 'Score',
-              debugShowCheckedModeBanner: false,
-              theme: appTheme(Brightness.light),
-              darkTheme: appTheme(Brightness.dark),
-              themeMode: app.settings.themeMode,
-              onGenerateRoute: _route,
-              onGenerateInitialRoutes: _initialRoutes,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   /// Where a path leads.
   ///
   /// The addresses are the ones the app it replaces used, so a link a player has
@@ -97,4 +63,38 @@ class _ScoreAppState extends State<ScoreApp> {
         for (final route in AppRoute.stackFor(initial))
           _page(route, RouteSettings(name: route.path)),
       ];
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<App>(
+      future: _app,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _starting(failure: snapshot.error);
+        }
+        final app = snapshot.data;
+        if (app == null) {
+          return _starting();
+        }
+
+        return AppScope(
+          app: app,
+          child: ListenableBuilder(
+            // The one thing above the app that a page can change. Everything
+            // else here is settled by the time anything is drawn.
+            listenable: app.settings,
+            builder: (context, _) => MaterialApp(
+              title: 'Score',
+              debugShowCheckedModeBanner: false,
+              theme: appTheme(Brightness.light),
+              darkTheme: appTheme(Brightness.dark),
+              themeMode: app.settings.themeMode,
+              onGenerateRoute: _route,
+              onGenerateInitialRoutes: _initialRoutes,
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

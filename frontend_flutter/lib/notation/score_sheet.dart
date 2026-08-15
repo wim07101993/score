@@ -22,16 +22,6 @@ class SheetPalette {
     required this.fadedInk,
   });
 
-  /// The page.
-  final Color paper;
-
-  /// Everything drawn on it: staff lines, noteheads, stems, words.
-  final Color ink;
-
-  /// A grace note, which leans on the note after it and is drawn lighter to
-  /// say so.
-  final Color fadedInk;
-
   /// A page with a lamp on it.
   ///
   /// [brightness] is what the page gives off, as a share of a white one: 1 is
@@ -102,14 +92,6 @@ class SheetPalette {
   static const double night = 0.29;
   static const double nightWarmth = 0.3;
 
-  /// The sRGB grey that gives off [luminance] of what white gives off.
-  static double _greyGiving(double luminance) {
-    final v = luminance <= 0.0031308
-        ? luminance * 12.92
-        : 1.055 * math.pow(luminance, 1 / 2.4) - 0.055;
-    return (v * 255).clamp(0.0, 255.0);
-  }
-
   /// Ink on paper, the way a score is printed and the way it is read in a lit
   /// room. The lamp full up, and no warmth in it.
   static final light = SheetPalette.lamp(brightness: full);
@@ -146,6 +128,24 @@ class SheetPalette {
   /// about a room and not about an app.
   static final dark =
       SheetPalette.lamp(brightness: night, warmth: nightWarmth);
+
+  /// The page.
+  final Color paper;
+
+  /// Everything drawn on it: staff lines, noteheads, stems, words.
+  final Color ink;
+
+  /// A grace note, which leans on the note after it and is drawn lighter to
+  /// say so.
+  final Color fadedInk;
+
+  /// The sRGB grey that gives off [luminance] of what white gives off.
+  static double _greyGiving(double luminance) {
+    final v = luminance <= 0.0031308
+        ? luminance * 12.92
+        : 1.055 * math.pow(luminance, 1 / 2.4) - 0.055;
+    return (v * 255).clamp(0.0, 255.0);
+  }
 
   /// The page as it is read under [brightness] — the app's, which is the
   /// system's unless the reader has said otherwise in the settings.

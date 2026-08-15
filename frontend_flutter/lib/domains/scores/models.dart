@@ -22,6 +22,37 @@ class Score {
     this.lastViewedAt,
   });
 
+  /// A score the way the API hands it over, as one this app keeps: the moments
+  /// as dates rather than as the strings they arrive as, and whatever is only
+  /// known locally carried over from the score being replaced.
+  factory Score.fromApi(Map<String, dynamic> json, {Score? existing}) => Score(
+        id: '${json['id']}',
+        work: Work.fromJson(json['work']),
+        movement: Movement.fromJson(json['movement']),
+        creators: Creators.fromJson(json['creators']),
+        languages: _strings(json['languages']),
+        instruments: _strings(json['instruments']),
+        lastChangedAt: _date(json['last_changed_at']),
+        tags: _strings(json['tags']),
+        lastSyncedAt: DateTime.now(),
+        lastFetchedFileAt: existing?.lastFetchedFileAt,
+        lastViewedAt: existing?.lastViewedAt,
+      );
+
+  factory Score.fromJson(Map<String, Object?> json) => Score(
+        id: '${json['id']}',
+        work: Work.fromJson(json['work']),
+        movement: Movement.fromJson(json['movement']),
+        creators: Creators.fromJson(json['creators']),
+        languages: _strings(json['languages']),
+        instruments: _strings(json['instruments']),
+        lastChangedAt: _date(json['last_changed_at']),
+        tags: _strings(json['tags']),
+        lastSyncedAt: _date(json['last_synced_at']),
+        lastFetchedFileAt: _date(json['last_fetched_file_at']),
+        lastViewedAt: _date(json['last_viewed_at']),
+      );
+
   final String id;
   final Work? work;
   final Movement? movement;
@@ -83,23 +114,6 @@ class Score {
         lastViewedAt: lastViewedAt ?? this.lastViewedAt,
       );
 
-  /// A score the way the API hands it over, as one this app keeps: the moments
-  /// as dates rather than as the strings they arrive as, and whatever is only
-  /// known locally carried over from the score being replaced.
-  factory Score.fromApi(Map<String, dynamic> json, {Score? existing}) => Score(
-        id: '${json['id']}',
-        work: Work.fromJson(json['work']),
-        movement: Movement.fromJson(json['movement']),
-        creators: Creators.fromJson(json['creators']),
-        languages: _strings(json['languages']),
-        instruments: _strings(json['instruments']),
-        lastChangedAt: _date(json['last_changed_at']),
-        tags: _strings(json['tags']),
-        lastSyncedAt: DateTime.now(),
-        lastFetchedFileAt: existing?.lastFetchedFileAt,
-        lastViewedAt: existing?.lastViewedAt,
-      );
-
   Map<String, Object?> toJson() => {
         'id': id,
         'work': work?.toJson(),
@@ -113,20 +127,6 @@ class Score {
         'last_fetched_file_at': lastFetchedFileAt?.toIso8601String(),
         'last_viewed_at': lastViewedAt?.toIso8601String(),
       };
-
-  factory Score.fromJson(Map<String, Object?> json) => Score(
-        id: '${json['id']}',
-        work: Work.fromJson(json['work']),
-        movement: Movement.fromJson(json['movement']),
-        creators: Creators.fromJson(json['creators']),
-        languages: _strings(json['languages']),
-        instruments: _strings(json['instruments']),
-        lastChangedAt: _date(json['last_changed_at']),
-        tags: _strings(json['tags']),
-        lastSyncedAt: _date(json['last_synced_at']),
-        lastFetchedFileAt: _date(json['last_fetched_file_at']),
-        lastViewedAt: _date(json['last_viewed_at']),
-      );
 }
 
 class Work {
@@ -166,9 +166,6 @@ class Movement {
 class Creators {
   const Creators({this.composers = const [], this.lyricists = const []});
 
-  final List<String> composers;
-  final List<String> lyricists;
-
   factory Creators.fromJson(Object? json) {
     if (json is! Map) return const Creators();
     return Creators(
@@ -176,6 +173,9 @@ class Creators {
       lyricists: _strings(json['lyricists']),
     );
   }
+
+  final List<String> composers;
+  final List<String> lyricists;
 
   Map<String, Object?> toJson() =>
       {'composers': composers, 'lyricists': lyricists};

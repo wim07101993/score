@@ -126,16 +126,16 @@ class _Group {
   final double quarters;
 
   final bool isGrace;
-
-  bool get isRest => notes.length == 1 && notes.first.isRest;
+  final Map<Note, double> y = {};
+  final Map<Note, double> headX = {};
 
   // Filled in as it is placed.
   double x = 0;
   bool stemUp = true;
-  final Map<Note, double> y = {};
-  final Map<Note, double> headX = {};
   double stemEndY = 0;
   double stemX = 0;
+
+  bool get isRest => notes.length == 1 && notes.first.isRest;
 }
 
 /// One bar of one part, with everything it is written in resolved: what a bar

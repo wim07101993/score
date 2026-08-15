@@ -17,6 +17,12 @@ typedef PageLook = ({double brightness, double warmth});
 class Settings extends ChangeNotifier {
   Settings._(this._store, this._themeMode, this._looks);
 
+  static const _themeKey = 'theme_mode';
+
+  final LocalStore _store;
+  final Map<Brightness, PageLook> _looks;
+  ThemeMode _themeMode;
+
   /// Read before anything is drawn.
   ///
   /// The alternative is starting light and correcting a moment later, which on
@@ -35,13 +41,7 @@ class Settings extends ChangeNotifier {
     );
   }
 
-  static const _themeKey = 'theme_mode';
-
   static String _lookKey(Brightness brightness) => 'page_look_${brightness.name}';
-
-  final LocalStore _store;
-  ThemeMode _themeMode;
-  final Map<Brightness, PageLook> _looks;
 
   /// Light, dark, or whatever the machine says.
   ThemeMode get themeMode => _themeMode;

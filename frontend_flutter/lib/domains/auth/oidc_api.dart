@@ -290,23 +290,23 @@ class OidcException implements Exception {
 class _FlowState {
   _FlowState(this.state, this.verifier, this.challenge);
 
-  final String state;
-  final String verifier;
-  final String challenge;
-
   factory _FlowState.create() {
     final verifier = _randomString(56);
     return _FlowState(_randomString(16), verifier, _challengeFor(verifier));
   }
-
-  Map<String, dynamic> toJson() =>
-      {'state': state, 'verifier': verifier, 'challenge': challenge};
 
   factory _FlowState.fromJson(Map<String, dynamic> json) => _FlowState(
         '${json['state']}',
         '${json['verifier']}',
         '${json['challenge']}',
       );
+
+  final String state;
+  final String verifier;
+  final String challenge;
+
+  Map<String, dynamic> toJson() =>
+      {'state': state, 'verifier': verifier, 'challenge': challenge};
 }
 
 const _alphabet =
@@ -346,6 +346,27 @@ class UserInfo {
     this.rolesKey,
   });
 
+  factory UserInfo.fromClaims(Map<String, dynamic> claims, String rolesKey) {
+    final roles = claims[rolesKey];
+    return UserInfo(
+      name: claims['name'] as String?,
+      subject: claims['sub'] as String?,
+      email: claims['email'] as String?,
+      roles: roles is Map<String, dynamic> ? roles : null,
+      claims: claims,
+      rolesKey: rolesKey,
+    );
+  }
+
+  factory UserInfo.fromJson(Map<String, dynamic> json) => UserInfo(
+        name: json['name'] as String?,
+        subject: json['subject'] as String?,
+        email: json['email'] as String?,
+        roles: (json['roles'] as Map?)?.cast<String, dynamic>(),
+        claims: (json['claims'] as Map?)?.cast<String, dynamic>(),
+        rolesKey: json['rolesKey'] as String?,
+      );
+
   final String? name;
   final String? subject;
   final String? email;
@@ -364,18 +385,6 @@ class UserInfo {
 
   bool get isScoreViewer => roles?['score_viewer'] != null;
 
-  factory UserInfo.fromClaims(Map<String, dynamic> claims, String rolesKey) {
-    final roles = claims[rolesKey];
-    return UserInfo(
-      name: claims['name'] as String?,
-      subject: claims['sub'] as String?,
-      email: claims['email'] as String?,
-      roles: roles is Map<String, dynamic> ? roles : null,
-      claims: claims,
-      rolesKey: rolesKey,
-    );
-  }
-
   Map<String, dynamic> toJson() => {
         'name': name,
         'subject': subject,
@@ -384,13 +393,4 @@ class UserInfo {
         'claims': claims,
         'rolesKey': rolesKey,
       };
-
-  factory UserInfo.fromJson(Map<String, dynamic> json) => UserInfo(
-        name: json['name'] as String?,
-        subject: json['subject'] as String?,
-        email: json['email'] as String?,
-        roles: (json['roles'] as Map?)?.cast<String, dynamic>(),
-        claims: (json['claims'] as Map?)?.cast<String, dynamic>(),
-        rolesKey: json['rolesKey'] as String?,
-      );
 }

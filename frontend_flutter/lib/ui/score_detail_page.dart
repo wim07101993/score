@@ -39,6 +39,7 @@ class ScoreDetailPage extends StatefulWidget {
 
 class _ScoreDetailPageState extends State<ScoreDetailPage> {
   static const _uuid = Uuid();
+  List<ScorePartRef> _parts = const [];
 
   /// The score as it was uploaded. Transposing and hiding parts never touch it,
   /// so this stays what is downloaded and re-uploaded.
@@ -46,7 +47,6 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
   String? _scoreId;
   ScoreView? _view;
-  List<ScorePartRef> _parts = const [];
 
   bool _loading = true;
   Object? _failure;
@@ -290,6 +290,56 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Widget _sheet() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final failure = _failure;
+    if (failure != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text('$failure', textAlign: TextAlign.center),
+        ),
+      );
+    }
+    final musicXml = _musicXml;
+    if (musicXml == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            _isNew
+                ? 'Choose a MusicXML file to upload.'
+                : 'There is nothing to show.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    // The page is lit the way this device has been told to light it, and it
+    // keeps up with the slider while it is being dragged. What is passed is a
+    // whole palette rather than a colour or two: ink and paper only look right
+    // if whoever decides one decides the other.
+    final settings = AppScope.of(context).settings;
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        final look = settings.pageLook(Theme.of(context).brightness);
+        return ScoreSheet(
+          musicXml: musicXml,
+          view: _view,
+          space: _space,
+          palette: SheetPalette.lamp(
+            brightness: look.brightness,
+            warmth: look.warmth,
+          ),
+        );
+      },
+    );
+  }
+
   // -------------------------------------------------------------------------
 
   @override
@@ -348,64 +398,14 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
             ),
     );
   }
-
-  Widget _sheet() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    final failure = _failure;
-    if (failure != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text('$failure', textAlign: TextAlign.center),
-        ),
-      );
-    }
-    final musicXml = _musicXml;
-    if (musicXml == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            _isNew
-                ? 'Choose a MusicXML file to upload.'
-                : 'There is nothing to show.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    // The page is lit the way this device has been told to light it, and it
-    // keeps up with the slider while it is being dragged. What is passed is a
-    // whole palette rather than a colour or two: ink and paper only look right
-    // if whoever decides one decides the other.
-    final settings = AppScope.of(context).settings;
-    return ListenableBuilder(
-      listenable: settings,
-      builder: (context, _) {
-        final look = settings.pageLook(Theme.of(context).brightness);
-        return ScoreSheet(
-          musicXml: musicXml,
-          view: _view,
-          space: _space,
-          palette: SheetPalette.lamp(
-            brightness: look.brightness,
-            warmth: look.warmth,
-          ),
-        );
-      },
-    );
-  }
 }
 
 /// Which set this score is being played from, and where in it.
 class _SetContext {
   const _SetContext({required this.set, required this.index});
+  final int index;
 
   final ScoreSet set;
-  final int index;
 
   SetEntry get entry => set.entries[index];
 }

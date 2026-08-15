@@ -20,6 +20,28 @@ class Starting extends StatelessWidget {
   /// What went wrong, when what went wrong is that the app could not start.
   final Object? failure;
 
+  Widget _screen(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: failure == null
+            ? const CircularProgressIndicator()
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 40),
+                    const SizedBox(height: 12),
+                    const Text('The app could not start.'),
+                    const SizedBox(height: 8),
+                    Text('$failure', textAlign: TextAlign.center),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -46,28 +68,6 @@ class Starting extends StatelessWidget {
       // start on. Every address leads here anyway.
       onGenerateRoute: (settings) =>
           MaterialPageRoute<void>(settings: settings, builder: _screen),
-    );
-  }
-
-  Widget _screen(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: failure == null
-            ? const CircularProgressIndicator()
-            : Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 40),
-                    const SizedBox(height: 12),
-                    const Text('The app could not start.'),
-                    const SizedBox(height: 8),
-                    Text('$failure', textAlign: TextAlign.center),
-                  ],
-                ),
-              ),
-      ),
     );
   }
 }

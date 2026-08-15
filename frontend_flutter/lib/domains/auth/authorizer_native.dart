@@ -28,13 +28,13 @@ import 'package:score/domains/auth/authorizer.dart';
 class PlatformAuthorizer implements Authorizer {
   PlatformAuthorizer(this._config);
 
-  final OidcConfig _config;
-
   /// Whether this is a machine where the answer has to come back to a port.
   ///
   /// macOS is not one of them: it hands a scheme to an app the way a phone
   /// does, and it has a sign-in window of the system's own to do it in.
   static final bool _listensOnAPort = Platform.isLinux || Platform.isWindows;
+
+  final OidcConfig _config;
 
   @override
   Uri get redirectUri =>

@@ -47,6 +47,16 @@ class ScorePainter extends CustomPainter {
   /// meant for dynamics rather than for lyrics.
   final String? textFont;
 
+  /// [from]–[to] moved onto whole pixels, keeping at least one between them.
+  (double, double) _hairline(double from, double to) {
+    final start = _snapped(from);
+    final end = _snapped(to);
+    if (end - start < 1 / devicePixelRatio) {
+      return (start, start + 1 / devicePixelRatio);
+    }
+    return (start, end);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final fill = Paint()
@@ -92,16 +102,6 @@ class ScorePainter extends CustomPainter {
   /// — and buys every line its edge back, on both pages.
   double _snapped(double edge) =>
       (edge * devicePixelRatio).roundToDouble() / devicePixelRatio;
-
-  /// [from]–[to] moved onto whole pixels, keeping at least one between them.
-  (double, double) _hairline(double from, double to) {
-    final start = _snapped(from);
-    final end = _snapped(to);
-    if (end - start < 1 / devicePixelRatio) {
-      return (start, start + 1 / devicePixelRatio);
-    }
-    return (start, end);
-  }
 
   void _line(Canvas canvas, LinePrim prim, Paint paint) {
     // A line of a given thickness is drawn as the rectangle it is, rather than
