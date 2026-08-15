@@ -177,6 +177,26 @@ What that update is compared against is the bytes of `service-worker.js`, so a
 release that changes a page and leaves its `cacheName` alone is a release no
 device already carrying the app will ever see.
 
+The whole app — every page, every module, every stylesheet — is fetched when the
+worker installs, so a device that has opened one page has all of them and can
+open any of them with no network. It used to be fetched with `cache.addAll`,
+which is all or nothing: one url that answered 404, or one fetch that gave out
+on a phone halfway up a stairwell, and not a single file was cached, while the
+worker went on to activate, delete the previous version's cache and take over
+anyway — an app served by a worker with an empty cache behind it, which only
+works online. Each file is now its own question, what fails is named rather than
+swallowed, and every page load asks the worker to fetch whatever it has not got,
+which on a device that has the whole app is a look in a cache and nothing else.
+
+Which files those are is one hand-written list, and a list goes out of date
+quietly: a page added and not listed works all the way through development and
+is missing at the one moment it was needed. `service-worker.test.js` checks it
+against what is actually served, in both directions. Detail pages are on the
+list and belong there — what is cached is the page, and what makes it a page
+about one score is read from the device, so leaving it off would not save a
+fetch, it would mean opening a score at a gig and being handed the scores list
+instead.
+
 Taking the new version is a separate question from fetching it. A listing, the
 profile and the settings reload themselves the moment a newer app takes over,
 because nothing on them is half-written. The score being played from, the score

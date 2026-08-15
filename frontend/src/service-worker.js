@@ -66,16 +66,17 @@ const cacheUrls = [
 
 let config;
 
+// What a page sends to say "fetch whatever of the app you have not got". The
+// page's half of this is `domains/updates/app-update.js`, and the two have to
+// agree on the word.
+const fillInMessage = "fill-in-what-is-missing";
+
 self.addEventListener("install", (event) => {
   // waitUntil, or installing is over before a single file has been cached and
   // the worker counts as installed whether or not it has anything to serve.
   event.waitUntil((async () => {
-    try {
-      const cache = await caches.open(cacheName);
-      await cache.addAll(cacheUrls);
-    } catch (error) {
-      console.error("Service Worker installation failed:", error);
-    }
+    const cache = await caches.open(cacheName);
+    await fetchIntoCache(cache, cacheUrls);
     // Without this, a worker that has been installed waits for every tab of the
     // app to be closed before it takes over, and until it does, the worker it
     // is replacing goes on answering from the cache it was built with. Bumping
@@ -84,6 +85,89 @@ self.addEventListener("install", (event) => {
     await self.skipWaiting();
   })());
 });
+
+// A page has been opened, which is a chance to make good whatever this device
+// is missing. Nothing about it is the page's business beyond the asking: the
+// list and the cache are this file's.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === fillInMessage) {
+    event.waitUntil(fillInWhatIsMissing());
+  }
+});
+
+/**
+ * Fetches whatever of the app is not on this device yet.
+ *
+ * Installing is one chance to cache the app and it is the worst one there is:
+ * it happens once, on whatever network the first visit was made on, and
+ * anything that failed then stayed failed until the next release. So every page
+ * load asks again, and only what is actually missing is fetched — on a device
+ * that has the whole app, which is nearly always, this is a look in a cache and
+ * nothing else.
+ *
+ * @return {Promise<number>} how many files were fetched
+ */
+async function fillInWhatIsMissing() {
+  const cache = await caches.open(cacheName);
+
+  const missing = [];
+  for (const url of cacheUrls) {
+    if (await cache.match(url, {ignoreSearch: true}) == null) {
+      missing.push(url);
+    }
+  }
+  if (missing.length === 0) {
+    return 0;
+  }
+
+  console.log(`${missing.length} of the app's ${cacheUrls.length} files are not on this device; fetching them`);
+  return await fetchIntoCache(cache, missing);
+}
+
+/**
+ * Fetches each of `urls` and keeps what comes back.
+ *
+ * Each file is its own question. This was `cache.addAll`, which is all or
+ * nothing: one url that answered 404, or one fetch that gave out on a phone
+ * halfway up a stairwell, and not a single file was cached — while the worker
+ * went on to activate, delete the previous version's cache and take over
+ * anyway. An app served by a worker with an empty cache behind it is an app
+ * that only works online, which is the one thing this file exists to prevent.
+ *
+ * What fails is named rather than swallowed, and made good the next time a page
+ * is opened.
+ *
+ * @param cache {Cache}
+ * @param urls {string[]}
+ * @return {Promise<number>} how many of them are now cached
+ */
+async function fetchIntoCache(cache, urls) {
+  const refused = [];
+
+  await Promise.all(urls.map(async (url) => {
+    try {
+      // Past the browser's own cache. What is being asked for is the newest
+      // version of the app, and a copy the browser is holding on to from before
+      // the release is exactly what this is here to get out from under.
+      const response = await fetch(new Request(url, {cache: "reload"}));
+      if (!response.ok) {
+        refused.push(`${url} (${response.status})`);
+        return;
+      }
+      await cache.put(url, response);
+    } catch (error) {
+      refused.push(`${url} (${error})`);
+    }
+  }));
+
+  if (refused.length > 0) {
+    console.error(
+      `${refused.length} of ${urls.length} files of the app were not cached:`,
+      refused,
+    );
+  }
+  return urls.length - refused.length;
+}
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {

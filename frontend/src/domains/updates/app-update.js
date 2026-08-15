@@ -31,6 +31,15 @@ const workerUrl = '/service-worker.js';
  */
 const leastTimeBetweenAsking = 5 * 60 * 1000;
 
+/**
+ * What the worker is sent to make it fetch whatever of the app it has not got.
+ * Its half of this is the `message` listener in `service-worker.js`, and the
+ * two have to agree on the word.
+ *
+ * @type {string}
+ */
+export const fillInMessage = 'fill-in-what-is-missing';
+
 /** Registering twice on one page would ask twice and listen twice. */
 let watching = false;
 
@@ -95,6 +104,12 @@ export async function keepAppUpToDate(options = {}) {
       return;
     }
     lastAsked = now;
+
+    // Two questions, and both of them only mean anything when there is a server
+    // to put them to: whether there is a newer app than this one, and whether
+    // this device has all of the app it already has.
+    _askTheWorkerToFillItselfIn(registration);
+
     try {
       await registration.update();
     } catch (error) {
@@ -117,6 +132,29 @@ export async function keepAppUpToDate(options = {}) {
   await ask();
 
   return registration;
+}
+
+/**
+ * Asks the worker to fetch whatever of the app is not on this device yet.
+ *
+ * Which pages those are is the worker's to know and not this page's: it holds
+ * the list and the cache, and a page that fetched files itself would be
+ * guessing at both. All that is said here is that there is a network and a
+ * reader who has just opened something.
+ *
+ * The whole app is cached when the worker installs, so on almost every load
+ * this finds nothing to do. It is here for the loads where installing did not
+ * finish — a first visit on a network that gave out, a file that answered 404
+ * during a deploy — which used to leave a device carrying a worker with less
+ * than the app behind it and no way of ever noticing.
+ *
+ * @param registration {ServiceWorkerRegistration}
+ */
+function _askTheWorkerToFillItselfIn(registration) {
+  // On a first visit there is neither: the worker installing right now is
+  // fetching the whole app as it goes, which is this same errand.
+  const worker = navigator.serviceWorker.controller ?? registration.active;
+  worker?.postMessage({type: fillInMessage});
 }
 
 /**
