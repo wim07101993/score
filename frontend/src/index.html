@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Scores</title>
+    <script src="theme-boot.js"></script>
     <link rel="stylesheet" href="theme.css">
     <link rel="stylesheet" href="index.css">
 </head>
@@ -14,8 +15,17 @@
 <header class="topbar">
     <div class="page topbar-inner">
         <h1 id="title">Scores</h1>
-        <!-- Never hidden, whatever roles the user turns out to have: a user who
-             is shown nothing at all is exactly the user who needs to see why. -->
+        <!-- Neither of these is ever hidden, whatever roles the user turns out
+             to have: a user who is shown nothing at all is exactly the user who
+             needs to see why, and to be able to turn the lamp up. -->
+        <a id="settings-button" class="button button--quiet button--icon" href="settings.html"
+           aria-label="Settings">
+            <!-- Sliders rather than a cog: what is behind this is a lamp being
+                 turned up and down, and the drawing may as well say so. -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+            </svg>
+        </a>
         <a id="profile-button" class="button button--quiet" href="profile.html">Profile</a>
         <a id="sets-button" class="button button--quiet" hidden href="sets/">Sets</a>
         <a id="upload-button" class="button button--primary" hidden href="scores/detail.html">
@@ -38,23 +48,5 @@
 </main>
 
 <script src="index.js" type="module"></script>
-<script>
-    async function registerServiceWorker() {
-        if ("serviceWorker" in navigator) {
-            try {
-                const registration = await navigator.serviceWorker.register(
-                    "service-worker.js"
-                );
-                console.log(
-                    "Service Worker registered with scope:",
-                    registration.scope
-                );
-            } catch (error) {
-                console.error("Service Worker registration failed:", error);
-            }
-        }
-    }
-    registerServiceWorker();
-</script>
 </body>
 </html>

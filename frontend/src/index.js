@@ -1,5 +1,6 @@
 import {buildScoreCard} from "./components/score-card.component.js";
 import {App} from "./app.js";
+import {keepAppUpToDate} from "./domains/updates/app-update.js";
 
 const uploadButton = document.getElementById('upload-button');
 const setsButton = document.getElementById('sets-button');
@@ -41,10 +42,24 @@ async function _initScoreViewer() {
   setsButton.hidden = false;
   scoreList.hidden = false;
   _buildScoreListItems();
-  await app.updateScores();
+
+  // What is on screen is what this device has; syncing only ever adds to it. So
+  // a server that refuses — a token that has run out is the usual way — costs
+  // this page whatever is new, and nothing that was already here.
+  try {
+    await app.updateScores();
+  } catch (error) {
+    console.error('failed to sync the scores', error);
+  }
 }
 
 async function main() {
+  // Before anything that can fail, and before anything the reader might be in
+  // the middle of: this is a list of scores and the way in to everything else,
+  // so it is the page that can be swapped for a newer one without asking.
+  keepAppUpToDate({reloadWhenReplaced: true})
+    .catch((error) => console.error('failed to watch for a newer app', error));
+
   await app.initialize();
 
   app.scoreRepository.addScoreChangesListener(() => _buildScoreListItems());

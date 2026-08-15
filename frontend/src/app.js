@@ -93,30 +93,62 @@ export class App {
     return this;
   }
 
+  /**
+   * Works out who is signed in on this device.
+   *
+   * **This never throws.** Whatever the provider does — cannot be reached, will
+   * not take the token, answers something unreadable — the app still has to
+   * start: the scores are on this device, they are drawn from this device, and
+   * a player standing in front of a stand is not helped by a blank page saying
+   * nothing. So every way of failing to ask ends in the same place as having no
+   * network at all: the copy of the answer this device kept the last time it
+   * could ask.
+   *
+   * What that costs is that the roles may be out of date, which the profile
+   * page says out loud. What it buys is that the only thing an expired token
+   * takes away is the API, which is the only thing it was ever proof of.
+   *
+   * @return {Promise<UserInfoResponse|null>}
+   */
   async updateAuth() {
     if (!await this.oidcApi.canBeReached()) {
-      // Read back into a user rather than used as it comes out of the storage:
-      // what JSON.parse hands over carries the fields but none of the methods,
-      // and every question this app asks about a user — whether they may see a
-      // score, whether they may upload one — is asked of a method. A plain
-      // object answers `undefined` to all of them, which reads as a user with
-      // no roles at all.
-      const userJson = localStorage.getItem(userInfoLocalStorageKey);
-      this.user = userJson == null ? null : UserInfoResponse.fromJson(JSON.parse(userJson));
-      this.userIsFromThisDevice = true;
+      return this._userKeptOnThisDevice();
+    }
+
+    try {
+      this._accessToken = await this.oidcApi.getActiveAccessToken();
+      if (this._accessToken == null) {
+        // There was nothing to ask with, and the provider has been navigated to
+        // so that there will be. Until that comes back, this device's own copy
+        // is the best answer there is.
+        return this._userKeptOnThisDevice();
+      }
+
+      this.user = await this.oidcApi.getUserInfo();
+      this.userIsFromThisDevice = false;
+      localStorage.setItem(userInfoLocalStorageKey, JSON.stringify(this.user));
       return this.user;
+    } catch (error) {
+      console.error('failed to ask the provider who is signed in', error);
+      return this._userKeptOnThisDevice();
     }
+  }
 
-    this._accessToken = await this.oidcApi.getActiveAccessToken();
-    if (this._accessToken == null) {
-      this._accessToken = null;
-      return null;
-    }
-
-    this.user = await this.oidcApi.getUserInfo()
-    this.userIsFromThisDevice = false;
-    const userJson = JSON.stringify(this.user);
-    localStorage.setItem(userInfoLocalStorageKey, userJson);
+  /**
+   * The answer this device kept the last time it could ask.
+   *
+   * Read back into a user rather than used as it comes out of the storage: what
+   * JSON.parse hands over carries the fields but none of the methods, and every
+   * question this app asks about a user — whether they may see a score, whether
+   * they may upload one — is asked of a method. A plain object answers
+   * `undefined` to all of them, which reads as a user with no roles at all.
+   *
+   * @return {UserInfoResponse|null}
+   */
+  _userKeptOnThisDevice() {
+    const userJson = localStorage.getItem(userInfoLocalStorageKey);
+    this.user = userJson == null ? null : UserInfoResponse.fromJson(JSON.parse(userJson));
+    this.userIsFromThisDevice = true;
     return this.user;
   }
 

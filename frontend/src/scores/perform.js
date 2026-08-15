@@ -4,6 +4,15 @@ import {musicXmlForView} from "../domains/scores/musicxml-view.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 import {clampZoom, DEFAULT_ZOOM, distanceBetween, Pinch} from "../domains/scores/pinch-zoom.js";
 import {getScoreTitle} from "../data/helper-functions.js";
+import {keepAppUpToDate} from "../domains/updates/app-update.js";
+import {Settings} from "../domains/settings/settings.js";
+
+// Before a note is drawn: this is the page the music lands on, and it is the
+// reader's — set on the settings page, kept on this device, and different for a
+// lit room and a dark one. Getting it on the document first is the difference
+// between a dimmed page and a white one that dims a moment later, which on a
+// dark stage is the whole point of having dimmed it.
+Settings.apply();
 
 const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("score-musicxml");
 const renderer = new ScoreRenderer(osmd);
@@ -911,6 +920,13 @@ async function _openScore() {
 }
 
 async function main() {
+  // Fetched but never taken while this page is open. This is the page somebody
+  // is playing off, and a page that reloaded itself mid-song would lose the
+  // place, the transposition and the parts that were hidden. The newer app is
+  // there the next time a score is opened.
+  keepAppUpToDate()
+    .catch((error) => console.error('failed to watch for a newer app', error));
+
   await app.initialize();
 
   downloadSvgButton.addEventListener('click', onDownloadSvgClicked);
@@ -965,7 +981,14 @@ async function main() {
   await _openScore();
   _drawScoreTitle();
 
-  await app.updateScores();
+  // The score is already open and being played from. A sync that is refused
+  // — a token that ran out somewhere in the second set — changes nothing about
+  // that, and must not take the music off the stand.
+  try {
+    await app.updateScores();
+  } catch (error) {
+    console.error('failed to sync the scores', error);
+  }
   _drawScoreTitle();
 }
 

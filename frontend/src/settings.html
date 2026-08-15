@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Settings</title>
+    <script src="theme-boot.js"></script>
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="settings.css">
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="page topbar-inner">
+        <a id="home-button" class="button button--quiet button--icon" href="/" aria-label="Back to the scores">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+            </svg>
+        </a>
+        <h1 id="title">Settings</h1>
+        <a id="profile-button" class="button button--quiet" href="profile.html">Profile</a>
+    </div>
+</header>
+
+<main class="page stack stack--loose">
+
+    <!-- Light and dark, which on a stand in a dark room is not what the machine
+         happens to be set to. -->
+    <section id="appearance-section" class="card stack">
+        <h2>Appearance</h2>
+
+        <fieldset id="theme-mode" class="choices">
+            <legend class="visually-hidden">Which way round this device reads</legend>
+
+            <label class="choice">
+                <input type="radio" name="theme-mode" value="system" checked>
+                <span class="choice-text">
+                    <span class="choice-title">Follow the system</span>
+                    <span class="choice-explanation">Whatever this machine is set to.</span>
+                </span>
+            </label>
+
+            <label class="choice">
+                <input type="radio" name="theme-mode" value="light">
+                <span class="choice-text">
+                    <span class="choice-title">Light</span>
+                    <span class="choice-explanation">Black on white, the way a score is printed.</span>
+                </span>
+            </label>
+
+            <label class="choice">
+                <input type="radio" name="theme-mode" value="dark">
+                <span class="choice-text">
+                    <span class="choice-title">Dark</span>
+                    <span class="choice-explanation">The same page with the lamp turned down.</span>
+                </span>
+            </label>
+        </fieldset>
+
+        <p class="muted">
+            This is remembered on this device and nowhere else. A tablet on a
+            stand and a laptop at home can be set differently while being the
+            same account.
+        </p>
+    </section>
+
+    <!-- The page a score is actually read off. Both dials belong to a reader and
+         a room rather than to an app, so they are set here and kept apart for
+         light and dark. -->
+    <section id="page-section" class="card stack">
+        <div class="section-heading">
+            <h2 id="page-heading">The page</h2>
+            <button type="button" id="reset-look-button" class="button button--quiet" disabled>Reset</button>
+        </div>
+
+        <p class="muted">
+            A score is ink on paper however dark the room is. What changes at
+            night is how much light the paper is throwing at you — so this turns
+            the lamp down rather than turning the score inside out.
+        </p>
+
+        <!-- Five lines and a note, at about the weight the real thing is drawn
+             at, so the lamp can be seen rather than read about. -->
+        <div id="page-preview" class="preview">
+            <svg viewBox="0 0 320 96" preserveAspectRatio="xMidYMid meet" role="img"
+                 aria-label="A scrap of staff, drawn the way the music will be">
+                <g class="preview-ink">
+                    <rect x="16" y="26" width="288" height="1"/>
+                    <rect x="16" y="34" width="288" height="1"/>
+                    <rect x="16" y="41" width="288" height="1"/>
+                    <rect x="16" y="49" width="288" height="1"/>
+                    <rect x="16" y="56" width="288" height="1"/>
+                    <ellipse cx="160" cy="41" rx="5.6" ry="3.8" transform="rotate(-20 160 41)"/>
+                    <rect x="165" y="15" width="1" height="26"/>
+                </g>
+                <!-- A grace note, which is the thing that goes first when a page
+                     is dimmed too far. -->
+                <ellipse class="preview-faded-ink" cx="138" cy="49" rx="3.8" ry="2.6"
+                         transform="rotate(-20 138 49)"/>
+            </svg>
+        </div>
+
+        <div class="dial">
+            <div class="dial-heading">
+                <label class="label" for="brightness-input">Brightness</label>
+                <output id="brightness-output" for="brightness-input"></output>
+            </div>
+            <input type="range" id="brightness-input" min="0.18" max="1" step="0.01">
+            <div class="dial-ends muted">
+                <span>dim</span>
+                <span>working light</span>
+            </div>
+        </div>
+
+        <div class="dial">
+            <div class="dial-heading">
+                <label class="label" for="warmth-input">Warmth</label>
+                <output id="warmth-output" for="warmth-input"></output>
+            </div>
+            <input type="range" id="warmth-input" min="0" max="1" step="0.01">
+            <div class="dial-ends muted">
+                <span>neutral</span>
+                <span>candlelight</span>
+            </div>
+        </div>
+
+        <p id="other-page-note" class="muted"></p>
+    </section>
+
+    <!-- The app is served out of a cache before it is served out of the
+         network, which is what makes it work with no signal — and also what can
+         keep a version that has been replaced on screen. -->
+    <section id="app-section" class="card stack">
+        <h2>The app itself</h2>
+
+        <dl id="app-state"></dl>
+
+        <p class="muted">
+            Whenever this device can reach the server, the app asks whether
+            there is a newer version and fetches it in the background. A page
+            opened after that is the new one. The button is for when that has
+            not happened and something is stuck: it throws away every cached
+            copy and fetches the app again from the server.
+        </p>
+
+        <div class="actions">
+            <button type="button" id="update-app-button" class="button">
+                Fetch the newest version of the app
+            </button>
+        </div>
+
+        <p id="update-state" class="muted"></p>
+    </section>
+
+</main>
+
+<script src="settings.js" type="module"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import {html, nothing, render} from "../packages/lit-core.3.3.3.min.js";
 import {App} from "../app.js";
+import {keepAppUpToDate} from "../domains/updates/app-update.js";
 import {getScoreTitle} from "../data/helper-functions.js";
 import {getInstrumentName} from "../data/translations.js";
 
@@ -317,6 +318,11 @@ function _readScore() {
 }
 
 async function main() {
+  // Fetched but never taken while this page is open: there is a form on it, and
+  // a reload would empty it.
+  keepAppUpToDate()
+    .catch((error) => console.error('failed to watch for a newer app', error));
+
   await app.initialize();
 
   scoreId = new URLSearchParams(window.location.search).get('id');

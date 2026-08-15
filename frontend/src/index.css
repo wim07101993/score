@@ -107,20 +107,16 @@
     overflow-wrap: anywhere;
 }
 
+/* The icons are black line art, which is invisible on a dark card — so how far
+   they are turned round is a token, and the theme answers it however the app
+   came to be dark. */
 .score-card-icon {
     flex: 0 0 auto;
     width: 16px;
     height: 16px;
     margin-top: 0.2em;
-    opacity: 0.55;
-}
-
-@media (prefers-color-scheme: dark) {
-    /* The icons are black line art, which is invisible on a dark card. */
-    .score-card-icon {
-        filter: invert(1);
-        opacity: 0.65;
-    }
+    filter: invert(var(--icon-invert));
+    opacity: var(--icon-fade);
 }
 
 /* Tags sit at the bottom of the card whatever length the rest came out. */
