@@ -1,8 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-
-import 'primitives.dart';
+import 'package:score/notation/render/primitives.dart';
 
 /// Drawing what the layout worked out.
 ///

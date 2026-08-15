@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:score/data/local_store.dart';
+import 'package:score/domains/auth/oidc_api.dart';
+import 'package:score/domains/sets/api.dart';
+import 'package:score/domains/sets/models.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../data/local_store.dart';
-import '../auth/oidc_api.dart';
-import 'api.dart';
-import 'models.dart';
 
 /// The sets, as this device has them.
 ///
@@ -103,9 +102,9 @@ class SetsRepository extends ChangeNotifier {
       sharedWith: addressesOf(sharedWith),
       isOwner: existing?.isOwner ?? true,
       lastChangedAt: DateTime.now(),
-      // Writing a set that had been deleted brings it back: a client that still
-      // has it and edits it is saying it should exist.
-      deletedAt: null,
+      // Nothing is carried over from a deletion, so writing a set that had been
+      // deleted brings it back: a client that still has it and edits it is
+      // saying it should exist.
       lastSyncedAt: existing?.lastSyncedAt,
       pendingChange: PendingChange.write,
       pendingViews: existing?.pendingViews ?? const [],
@@ -379,7 +378,7 @@ class SetsRepository extends ChangeNotifier {
   /// Sends what has been done to the running order here, one song at a time and
   /// in the order it was done.
   Future<void> _pushEntries(String setId) async {
-    for (final owed in [...(_sets[setId]?.pendingEntries ?? const [])]) {
+    for (final owed in [...?_sets[setId]?.pendingEntries]) {
       final set = _sets[setId];
       if (set == null) return;
 
@@ -432,7 +431,7 @@ class SetsRepository extends ChangeNotifier {
 
   /// Sends how this user reads the entries they have said something about.
   Future<void> _pushViews(String setId) async {
-    for (final entryId in [...(_sets[setId]?.pendingViews ?? const [])]) {
+    for (final entryId in [...?_sets[setId]?.pendingViews]) {
       final set = _sets[setId];
       final entry =
           set?.entries.where((candidate) => candidate.id == entryId).firstOrNull;

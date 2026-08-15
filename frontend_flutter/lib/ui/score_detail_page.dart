@@ -2,17 +2,16 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:score/app.dart';
+import 'package:score/data/file_saver.dart';
+import 'package:score/domains/sets/models.dart';
+import 'package:score/notation/musicxml/parser.dart';
+import 'package:score/notation/parts.dart';
+import 'package:score/notation/score_sheet.dart';
+import 'package:score/notation/view/musicxml_view.dart';
+import 'package:score/notation/view/score_view.dart';
+import 'package:score/ui/routes.dart';
 import 'package:uuid/uuid.dart';
-
-import '../app.dart';
-import '../data/file_saver.dart';
-import '../domains/sets/models.dart';
-import '../notation/musicxml/parser.dart';
-import '../notation/parts.dart';
-import '../notation/score_sheet.dart';
-import '../notation/view/musicxml_view.dart';
-import '../notation/view/score_view.dart';
-import 'routes.dart';
 
 /// One score, drawn and played from.
 ///

@@ -11,7 +11,7 @@ library;
 // How far a score may be read from where it is written is the viewer's to say,
 // so it is said there and not here: a set that stored a key the score could not
 // be shown in would be a set nobody could play.
-import '../../notation/view/score_view.dart';
+import 'package:score/notation/view/score_view.dart';
 
 /// What a set is waiting to have done to it on the server.
 class PendingChange {
@@ -292,7 +292,7 @@ class EntryView {
   /// By MusicXML part id.
   final List<String> hiddenParts;
 
-  static EntryView fromJson(Object? json) {
+  factory EntryView.fromJson(Object? json) {
     if (json is! Map) return const EntryView();
     return EntryView(
       transposition: transpositionOf(json['transposition']),

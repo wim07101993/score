@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'file_saver_native.dart'
-    if (dart.library.js_interop) 'file_saver_web.dart';
+import 'package:score/data/file_saver_native.dart'
+    if (dart.library.js_interop) 'package:score/data/file_saver_web.dart';
 
 /// Writing a file out of the app and into wherever the user keeps things.
 ///

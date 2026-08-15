@@ -1,7 +1,6 @@
-import '../../config.dart';
-
-import 'authorizer_native.dart'
-    if (dart.library.js_interop) 'authorizer_web.dart';
+import 'package:score/config.dart';
+import 'package:score/domains/auth/authorizer_native.dart'
+    if (dart.library.js_interop) 'package:score/domains/auth/authorizer_web.dart';
 
 /// What a code the user came back with looks like.
 typedef Callback = ({String code, String state});

@@ -1,7 +1,6 @@
+import 'package:score/notation/musicxml/model.dart';
+import 'package:score/notation/view/pitch.dart';
 import 'package:xml/xml.dart';
-
-import '../view/pitch.dart';
-import 'model.dart';
 
 /// Reading a MusicXML document into something that can be drawn.
 ///
@@ -368,7 +367,6 @@ List<Lyric> _readLyric(XmlElement element) {
           text: child.innerText,
           number: number,
           syllabic: syllabic,
-          extend: false,
         ));
         syllabic = null;
     }

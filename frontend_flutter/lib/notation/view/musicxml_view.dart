@@ -1,7 +1,6 @@
+import 'package:score/notation/view/pitch.dart';
+import 'package:score/notation/view/score_view.dart';
 import 'package:xml/xml.dart';
-
-import 'pitch.dart';
-import 'score_view.dart';
 
 /// Writing a score back out the way it is being looked at.
 ///

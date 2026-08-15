@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-
-import 'config.dart';
-import 'data/local_store.dart';
-import 'data/settings.dart';
-import 'domains/auth/oidc_api.dart';
-import 'domains/scores/api.dart';
-import 'domains/scores/repository.dart';
-import 'domains/sets/api.dart';
-import 'domains/sets/repository.dart';
+import 'package:score/config.dart';
+import 'package:score/data/local_store.dart';
+import 'package:score/data/settings.dart';
+import 'package:score/domains/auth/oidc_api.dart';
+import 'package:score/domains/scores/api.dart';
+import 'package:score/domains/scores/repository.dart';
+import 'package:score/domains/sets/api.dart';
+import 'package:score/domains/sets/repository.dart';
 
 /// Everything the app is made of, wired together once.
 ///

@@ -1,8 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-
-import '../app.dart';
+import 'package:score/app.dart';
 
 /// What this app has been told about the user, and by whom.
 ///

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import '../musicxml/model.dart';
+import 'package:score/notation/musicxml/model.dart';
 
 /// Where a note sits on a staff.
 ///

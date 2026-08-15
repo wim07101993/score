@@ -3,10 +3,9 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-
-import '../../config.dart';
-import '../../data/local_store.dart';
-import 'authorizer.dart';
+import 'package:score/config.dart';
+import 'package:score/data/local_store.dart';
+import 'package:score/domains/auth/authorizer.dart';
 
 /// Proving who the user is, and finding out what they may do.
 ///
@@ -295,7 +294,7 @@ class _FlowState {
   final String verifier;
   final String challenge;
 
-  static _FlowState create() {
+  factory _FlowState.create() {
     final verifier = _randomString(56);
     return _FlowState(_randomString(16), verifier, _challengeFor(verifier));
   }

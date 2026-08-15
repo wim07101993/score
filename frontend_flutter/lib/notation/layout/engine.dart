@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui' show Offset, TextAlign;
 
-import '../musicxml/model.dart';
-import '../render/primitives.dart';
-import '../render/smufl.dart';
-import 'note_values.dart';
-import 'staff_position.dart';
+import 'package:score/notation/layout/note_values.dart';
+import 'package:score/notation/layout/staff_position.dart';
+import 'package:score/notation/musicxml/model.dart';
+import 'package:score/notation/render/primitives.dart';
+import 'package:score/notation/render/smufl.dart';
 
 /// Turning a score into something to draw.
 ///
@@ -1058,7 +1058,7 @@ void _drawDots(List<Prim> prims, Note note, double x, double y) {
 
   // A dot goes in a space, so one belonging to a note on a line is nudged up
   // into the space above it.
-  final onALine = ((y - 0) * 2).round() % 2 == 0;
+  final onALine = ((y - 0) * 2).round().isEven;
   final dotY = onALine ? y - 0.5 : y;
 
   for (var dot = 0; dot < note.dots; dot++) {
@@ -1348,7 +1348,7 @@ void _drawBeamLine(
     x2 = run.last.stemX;
   }
 
-  final half = EngravingDefaults.stemThickness / 2;
+  const half = EngravingDefaults.stemThickness / 2;
   final top1 = at(x1) + (stemUp ? offset : -offset - thickness);
   final top2 = at(x2) + (stemUp ? offset : -offset - thickness);
 
@@ -1390,7 +1390,6 @@ void _drawTiesAndSlurs(List<Prim> prims, List<_Group> groups, _StaffRef ref) {
               ref.top + y1 + (up ? -0.6 : 0.6)),
           to: Offset(later.headX[to] ?? later.x, ref.top + y2 + (up ? -0.6 : 0.6)),
           bow: up ? -0.8 : 0.8,
-          thickness: EngravingDefaults.tieMidpointThickness,
         ));
         break;
       }
@@ -1419,7 +1418,6 @@ void _drawTiesAndSlurs(List<Prim> prims, List<_Group> groups, _StaffRef ref) {
             to: Offset((group.headX[note] ?? group.x) + 0.6,
                 ref.top + y2 + (up ? -1.5 : 1.5)),
             bow: up ? -1.2 : 1.2,
-            thickness: EngravingDefaults.slurMidpointThickness,
           ));
         }
       }

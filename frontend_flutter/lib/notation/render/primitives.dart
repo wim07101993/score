@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'smufl.dart';
+import 'package:score/notation/render/smufl.dart';
 
 /// What a laid-out score is made of.
 ///

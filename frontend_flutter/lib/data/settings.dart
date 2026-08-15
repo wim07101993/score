@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '../notation/score_sheet.dart';
-import 'local_store.dart';
+import 'package:score/data/local_store.dart';
+import 'package:score/notation/score_sheet.dart';
 
 /// How the page is lit: what it gives off, and how far from grey it is.
 ///

@@ -1,6 +1,6 @@
-import '../musicxml/model.dart';
-import '../render/smufl.dart';
-import '../view/pitch.dart';
+import 'package:score/notation/musicxml/model.dart';
+import 'package:score/notation/render/smufl.dart';
+import 'package:score/notation/view/pitch.dart';
 
 /// How long the note types last and what they are drawn with.
 ///

@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
-
-import '../../data/local_store.dart';
-import '../auth/oidc_api.dart';
-import 'api.dart';
-import 'models.dart';
+import 'package:score/data/local_store.dart';
+import 'package:score/domains/auth/oidc_api.dart';
+import 'package:score/domains/scores/api.dart';
+import 'package:score/domains/scores/models.dart';
 
 /// The scores, as this device has them.
 ///

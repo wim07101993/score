@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../app.dart';
-import '../domains/sets/models.dart';
-import 'routes.dart';
+import 'package:score/app.dart';
+import 'package:score/domains/sets/models.dart';
+import 'package:score/ui/routes.dart';
 
 /// The sets there are.
 ///

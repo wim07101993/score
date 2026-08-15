@@ -57,7 +57,7 @@ void _keepOneRevisionChannel() {
     return;
   }
 
-  final native = globalContext['BroadcastChannel'] as JSFunction;
+  final native = globalContext['BroadcastChannel']! as JSFunction;
   globalContext[_nativeConstructor] = native;
 
   JSObject channelFor(JSString name) {
@@ -68,7 +68,7 @@ void _keepOneRevisionChannel() {
     // point: this is where the channel is found again after a restart.
     final kept = globalContext[_kept];
     if (kept.isA<JSObject>()) {
-      return kept as JSObject;
+      return kept! as JSObject;
     }
     final channel = native.callAsConstructor<JSObject>(name);
     globalContext[_kept] = channel;

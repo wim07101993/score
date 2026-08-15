@@ -1,4 +1,4 @@
-import '../view/pitch.dart';
+import 'package:score/notation/view/pitch.dart';
 
 /// What a MusicXML document says, as the renderer needs it.
 ///

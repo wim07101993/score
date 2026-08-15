@@ -118,13 +118,13 @@ class _WorkingApi extends SetsApi {
 class _WriteFailsApi extends _WorkingApi {
   @override
   Future<Map<String, dynamic>> putSet(
-      String setId, String token, Map<String, Object?> write) async {
+      String setId, String token, Map<String, Object?> write) {
     throw SetsApiException('nothing answered', null);
   }
 
   @override
   Future<Map<String, dynamic>> putEntry(String setId, String entryId,
-      String token, Map<String, Object?> write) async {
+      String token, Map<String, Object?> write) {
     throw SetsApiException('nothing answered', null);
   }
 }
@@ -133,7 +133,7 @@ class _WriteFailsApi extends _WorkingApi {
 class _RefusingApi extends _WorkingApi {
   @override
   Future<Map<String, dynamic>> putSet(
-      String setId, String token, Map<String, Object?> write) async {
+      String setId, String token, Map<String, Object?> write) {
     calls.add('putSet');
     throw SetsApiException('no', 403, {
       'errorCode': 'not_set_owner',
@@ -304,7 +304,7 @@ void main() {
       await store.writeSets([
         ScoreSet(
           id: 'theirs',
-          title: 'Somebody else\'s gig',
+          title: "Somebody else's gig",
           isOwner: false,
           lastChangedAt: DateTime.now(),
           lastSyncedAt: DateTime.now(),
@@ -325,7 +325,7 @@ void main() {
       await store.writeSets([
         ScoreSet(
           id: 'theirs',
-          title: 'Somebody else\'s gig',
+          title: "Somebody else's gig",
           isOwner: false,
           lastChangedAt: DateTime.now(),
         ).toJson(),

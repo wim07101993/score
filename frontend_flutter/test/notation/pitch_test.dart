@@ -222,8 +222,8 @@ void main() {
     for (final notANote in [
       const Pitch('H', 0, 4),
       const Pitch('', 0, 4),
-      Pitch('C', double.nan, 4),
-      Pitch('C', double.infinity, 4),
+      const Pitch('C', double.nan, 4),
+      const Pitch('C', double.infinity, 4),
     ]) {
       expect(transposePitch(notANote, interval), isNull, reason: '$notANote');
     }

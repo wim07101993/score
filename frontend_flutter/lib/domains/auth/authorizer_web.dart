@@ -1,7 +1,6 @@
+import 'package:score/config.dart';
+import 'package:score/domains/auth/authorizer.dart';
 import 'package:web/web.dart' as web;
-
-import '../../config.dart';
-import 'authorizer.dart';
 
 /// Signing in in a browser.
 ///

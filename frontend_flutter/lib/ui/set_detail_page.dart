@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:score/app.dart';
+import 'package:score/domains/scores/models.dart';
+import 'package:score/domains/sets/models.dart';
+import 'package:score/domains/sets/repository.dart';
+import 'package:score/notation/view/score_view.dart';
+import 'package:score/ui/routes.dart';
 import 'package:uuid/uuid.dart';
-
-import '../app.dart';
-import '../domains/scores/models.dart';
-import '../domains/sets/models.dart';
-import '../domains/sets/repository.dart';
-import '../notation/view/score_view.dart';
-import 'routes.dart';
 
 /// One set, written.
 ///

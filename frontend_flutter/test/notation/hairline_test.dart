@@ -33,7 +33,7 @@ Future<List<double>> _rows(ui.Image image) async {
 }
 
 /// One horizontal line at [y] staff spaces, drawn white on black.
-Future<ui.Image> _draw(double y, {double devicePixelRatio = 1.0}) async {
+Future<ui.Image> _draw(double y, {double devicePixelRatio = 1.0}) {
   const space = 8.0;
   const width = 40.0;
   const height = 20.0;

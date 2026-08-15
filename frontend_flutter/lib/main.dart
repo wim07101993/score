@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-
-import 'app.dart';
-import 'ui/routes.dart';
-import 'ui/score_detail_page.dart';
-import 'ui/scores_page.dart';
-import 'ui/set_detail_page.dart';
-import 'ui/sets_page.dart';
-import 'ui/profile_page.dart';
-import 'ui/settings_page.dart';
-import 'ui/starting.dart';
-import 'ui/theme.dart';
+import 'package:score/app.dart';
+import 'package:score/ui/profile_page.dart';
+import 'package:score/ui/routes.dart';
+import 'package:score/ui/score_detail_page.dart';
+import 'package:score/ui/scores_page.dart';
+import 'package:score/ui/set_detail_page.dart';
+import 'package:score/ui/sets_page.dart';
+import 'package:score/ui/settings_page.dart';
+import 'package:score/ui/starting.dart';
+import 'package:score/ui/theme.dart';
 
 void main() {
   runApp(const ScoreApp());

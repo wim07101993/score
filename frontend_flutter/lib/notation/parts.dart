@@ -1,4 +1,4 @@
-import 'musicxml/model.dart';
+import 'package:score/notation/musicxml/model.dart';
 
 /// The parts of a score, as the app names them.
 ///

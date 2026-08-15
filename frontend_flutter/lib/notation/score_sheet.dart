@@ -1,14 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
-import 'layout/engine.dart';
-import 'musicxml/model.dart';
-import 'musicxml/parser.dart';
-import 'render/primitives.dart';
-import 'render/score_painter.dart';
-import 'view/musicxml_view.dart';
-import 'view/score_view.dart';
+import 'package:score/notation/layout/engine.dart';
+import 'package:score/notation/musicxml/model.dart';
+import 'package:score/notation/musicxml/parser.dart';
+import 'package:score/notation/render/primitives.dart';
+import 'package:score/notation/render/score_painter.dart';
+import 'package:score/notation/view/musicxml_view.dart';
+import 'package:score/notation/view/score_view.dart';
 
 /// Paper, and the ink on it.
 ///

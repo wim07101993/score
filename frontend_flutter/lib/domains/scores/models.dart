@@ -169,7 +169,7 @@ class Creators {
   final List<String> composers;
   final List<String> lyricists;
 
-  static Creators fromJson(Object? json) {
+  factory Creators.fromJson(Object? json) {
     if (json is! Map) return const Creators();
     return Creators(
       composers: _strings(json['composers']),

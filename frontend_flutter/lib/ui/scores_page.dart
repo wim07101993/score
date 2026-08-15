@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../app.dart';
-import '../data/instruments.dart';
-import '../domains/scores/models.dart';
-import 'routes.dart';
+import 'package:score/app.dart';
+import 'package:score/data/instruments.dart';
+import 'package:score/domains/scores/models.dart';
+import 'package:score/ui/routes.dart';
 
 /// The scores there are.
 ///

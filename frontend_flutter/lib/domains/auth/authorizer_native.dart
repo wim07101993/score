@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-
-import '../../config.dart';
-import 'authorizer.dart';
+import 'package:score/config.dart';
+import 'package:score/domains/auth/authorizer.dart';
 
 /// Signing in on a device.
 ///

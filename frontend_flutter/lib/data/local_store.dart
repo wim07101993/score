@@ -1,7 +1,6 @@
+import 'package:score/data/database_factory_io.dart'
+    if (dart.library.js_interop) 'package:score/data/database_factory_web.dart';
 import 'package:sembast/sembast_memory.dart';
-
-import 'database_factory_io.dart'
-    if (dart.library.js_interop) 'database_factory_web.dart';
 
 /// Where everything this device knows is kept between visits.
 ///

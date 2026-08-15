@@ -24,7 +24,7 @@ import 'package:score/notation/view/score_view.dart';
 /// The whole score is drawn rather than as much of it as fits a screen — the
 /// point is to see the last system as well as the first.
 ///
-/// ```
+/// ```sh
 /// $ flutter test test/notation/render_preview_test.dart
 /// ```
 

@@ -84,7 +84,7 @@ void main() {
 
   group('lighting the page', () {
     testWidgets('says which page is being lit', (tester) async {
-      await _show(tester, brightness: Brightness.dark);
+      await _show(tester);
       expect(find.text('The page, in the dark'), findsOneWidget);
 
       await _show(tester, brightness: Brightness.light);
@@ -146,7 +146,7 @@ void main() {
 
     testWidgets('the page it is describing is drawn in the palette it is set to',
         (tester) async {
-      await _show(tester, look: (brightness: 0.29, warmth: 0.3));
+      await _show(tester);
 
       final shown = tester
           .widgetList<ColoredBox>(find.byType(ColoredBox))

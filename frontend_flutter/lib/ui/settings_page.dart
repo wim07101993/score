@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../app.dart';
-import '../data/settings.dart';
-import '../notation/score_sheet.dart';
+import 'package:score/app.dart';
+import 'package:score/data/settings.dart';
+import 'package:score/notation/score_sheet.dart';
 
 /// What this device prefers.
 ///
