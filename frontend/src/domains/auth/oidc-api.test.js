@@ -5,7 +5,17 @@ import {createHash} from 'node:crypto';
 // The module picks its hashing strategy based on this global.
 globalThis.isSecureContext = true;
 
-const {OidcFlowState, UserInfoResponse} = await import('./oidc-api.js');
+// The storage reads the sessionStorage global at call time, so a fake put here
+// before importing is enough to drive it.
+const sessionStore = new Map();
+globalThis.sessionStorage = {
+  setItem: (key, value) => sessionStore.set(key, String(value)),
+  getItem: (key) => (sessionStore.has(key) ? sessionStore.get(key) : null),
+  removeItem: (key) => sessionStore.delete(key),
+};
+
+const {OidcApi, OidcConfig, OidcFlowState, OidcStorage, UserInfoResponse} =
+  await import('./oidc-api.js');
 
 /**
  * @param verifier {string}
@@ -143,4 +153,103 @@ test('a user read back from the storage still has their roles', () => {
 test('nothing kept on the device is nobody, not an empty user', () => {
   assert.equal(UserInfoResponse.fromJson(null), null);
   assert.equal(UserInfoResponse.fromJson('not an object'), null);
+});
+
+// ---------------------------------------------------------------------------
+// A TOKEN THE PROVIDER WILL NOT TAKE
+// ---------------------------------------------------------------------------
+
+/**
+ * A provider that answers whatever it is told to, and remembers what it was
+ * asked. Anything it has not been given an answer for is a 404, which is
+ * louder than a mystery.
+ *
+ * @param answers {{userInfo: function(string): {status: number, body: *},
+ *   token?: {status: number, body: *}}}
+ */
+function aProvider(answers) {
+  const asked = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const href = `${url}`;
+    asked.push(href);
+
+    if (href === `${A_CONFIG.tokenEndpoint}`) {
+      const {status, body} = answers.token ?? {status: 404, body: {}};
+      return _response(status, body);
+    }
+    if (href === `${A_CONFIG.userInfoEndpoint}`) {
+      const bearer = (init.headers?.Authorization ?? '').replace('Bearer ', '');
+      const {status, body} = answers.userInfo(bearer);
+      return _response(status, body);
+    }
+    return _response(404, {});
+  };
+  return asked;
+}
+
+function _response(status, body) {
+  return {
+    status,
+    statusText: `${status}`,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  };
+}
+
+const A_CONFIG = new OidcConfig(
+  'a-client',
+  new URL('https://app.example.com/'),
+  new URL('https://provider.example.com/authorize'),
+  new URL('https://provider.example.com/token'),
+  new URL('https://provider.example.com/userinfo'),
+  new URL('https://provider.example.com/healthz'),
+  ROLES_KEY,
+);
+
+test.beforeEach(() => sessionStore.clear());
+
+// The bug this was written for: a token the provider will not take was an
+// uncaught 401 out of the top of every page, and the app did not start at all.
+// A refusal is an answer about the token, not about the user.
+test('a refused token is thrown away and the question asked again', async () => {
+  OidcStorage.tokenResponse = {access_token: 'stale', expires_in: 3600};
+  OidcStorage.refreshToken = 'a-refresh-token';
+  aProvider({
+    token: {status: 200, body: {access_token: 'fresh', expires_in: 3600}},
+    userInfo: (bearer) => bearer === 'fresh'
+      ? {status: 200, body: aUserInfoAnswer()}
+      : {status: 401, body: {error: 'access_denied'}},
+  });
+
+  const user = await new OidcApi(A_CONFIG).getUserInfo();
+
+  assert.equal(user.isScoreViewer, true);
+  assert.equal(OidcStorage.tokenResponse.access_token, 'fresh');
+});
+
+// A provider that is unwell says nothing about the token it was shown, and
+// throwing that token away would turn a moment of ill health into a sign-in.
+test('a provider that is unwell is not a token to throw away', async () => {
+  OidcStorage.tokenResponse = {access_token: 'a-token', expires_in: 3600};
+  aProvider({userInfo: () => ({status: 503, body: {error: 'unavailable'}})});
+
+  await assert.rejects(() => new OidcApi(A_CONFIG).getUserInfo());
+
+  assert.equal(OidcStorage.tokenResponse.access_token, 'a-token');
+});
+
+// Once, and no further. A provider that refuses a token it has just issued
+// will go on refusing, and a loop between the two of them is worse than being
+// told.
+test('a token that is refused twice is not asked about a third time', async () => {
+  OidcStorage.tokenResponse = {access_token: 'stale', expires_in: 3600};
+  OidcStorage.refreshToken = 'a-refresh-token';
+  const asked = aProvider({
+    token: {status: 200, body: {access_token: 'fresh', expires_in: 3600}},
+    userInfo: () => ({status: 401, body: {error: 'access_denied'}}),
+  });
+
+  await assert.rejects(() => new OidcApi(A_CONFIG).getUserInfo());
+
+  assert.equal(asked.filter((url) => url === `${A_CONFIG.userInfoEndpoint}`).length, 2);
 });

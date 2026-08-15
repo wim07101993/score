@@ -99,11 +99,16 @@ frontend/src/
 ├── scores/detail.html           one score, drawn and played from
 ├── sets/index.html              the sets there are
 ├── sets/detail.html             one set, written
+├── settings.html                what this device prefers
+├── profile.html                 what the app was told about the user
 ├── domains/                     what the app knows, a directory per subject
 │   ├── auth/                    proving who the user is
 │   ├── scores/                  the scores and the way one is looked at
-│   └── sets/                    the playlists a gig is played from
+│   ├── sets/                    the playlists a gig is played from
+│   ├── settings/                what this device prefers, and the page it lights
+│   └── updates/                 keeping the app itself up to date
 ├── components/                  the custom elements a list is drawn with
+├── theme-boot.js                which way round this device reads, before a paint
 └── service-worker.js            what is served when there is no network
 ```
 
@@ -124,17 +129,63 @@ It shows the user-info answer as it came back, which claim the roles were looked
 for under and which claims actually arrived, whether the answer came from the
 provider just now or from the copy this device kept, what the app is talking to
 and whether it can be reached, what is stored on the device, and which cached
-versions of the app are on it. It also carries the two ways out: forgetting the
-tokens to sign in again, and throwing away the cached app to fetch the newest
-one.
+versions of the app are on it. It carries the way out, too: forgetting the
+tokens to sign in again. The app's own version is next door, in the settings.
 
-That last one is worth knowing about. A page is served from the cache before it
-is served from the network, which is what makes the app work with no network at
-all — and also what keeps a version that has been replaced on screen. The worker
-takes over as soon as it is installed and deletes the caches of every earlier
-version when it does, so an update lands on the next load; before it did that, a
-new version was cached and left untouched while the previous one went on being
-served for as long as a tab of the app stayed open.
+### The page a score is read off is the reader's
+
+[settings.html](frontend/src/settings.html) is what this device prefers, and it
+is a device's rather than an account's: a player may read off a bright laptop at
+home and a dimmed tablet on a stand, signed in as the same person, and neither
+should decide the other. So it is kept in the browser and never sent to the
+server. Which way round the app is — light, dark, or whatever the machine says —
+is put on the document by [theme-boot.js](frontend/src/theme-boot.js) before the
+first paint, because a page that starts light and corrects itself a moment later
+is a white screen in somebody's face on a dark stage.
+
+Underneath it is the page the music actually lands on, which is the part worth
+explaining. **A score in the dark is still ink on paper.** What changes at night
+is how much light the paper throws at the reader, so the dark page is this page
+with the lamp turned down and not this page inverted — a screen makes its own
+light and pushes it at you, the eye opens up in a dark room, and anything bright
+on that screen blooms. A white notehead is exactly that, and it is also the
+thing being looked at. Dark marks have no light to give and cannot bloom.
+
+The dial is therefore a share of *light* rather than of the numbers a colour is
+written with: half way down is the page that throws half the light, which is
+`#bcbcbc` and nowhere near the halfway `#808080`. That arithmetic is
+[sheet-palette.js](frontend/src/domains/settings/sheet-palette.js), which is
+also where the second dial lives — how far from grey the page is, which costs
+almost no light because it is the blue that is taken away. The two are kept
+apart for the light room and the dark one, because the lamp a reader wants at a
+lit desk is not the one they want at a gig.
+
+### The app keeps itself up to date
+
+A page is served from the cache before it is served from the network, which is
+what makes the app work with no network at all — and also what would keep a
+version that has been replaced on screen. So the newest version is gone looking
+for rather than waited for:
+[app-update.js](frontend/src/domains/updates/app-update.js) asks the server for
+a newer worker whenever it might be reachable — when a page opens, when the
+network comes back, when a tab is looked at again — and the worker fills a new
+cache and takes over the moment it has one, deleting the caches of every earlier
+version as it does. Nobody is asked to agree to anything; a player standing on a
+stage is not going to read a banner about versions.
+
+What that update is compared against is the bytes of `service-worker.js`, so a
+release that changes a page and leaves its `cacheName` alone is a release no
+device already carrying the app will ever see.
+
+Taking the new version is a separate question from fetching it. A listing, the
+profile and the settings reload themselves the moment a newer app takes over,
+because nothing on them is half-written. The score being played from, the score
+being edited and the set being written do not: a reload there costs a place in
+the music or an edit nobody typed twice, and those pages get the new version the
+next time they are opened, which is soon enough. The button on the settings page
+is for neither case — it throws away every cached copy and unregisters the
+workers, which is the way out when a worker failed half way through installing
+and asking for a newer one has not helped.
 
 ### Sets are written offline
 
@@ -281,6 +332,24 @@ everything about the running order lands as it is done.
 Authentication can be done using any OIDC provider. We use Zitadel in the 
 docker-compose file but any OIDC server. Roles are checked using getting the 
 user-info from the idp. 
+
+**A token that has run out takes away the API and nothing else.** The scores are
+on the device and are drawn from the device, so nothing about signing in is
+allowed to stop the app from starting: `App.updateAuth` never throws, and every
+way of failing to ask — a provider that cannot be reached, one that will not
+take the token, one that answers something unreadable — ends where having no
+network at all ends, at the copy of the answer this device kept the last time it
+could ask. The profile page says which of the two it is looking at.
+
+A token also has to know when it runs out, and carry it. It used to be dropped
+by a timer, and a timer dies with the page: a tab closed with time left on a
+token and opened an hour later found the token still in the storage, sent it,
+and was told 401 — which, before this, was an uncaught error at the top of every
+page and an app that did not start. The moment it expires is now stored with it
+and read every time it is fetched. A token that is refused anyway is thrown away
+and the question asked once more with a fresh one, and once only: a provider
+that refuses a token it has just issued will go on refusing, and a loop between
+the two is worse than being told.
 
 ## Development
 

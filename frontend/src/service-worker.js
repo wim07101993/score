@@ -1,7 +1,13 @@
 // Bump this whenever a cached file changes: fetches are answered from the cache
 // before the network, so an installed client goes on serving the previous
 // version of every file below until the cache is a different one.
-const cacheName = "score-cache-v0.14";
+//
+// It is also the whole of what an installed app has to go on. Clients ask this
+// file for a newer version whenever they can reach the server — see
+// `domains/updates/app-update.js` — and what they compare is the bytes of this
+// file. A release that changes a page and leaves this line alone is a release
+// no device already carrying the app will ever see.
+const cacheName = "score-cache-v0.15";
 // A directory is listed by the url a page is actually asked for, never as
 // "<dir>/index.html": the file server answers that spelling with a redirect to
 // the directory, and a redirect is not something that can be cached or handed
@@ -27,6 +33,9 @@ const cacheUrls = [
   "/domains/sets/api.js",
   "/domains/sets/database.js",
   "/domains/sets/repository.js",
+  "/domains/settings/settings.js",
+  "/domains/settings/sheet-palette.js",
+  "/domains/updates/app-update.js",
   "/packages/lit-core.3.3.3.min.js",
   "/packages/open_sheet_music_display.1.8.9.min.js",
   "/scores/detail.css",
@@ -48,6 +57,10 @@ const cacheUrls = [
   "/profile.css",
   "/profile.html",
   "/profile.js",
+  "/settings.css",
+  "/settings.html",
+  "/settings.js",
+  "/theme-boot.js",
   "/theme.css",
 ];
 

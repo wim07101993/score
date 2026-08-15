@@ -1,5 +1,6 @@
 import {App} from "./app.js";
 import {OidcStorage} from "./domains/auth/oidc-api.js";
+import {installedVersions, keepAppUpToDate} from "./domains/updates/app-update.js";
 
 /**
  * What this app has been told about the user, and by whom.
@@ -25,7 +26,6 @@ const storageList = document.getElementById('storage');
 
 const refreshButton = document.getElementById('refresh-button');
 const signInAgainButton = document.getElementById('sign-in-again-button');
-const updateAppButton = document.getElementById('update-app-button');
 
 const app = new App('config.json');
 
@@ -189,10 +189,8 @@ async function _drawStorage() {
     },
   ];
 
-  if (typeof caches !== 'undefined') {
-    const names = await caches.keys();
-    rows.push({term: 'Cached app versions', value: names.join(', '), absent: 'none'});
-  }
+  const versions = await installedVersions();
+  rows.push({term: 'Cached app versions', value: versions.join(', '), absent: 'none'});
 
   if (navigator.storage?.estimate != null) {
     const {usage, quota} = await navigator.storage.estimate();
@@ -243,30 +241,6 @@ function onSignInAgainClicked() {
 }
 
 /**
- * Throws away every cached copy of the app and lets go of the worker serving
- * them, so that the next load is fetched.
- *
- * A page is served from a cache before it is served from the network, which is
- * what makes the app work with no network at all — and also what keeps a
- * version that has been replaced on screen. This is the way out of that when it
- * happens.
- */
-async function onUpdateAppClicked() {
-  updateAppButton.disabled = true;
-  try {
-    if (typeof caches !== 'undefined') {
-      const names = await caches.keys();
-      await Promise.all(names.map((name) => caches.delete(name)));
-    }
-    const registrations = await navigator.serviceWorker?.getRegistrations() ?? [];
-    await Promise.all(registrations.map((registration) => registration.unregister()));
-  } catch (error) {
-    console.error('failed to throw away the cached app', error);
-  }
-  window.location.reload();
-}
-
-/**
  * @param error {*}
  */
 function _showFailure(error) {
@@ -279,7 +253,11 @@ async function main() {
   // are wired up before anything that can fail.
   refreshButton.addEventListener('click', onRefreshClicked);
   signInAgainButton.addEventListener('click', onSignInAgainClicked);
-  updateAppButton.addEventListener('click', onUpdateAppClicked);
+
+  // Nothing on this page is written by the reader, so being handed a newer app
+  // costs them nothing.
+  keepAppUpToDate({reloadWhenReplaced: true})
+    .catch((error) => console.error('failed to watch for a newer app', error));
 
   try {
     await app.initialize();

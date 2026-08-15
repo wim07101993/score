@@ -1,0 +1,201 @@
+/*
+ * What this device prefers.
+ *
+ * More than a preference about chrome: the page a score is read off is set
+ * here. A rehearsal room with the lights down and a tablet on a stand is the
+ * case all of this exists for — the machine's own theme is often not what the
+ * room is, and how dim a page wants to be is a question about the room.
+ */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+}
+
+.topbar-inner > h1 {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 34rem) {
+    .topbar-inner > h1 {
+        font-size: var(--text-xl);
+    }
+}
+
+main {
+    padding-bottom: var(--space-7);
+}
+
+section > h2,
+.section-heading > h2 {
+    font-size: var(--text-lg);
+}
+
+/* A heading with the one control that belongs to it and nothing else. */
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+/* ONE OF A FEW ANSWERS */
+
+.choices {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+/* The whole row is the target, not the dot: a dot is four millimetres wide and
+   this is used with a thumb. */
+.choice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    min-height: var(--tap);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-2);
+    cursor: pointer;
+}
+
+.choice:hover {
+    background-color: var(--surface-3);
+}
+
+.choice > input {
+    flex: 0 0 auto;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0.35rem 0 0;
+    accent-color: var(--brand);
+}
+
+.choice-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.choice-title {
+    font-weight: 550;
+}
+
+.choice-explanation {
+    color: var(--text-2);
+    font-size: var(--text-sm);
+}
+
+/* THE PAGE, AND THE LAMP ON IT */
+
+/* The paper itself, at whatever the dials are set to. Nothing in here uses the
+   app's own surfaces: the whole point is to show the page rather than the app
+   around it. */
+.preview {
+    border-radius: var(--radius-2);
+    border: 1px solid var(--border);
+    background-color: var(--paper);
+    overflow: hidden;
+}
+
+.preview > svg {
+    display: block;
+    width: 100%;
+    height: 96px;
+}
+
+.preview-ink {
+    fill: var(--ink);
+}
+
+.preview-faded-ink {
+    fill: var(--ink-faded);
+}
+
+.dial {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.dial-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+/* A number that changes as a slider is dragged, in figures that are all the
+   same width, so nothing beside it moves while it does. */
+.dial-heading > output {
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.dial > input[type="range"] {
+    width: 100%;
+    height: var(--tap);
+    margin: 0;
+    accent-color: var(--brand);
+}
+
+.dial-ends {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+}
+
+/* THE APP ITSELF */
+
+dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-2) var(--space-5);
+    margin: 0;
+}
+
+dt {
+    font-weight: 600;
+    color: var(--text-2);
+}
+
+dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+    dl {
+        grid-template-columns: 1fr;
+        gap: var(--space-1);
+    }
+
+    dd {
+        margin-bottom: var(--space-2);
+    }
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}

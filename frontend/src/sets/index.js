@@ -1,5 +1,6 @@
 import {App} from "../app.js";
 import {buildSetCard} from "../components/set-card.component.js";
+import {keepAppUpToDate} from "../domains/updates/app-update.js";
 
 const newSetButton = document.getElementById('new-set-button');
 const setList = document.getElementById('set-list');
@@ -18,6 +19,11 @@ function _buildSetListItems() {
 }
 
 async function main() {
+  // A listing holds nothing the reader has half-written, so being handed a
+  // newer app costs them nothing here.
+  keepAppUpToDate({reloadWhenReplaced: true})
+    .catch((error) => console.error('failed to watch for a newer app', error));
+
   await app.initialize();
 
   if (app.user?.isScoreViewer !== true) {

@@ -30,6 +30,37 @@ export class OidcConfig {
   }
 }
 
+/**
+ * Something the provider said no to.
+ *
+ * The status is kept because two of the answers mean different things to this
+ * app: a provider that will not take a token is telling this device that the
+ * token is no good, which is the device's to put right, and a provider that is
+ * unwell is telling it nothing at all.
+ */
+export class OidcApiError extends Error {
+  /**
+   * @param message {string}
+   * @param status {number}
+   */
+  constructor(message, status) {
+    super(message);
+    this.name = 'OidcApiError';
+    this.status = status;
+  }
+
+  /**
+   * Whether the provider refused what it was shown rather than failing to look
+   * at it. A token that has run out, been revoked, or was signed with a key
+   * that has since been rolled all land here.
+   *
+   * @return {boolean}
+   */
+  get isTokenRefused() {
+    return this.status === 401 || this.status === 403;
+  }
+}
+
 export class OidcApi {
   /**
    * @param oidcConfig {OidcConfig}
@@ -102,15 +133,52 @@ export class OidcApi {
     return await this.getFreshAccessToken();
   }
 
+  /**
+   * Asks the provider who is signed in.
+   *
+   * A token this app is holding can be refused however carefully it was dated:
+   * a session ended at the provider, a key rolled, a clock that disagrees. So a
+   * refusal is not an answer about the user, it is an answer about the token —
+   * that one is thrown away and the question asked again with a fresh one,
+   * which is what reloading the page used to do by accident.
+   *
+   * It is asked once more and no further. A provider that refuses a token it
+   * has just issued is a provider that will go on refusing, and a loop between
+   * the two of them is worse than being told.
+   *
+   * @return {Promise<UserInfoResponse>}
+   */
   async getUserInfo() {
     const accessToken = await this.getActiveAccessToken();
     if (accessToken == null)
-      throw 'failed to get access-token to getUserInfo';
-    return await OidcApi.callUserInfoEndpoint(
-      this._oidcConfig.userInfoEndpoint,
-      accessToken,
-      this._oidcConfig.rolesKey
-    );
+      throw new OidcApiError('failed to get access-token to getUserInfo', 401);
+
+    try {
+      return await OidcApi.callUserInfoEndpoint(
+        this._oidcConfig.userInfoEndpoint,
+        accessToken,
+        this._oidcConfig.rolesKey
+      );
+    } catch (error) {
+      if (!(error instanceof OidcApiError) || !error.isTokenRefused) {
+        throw error;
+      }
+
+      console.log('the provider would not take the access token; asking for a new one');
+      OidcStorage.tokenResponse = null;
+      const freshAccessToken = await this.getFreshAccessToken();
+      if (freshAccessToken == null) {
+        // Either the provider has been navigated to and this page is on its way
+        // out, or there was nothing to ask with. Neither is an answer.
+        throw error;
+      }
+
+      return await OidcApi.callUserInfoEndpoint(
+        this._oidcConfig.userInfoEndpoint,
+        freshAccessToken,
+        this._oidcConfig.rolesKey
+      );
+    }
   }
 
   /**
@@ -141,10 +209,11 @@ export class OidcApi {
       body: authParams.toUrlSearchParams().toString(),
     });
 
-    if (response.status >= 500) {
-      throw `failed to get access-token (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
-    } else if (response.status >= 400) {
-      throw `failed to get access-token: ${response.status} ${response.statusText}: ${await response.text()}`;
+    if (response.status >= 400) {
+      throw new OidcApiError(
+        `failed to get access-token: ${response.status} ${response.statusText}: ${await response.text()}`,
+        response.status,
+      );
     }
 
     return await response.json();
@@ -165,10 +234,11 @@ export class OidcApi {
       }
     });
 
-    if (response.status >= 500) {
-      throw `failed to get user info (server error): ${response.status} ${response.statusText}: ${await response.text()}`;
-    } else if (response.status >= 400) {
-      throw `failed to get user info: ${response.status} ${response.statusText}: ${await response.text()}`;
+    if (response.status >= 400) {
+      throw new OidcApiError(
+        `failed to get user info: ${response.status} ${response.statusText}: ${await response.text()}`,
+        response.status,
+      );
     }
 
     const body = await response.json();
@@ -463,6 +533,14 @@ const tokenResponseSessionStorageKey = 'auth_token_response';
 const refreshTokenSessionStorageKey = 'auth_refresh_token';
 
 /**
+ * How long before it actually runs out a token is treated as run out. A request
+ * carrying a token with two seconds left is a request that arrives without one.
+ *
+ * @type {number}
+ */
+const tokenExpiryMargin = 30 * 1000;
+
+/**
  * Writes a value to the session storage, or clears the key when there is no
  * value. Storing null is not the same as clearing: setItem stringifies, so it
  * would leave the string "null" behind for the next reader to trip over.
@@ -484,15 +562,25 @@ export class OidcStorage {
    * @param value {TokenResponse|null}
    */
   static set tokenResponse(value) {
-    setOrRemove(tokenResponseSessionStorageKey, value == null ? null : JSON.stringify(value));
-    if (value != null && value.expires_in !== 0) {
-      setTimeout(function () {
-        const tokenResponse = OidcStorage.tokenResponse;
-        if (tokenResponse != null && tokenResponse.access_token === value.access_token) {
-          OidcStorage.tokenResponse = null;
-        }
-      }, value.expires_in * 1000);
+    if (value == null) {
+      setOrRemove(tokenResponseSessionStorageKey, null);
+      return;
     }
+    // When it runs out, rather than how long it had left when it arrived.
+    //
+    // This used to be a timer that cleared the token when it expired, and a
+    // timer cannot say this: it dies with the page. A tab closed with five
+    // minutes left on a token and opened again an hour later found the token
+    // still sitting in the storage with nothing left to clear it, handed it to
+    // the provider, and was told 401 — which is a thing this app can now say
+    // for itself, before asking anybody.
+    setOrRemove(tokenResponseSessionStorageKey, JSON.stringify({
+      ...value,
+      // A provider that did not say when is a token this app cannot date, and
+      // one it will not throw away on a guess. It finds out the way it always
+      // did: by being refused.
+      expires_at: value.expires_in > 0 ? Date.now() + value.expires_in * 1000 : null,
+    }));
   }
 
   /**
@@ -503,7 +591,19 @@ export class OidcStorage {
     if (json == null) {
       return null;
     }
-    return JSON.parse(json);
+
+    const tokenResponse = JSON.parse(json);
+    if (tokenResponse?.expires_at == null) {
+      return tokenResponse;
+    }
+
+    // Given up a little before it is actually out, so that a token cannot run
+    // out somewhere between being read here and arriving at the server.
+    if (Date.now() < tokenResponse.expires_at - tokenExpiryMargin) {
+      return tokenResponse;
+    }
+    OidcStorage.tokenResponse = null;
+    return null;
   }
 
   /**

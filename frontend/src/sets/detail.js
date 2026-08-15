@@ -1,4 +1,5 @@
 import {App} from "../app.js";
+import {keepAppUpToDate} from "../domains/updates/app-update.js";
 import {forSearch, getScoreTitle} from "../data/helper-functions.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 
@@ -710,6 +711,12 @@ function _button(label, title, disabled, onClick) {
 }
 
 async function main() {
+  // Fetched but never taken while this page is open: a set is written as it is
+  // changed, and a reload in the middle of that is an edit nobody typed twice.
+  // The newer app is there the next time a page is opened.
+  keepAppUpToDate()
+    .catch((error) => console.error('failed to watch for a newer app', error));
+
   await app.initialize();
 
   if (app.user?.isScoreViewer !== true) {

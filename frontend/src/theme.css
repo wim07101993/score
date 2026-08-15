@@ -8,6 +8,13 @@
  * what colour it happens to be this month. Changing the app's character is then
  * changing this file, and dark mode is the same tokens with other values behind
  * them rather than a second set of rules to keep in step.
+ *
+ * Which way round the app is has two answers: what the machine says, and what
+ * the reader said in the settings, which wins. The second is a `data-theme` on
+ * the document, put there before the first paint by `theme-boot.js`. So the
+ * dark values are written twice — once for each way of arriving at them — since
+ * a stylesheet cannot say "either of these" across a media query. They are next
+ * to each other, and neither is to be changed without the other.
  */
 
 /* ---------------------------------------------------------------------------
@@ -89,11 +96,20 @@
   --shadow-2: 0 2px 8px rgb(25 27 38 / 0.08), 0 1px 2px rgb(25 27 38 / 0.04);
   --shadow-3: 0 8px 28px rgb(25 27 38 / 0.14), 0 2px 6px rgb(25 27 38 / 0.06);
 
-  /* Sheet music is ink on paper in every light. OSMD draws the notes black, so
-     the page it is drawn on stays paper whatever the rest of the app is doing —
-     a dark surface under black noteheads is not a score anybody can read. */
+  /* Sheet music is ink on paper in every light — a dark surface under black
+     noteheads is not a score anybody can read. What changes at night is how
+     much light the paper throws at the reader, not which of the two is darker,
+     so the dark page below is this page with the lamp turned down rather than
+     this page inverted. Both are where the lamp *starts*: the settings page
+     hands its own values to these, worked out by
+     `domains/settings/sheet-palette.js`. */
   --paper: #ffffff;
-  --ink: #101010;
+  --ink: #000000;
+  --ink-faded: rgb(0 0 0 / 0.55);
+
+  /* Line art drawn in black, which is invisible on a dark card. */
+  --icon-invert: 0;
+  --icon-fade: 0.55;
 
   --ease: 150ms cubic-bezier(0.2, 0, 0.2, 1);
 
@@ -106,8 +122,9 @@
   --accent-color: var(--accent-soft);
 }
 
+/* Dark because the machine is, and the reader has not said otherwise. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --brand: #98a0ec;
     --brand-hover: #aeb5f2;
     --brand-text: #14161f;
@@ -135,7 +152,64 @@
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-3: 0 8px 28px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+
+    --paper: #95938b;
+    --ink: #0e0e0d;
+    --ink-faded: rgb(14 14 13 / 0.60);
+
+    --icon-invert: 1;
+    --icon-fade: 0.65;
   }
+}
+
+/* Dark because the reader said so, whatever the machine is. The same values as
+   above, and they are only ever changed together. */
+:root[data-theme="dark"] {
+  --brand: #98a0ec;
+  --brand-hover: #aeb5f2;
+  --brand-text: #14161f;
+  --brand-soft: #262a40;
+  --brand-quiet: #7d85cf;
+
+  --accent: #e4a0b6;
+  --accent-soft: #35222a;
+
+  --surface-1: #101119;
+  --surface-2: #181a24;
+  --surface-3: #212433;
+  --surface-sunken: #0b0c12;
+
+  --text-1: #eceef7;
+  --text-2: #a5abc2;
+  --text-3: #767d96;
+
+  --border: #2c3042;
+  --border-strong: #3d4256;
+
+  --danger: #e58989;
+  --danger-soft: #3a2224;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-3: 0 8px 28px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+
+  --paper: #95938b;
+  --ink: #0e0e0d;
+  --ink-faded: rgb(14 14 13 / 0.60);
+
+  --icon-invert: 1;
+  --icon-fade: 0.65;
+}
+
+/* And the browser's own drawing — the inside of a text box, a checkbox, a
+   scrollbar — has to be told which way round the app is too, or a value typed
+   into a box comes out black on a dark box. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 /* ---------------------------------------------------------------------------
