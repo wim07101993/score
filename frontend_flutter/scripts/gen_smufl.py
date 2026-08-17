@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes lib/notation/render/smufl.dart out of the Bravura metadata.
+"""Writes lib/features/notation/render/smufl.dart out of the Bravura metadata.
 
 Only the glyphs the renderer actually draws are carried over: the whole
 metadata file is 1.2MB and all but a few hundred bytes of it is about notation

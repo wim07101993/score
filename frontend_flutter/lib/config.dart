@@ -10,9 +10,14 @@ import 'package:flutter/services.dart';
 /// fetched as a file next to the app, which is what lets it be changed without
 /// building anything.
 class Config {
-  const Config({required this.oidc, required this.api});
+  const Config({
+    required this.oidc,
+    required this.api,
+  });
 
-  factory Config.fromJson(Map<String, dynamic> json) => Config(
+  factory Config.fromJson(
+    Map<String, dynamic> json,
+  ) => Config(
         oidc: OidcConfig.fromJson(json['oidc'] as Map<String, dynamic>),
         api: ApiConfig.fromJson(json['api'] as Map<String, dynamic>),
       );
@@ -27,9 +32,13 @@ class Config {
 }
 
 class ApiConfig {
-  const ApiConfig({required this.baseUrl});
+  const ApiConfig({
+    required this.baseUrl,
+  });
 
-  factory ApiConfig.fromJson(Map<String, dynamic> json) =>
+  factory ApiConfig.fromJson(
+    Map<String, dynamic> json,
+  ) =>
       ApiConfig(baseUrl: _uri(json['baseUrl']));
 
   final Uri baseUrl;
@@ -58,7 +67,9 @@ class OidcConfig {
     required this.rolesKey,
   });
 
-  factory OidcConfig.fromJson(Map<String, dynamic> json) => OidcConfig(
+  factory OidcConfig.fromJson(
+    Map<String, dynamic> json,
+  ) => OidcConfig(
         clientId: '${json['clientId']}',
         redirectUri: _uri(json['redirectUri']),
         nativeRedirectUri: json['nativeRedirectUri'] == null

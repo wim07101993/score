@@ -13,7 +13,7 @@ the same drawing, worked out by the same code.
 ## Drawing a score
 
 ```
-lib/notation/
+lib/features/notation/
 ├── musicxml/        reading the document
 │   ├── model.dart       what a score is, as far as drawing it goes
 │   └── parser.dart      reading one, forgivingly
@@ -25,10 +25,13 @@ lib/notation/
 │   ├── staff_position.dart  where a note sits on a staff
 │   ├── note_values.dart     what the note types are worth
 │   └── engine.dart          spacing, systems, stems, beams, ties
-└── render/          putting it on a canvas
-    ├── smufl.dart       the glyphs, generated from the font's own metrics
-    ├── primitives.dart  what a laid-out score is made of
-    └── score_painter.dart
+├── render/          putting it on a canvas
+│   ├── smufl.dart       the glyphs, generated from the font's own metrics
+│   ├── primitives.dart  what a laid-out score is made of
+│   └── score_painter.dart
+├── parts.dart       the parts a score has, to choose between
+└── widgets/         what the rest of the app puts on a page
+    └── score_sheet.dart the sheet, and the two colours it is drawn with
 ```
 
 It reads in one direction. A document is parsed, the view is applied to it, the
@@ -56,7 +59,7 @@ and a laptop at home are set separately while being the same account.
 
 The page a score is drawn on follows the app, and the two colours it is drawn
 with are chosen **together** — `SheetPalette` in
-[lib/notation/score_sheet.dart](lib/notation/score_sheet.dart) holds both, and
+[lib/features/notation/widgets/score_sheet.dart](lib/features/notation/widgets/score_sheet.dart) holds both, and
 the sheet paints its own paper. Splitting them is not a style question: paper
 fixed to white while the ink followed a dark theme is pale grey notes on a white
 page, which is how this arrived.
@@ -120,7 +123,7 @@ step. On white it had been survivable for as long as the app had existed.
 So `ScorePainter` puts a hairline where the screen can draw one: both edges on
 whole device pixels, never thinner than one. It costs a fraction of a pixel of
 position — across five lines the spacing can come out a pixel uneven — and buys
-every line its edge back, on both pages. `test/notation/hairline_test.dart` reads
+every line its edge back, on both pages. `test/features/notation/hairline_test.dart` reads
 the pixels back to check.
 
 **This is what lets the lamp go as low as it does.** Half way between a dim page
@@ -139,7 +142,7 @@ glyphs that are actually drawn are carried over, along with the metrics that say
 how wide each one is and where a stem meets a notehead:
 
 ```bash
-$ python3 scripts/gen_smufl.py lib/notation/render/smufl.dart
+$ python3 scripts/gen_smufl.py lib/features/notation/render/smufl.dart
 ```
 
 ### Seeing what it draws
@@ -148,7 +151,7 @@ Whether a score is engraved well is a question for eyes, so there is a preview
 that writes real scores to `build/preview` as pictures:
 
 ```bash
-$ flutter test test/notation/render_preview_test.dart
+$ flutter test test/features/notation/render_preview_test.dart
 ```
 
 It draws the two example scores the API's own tests use — a Beethoven song and a

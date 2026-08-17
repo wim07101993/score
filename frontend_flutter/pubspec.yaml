@@ -26,9 +26,13 @@ dependencies:
   path_provider: ^2.1.4
   path: ^1.9.0
 
-  # Signing in. On a device this opens the provider and catches the callback;
-  # on the web the page itself is the callback, so it is not used there.
+  # Signing in. On a phone this opens the provider and catches the callback;
+  # on the web the page itself is the callback, so it is not used there. On a
+  # desktop the callback comes back to a port this app listens on itself
+  # (lib/features/auth/authorizer_native.dart), which is what these two are for.
   flutter_web_auth_2: ^5.0.3
+  url_launcher: ^6.3.1
+  window_to_front: ^0.0.3
 
   # Reading a score off the device and writing one back to it.
   file_picker: ^11.0.3
@@ -50,7 +54,7 @@ flutter:
   fonts:
     # The reference SMuFL font. Every notehead, clef, rest and accidental on
     # screen is a glyph out of this, positioned by the metrics that ship with
-    # it (lib/notation/render/smufl.dart).
+    # it (lib/features/notation/render/smufl.dart).
     - family: Bravura
       fonts:
         - asset: assets/fonts/Bravura.otf

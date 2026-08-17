@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:score/app.dart';
-import 'package:score/ui/profile_page.dart';
-import 'package:score/ui/routes.dart';
-import 'package:score/ui/score_detail_page.dart';
-import 'package:score/ui/scores_page.dart';
-import 'package:score/ui/set_detail_page.dart';
-import 'package:score/ui/sets_page.dart';
-import 'package:score/ui/settings_page.dart';
-import 'package:score/ui/starting.dart';
-import 'package:score/ui/theme.dart';
+import 'package:score/features/auth/widgets/profile_page.dart';
+import 'package:score/features/scores/widgets/score_detail_page.dart';
+import 'package:score/features/scores/widgets/scores_page.dart';
+import 'package:score/features/sets/widgets/set_detail_page.dart';
+import 'package:score/features/sets/widgets/sets_page.dart';
+import 'package:score/features/settings/widgets/settings_page.dart';
+import 'package:score/routes.dart';
+import 'package:score/theme.dart';
+import 'package:score/widgets/starting.dart';
 
 void main() {
   runApp(const ScoreApp());
 }
 
 class ScoreApp extends StatefulWidget {
-  const ScoreApp({super.key});
+  const ScoreApp({
+    super.key,
+  });
 
   @override
   State<ScoreApp> createState() => _ScoreAppState();

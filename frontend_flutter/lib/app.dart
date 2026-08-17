@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:score/config.dart';
-import 'package:score/data/local_store.dart';
-import 'package:score/data/settings.dart';
-import 'package:score/domains/auth/oidc_api.dart';
-import 'package:score/domains/scores/api.dart';
-import 'package:score/domains/scores/repository.dart';
-import 'package:score/domains/sets/api.dart';
-import 'package:score/domains/sets/repository.dart';
+import 'package:score/features/auth/oidc_api.dart';
+import 'package:score/features/scores/api.dart';
+import 'package:score/features/scores/repository.dart';
+import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/sets/api.dart';
+import 'package:score/features/sets/repository.dart';
+import 'package:score/features/settings/settings.dart';
 
 /// Everything the app is made of, wired together once.
 ///
@@ -141,7 +141,11 @@ class App extends ChangeNotifier {
 
 /// How a page gets hold of the app.
 class AppScope extends InheritedNotifier<App> {
-  const AppScope({super.key, required App app, required super.child})
+  const AppScope({
+    super.key,
+    required App app,
+    required super.child,
+  })
       : super(notifier: app);
 
   static App of(BuildContext context) {
