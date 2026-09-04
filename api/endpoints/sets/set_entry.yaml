@@ -65,4 +65,4 @@ properties:
     examples: [-2]
   view:
     description: How the caller looks at this entry, which is theirs alone.
-    $ref: 'entry_view.yaml'
+    $ref: '../../schemas/entry_view.yaml'

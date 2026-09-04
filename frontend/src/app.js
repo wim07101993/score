@@ -5,6 +5,9 @@ import {ScoresRepository} from "./domains/scores/repository.js";
 import {SetsApi} from "./domains/sets/api.js";
 import {SetDatabase} from "./domains/sets/database.js";
 import {SetsRepository} from "./domains/sets/repository.js";
+import {CollectionsApi} from "./domains/collections/api.js";
+import {CollectionDatabase} from "./domains/collections/database.js";
+import {CollectionsRepository} from "./domains/collections/repository.js";
 
 const userInfoLocalStorageKey = 'app_user_info';
 
@@ -55,6 +58,18 @@ export class App {
    * @type {SetsRepository}
    */
   setRepository;
+  /**
+   * @type {CollectionDatabase}
+   */
+  collectionDatabase;
+  /**
+   * @type {CollectionsApi}
+   */
+  collectionsApi;
+  /**
+   * @type {CollectionsRepository}
+   */
+  collectionRepository;
 
   /**
    * @type {UserInfoResponse|null}
@@ -79,17 +94,23 @@ export class App {
     await this.fetchConfig();
     this.scoreDatabase = new ScoreDatabase();
     this.setDatabase = new SetDatabase();
+    this.collectionDatabase = new CollectionDatabase();
     this.oidcApi = new OidcApi(this.config.oidc);
     this.scoresApi = new ScoresApi(this.config.api);
     this.setsApi = new SetsApi(this.config.api);
+    this.collectionsApi = new CollectionsApi(this.config.api);
     this.scoreRepository = new ScoresRepository(this.scoreDatabase, this.scoresApi, this.oidcApi);
     this.setRepository = new SetsRepository(this.setDatabase, this.setsApi, this.oidcApi);
+    this.collectionRepository = new CollectionsRepository(
+      this.collectionDatabase, this.collectionsApi, this.oidcApi);
 
     await this.updateAuth();
     await this.scoreDatabase.open();
     await this.setDatabase.open();
+    await this.collectionDatabase.open();
     await this.scoreRepository.init();
     await this.setRepository.init();
+    await this.collectionRepository.init();
     return this;
   }
 
@@ -161,9 +182,9 @@ export class App {
    * next visit ask again from the beginning, which is the way out of a token
    * or a set of roles that has gone stale.
    *
-   * The scores and sets on this device are left alone: they are what makes the
-   * app work without a network, and they are no use to anyone who cannot get a
-   * token to read them with anyway.
+   * The scores, sets and collections on this device are left alone: they are
+   * what makes the app work without a network, and they are no use to anyone
+   * who cannot get a token to read them with anyway.
    */
   forgetUser() {
     localStorage.removeItem(userInfoLocalStorageKey);
@@ -217,5 +238,19 @@ export class App {
       return;
     }
     await this.setRepository.syncWithApi();
+  }
+
+  /**
+   * Squares the collections with the API, which is also when whatever was
+   * written while it could not be reached is sent.
+   *
+   * @return {Promise<void>}
+   */
+  async updateCollections() {
+    console.log('updating collections');
+    if (!await this.collectionsApi.canBeReached() || !await this.oidcApi.canBeReached()) {
+      return;
+    }
+    await this.collectionRepository.syncWithApi();
   }
 }

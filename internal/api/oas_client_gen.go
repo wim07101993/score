@@ -29,6 +29,34 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
+	// DeleteCollection invokes deleteCollection operation.
+	//
+	// Marks the collection as deleted. It is kept rather than removed, and it keeps turning up in the
+	// change window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+	//
+	// Only the owner of a collection can delete it. A collection that is not there, already deleted, or
+	// not the caller's is answered the same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /collections/{collectionId}
+	DeleteCollection(ctx context.Context, params DeleteCollectionParams) (DeleteCollectionRes, error)
+	// DeleteCollectionEntry invokes deleteCollectionEntry operation.
+	//
+	// Removes the entry. What every player said about how they look at it goes with it: it was about a
+	// piece that is no longer in the collection.
+	//
+	// Unlike a collection, an entry is removed rather than kept as a headstone. A client that is holding a
+	// copy learns it is gone from the collection it is in, which it reads whole.
+	//
+	// Only the owner of a collection can take an entry out of it. An entry that is not there, is not in
+	// the collection that was named, or is in a collection the caller cannot read, are all answered the
+	// same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /collections/{collectionId}/entries/{entryId}
+	DeleteCollectionEntry(ctx context.Context, params DeleteCollectionEntryParams) (DeleteCollectionEntryRes, error)
 	// DeleteSet invokes deleteSet operation.
 	//
 	// Marks the set as deleted. It is kept rather than removed, and it keeps turning up in the change
@@ -56,6 +84,18 @@ type Invoker interface {
 	//
 	// DELETE /sets/{setId}/entries/{entryId}
 	DeleteSetEntry(ctx context.Context, params DeleteSetEntryParams) (DeleteSetEntryRes, error)
+	// GetCollection invokes getCollection operation.
+	//
+	// Returns the collection, whether the caller owns it or it is shared with them. `is_owner` says which
+	// of the two it is, and `shared_with` is only filled in for the owner.
+	//
+	// The pieces come back by title. A collection has no order of its own, so that is not one: it is the
+	// order a list somebody is looking through should be in.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// GET /collections/{collectionId}
+	GetCollection(ctx context.Context, params GetCollectionParams) (GetCollectionRes, error)
 	// GetScore invokes getScore operation.
 	//
 	// Returns either the metadata of the score or the MusicXML document it was extracted from, whichever
@@ -82,6 +122,20 @@ type Invoker interface {
 	//
 	// GET /healthz
 	Healthz(ctx context.Context, params HealthzParams) (HealthzRes, error)
+	// ListCollections invokes listCollections operation.
+	//
+	// Returns every collection the caller owns or that is shared with them whose last change falls within
+	// the given window, most recently changed first. Both ends of the window are inclusive and both are
+	// required: a client synchronises by asking for everything since the moment it last asked.
+	//
+	// Collections that were deleted within the window are returned too, with `deleted_at` filled in, so
+	// that a client holding a copy learns that it is gone rather than syncing it back.
+	//
+	// Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
+	// keeping one asks no more of a user than reading the scores in it.
+	//
+	// GET /collections
+	ListCollections(ctx context.Context, params ListCollectionsParams) (ListCollectionsRes, error)
 	// ListScores invokes listScores operation.
 	//
 	// Returns the metadata of every score whose last change falls within the given window, most recently
@@ -106,6 +160,69 @@ type Invoker interface {
 	//
 	// GET /sets
 	ListSets(ctx context.Context, params ListSetsParams) (ListSetsRes, error)
+	// PutCollection invokes putCollection operation.
+	//
+	// Stores the collection under the given id, replacing whatever was stored under it before, and returns
+	// it as it now reads. A collection that is not there yet belongs to whoever creates it; one that is
+	// can only be written by its owner.
+	//
+	// What is in the collection is not written here and is not touched by writing here: an entry is a
+	// resource of its own, so a collection is created empty and filled afterwards.
+	//
+	// Writing a collection that had been deleted brings it back: a client that still has it and edits it
+	// is saying it should exist.
+	//
+	// Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
+	// building one asks no more of a user than reading the scores in it.
+	//
+	// PUT /collections/{collectionId}
+	PutCollection(ctx context.Context, request *WriteCollection, params PutCollectionParams) (PutCollectionRes, error)
+	// PutCollectionEntry invokes putCollectionEntry operation.
+	//
+	// Stores the entry under the given id and returns it as it now reads, including how the caller looks
+	// at it.
+	//
+	// A collection holds a piece once. An entry naming a score that is already in the collection under a
+	// different entry is refused, and the refusal names the entry it is already in — a client that has
+	// just been told a piece is in the book wants that page, not a second copy of it. Writing the entry
+	// the score is already in is not that: it is saying what the group does with a piece the collection
+	// already has, which is what an entry is for.
+	//
+	// An entry is its own resource because a collection is not rewritten to change one piece in it: a
+	// client that added a piece sends that piece, and a client that is catching up after a while offline
+	// sends what it changed rather than a collection that may have moved on without it.
+	//
+	// The id is the client's to name, which is what lets a player put a piece in and say how they read it
+	// before either has reached the server. An id that already belongs to an entry of another collection
+	// is refused rather than taken over: it would point this collection's entry at what another
+	// collection's players said about theirs.
+	//
+	// Only the owner of a collection can write its entries: what is in it is the collection, and the
+	// collection is theirs. How anybody reads it is not — that is
+	// `/collections/{collectionId}/entries/{entryId}/view`, which everyone the collection is shared with
+	// writes for themselves.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// PUT /collections/{collectionId}/entries/{entryId}
+	PutCollectionEntry(ctx context.Context, request *WriteCollectionEntry, params PutCollectionEntryParams) (PutCollectionEntryRes, error)
+	// PutCollectionEntryView invokes putCollectionEntryView operation.
+	//
+	// Stores the caller's own view of this entry, replacing whatever they had said before, and returns it
+	// as it now reads.
+	//
+	// Anyone who can read the collection can write their own view of its entries: it says nothing about
+	// the collection and changes nothing anybody else sees, so it asks no more of a player than reading
+	// the collection does. Being the owner is neither needed nor enough to write somebody else's — there
+	// is no way to write a view that is not your own.
+	//
+	// A collection the caller cannot read, and an entry that is not in the collection named, are answered
+	// the same way as one that is not there at all.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// PUT /collections/{collectionId}/entries/{entryId}/view
+	PutCollectionEntryView(ctx context.Context, request *WriteEntryView, params PutCollectionEntryViewParams) (PutCollectionEntryViewRes, error)
 	// PutScore invokes putScore operation.
 	//
 	// Stores the MusicXML document under the given id, replacing whatever was stored under it before, and
@@ -211,6 +328,337 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 		return c.serverURL
 	}
 	return u
+}
+
+// DeleteCollection invokes deleteCollection operation.
+//
+// Marks the collection as deleted. It is kept rather than removed, and it keeps turning up in the
+// change window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+//
+// Only the owner of a collection can delete it. A collection that is not there, already deleted, or
+// not the caller's is answered the same way.
+//
+// Requires the `score_viewer` role.
+//
+// DELETE /collections/{collectionId}
+func (c *Client) DeleteCollection(ctx context.Context, params DeleteCollectionParams) (DeleteCollectionRes, error) {
+	res, err := c.sendDeleteCollection(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendDeleteCollection(ctx context.Context, params DeleteCollectionParams) (res DeleteCollectionRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("deleteCollection"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/collections/{collectionId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, DeleteCollectionOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/collections/"
+	{
+		// Encode "collectionId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "collectionId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.CollectionId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, DeleteCollectionOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeDeleteCollectionResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// DeleteCollectionEntry invokes deleteCollectionEntry operation.
+//
+// Removes the entry. What every player said about how they look at it goes with it: it was about a
+// piece that is no longer in the collection.
+//
+// Unlike a collection, an entry is removed rather than kept as a headstone. A client that is holding a
+// copy learns it is gone from the collection it is in, which it reads whole.
+//
+// Only the owner of a collection can take an entry out of it. An entry that is not there, is not in
+// the collection that was named, or is in a collection the caller cannot read, are all answered the
+// same way.
+//
+// Requires the `score_viewer` role.
+//
+// DELETE /collections/{collectionId}/entries/{entryId}
+func (c *Client) DeleteCollectionEntry(ctx context.Context, params DeleteCollectionEntryParams) (DeleteCollectionEntryRes, error) {
+	res, err := c.sendDeleteCollectionEntry(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendDeleteCollectionEntry(ctx context.Context, params DeleteCollectionEntryParams) (res DeleteCollectionEntryRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("deleteCollectionEntry"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/collections/{collectionId}/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, DeleteCollectionEntryOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/collections/"
+	{
+		// Encode "collectionId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "collectionId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.CollectionId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, DeleteCollectionEntryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeDeleteCollectionEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
 }
 
 // DeleteSet invokes deleteSet operation.
@@ -536,6 +984,160 @@ func (c *Client) sendDeleteSetEntry(ctx context.Context, params DeleteSetEntryPa
 
 	stage = "DecodeResponse"
 	result, err := decodeDeleteSetEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetCollection invokes getCollection operation.
+//
+// Returns the collection, whether the caller owns it or it is shared with them. `is_owner` says which
+// of the two it is, and `shared_with` is only filled in for the owner.
+//
+// The pieces come back by title. A collection has no order of its own, so that is not one: it is the
+// order a list somebody is looking through should be in.
+//
+// Requires the `score_viewer` role.
+//
+// GET /collections/{collectionId}
+func (c *Client) GetCollection(ctx context.Context, params GetCollectionParams) (GetCollectionRes, error) {
+	res, err := c.sendGetCollection(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetCollection(ctx context.Context, params GetCollectionParams) (res GetCollectionRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getCollection"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/collections/{collectionId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetCollectionOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/collections/"
+	{
+		// Encode "collectionId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "collectionId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.CollectionId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, GetCollectionOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetCollectionResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -958,6 +1560,176 @@ func (c *Client) sendHealthz(ctx context.Context, params HealthzParams) (res Hea
 	return result, nil
 }
 
+// ListCollections invokes listCollections operation.
+//
+// Returns every collection the caller owns or that is shared with them whose last change falls within
+// the given window, most recently changed first. Both ends of the window are inclusive and both are
+// required: a client synchronises by asking for everything since the moment it last asked.
+//
+// Collections that were deleted within the window are returned too, with `deleted_at` filled in, so
+// that a client holding a copy learns that it is gone rather than syncing it back.
+//
+// Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
+// keeping one asks no more of a user than reading the scores in it.
+//
+// GET /collections
+func (c *Client) ListCollections(ctx context.Context, params ListCollectionsParams) (ListCollectionsRes, error) {
+	res, err := c.sendListCollections(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendListCollections(ctx context.Context, params ListCollectionsParams) (res ListCollectionsRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("listCollections"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/collections"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ListCollectionsOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/collections"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "Changes-Since" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "Changes-Since",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.DateTimeToString(params.ChangesSince))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "Changes-Until" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "Changes-Until",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.DateTimeToString(params.ChangesUntil))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, ListCollectionsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeListCollectionsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ListScores invokes listScores operation.
 //
 // Returns the metadata of every score whose last change falls within the given window, most recently
@@ -1287,6 +2059,543 @@ func (c *Client) sendListSets(ctx context.Context, params ListSetsParams) (res L
 
 	stage = "DecodeResponse"
 	result, err := decodeListSetsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PutCollection invokes putCollection operation.
+//
+// Stores the collection under the given id, replacing whatever was stored under it before, and returns
+// it as it now reads. A collection that is not there yet belongs to whoever creates it; one that is
+// can only be written by its owner.
+//
+// What is in the collection is not written here and is not touched by writing here: an entry is a
+// resource of its own, so a collection is created empty and filled afterwards.
+//
+// Writing a collection that had been deleted brings it back: a client that still has it and edits it
+// is saying it should exist.
+//
+// Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
+// building one asks no more of a user than reading the scores in it.
+//
+// PUT /collections/{collectionId}
+func (c *Client) PutCollection(ctx context.Context, request *WriteCollection, params PutCollectionParams) (PutCollectionRes, error) {
+	res, err := c.sendPutCollection(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPutCollection(ctx context.Context, request *WriteCollection, params PutCollectionParams) (res PutCollectionRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("putCollection"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/collections/{collectionId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PutCollectionOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/collections/"
+	{
+		// Encode "collectionId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "collectionId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.CollectionId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PUT", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePutCollectionRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, PutCollectionOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodePutCollectionResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PutCollectionEntry invokes putCollectionEntry operation.
+//
+// Stores the entry under the given id and returns it as it now reads, including how the caller looks
+// at it.
+//
+// A collection holds a piece once. An entry naming a score that is already in the collection under a
+// different entry is refused, and the refusal names the entry it is already in — a client that has
+// just been told a piece is in the book wants that page, not a second copy of it. Writing the entry
+// the score is already in is not that: it is saying what the group does with a piece the collection
+// already has, which is what an entry is for.
+//
+// An entry is its own resource because a collection is not rewritten to change one piece in it: a
+// client that added a piece sends that piece, and a client that is catching up after a while offline
+// sends what it changed rather than a collection that may have moved on without it.
+//
+// The id is the client's to name, which is what lets a player put a piece in and say how they read it
+// before either has reached the server. An id that already belongs to an entry of another collection
+// is refused rather than taken over: it would point this collection's entry at what another
+// collection's players said about theirs.
+//
+// Only the owner of a collection can write its entries: what is in it is the collection, and the
+// collection is theirs. How anybody reads it is not — that is
+// `/collections/{collectionId}/entries/{entryId}/view`, which everyone the collection is shared with
+// writes for themselves.
+//
+// Requires the `score_viewer` role.
+//
+// PUT /collections/{collectionId}/entries/{entryId}
+func (c *Client) PutCollectionEntry(ctx context.Context, request *WriteCollectionEntry, params PutCollectionEntryParams) (PutCollectionEntryRes, error) {
+	res, err := c.sendPutCollectionEntry(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPutCollectionEntry(ctx context.Context, request *WriteCollectionEntry, params PutCollectionEntryParams) (res PutCollectionEntryRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("putCollectionEntry"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/collections/{collectionId}/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PutCollectionEntryOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [4]string
+	pathParts[0] = "/collections/"
+	{
+		// Encode "collectionId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "collectionId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.CollectionId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PUT", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePutCollectionEntryRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, PutCollectionEntryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodePutCollectionEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PutCollectionEntryView invokes putCollectionEntryView operation.
+//
+// Stores the caller's own view of this entry, replacing whatever they had said before, and returns it
+// as it now reads.
+//
+// Anyone who can read the collection can write their own view of its entries: it says nothing about
+// the collection and changes nothing anybody else sees, so it asks no more of a player than reading
+// the collection does. Being the owner is neither needed nor enough to write somebody else's — there
+// is no way to write a view that is not your own.
+//
+// A collection the caller cannot read, and an entry that is not in the collection named, are answered
+// the same way as one that is not there at all.
+//
+// Requires the `score_viewer` role.
+//
+// PUT /collections/{collectionId}/entries/{entryId}/view
+func (c *Client) PutCollectionEntryView(ctx context.Context, request *WriteEntryView, params PutCollectionEntryViewParams) (PutCollectionEntryViewRes, error) {
+	res, err := c.sendPutCollectionEntryView(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPutCollectionEntryView(ctx context.Context, request *WriteEntryView, params PutCollectionEntryViewParams) (res PutCollectionEntryViewRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("putCollectionEntryView"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/collections/{collectionId}/entries/{entryId}/view"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PutCollectionEntryViewOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [5]string
+	pathParts[0] = "/collections/"
+	{
+		// Encode "collectionId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "collectionId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.CollectionId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	pathParts[4] = "/view"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PUT", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePutCollectionEntryViewRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Correlation-ID",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XCorrelationID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:OAuth2"
+			switch err := c.securityOAuth2(ctx, PutCollectionEntryViewOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"OAuth2\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodePutCollectionEntryViewResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

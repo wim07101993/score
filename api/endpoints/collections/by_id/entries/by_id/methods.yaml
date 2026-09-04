@@ -1,0 +1,102 @@
+parameters:
+  - $ref: '../../../../../parameters/collection_id.yaml'
+  - $ref: '../../../../../parameters/entry_id.yaml'
+  - $ref: '../../../../../parameters/correlation_id.yaml'
+
+put:
+  operationId: putCollectionEntry
+  summary: Put one piece into a collection, or change what the group does with it.
+  description: |
+    Stores the entry under the given id and returns it as it now reads,
+    including how the caller looks at it.
+
+    A collection holds a piece once. An entry naming a score that is already in
+    the collection under a different entry is refused, and the refusal names the
+    entry it is already in — a client that has just been told a piece is in the
+    book wants that page, not a second copy of it. Writing the entry the score
+    is already in is not that: it is saying what the group does with a piece the
+    collection already has, which is what an entry is for.
+
+    An entry is its own resource because a collection is not rewritten to change
+    one piece in it: a client that added a piece sends that piece, and a client
+    that is catching up after a while offline sends what it changed rather than
+    a collection that may have moved on without it.
+
+    The id is the client's to name, which is what lets a player put a piece in
+    and say how they read it before either has reached the server. An id that
+    already belongs to an entry of another collection is refused rather than
+    taken over: it would point this collection's entry at what another
+    collection's players said about theirs.
+
+    Only the owner of a collection can write its entries: what is in it is the
+    collection, and the collection is theirs. How anybody reads it is not — that
+    is `/collections/{collectionId}/entries/{entryId}/view`, which everyone the
+    collection is shared with writes for themselves.
+
+    Requires the `score_viewer` role.
+  tags: [collections]
+  security:
+    - oauth2: [score_viewer]
+  requestBody:
+    required: true
+    description: The entry as the owner states it.
+    content:
+      application/json:
+        schema:
+          $ref: '../../../write_collection_entry.yaml'
+  responses:
+    '200':
+      description: The entry as it now reads.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../collection_entry.yaml'
+    '400':
+      $ref: '../../../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../../../responses/404_not_found.yaml'
+    '409':
+      $ref: '../../../../../responses/409_conflict.yaml'
+    '413':
+      $ref: '../../../../../responses/413_content_too_large.yaml'
+    '415':
+      $ref: '../../../../../responses/415_unsupported_media_type.yaml'
+    default:
+      $ref: '../../../../../responses/xxx_unknown_error.yaml'
+
+delete:
+  operationId: deleteCollectionEntry
+  summary: Take one piece out of a collection.
+  description: |
+    Removes the entry. What every player said about how they look at it goes
+    with it: it was about a piece that is no longer in the collection.
+
+    Unlike a collection, an entry is removed rather than kept as a headstone. A
+    client that is holding a copy learns it is gone from the collection it is
+    in, which it reads whole.
+
+    Only the owner of a collection can take an entry out of it. An entry that is
+    not there, is not in the collection that was named, or is in a collection
+    the caller cannot read, are all answered the same way.
+
+    Requires the `score_viewer` role.
+  tags: [collections]
+  security:
+    - oauth2: [score_viewer]
+  responses:
+    '204':
+      description: The piece is no longer in the collection.
+    '400':
+      $ref: '../../../../../responses/400_bad_request.yaml'
+    '401':
+      $ref: '../../../../../responses/401_unauthorized.yaml'
+    '403':
+      $ref: '../../../../../responses/403_forbidden.yaml'
+    '404':
+      $ref: '../../../../../responses/404_not_found.yaml'
+    default:
+      $ref: '../../../../../responses/xxx_unknown_error.yaml'

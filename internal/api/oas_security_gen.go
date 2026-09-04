@@ -36,10 +36,19 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 
 // oauth2ScopesOAuth2 is a private map storing OAuth2 scopes per operation.
 var oauth2ScopesOAuth2 = map[string][]string{
+	DeleteCollectionOperation: []string{
+		"score_viewer",
+	},
+	DeleteCollectionEntryOperation: []string{
+		"score_viewer",
+	},
 	DeleteSetOperation: []string{
 		"score_viewer",
 	},
 	DeleteSetEntryOperation: []string{
+		"score_viewer",
+	},
+	GetCollectionOperation: []string{
 		"score_viewer",
 	},
 	GetScoreOperation: []string{
@@ -48,10 +57,22 @@ var oauth2ScopesOAuth2 = map[string][]string{
 	GetSetOperation: []string{
 		"score_viewer",
 	},
+	ListCollectionsOperation: []string{
+		"score_viewer",
+	},
 	ListScoresOperation: []string{
 		"score_viewer",
 	},
 	ListSetsOperation: []string{
+		"score_viewer",
+	},
+	PutCollectionOperation: []string{
+		"score_viewer",
+	},
+	PutCollectionEntryOperation: []string{
+		"score_viewer",
+	},
+	PutCollectionEntryViewOperation: []string{
 		"score_viewer",
 	},
 	PutScoreOperation: []string{

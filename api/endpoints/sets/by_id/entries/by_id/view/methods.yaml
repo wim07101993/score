@@ -29,14 +29,14 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../../../write_entry_view.yaml'
+          $ref: '../../../../../../schemas/write_entry_view.yaml'
   responses:
     '200':
       description: The view as it now reads.
       content:
         application/json:
           schema:
-            $ref: '../../../../entry_view.yaml'
+            $ref: '../../../../../../schemas/entry_view.yaml'
     '400':
       $ref: '../../../../../../responses/400_bad_request.yaml'
     '401':

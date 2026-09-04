@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -61,6 +62,28 @@ const MusicXmlWithWorkAndMovement = `<?xml version="1.0" encoding="UTF-8"?>
     </measure>
   </part>
 </score-partwise>`
+
+// MusicXmlTitled is a document with a title of the test's choosing, for the
+// tests about the order a list of scores comes back in. There is nothing else
+// remarkable about it.
+func MusicXmlTitled(title string) string {
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work>
+    <work-title>%s</work-title>
+  </work>
+  <part-list>
+    <score-part id="P1">
+      <part-name>Voice</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration></note>
+    </measure>
+  </part>
+</score-partwise>`, title)
+}
 
 // MusicXmlWithTwoComposers checks that every creator of a kind is kept.
 const MusicXmlWithTwoComposers = `<?xml version="1.0" encoding="UTF-8"?>

@@ -1,0 +1,36 @@
+type: object
+description: |
+  A collection as the client states it: what the group of pieces is, and who may
+  read it.
+
+  What is in it is not here. An entry is a resource of its own, written and
+  taken out one at a time at
+  `/collections/{collectionId}/entries/{entryId}`, so a collection is created
+  empty and filled afterwards. That is what keeps the whole of a book from being
+  restated every time a title is corrected, and what lets a client that added
+  one piece send one piece.
+required:
+  - title
+  - description
+  - shared_with
+properties:
+  title:
+    type: string
+    examples: [The Real Book, vol. 1]
+  description:
+    type: string
+  shared_with:
+    type: array
+    description: |
+      The addresses the collection should be readable by.
+
+      They are compared in lower case, since an address says nothing about who
+      it belongs to by the case it was typed in. Anything that is not an address
+      is refused rather than tidied up, so a share that was going to go nowhere
+      is said so at the time it is written. The owner's own address is ignored:
+      they already have the collection.
+    items:
+      type: string
+      format: email
+    examples:
+      - [bas@example.com]

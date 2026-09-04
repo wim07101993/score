@@ -1,0 +1,5 @@
+type: array
+description: |
+  The collections that changed within the window, most recently changed first.
+items:
+  $ref: 'collection.yaml'

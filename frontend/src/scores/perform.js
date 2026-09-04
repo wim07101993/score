@@ -35,6 +35,8 @@ const transpositionOutput = document.getElementById('transposition-output');
 const partsList = document.getElementById('parts-list');
 const resetViewButton = document.getElementById('reset-view-button');
 
+const paperLine = document.querySelector('#paper-notice .paper-line');
+
 const songLine = document.getElementById('song-line');
 const setName = document.getElementById('set-name');
 const setPosition = document.getElementById('set-position');
@@ -69,24 +71,34 @@ let scoreView = null;
 let scoreParts = [];
 
 /**
- * The set this score is being played from, when it is being played from one:
- * which set it is, and which of its entries this is.
+ * What this score was opened out of, when it was opened out of something: a set
+ * or a collection, which of its entries this is, and where that comes in the
+ * list the page steps through.
  *
- * An entry is pointed at by its id rather than by where it comes in the set. An
- * id is the client's to name and stays that entry's for as long as the entry is
- * in the set, while the place it is played at moves under it every time
- * somebody reorders the gig — and a link that has been sitting in a browser
- * since before that would then open the right score and read it out of the
- * wrong entry.
+ * The two are the same page. A set is a gig and a collection is a book, but
+ * what a score is opened as is the same thing in both — a piece, in the key the
+ * others play it in, read the way this player reads it, with the rest of the
+ * list either side of it. Only three things differ, and they are all in this
+ * object: which word to call it by, which repository to write a view to, and
+ * what order the list is in.
  *
- * Where it comes in the set is still worth holding on to, since that is what
- * the way through the set is drawn from, but it is looked up from the id rather
- * than carried in the link.
+ * An entry is pointed at by its id rather than by where it comes in the list.
+ * An id is the client's to name and stays that entry's for as long as the entry
+ * is in the set or collection, while the place moves under it every time
+ * somebody reorders a gig or renames a piece — and a link that has been sitting
+ * in a browser since before that would then open the right score and read it
+ * out of the wrong entry.
  *
- * @type {{set: import("../domains/sets/database.js").ScoreSet, index: number,
- *   entry: import("../domains/sets/database.js").SetEntry}|null}
+ * @type {{kind: string, container: Object, entries: Object[], index: number,
+ *   entry: Object}|null}
  */
-let setContext = null;
+let openedFrom = null;
+
+/** What a set is called in a link and in the bar. */
+const FROM_A_SET = 'set';
+
+/** What a collection is called in a link and in the bar. */
+const FROM_A_COLLECTION = 'collection';
 
 // ----------------------------------------------------------------------------
 // SHOWING A SCORE
@@ -392,25 +404,39 @@ function _rememberZoom(zoom) {
 }
 
 // ----------------------------------------------------------------------------
-// PLAYING FROM A SET
+// PLAYING FROM A SET OR A COLLECTION
 // ----------------------------------------------------------------------------
 
 /**
- * Works out which set this score is being played from, if any.
+ * Works out what this score was opened out of, if anything.
  *
- * A set that this device has never heard of is asked for once — a link into a
- * set can be followed on a device that has not synced since it was shared —
- * and, failing that, the score is played for itself.
+ * A set or a collection that this device has never heard of is asked for once —
+ * a link into one can be followed on a device that has not synced since it was
+ * shared — and, failing that, the score is played for itself.
  *
  * @return {Promise<void>}
  */
-async function _readSetContext() {
+async function _readOpenedFrom() {
   const urlParams = new URLSearchParams(window.location.search);
-  const setId = urlParams.get('set');
-  if (setId == null) {
+
+  const setId = urlParams.get(FROM_A_SET);
+  if (setId != null) {
+    await _readOpenedFromSet(setId, urlParams.get('entry'));
     return;
   }
 
+  const collectionId = urlParams.get(FROM_A_COLLECTION);
+  if (collectionId != null) {
+    await _readOpenedFromCollection(collectionId, urlParams.get('entry'));
+  }
+}
+
+/**
+ * @param setId {string}
+ * @param entryId {string|null}
+ * @return {Promise<void>}
+ */
+async function _readOpenedFromSet(setId, entryId) {
   let set = app.setRepository.getSet(setId);
   if (set == null) {
     try {
@@ -420,46 +446,148 @@ async function _readSetContext() {
     }
     set = app.setRepository.getSet(setId);
   }
-
-  // Which entry it is has to have been said: a set with nothing said about
-  // which of its entries this is, is a score that happens to be in a set, and
-  // reading that as the first one would play it in the wrong key.
-  const entryId = urlParams.get('entry');
-  const index = set?.entries.findIndex((candidate) => candidate.id === entryId) ?? -1;
-  if (set == null || index < 0) {
-    console.log(`no entry ${entryId} in set ${setId}`);
+  if (set == null) {
+    console.log(`no set ${setId} on this device`);
     return;
   }
 
-  // The entry has to be an entry of this score. An entry can be written to
-  // play a different score than it used to, and a link made before that would
-  // otherwise hand this score the key and the hidden parts of a song it is
-  // not. The score is what the page is of, so the set is what gives way.
-  const entry = set.entries[index];
-  if (entry.score_id !== scoreId) {
-    console.log(`entry ${entryId} of set ${setId} is not this score`);
-    return;
-  }
-
-  setContext = {set, index, entry};
+  // The entries of a set come back in playing order, which is the order the way
+  // through it steps in: it is what the band plays and the whole point of a
+  // set.
+  openedFrom = _openedFrom(FROM_A_SET, set, set.entries, entryId, setId);
 }
 
 /**
- * Where back goes: to the gig when the score was opened from one, and to the
- * score it is of otherwise.
+ * @param collectionId {string}
+ * @param entryId {string|null}
+ * @return {Promise<void>}
+ */
+async function _readOpenedFromCollection(collectionId, entryId) {
+  let collection = app.collectionRepository.getCollection(collectionId);
+  if (collection == null) {
+    try {
+      await app.updateCollections();
+    } catch (error) {
+      console.error('failed to sync the collections', error);
+    }
+    collection = app.collectionRepository.getCollection(collectionId);
+  }
+  if (collection == null) {
+    console.log(`no collection ${collectionId} on this device`);
+    return;
+  }
+
+  // A collection has no order, so the way through it is by title — the same
+  // order the collection is listed in, so that "3 of 21" here means the third
+  // one down the page somebody was just looking at.
+  openedFrom = _openedFrom(
+    FROM_A_COLLECTION, collection, _byTitle(collection.entries), entryId, collectionId);
+}
+
+/**
+ * What this score was opened out of, once the list it is in has been settled.
  *
- * It is worked out in one place rather than by whoever runs last. Which set
- * this is comes from the link and the score comes from the database, and those
- * arrive at different moments — one of them writing the button on its way past
- * is how a button that says it goes back to the set ends up going somewhere
- * else.
+ * Which entry it is has to have been said: a set or a collection with nothing
+ * said about which of its entries this is, is a score that happens to be in
+ * one, and reading that as the first would play it in the wrong key.
+ *
+ * The entry also has to be an entry of this score. An entry can be written to
+ * name a different score than it used to, and a link made before that would
+ * otherwise hand this score the key and the hidden parts of a piece it is not.
+ * The score is what the page is of, so the list is what gives way.
+ *
+ * @param kind {string}
+ * @param container {Object}
+ * @param entries {Object[]} in the order the way through steps in
+ * @param entryId {string|null}
+ * @param containerId {string} for the log line, since a refused link is worth
+ *   being able to read afterwards
+ * @return {{kind: string, container: Object, entries: Object[], index: number,
+ *   entry: Object}|null}
+ */
+function _openedFrom(kind, container, entries, entryId, containerId) {
+  const index = entries.findIndex((candidate) => candidate.id === entryId);
+  if (index < 0) {
+    console.log(`no entry ${entryId} in ${kind} ${containerId}`);
+    return null;
+  }
+
+  const entry = entries[index];
+  if (entry.score_id !== scoreId) {
+    console.log(`entry ${entryId} of ${kind} ${containerId} is not this score`);
+    return null;
+  }
+
+  return {kind, container, entries, index, entry};
+}
+
+/**
+ * Puts the way through a collection back in step with the titles.
+ *
+ * What a piece is called is in its score rather than in its entry, and the
+ * scores arrive after the page has opened. Until they have, a collection of
+ * pieces this device has never seen is in no particular order, and "3 of 21"
+ * says something that will not be true a moment later. Once they are here, the
+ * order is worked out again.
+ */
+function _reorderOpenedFrom() {
+  if (openedFrom == null || openedFrom.kind !== FROM_A_COLLECTION) {
+    return;
+  }
+
+  const entries = _byTitle(openedFrom.container.entries);
+  const index = entries.findIndex((candidate) => candidate.id === openedFrom.entry.id);
+  if (index < 0) {
+    return;
+  }
+  openedFrom = {...openedFrom, entries, index, entry: entries[index]};
+}
+
+/**
+ * The entries of a collection by title, which is how a collection is read: it
+ * has no order of its own, and what a piece is called is in its score rather
+ * than in the entry.
+ *
+ * @param entries {Object[]}
+ * @return {Object[]}
+ */
+function _byTitle(entries) {
+  return [...entries].sort((a, b) => _nameOfEntry(a).localeCompare(_nameOfEntry(b)));
+}
+
+/**
+ * Whatever a piece is called: the title of its score, and what is written next
+ * to it when there is no score to take a title from.
+ *
+ * @param entry {Object}
+ * @return {string}
+ */
+function _nameOfEntry(entry) {
+  if (entry.score_id == null) {
+    return `${entry.description ?? ''}`.trim();
+  }
+  const score = app.scoreRepository.scores.find((candidate) => candidate.id === entry.score_id);
+  return score == null ? '' : getScoreTitle(score);
+}
+
+/**
+ * Where back goes: to the gig or the book when the score was opened out of one,
+ * and to the score it is of otherwise.
+ *
+ * It is worked out in one place rather than by whoever runs last. What this was
+ * opened out of comes from the link and the score comes from the database, and
+ * those arrive at different moments — one of them writing the button on its way
+ * past is how a button that says it goes back to the set ends up going
+ * somewhere else.
  */
 function _drawBackButton() {
-  const goingToTheSet = setContext != null;
-  const label = goingToTheSet ? 'Back to the set' : 'Back to the score';
+  const goingToTheList = openedFrom != null;
+  const label = goingToTheList
+    ? `Back to the ${openedFrom.kind}`
+    : 'Back to the score';
 
-  if (goingToTheSet) {
-    backButton.href = _setUrl(setContext.set.id);
+  if (goingToTheList) {
+    backButton.href = _containerUrl();
   } else if (scoreId != null) {
     backButton.href = `detail.html?${new URLSearchParams({id: scoreId}).toString()}`;
   }
@@ -467,44 +595,49 @@ function _drawBackButton() {
   backButton.title = label;
 
   // It shows where it goes rather than which way it points. Next to the arrow
-  // that steps back through the running order, a second arrow is two ways back
-  // and neither of them says which; a list is the gig, plainly.
-  backToSetIcon.hidden = !goingToTheSet;
-  backToScoreIcon.hidden = goingToTheSet;
+  // that steps back through the list, a second arrow is two ways back and
+  // neither of them says which; a list is the gig or the book, plainly.
+  backToSetIcon.hidden = !goingToTheList;
+  backToScoreIcon.hidden = goingToTheList;
 }
 
 /**
- * @param setId {string}
+ * The page the set or collection this was opened out of is written on.
+ *
  * @return {string}
  */
-function _setUrl(setId) {
-  return `../sets/detail.html?${new URLSearchParams({id: setId}).toString()}`;
+function _containerUrl() {
+  const where = openedFrom.kind === FROM_A_COLLECTION ? '../collections' : '../sets';
+  const params = new URLSearchParams({id: openedFrom.container.id});
+  return `${where}/detail.html?${params.toString()}`;
 }
 
 /**
- * Writes where in the gig this is, under the name of the song, and points the
- * way through the set.
+ * Writes where in the gig or the book this is, under the name of the piece, and
+ * points the way through the list.
  *
- * Which set it is, is said rather than linked: the back button goes there, and
- * two ways to the same place in one bar is one too many.
+ * Which set or collection it is, is said rather than linked: the back button
+ * goes there, and two ways to the same place in one bar is one too many.
  */
 function _drawSetControls() {
-  if (setContext == null) {
+  if (openedFrom == null) {
     songLine.hidden = true;
     setPreviousButton.hidden = true;
     setNextButton.hidden = true;
     return;
   }
 
-  const {set, index, entry} = setContext;
+  const {kind, container, entries, index, entry} = openedFrom;
   songLine.hidden = false;
   setPreviousButton.hidden = false;
   setNextButton.hidden = false;
 
-  setName.textContent = set.title.trim() === '' ? 'Untitled set' : set.title;
-  setPosition.textContent = `${index + 1} of ${set.entries.length}`;
-  // A song that is played from paper is called by its description, which is
-  // already in the bar as the title. Saying it twice reads as two songs.
+  setName.textContent = container.title.trim() === ''
+    ? `Untitled ${kind}`
+    : container.title;
+  setPosition.textContent = `${index + 1} of ${entries.length}`;
+  // A piece with no score is called by its description, which is already in the
+  // bar as the title. Saying it twice reads as two pieces.
   setEntryDescription.textContent = entry.score_id == null ? '' : entry.description ?? '';
 
   _pointAt(setPreviousButton, index - 1);
@@ -514,14 +647,14 @@ function _drawSetControls() {
 }
 
 /**
- * How far the score is read from where it is written: the key the band plays it
- * in, plus how far this player reads it from there.
+ * How far the score is read from where it is written: the key the others play
+ * it in, plus how far this player reads it from there.
  *
  * The two are added rather than one replacing the other, and the sum is held to
  * the range the player offers — an octave either way is as far as the control
  * goes, whatever the two of them add up to.
  *
- * @param entry {import("../domains/sets/database.js").SetEntry}
+ * @param entry {Object} one entry of a set or a collection
  * @return {number}
  */
 function _transpositionOfEntry(entry) {
@@ -535,8 +668,8 @@ function _transpositionOfEntry(entry) {
  * @param index {number}
  */
 function _pointAt(button, index) {
-  const set = setContext.set;
-  if (index < 0 || index >= set.entries.length) {
+  const {kind, container, entries} = openedFrom;
+  if (index < 0 || index >= entries.length) {
     button.removeAttribute('href');
     button.setAttribute('aria-disabled', 'true');
     return;
@@ -544,12 +677,12 @@ function _pointAt(button, index) {
 
   button.removeAttribute('aria-disabled');
 
-  // A song that is played off paper is still a song in the gig, so it is
+  // A piece with no score is still a piece in the gig or the book, so it is
   // stepped to like any other and says so when it gets there. Stepping over it
-  // would have the player looking at the wrong song when the band starts the
+  // would have the player looking at the wrong piece when the band starts the
   // next one.
-  const next = set.entries[index];
-  const where = {set: set.id, entry: next.id};
+  const next = entries[index];
+  const where = {[kind]: container.id, entry: next.id};
   if (next.score_id != null) {
     where.id = next.score_id;
   }
@@ -557,11 +690,11 @@ function _pointAt(button, index) {
 }
 
 /**
- * Whether the way the score is on screen is the way the set says it is played.
- * While it is, there is nothing to write.
+ * Whether the way the score is on screen is the way the set or the collection
+ * says it is played. While it is, there is nothing to write.
  */
 function _syncSetControls() {
-  if (setContext == null || scoreView == null || !readingIsSettled) {
+  if (openedFrom == null || scoreView == null || !readingIsSettled) {
     return;
   }
   if (!_viewMatchesEntry()) {
@@ -570,7 +703,7 @@ function _syncSetControls() {
 }
 
 /**
- * Whether the score has finished opening the way the set says it is played.
+ * Whether the score has finished opening the way it is said to be played.
  *
  * Until it has, what is on screen is the score as it was written, which is not
  * this player's reading of it — it is the page still catching up with the one
@@ -585,9 +718,9 @@ let readingIsSettled = false;
 
 /** @return {boolean} */
 function _viewMatchesEntry() {
-  const hidden = setContext.entry.view?.hidden_parts ?? [];
-  return _transpositionOfEntry(setContext.entry) === scoreView.transposition
-    && _zoomOfEntry(setContext.entry) === renderer.zoom
+  const hidden = openedFrom.entry.view?.hidden_parts ?? [];
+  return _transpositionOfEntry(openedFrom.entry) === scoreView.transposition
+    && _zoomOfEntry(openedFrom.entry) === renderer.zoom
     && hidden.length === scoreView.hiddenPartIds.length
     && hidden.every((partId) => scoreView.isHidden(partId));
 }
@@ -596,10 +729,10 @@ function _viewMatchesEntry() {
  * How big this player has said they read this one, or the size they read music
  * at in general when they have never said.
  *
- * Unlike the key, this is not counted on top of anything the band says: how
+ * Unlike the key, this is not counted on top of anything anybody else says: how
  * close somebody is sitting to their screen is not something a band decides.
  *
- * @param entry {import("../domains/sets/database.js").SetEntry}
+ * @param entry {Object} one entry of a set or a collection
  * @return {number}
  */
 function _zoomOfEntry(entry) {
@@ -607,16 +740,16 @@ function _zoomOfEntry(entry) {
 }
 
 /**
- * How this player is looking at the score is written into the set as they
- * change it, the way everything else about a set is written as it is changed.
- * There is nothing to press: transposing a song at a gig and then having to
- * remember to say so is a way of losing it.
+ * How this player is looking at the score is written into the set or the
+ * collection as they change it, the way everything else about one is written as
+ * it is changed. There is nothing to press: transposing a song at a gig and
+ * then having to remember to say so is a way of losing it.
  *
  * It is their own reading of it and nobody else's: the saxophone player's key
- * changes nothing for the pianist. Neither the score nor the set is touched —
- * what the band does is the owner's to say, and what is stored here is only how
- * far this player reads it from there, which is what is on screen less the key
- * the band plays it in.
+ * changes nothing for the pianist. Neither the score nor the list it came out
+ * of is touched — what the others play is the owner's to say, and what is
+ * stored here is only how far this player reads it from there, which is what is
+ * on screen less the key it is played in.
  *
  * The writes are held back a moment rather than made as they come. Dragging the
  * transposition across an octave and pinching a score to size are a handful of
@@ -675,7 +808,7 @@ function _writeAnythingWaiting() {
  */
 function _howIReadIt() {
   return {
-    transposition: scoreView.transposition - (setContext.entry.transposition ?? 0),
+    transposition: scoreView.transposition - (openedFrom.entry.transposition ?? 0),
     hidden_parts: [...scoreView.hiddenPartIds],
     zoom: renderer.zoom,
   };
@@ -683,7 +816,7 @@ function _howIReadIt() {
 
 async function _writeHowIReadIt() {
   pendingReadingWrite = null;
-  if (setContext == null || scoreView == null) {
+  if (openedFrom == null || scoreView == null) {
     return;
   }
 
@@ -693,14 +826,21 @@ async function _writeHowIReadIt() {
   }
   lastWrittenReading = reading;
 
-  const {set, entry} = setContext;
+  const {kind, container, entry} = openedFrom;
   try {
-    const saved = await app.setRepository.saveEntryView(set.id, entry.id, reading);
-    // Where the entry comes in the set is read again rather than kept: a sync
-    // can have reordered the gig while this was being written, and taking the
-    // place it used to be at would put somebody else's song on the screen.
-    const moved = saved.entries.findIndex((candidate) => candidate.id === entry.id);
-    setContext = moved < 0 ? null : {set: saved, index: moved, entry: saved.entries[moved]};
+    const repository = kind === FROM_A_COLLECTION
+      ? app.collectionRepository
+      : app.setRepository;
+    const saved = await repository.saveEntryView(container.id, entry.id, reading);
+    // Where the entry comes in the list is worked out again rather than kept: a
+    // sync can have reordered the gig, or renamed a piece of the book, while
+    // this was being written, and taking the place it used to be at would put
+    // somebody else's piece on the screen.
+    const entries = kind === FROM_A_COLLECTION ? _byTitle(saved.entries) : saved.entries;
+    const moved = entries.findIndex((candidate) => candidate.id === entry.id);
+    openedFrom = moved < 0
+      ? null
+      : {kind, container: saved, entries, index: moved, entry: entries[moved]};
     _drawSetControls();
     _showReadingState('Saved as how you read it');
   } catch (error) {
@@ -828,20 +968,20 @@ function _download(blob, filename) {
 // ----------------------------------------------------------------------------
 
 /**
- * Whatever the song is called, in the bar and in the tab.
+ * Whatever the piece is called, in the bar and in the tab.
  *
- * A song that is played off paper has no score to take a title from, so what is
- * written next to it in the running order is what it is called. One that has
- * neither is still a song in the gig — a blank line in a set list is a thing
- * people write — and is called what it is: the next one.
+ * A piece with no score has none to take a title from, so what is written next
+ * to it in the list is what it is called. One that has neither is still a piece
+ * in the gig or the book — a blank line in a set list is a thing people write —
+ * and is called what it is: the next one.
  */
 function _drawScoreTitle() {
   const score = app.scoreRepository.scores.find((candidate) => candidate.id === scoreId);
   let title = score == null ? null : getScoreTitle(score);
 
   if (title == null && _isPlayedOffPaper()) {
-    const written = `${setContext.entry.description ?? ''}`.trim();
-    title = written === '' ? 'A song of the set' : written;
+    const written = `${openedFrom.entry.description ?? ''}`.trim();
+    title = written === '' ? `A piece of the ${openedFrom.kind}` : written;
   }
   if (title == null) {
     return;
@@ -852,14 +992,15 @@ function _drawScoreTitle() {
 }
 
 /**
- * Whether what is being played here is a song this app has no score of: one in
- * a folder on the stand. It is a song of the gig like any other, so the way
- * through the set steps to it and this page says what it is when it arrives.
+ * Whether what is being played here is a piece this app has no score of: one in
+ * a folder on the stand, or a page of a book nobody has scanned. It is a piece
+ * of the gig or the book like any other, so the way through steps to it and
+ * this page says what it is when it arrives.
  *
  * @return {boolean}
  */
 function _isPlayedOffPaper() {
-  return scoreId == null && setContext != null && setContext.entry.score_id == null;
+  return scoreId == null && openedFrom != null && openedFrom.entry.score_id == null;
 }
 
 async function _openScore() {
@@ -871,8 +1012,12 @@ async function _openScore() {
 
   if (_isPlayedOffPaper()) {
     // There is nothing to draw and nothing to transpose, but there is still a
-    // song, a place in the gig and a way on to the next one. The view controls
-    // stay away: they are controls of a score, and there is no score here.
+    // piece, a place in the list and a way on to the next one. The view
+    // controls stay away: they are controls of a score, and there is no score
+    // here.
+    paperLine.textContent = openedFrom.kind === FROM_A_COLLECTION
+      ? 'This one has not been scanned yet.'
+      : 'This one is played from paper.';
     paperNotice.hidden = false;
     return;
   }
@@ -893,15 +1038,15 @@ async function _openScore() {
 
   await _showScore(musicXml);
 
-  if (setContext != null) {
-    // The score opens the way the band plays it and the way this player reads
-    // it: the entry says the band is a tone down, the view says this player
-    // reads that a fifth up, and what goes on screen is the two together. How
-    // big it is drawn is this player's alone and is not added to anything.
-    _queueRedraw(() => _zoomTo(_zoomOfEntry(setContext.entry)));
+  if (openedFrom != null) {
+    // The score opens the way the others play it and the way this player reads
+    // it: the entry says they are a tone down, the view says this player reads
+    // that a fifth up, and what goes on screen is the two together. How big it
+    // is drawn is this player's alone and is not added to anything.
+    _queueRedraw(() => _zoomTo(_zoomOfEntry(openedFrom.entry)));
     _queueViewChange((view) => view
-      .withTransposition(_transpositionOfEntry(setContext.entry))
-      .withHiddenParts(setContext.entry.view?.hidden_parts ?? []));
+      .withTransposition(_transpositionOfEntry(openedFrom.entry))
+      .withHiddenParts(openedFrom.entry.view?.hidden_parts ?? []));
     // Only now is what is on screen this player's reading of the song rather
     // than the page still opening it. Anything they do to it from here is
     // theirs, and is written as they do it.
@@ -974,7 +1119,7 @@ async function main() {
   scoreId = urlParams.get('id');
 
   _drawScoreTitle();
-  await _readSetContext();
+  await _readOpenedFrom();
   _drawBackButton();
   _drawSetControls();
 
@@ -990,6 +1135,10 @@ async function main() {
     console.error('failed to sync the scores', error);
   }
   _drawScoreTitle();
+  // The scores that just arrived are what a collection is sorted by, so where
+  // in it this piece comes may have moved under the page.
+  _reorderOpenedFrom();
+  _drawSetControls();
 }
 
 await main();

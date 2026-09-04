@@ -52,6 +52,7 @@ const notAskedFor = {
 const askedForAs = {
   '/index.html': '/',
   '/sets/index.html': '/sets/',
+  '/collections/index.html': '/collections/',
 };
 
 /** @return {string[]} every file under src/, as the url it is served at */

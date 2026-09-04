@@ -1,8 +1,8 @@
 type: object
 description: |
-  A view as the player states it. It is the read view whole: there is nothing
-  about a view the server decides, and a write replaces it rather than adding
-  to it.
+  A view as the player states it, of one entry of a set or a collection. It is
+  the read view whole: there is nothing about a view the server decides, and a
+  write replaces it rather than adding to it.
 required:
   - transposition
   - hidden_parts
@@ -12,7 +12,7 @@ properties:
     minimum: -12
     maximum: 12
     description: |
-      How far this player reads the score from where the band plays it, in
+      How far this player reads the score from where the others play it, in
       semitones, negative for down.
     examples: [9]
   hidden_parts:

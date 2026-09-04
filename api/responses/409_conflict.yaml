@@ -1,0 +1,8 @@
+description: |
+  The request is at odds with what is already stored: a collection was asked to
+  hold a piece it already holds. The body carries `entryId`, the entry the score
+  is already in, so that a client can point at it rather than ask again.
+content:
+  application/problem+json:
+    schema:
+      $ref: '../schemas/problem_details.yaml'

@@ -4,6 +4,7 @@ import {keepAppUpToDate} from "./domains/updates/app-update.js";
 
 const uploadButton = document.getElementById('upload-button');
 const setsButton = document.getElementById('sets-button');
+const collectionsButton = document.getElementById('collections-button');
 const scoreList = document.getElementById('score-list');
 const emptyNotice = document.getElementById('empty-notice');
 
@@ -32,14 +33,16 @@ async function _initScoreViewer() {
   if (app.user?.isScoreViewer !== true) {
     scoreList.hidden = true;
     setsButton.hidden = true;
+    collectionsButton.hidden = true;
     emptyNotice.hidden = true;
     console.log('no score viewer');
     return;
   }
 
-  // A set names scores but changes nothing about them, so keeping one asks no
-  // more of a user than reading the scores in it.
+  // A set and a collection name scores but change nothing about them, so
+  // keeping one asks no more of a user than reading the scores in it.
   setsButton.hidden = false;
+  collectionsButton.hidden = false;
   scoreList.hidden = false;
   _buildScoreListItems();
 
@@ -67,14 +70,20 @@ async function main() {
   _initScoreEditor();
   await _initScoreViewer();
 
-  // Whatever was written to a set while there was nothing to send it to is
-  // still owed to the server, and any page with a network is a chance to send
-  // it: waiting for the player to open the sets again is waiting for nothing.
+  // Whatever was written to a set or a collection while there was nothing to
+  // send it to is still owed to the server, and any page with a network is a
+  // chance to send it: waiting for the player to open them again is waiting for
+  // nothing.
   if (app.user?.isScoreViewer === true) {
     try {
       await app.updateSets();
     } catch (error) {
       console.error('failed to sync the sets', error);
+    }
+    try {
+      await app.updateCollections();
+    } catch (error) {
+      console.error('failed to sync the collections', error);
     }
   }
 }
