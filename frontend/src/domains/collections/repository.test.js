@@ -397,6 +397,51 @@ test('two pieces that have no score are two pieces', async () => {
   assert.deepEqual(saved.entries.map((entry) => entry.description), ['page 12', 'page 44']);
 });
 
+// A collection has nowhere for a piece to come, so an unnamed one could never
+// be found, sorted, or told from the next unnamed one. This is where a
+// collection parts company with a set, where a blank line is a place in the gig
+// and where it comes is what it means.
+test('a piece with no score has to be called something', async () => {
+  const {repository, api} = aRepository();
+  await repository.init();
+  const created = await repository.saveCollection(aDraft());
+
+  await assert.rejects(
+    () => repository.saveEntry(created.id, {score_id: null, description: '   '}));
+
+  assert.deepEqual(repository.getCollection(created.id).entries, []);
+  assert.deepEqual(api.entryPuts, [], 'it should never have been queued either');
+});
+
+test('a piece with no score cannot have its name taken away', async () => {
+  const {repository} = aRepository();
+  await repository.init();
+  const created = await repository.saveCollection(aDraft());
+  const written = await repository.saveEntry(
+    created.id, {score_id: null, description: 'page 12'});
+  const entryId = written.entries[0].id;
+
+  await assert.rejects(() => repository.saveEntry(created.id, {id: entryId, description: ''}));
+
+  assert.equal(repository.getCollection(created.id).entries[0].description, 'page 12');
+});
+
+// Saying only that a piece is played a tone down is not saying to take its name
+// away: what the caller did not mention is filled in from how it reads now.
+test('changing something else about an unnamed piece keeps its name', async () => {
+  const {repository} = aRepository();
+  await repository.init();
+  const created = await repository.saveCollection(aDraft());
+  const written = await repository.saveEntry(
+    created.id, {score_id: null, description: 'page 12'});
+  const entryId = written.entries[0].id;
+
+  const saved = await repository.saveEntry(created.id, {id: entryId, transposition: -2});
+
+  assert.equal(saved.entries[0].description, 'page 12');
+  assert.equal(saved.entries[0].transposition, -2);
+});
+
 test('a piece that is taken out can be put back in', async () => {
   const {repository} = aRepository();
   await repository.init();

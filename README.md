@@ -334,6 +334,14 @@ they are the only two:
   have no score are outside the rule: they are told apart by what is written
   next to them, and two lines of a book nobody has scanned are two pieces.
 
+  Which is why one of those has to be called something, and a set does not. A
+  blank line in a running order is a place in the gig, and where it comes is
+  what it means; a collection has nowhere for a piece to come, so an unnamed one
+  cannot be found, cannot be sorted, and cannot be told from the next unnamed
+  one. The server refuses it, the device refuses to queue it, the Add button is
+  off until there is a name, and clearing the box of a piece that has no score
+  puts the name back rather than taking it away.
+
 Being told a collection already holds a piece is not a refusal to show somebody.
 What they wanted was the piece to be in the book, and it is — so the answer
 carries `entryId`, the entry it is already in, and the page scrolls to it and

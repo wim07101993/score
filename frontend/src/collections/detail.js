@@ -347,12 +347,26 @@ function _buildEntryControls(entry) {
   description.className = 'entry-description';
   description.dataset.field = 'description';
   description.value = entry.description;
-  description.placeholder = 'page 214, in the red folder, the arrangement we do';
+  // For a piece with no score this box is not a note about it, it is its name,
+  // so it says so — and it cannot be emptied: a book has nowhere for a piece to
+  // come, so an unnamed one cannot be found or told from the next unnamed one.
+  const isTheOnlyName = entry.score_id == null;
+  description.placeholder = isTheOnlyName
+    ? 'what this piece is called'
+    : 'page 214, in the red folder, the arrangement we do';
   description.disabled = !isOwner;
   // On change rather than on input: every one of these is a write of that
   // piece, and a write per keystroke is a write per keystroke.
-  description.addEventListener('change', () =>
-    _writeEntry({id: entry.id, description: description.value}));
+  description.addEventListener('change', () => {
+    if (isTheOnlyName && description.value.trim() === '') {
+      // Put the name back rather than refusing out loud. Nobody meant to leave
+      // a piece of a book with nothing to call it; they meant to type over it.
+      description.value = entry.description;
+      description.select();
+      return;
+    }
+    _writeEntry({id: entry.id, description: description.value});
+  });
 
   controls.append(description, _buildTransposition(entry), _buildParts(entry));
   return controls;
@@ -658,14 +672,27 @@ function _buildScoreOption(score) {
 /**
  * Puts a piece into the collection that this app has no score of.
  *
- * It is called by what was typed. Nothing is asked of that text: a line in a
- * book nobody has scanned is a thing people write down, and the entry can be
- * named later the same way any other is.
+ * What was typed is what it is called, and it is all it will ever be called
+ * until somebody scans it, so an empty box adds nothing: the button is off
+ * until there is a name, and the cursor stays in the box afterwards, since
+ * filling a book in is typing one line after another.
  */
 async function onAddPaperEntryClicked() {
   const description = paperEntryInput.value.trim();
+  if (description === '') {
+    paperEntryInput.focus();
+    return;
+  }
+
   paperEntryInput.value = '';
+  _syncAddPaperEntryButton();
   await _writeEntry({score_id: null, description: description});
+  paperEntryInput.focus();
+}
+
+/** There is nothing to add until the piece has a name. */
+function _syncAddPaperEntryButton() {
+  addPaperEntryButton.disabled = paperEntryInput.value.trim() === '';
 }
 
 /**
@@ -808,6 +835,8 @@ async function main() {
   });
   sharedWithInput.addEventListener('input', _markDirty);
   scoreFilter.addEventListener('input', _drawScorePicker);
+  paperEntryInput.addEventListener('input', _syncAddPaperEntryButton);
+  _syncAddPaperEntryButton();
   addPaperEntryButton.addEventListener('click', onAddPaperEntryClicked);
   // Typing the name of a piece and pressing enter is how a list like this is
   // filled in; reaching for the button every time is not.

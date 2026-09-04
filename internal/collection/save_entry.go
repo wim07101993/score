@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"score/internal/storage"
@@ -321,6 +322,20 @@ func validateEntry(write WriteEntry) error {
 		return &ErrInvalidCollectionEntry{Reason: fmt.Sprintf(
 			"the entry is transposed by %d semitones, which is outside the range %d..%d",
 			write.Transposition, MinTransposition, MaxTransposition)}
+	}
+
+	// A piece with no score has to be called something.
+	//
+	// This is where a collection parts company with a set. A blank line in a
+	// running order is a thing people write: it is a place in the gig, and
+	// where it comes is what it means, so it needs no name. A collection has
+	// nowhere for a piece to come. An unnamed piece in a book cannot be found,
+	// cannot be sorted, and cannot be told from the next unnamed one — and
+	// being told apart by what is written next to them is the whole reason
+	// these are outside the rule that a score is in a collection once.
+	if write.ScoreId == nil && strings.TrimSpace(write.Description) == "" {
+		return &ErrInvalidCollectionEntry{
+			Reason: "a piece with no score has nothing to be called by but its description, so it cannot be blank"}
 	}
 	return nil
 }

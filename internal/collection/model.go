@@ -114,9 +114,14 @@ type WriteEntry struct {
 	// ScoreId is the piece, and nil for one that is in the collection but not
 	// in here. A score that is already in the collection under another entry is
 	// refused: a collection holds a piece once.
-	ScoreId       *string `json:"score_id"`
-	Description   string  `json:"description"`
-	Transposition int     `json:"transposition"`
+	ScoreId *string `json:"score_id"`
+
+	// Description is whatever is worth remembering about this one, and the only
+	// name a piece with no score has — so for one of those it cannot be blank.
+	// A collection has nowhere for a piece to come, so an unnamed one cannot be
+	// found, sorted, or told from the next unnamed one.
+	Description   string `json:"description"`
+	Transposition int    `json:"transposition"`
 }
 
 // WriteEntryView is a view as the player states it. There is nothing about a

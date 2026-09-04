@@ -21,7 +21,7 @@ properties:
     description: |
       The piece, or `null` for one that is in the collection but not in here —
       a page of a book that has yet to be scanned. Such an entry is called by
-      its `description`.
+      its `description`, which then cannot be blank.
 
       A score that is already in this collection under another entry is refused;
       a collection holds a piece once. Writing the entry the score is already in
@@ -31,6 +31,13 @@ properties:
     type: string
     description: |
       Whatever is worth remembering about this one.
+
+      For a piece with no score it is the only name there is, so it cannot be
+      blank and an entry that leaves it blank is refused. This is where a
+      collection parts company with a set: a blank line in a running order is a
+      place in the gig, and where it comes is what it means, while a collection
+      has nowhere for a piece to come — an unnamed one cannot be found, cannot
+      be sorted, and cannot be told from the next unnamed one.
     examples: [page 214, in the red folder, the arrangement we do]
   transposition:
     type: integer

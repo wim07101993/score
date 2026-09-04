@@ -224,6 +224,75 @@ func TestAPieceThatIsTakenOutCanBePutBackIn(t *testing.T) {
 // WHAT IS REFUSED
 // ---------------------------------------------------------------------------
 
+// A collection has nowhere for a piece to come, so an unnamed one could never
+// be found, sorted, or told from the next unnamed one — and being told apart by
+// what is written next to them is the whole reason these are outside the rule
+// that a score is in a collection once.
+//
+// This is where a collection parts company with a set, where a blank line is a
+// place in the gig and where it comes is what it means.
+func TestAPieceWithNoScoreHasToBeCalledSomething(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+
+	collectionId := uuid.New()
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("The red folder", nil))
+
+	res, err := owner.PutCollectionEntry(t.Context(), helpers.AnUnscannedEntry("   "),
+		api.PutCollectionEntryParams{CollectionId: collectionId, EntryId: uuid.New()})
+
+	require.NoError(t, err)
+	badRequest, ok := res.(*api.PutCollectionEntryBadRequest)
+	require.Truef(t, ok, "an unnamed piece should be refused, got %#v", res)
+	assert.Equal(t, api.ProblemDetailsErrorCodeInvalidCollectionEntry, badRequest.ErrorCode)
+	assert.Empty(t, helpers.MustGetCollection(t, owner.ApiClient, collectionId).Entries)
+}
+
+// A piece with a score is called by its score, so there is nothing it has to
+// have written next to it.
+func TestAPieceWithAScoreNeedsNothingWrittenNextToIt(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+	scoreId := aScore(t)
+
+	collectionId := uuid.New()
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("Standards", nil))
+
+	saved := helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, uuid.New(),
+		helpers.ACollectionEntry(scoreId))
+
+	assert.Empty(t, saved.Description)
+}
+
+// The name is the only thing a piece with no score has, so it cannot be taken
+// away by writing the entry again without it.
+func TestAPieceWithNoScoreCannotHaveItsNameTakenAway(t *testing.T) {
+	t.Parallel()
+
+	owner := aPlayer(t)
+
+	collectionId := uuid.New()
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("The red folder", nil))
+	entryId := uuid.New()
+	helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, entryId,
+		helpers.AnUnscannedEntry("page 12"))
+
+	res, err := owner.PutCollectionEntry(t.Context(), helpers.AnUnscannedEntry(""),
+		api.PutCollectionEntryParams{CollectionId: collectionId, EntryId: entryId})
+
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutCollectionEntryBadRequest{}, res, "got %#v", res)
+
+	kept := helpers.MustGetCollection(t, owner.ApiClient, collectionId)
+	require.Len(t, kept.Entries, 1)
+	assert.Equal(t, "page 12", kept.Entries[0].Description)
+}
+
 func TestAnEntryNamingAScoreThatDoesNotExistIsRefused(t *testing.T) {
 	t.Parallel()
 

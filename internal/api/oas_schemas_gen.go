@@ -170,7 +170,8 @@ type CollectionEntry struct {
 	// them, and two lines of a book nobody has scanned are two pieces.
 	ScoreID NilUUID `json:"score_id"`
 	// Whatever is worth remembering about this one, and the only name it has when there is no score to
-	// take a title from.
+	// take a title from. For a piece with no score it is therefore never blank: being told apart by it is
+	// what puts those pieces outside the rule above.
 	Description string `json:"description"`
 	// How far the group plays this one from where it is written, in semitones, negative for down. It is
 	// the arrangement rather than anyone's own reading of it: everybody the collection is shared with
@@ -1730,13 +1731,19 @@ func (s *WriteCollection) SetSharedWith(val []string) {
 // Ref: #
 type WriteCollectionEntry struct {
 	// The piece, or `null` for one that is in the collection but not in here — a page of a book that has
-	// yet to be scanned. Such an entry is called by its `description`.
+	// yet to be scanned. Such an entry is called by its `description`, which then cannot be blank.
 	//
 	// A score that is already in this collection under another entry is refused; a collection holds a
 	// piece once. Writing the entry the score is already in is not that: it is saying what the group does
 	// with a piece the collection already has, which is what an entry is for.
 	ScoreID NilUUID `json:"score_id"`
 	// Whatever is worth remembering about this one.
+	//
+	// For a piece with no score it is the only name there is, so it cannot be blank and an entry that
+	// leaves it blank is refused. This is where a collection parts company with a set: a blank line in a
+	// running order is a place in the gig, and where it comes is what it means, while a collection has
+	// nowhere for a piece to come — an unnamed one cannot be found, cannot be sorted, and cannot be told
+	// from the next unnamed one.
 	Description string `json:"description"`
 	// How far the group plays this one from where it is written, in semitones, negative for down.
 	Transposition int `json:"transposition"`

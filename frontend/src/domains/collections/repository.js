@@ -203,7 +203,9 @@ export class CollectionsRepository {
    *
    * The pieces with no score are outside the rule: they are told apart by what
    * is written next to them, and two lines of a book nobody has scanned are two
-   * pieces.
+   * pieces. Which is why one of those has to be called something — a piece with
+   * no score and no name cannot be found, sorted, or told from the next one, so
+   * it is refused here rather than queued for a server that will refuse it too.
    *
    * @param collectionId {string}
    * @param entry {{id?: string, score_id?: string|null, description?: string,
@@ -216,11 +218,17 @@ export class CollectionsRepository {
     const entryId = entry.id ?? crypto.randomUUID();
     const known = existing.entries.find((candidate) => candidate.id === entryId);
     const scoreId = _scoreIdOf('score_id' in entry ? entry.score_id : known?.score_id);
+    const description = entry.description ?? known?.description ?? '';
 
     const alreadyIn = scoreId == null ? null : existing.entries.find((candidate) =>
       candidate.id !== entryId && candidate.score_id === scoreId);
     if (alreadyIn != null) {
       throw new ScoreAlreadyInCollectionError(scoreId, alreadyIn.id);
+    }
+
+    if (scoreId == null && `${description}`.trim() === '') {
+      throw new Error(
+        'A piece with no score has nothing to be called by but what is written next to it.');
     }
 
     const written = new CollectionEntry(
@@ -230,7 +238,7 @@ export class CollectionsRepository {
       // and reading that as nothing said would put the score back on an entry
       // somebody has just said has none.
       scoreId,
-      entry.description ?? known?.description ?? '',
+      description,
       _transpositionOf(entry.transposition ?? known?.transposition),
       // How this user reads it is theirs and is written on its own, so an entry
       // that is renamed keeps it.

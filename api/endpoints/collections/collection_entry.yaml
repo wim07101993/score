@@ -48,7 +48,9 @@ properties:
     type: string
     description: |
       Whatever is worth remembering about this one, and the only name it has
-      when there is no score to take a title from.
+      when there is no score to take a title from. For a piece with no score it
+      is therefore never blank: being told apart by it is what puts those pieces
+      outside the rule above.
     examples: [page 214, in the red folder, the arrangement we do]
   transposition:
     type: integer
