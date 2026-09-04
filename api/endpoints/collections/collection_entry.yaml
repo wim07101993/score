@@ -1,0 +1,65 @@
+type: object
+description: |
+  One piece as it stands in a collection.
+
+  Everything here but `view` is the same for everyone the collection is shared
+  with: it is what the group does with the piece, and it is the owner's to say.
+  `view` is the caller's own and nobody else's.
+
+  There is no position. Where a piece comes in a collection is not a thing a
+  collection has an answer to, and a number nobody means anything by is a number
+  somebody will end up sorting on.
+required:
+  - id
+  - score_id
+  - description
+  - transposition
+  - view
+properties:
+  id:
+    type: string
+    format: uuid
+    description: |
+      The id of this entry.
+
+      It belongs to the entry rather than to the score, so that a piece keeps
+      what has been said about it when the collection is rewritten around it,
+      and so that the same score can be in a set and in a collection without the
+      two sharing a key or a reading.
+
+      It is the client's to name — an entry is written at
+      `/collections/{collectionId}/entries/{entryId}` — and it stays the
+      entry's for as long as the entry is in the collection, so that what a
+      player has said about how they look at it keeps pointing at the same
+      thing. An id that is already an entry of another collection is refused
+      rather than taken over.
+  score_id:
+    type: [string, 'null']
+    format: uuid
+    description: |
+      The piece, or `null` for one that is in the collection but not in here.
+
+      A score is in a collection at most once: that is the whole of what makes a
+      collection a collection rather than a set. The pieces that have no score
+      are outside that rule — half of what is in a book is on paper until
+      somebody gets round to scanning it, they are told apart by what is written
+      next to them, and two lines of a book nobody has scanned are two pieces.
+  description:
+    type: string
+    description: |
+      Whatever is worth remembering about this one, and the only name it has
+      when there is no score to take a title from.
+    examples: [page 214, in the red folder, the arrangement we do]
+  transposition:
+    type: integer
+    minimum: -12
+    maximum: 12
+    description: |
+      How far the group plays this one from where it is written, in semitones,
+      negative for down. It is the arrangement rather than anyone's own reading
+      of it: everybody the collection is shared with plays it in this key, and
+      what one player reads it as on top of that is in their `view`.
+    examples: [-2]
+  view:
+    description: How the caller looks at this entry, which is theirs alone.
+    $ref: '../../schemas/entry_view.yaml'

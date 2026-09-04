@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Collection</title>
+    <script src="../theme-boot.js"></script>
+    <link rel="stylesheet" href="../theme.css">
+    <link rel="stylesheet" href="detail.css">
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="page topbar-inner">
+        <a id="back-button" class="button button--quiet button--icon" href="./"
+           aria-label="Back to the collections">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M12.6 2.6L11.2 1.2L2.4 10l8.8 8.8l1.4-1.4L5.2 10z"/>
+            </svg>
+        </a>
+        <span id="collection-state" class="muted"></span>
+        <button type="button" id="save-button" class="button button--primary" disabled>Save</button>
+    </div>
+</header>
+
+<main id="collection-detail" class="page stack stack--loose" hidden>
+
+    <section id="about-section" class="card stack">
+        <div class="stack stack--tight">
+            <label class="label" for="title-input">Title</label>
+            <input type="text" id="title-input" class="input" placeholder="The Real Book, vol. 1"/>
+        </div>
+
+        <div class="stack stack--tight">
+            <label class="label" for="description-input">About the collection</label>
+            <textarea id="description-input" class="input" rows="2"
+                      placeholder="what the band can be asked for"></textarea>
+        </div>
+    </section>
+
+    <section id="entries-section" class="stack">
+        <h2>In this collection</h2>
+        <!-- No order, so no numbers: what is here is by title, which is how
+             somebody looking for a piece reads a list. -->
+        <ul id="entries-list"></ul>
+        <p id="no-entries-notice" class="muted">
+            Nothing in this collection yet. Add the pieces that belong in it
+            below.
+        </p>
+        <p id="unsaved-collection-notice" class="notice" hidden>
+            Save the collection first. What is in it is stored piece by piece,
+            so there has to be a collection to put them in.
+        </p>
+    </section>
+
+    <section id="add-score-section" class="stack">
+        <h2>Add a piece</h2>
+        <div class="stack stack--tight">
+            <label class="label" for="score-filter">Filter</label>
+            <input type="search" id="score-filter" class="input" placeholder="title, creator or tag"/>
+        </div>
+        <div id="score-picker"></div>
+        <p id="no-scores-notice" class="muted" hidden>
+            No scores on this device to add. They arrive with the next sync.
+        </p>
+
+        <!-- Half of what is in a book is on paper until somebody gets round to
+             scanning it, and a collection that could only name what has been
+             uploaded is not the collection. -->
+        <div class="stack stack--tight" id="paper-entry-section">
+            <label class="label" for="paper-entry-input">
+                Or a piece that is not in here — one that has yet to be scanned.
+                What you write next to it is what it is called.
+            </label>
+            <div id="paper-entry-row">
+                <input type="text" id="paper-entry-input" class="input"
+                       placeholder="Blue Bossa — page 62"/>
+                <button type="button" id="add-paper-entry-button" class="button">
+                    Add
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section id="sharing-section" class="stack">
+        <h2>Shared with</h2>
+        <div class="stack stack--tight">
+            <label class="label" for="shared-with-input">
+                One address per line. Everyone here can read the collection and
+                play from it; changing it stays yours.
+            </label>
+            <textarea id="shared-with-input" class="input" rows="3"
+                      placeholder="bas@example.com"></textarea>
+        </div>
+    </section>
+
+    <section id="delete-section">
+        <button type="button" id="delete-button" class="button button--danger">
+            Delete this collection
+        </button>
+    </section>
+
+</main>
+
+<p id="forbidden-notice" class="page muted" hidden>
+    Collections are for score viewers, and this account is not one.
+</p>
+
+<script src="detail.js" type="module"></script>
+</body>
+</html>

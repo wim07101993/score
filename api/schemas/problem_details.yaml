@@ -76,6 +76,12 @@ properties:
       - invalid_set_entry
       - unknown_score
       - not_set_owner
+      - collection_not_found
+      - collection_entry_not_found
+      - invalid_collection
+      - invalid_collection_entry
+      - not_collection_owner
+      - score_already_in_collection
       - endpoint_not_found
       - method_not_allowed
       - unsupported_media_type

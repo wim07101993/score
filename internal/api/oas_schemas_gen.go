@@ -16,6 +16,264 @@ func (s *XxxUnknownErrorStatusCode) Error() string {
 	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
 }
 
+// A group of scores that belong together without being played in any particular order: the pieces a
+// book holds, the repertoire a band can be asked for.
+//
+// It is the other half of what a set is. A set is a gig — the same song may come round twice in it,
+// and the order is what is played — while a collection is a shelf: order says nothing, and a score
+// is in it or it is not. Everything else is the same, because it is the same music: it is shared by
+// address, its entries carry the key the group plays a piece in, and every player has their own view
+// of every entry.
+//
+// A collection says how a score is played, never what it is. Nothing in it changes a score, and a
+// score can be in as many collections as it belongs to without any of them changing it.
+// Ref: #
+type Collection struct {
+	// The id the collection was stored under.
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+	// Whatever is worth remembering about the collection as a whole.
+	Description string `json:"description"`
+	// The pieces in the collection, by title.
+	//
+	// A collection has no order of its own, so this is not one: it is the order a list somebody is looking
+	// through should be in, and a piece with no score is filed under what is written next to it, which is
+	// the only name it has. Nothing about a collection changes when two of them swap places.
+	Entries []CollectionEntry `json:"entries"`
+	// The addresses the collection is readable by.
+	//
+	// Only filled in for the owner; for everyone else it is empty. Who else someone shares with is not the
+	// business of the people they share with.
+	SharedWith []string `json:"shared_with"`
+	// Whether this collection is the caller's to change. A collection that is only shared with the caller
+	// can be read but not written or deleted.
+	IsOwner bool `json:"is_owner"`
+	// When the collection was last written.
+	LastChangedAt time.Time `json:"last_changed_at"`
+	// When the collection was deleted, or null while it still exists.
+	//
+	// A deleted collection is kept rather than removed, and it is still returned by the change window, so
+	// that a client holding a copy learns that it is gone instead of syncing it back.
+	DeletedAt NilDateTime `json:"deleted_at"`
+}
+
+// GetID returns the value of ID.
+func (s *Collection) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetTitle returns the value of Title.
+func (s *Collection) GetTitle() string {
+	return s.Title
+}
+
+// GetDescription returns the value of Description.
+func (s *Collection) GetDescription() string {
+	return s.Description
+}
+
+// GetEntries returns the value of Entries.
+func (s *Collection) GetEntries() []CollectionEntry {
+	return s.Entries
+}
+
+// GetSharedWith returns the value of SharedWith.
+func (s *Collection) GetSharedWith() []string {
+	return s.SharedWith
+}
+
+// GetIsOwner returns the value of IsOwner.
+func (s *Collection) GetIsOwner() bool {
+	return s.IsOwner
+}
+
+// GetLastChangedAt returns the value of LastChangedAt.
+func (s *Collection) GetLastChangedAt() time.Time {
+	return s.LastChangedAt
+}
+
+// GetDeletedAt returns the value of DeletedAt.
+func (s *Collection) GetDeletedAt() NilDateTime {
+	return s.DeletedAt
+}
+
+// SetID sets the value of ID.
+func (s *Collection) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetTitle sets the value of Title.
+func (s *Collection) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDescription sets the value of Description.
+func (s *Collection) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *Collection) SetEntries(val []CollectionEntry) {
+	s.Entries = val
+}
+
+// SetSharedWith sets the value of SharedWith.
+func (s *Collection) SetSharedWith(val []string) {
+	s.SharedWith = val
+}
+
+// SetIsOwner sets the value of IsOwner.
+func (s *Collection) SetIsOwner(val bool) {
+	s.IsOwner = val
+}
+
+// SetLastChangedAt sets the value of LastChangedAt.
+func (s *Collection) SetLastChangedAt(val time.Time) {
+	s.LastChangedAt = val
+}
+
+// SetDeletedAt sets the value of DeletedAt.
+func (s *Collection) SetDeletedAt(val NilDateTime) {
+	s.DeletedAt = val
+}
+
+func (*Collection) getCollectionRes() {}
+func (*Collection) putCollectionRes() {}
+
+// One piece as it stands in a collection.
+//
+// Everything here but `view` is the same for everyone the collection is shared with: it is what the
+// group does with the piece, and it is the owner's to say. `view` is the caller's own and nobody
+// else's.
+//
+// There is no position. Where a piece comes in a collection is not a thing a collection has an answer
+// to, and a number nobody means anything by is a number somebody will end up sorting on.
+// Ref: #
+type CollectionEntry struct {
+	// The id of this entry.
+	//
+	// It belongs to the entry rather than to the score, so that a piece keeps what has been said about it
+	// when the collection is rewritten around it, and so that the same score can be in a set and in a
+	// collection without the two sharing a key or a reading.
+	//
+	// It is the client's to name — an entry is written at
+	// `/collections/{collectionId}/entries/{entryId}` — and it stays the entry's for as long as the
+	// entry is in the collection, so that what a player has said about how they look at it keeps pointing
+	// at the same thing. An id that is already an entry of another collection is refused rather than taken
+	// over.
+	ID uuid.UUID `json:"id"`
+	// The piece, or `null` for one that is in the collection but not in here.
+	//
+	// A score is in a collection at most once: that is the whole of what makes a collection a collection
+	// rather than a set. The pieces that have no score are outside that rule — half of what is in a book
+	// is on paper until somebody gets round to scanning it, they are told apart by what is written next to
+	// them, and two lines of a book nobody has scanned are two pieces.
+	ScoreID NilUUID `json:"score_id"`
+	// Whatever is worth remembering about this one, and the only name it has when there is no score to
+	// take a title from.
+	Description string `json:"description"`
+	// How far the group plays this one from where it is written, in semitones, negative for down. It is
+	// the arrangement rather than anyone's own reading of it: everybody the collection is shared with
+	// plays it in this key, and what one player reads it as on top of that is in their `view`.
+	Transposition int `json:"transposition"`
+	// How the caller looks at this entry, which is theirs alone.
+	View EntryView `json:"view"`
+}
+
+// GetID returns the value of ID.
+func (s *CollectionEntry) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetScoreID returns the value of ScoreID.
+func (s *CollectionEntry) GetScoreID() NilUUID {
+	return s.ScoreID
+}
+
+// GetDescription returns the value of Description.
+func (s *CollectionEntry) GetDescription() string {
+	return s.Description
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *CollectionEntry) GetTransposition() int {
+	return s.Transposition
+}
+
+// GetView returns the value of View.
+func (s *CollectionEntry) GetView() EntryView {
+	return s.View
+}
+
+// SetID sets the value of ID.
+func (s *CollectionEntry) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetScoreID sets the value of ScoreID.
+func (s *CollectionEntry) SetScoreID(val NilUUID) {
+	s.ScoreID = val
+}
+
+// SetDescription sets the value of Description.
+func (s *CollectionEntry) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *CollectionEntry) SetTransposition(val int) {
+	s.Transposition = val
+}
+
+// SetView sets the value of View.
+func (s *CollectionEntry) SetView(val EntryView) {
+	s.View = val
+}
+
+func (*CollectionEntry) putCollectionEntryRes() {}
+
+type DeleteCollectionBadRequest ProblemDetails
+
+func (*DeleteCollectionBadRequest) deleteCollectionRes() {}
+
+type DeleteCollectionEntryBadRequest ProblemDetails
+
+func (*DeleteCollectionEntryBadRequest) deleteCollectionEntryRes() {}
+
+type DeleteCollectionEntryForbidden ProblemDetails
+
+func (*DeleteCollectionEntryForbidden) deleteCollectionEntryRes() {}
+
+// DeleteCollectionEntryNoContent is response for DeleteCollectionEntry operation.
+type DeleteCollectionEntryNoContent struct{}
+
+func (*DeleteCollectionEntryNoContent) deleteCollectionEntryRes() {}
+
+type DeleteCollectionEntryNotFound ProblemDetails
+
+func (*DeleteCollectionEntryNotFound) deleteCollectionEntryRes() {}
+
+type DeleteCollectionEntryUnauthorized ProblemDetails
+
+func (*DeleteCollectionEntryUnauthorized) deleteCollectionEntryRes() {}
+
+type DeleteCollectionForbidden ProblemDetails
+
+func (*DeleteCollectionForbidden) deleteCollectionRes() {}
+
+// DeleteCollectionNoContent is response for DeleteCollection operation.
+type DeleteCollectionNoContent struct{}
+
+func (*DeleteCollectionNoContent) deleteCollectionRes() {}
+
+type DeleteCollectionNotFound ProblemDetails
+
+func (*DeleteCollectionNotFound) deleteCollectionRes() {}
+
+type DeleteCollectionUnauthorized ProblemDetails
+
+func (*DeleteCollectionUnauthorized) deleteCollectionRes() {}
+
 type DeleteSetBadRequest ProblemDetails
 
 func (*DeleteSetBadRequest) deleteSetRes() {}
@@ -58,28 +316,34 @@ type DeleteSetUnauthorized ProblemDetails
 
 func (*DeleteSetUnauthorized) deleteSetRes() {}
 
-// How one player looks at one entry of a set.
+// How one player looks at one entry of a set or a collection.
 //
-// A set says what the band plays; a view says what one player looks at while they play it. The two are
-// kept apart because they are not the same decision: playing a song a tone down is the band's, and
-// reading it in another key because of the instrument it is played on is the player's own. A saxophone
-// player transposing their part changes nothing for the pianist, and the pianist wanting the piano
-// staff alone on screen changes nothing for the singer.
+// A set says what the band plays and a collection says what the group has; a view says what one player
+// looks at while they play it. The two are kept apart because they are not the same decision: playing
+// a song a tone down is the band's, and reading it in another key because of the instrument it is
+// played on is the player's own. A saxophone player transposing their part changes nothing for the
+// pianist, and the pianist wanting the piano staff alone on screen changes nothing for the singer.
 //
-// A view belongs to whoever asked for the set. Everyone the set is shared with has their own, everyone
-// can write their own without being the owner of the set, and nobody is told anything about anybody
+// It is the same thing in both, because it is the same music being read by the same player: a piece
+// read a fourth up off a tablet at arm's length is read that way whether it was opened out of a gig or
+// out of a book. What it belongs to is the entry, so a piece that is in a set and in a collection is
+// two entries and two views — the band's arrangement of it and the book's are two different things
+// to read.
+//
+// A view belongs to whoever asked for the set or collection. Everyone it is shared with has their own,
+// everyone can write their own without being the owner, and nobody is told anything about anybody
 // else's.
 //
 // An entry that a player has never looked at differently has the view every entry starts with: as
 // written, every part on screen.
 // Ref: #
 type EntryView struct {
-	// How far this player reads the score from where the band plays it, in semitones, negative for down.
+	// How far this player reads the score from where the others play it, in semitones, negative for down.
 	//
-	// It is on top of the entry's own transposition rather than instead of it: the entry says the band
-	// plays this one a tone down, and this says the player reads that a fifth up. What ends up on screen
-	// is the two together, brought back inside the octave either way that the player offers when they add
-	// up past it.
+	// It is on top of the entry's own transposition rather than instead of it: the entry says this one is
+	// played a tone down, and this says the player reads that a fifth up. What ends up on screen is the
+	// two together, brought back inside the octave either way that the player offers when they add up past
+	// it.
 	Transposition int `json:"transposition"`
 	// The parts of the score this player has off screen, by their MusicXML part id.
 	HiddenParts []string `json:"hidden_parts"`
@@ -122,7 +386,28 @@ func (s *EntryView) SetZoom(val float64) {
 	s.Zoom = val
 }
 
-func (*EntryView) putSetEntryViewRes() {}
+func (*EntryView) putCollectionEntryViewRes() {}
+func (*EntryView) putSetEntryViewRes()        {}
+
+type GetCollectionBadRequest ProblemDetails
+
+func (*GetCollectionBadRequest) getCollectionRes() {}
+
+type GetCollectionForbidden ProblemDetails
+
+func (*GetCollectionForbidden) getCollectionRes() {}
+
+type GetCollectionNotFound ProblemDetails
+
+func (*GetCollectionNotFound) getCollectionRes() {}
+
+type GetCollectionUnauthorized ProblemDetails
+
+func (*GetCollectionUnauthorized) getCollectionRes() {}
+
+type GetCollectionsResponse []Collection
+
+func (*GetCollectionsResponse) listCollectionsRes() {}
 
 type GetScoreBadRequest ProblemDetails
 
@@ -215,6 +500,18 @@ func (s HealthzOK) Read(p []byte) (n int, err error) {
 }
 
 func (*HealthzOK) healthzRes() {}
+
+type ListCollectionsBadRequest ProblemDetails
+
+func (*ListCollectionsBadRequest) listCollectionsRes() {}
+
+type ListCollectionsForbidden ProblemDetails
+
+func (*ListCollectionsForbidden) listCollectionsRes() {}
+
+type ListCollectionsUnauthorized ProblemDetails
+
+func (*ListCollectionsUnauthorized) listCollectionsRes() {}
 
 type ListScoresBadRequest ProblemDetails
 
@@ -569,22 +866,28 @@ func (s *ProblemDetailsAdditional) init() ProblemDetailsAdditional {
 type ProblemDetailsErrorCode string
 
 const (
-	ProblemDetailsErrorCodeInvalidRequest       ProblemDetailsErrorCode = "invalid_request"
-	ProblemDetailsErrorCodeInvalidMusicXML      ProblemDetailsErrorCode = "invalid_music_xml"
-	ProblemDetailsErrorCodeInvalidCredentials   ProblemDetailsErrorCode = "invalid_credentials"
-	ProblemDetailsErrorCodeMissingRole          ProblemDetailsErrorCode = "missing_role"
-	ProblemDetailsErrorCodeScoreNotFound        ProblemDetailsErrorCode = "score_not_found"
-	ProblemDetailsErrorCodeSetNotFound          ProblemDetailsErrorCode = "set_not_found"
-	ProblemDetailsErrorCodeSetEntryNotFound     ProblemDetailsErrorCode = "set_entry_not_found"
-	ProblemDetailsErrorCodeInvalidSet           ProblemDetailsErrorCode = "invalid_set"
-	ProblemDetailsErrorCodeInvalidSetEntry      ProblemDetailsErrorCode = "invalid_set_entry"
-	ProblemDetailsErrorCodeUnknownScore         ProblemDetailsErrorCode = "unknown_score"
-	ProblemDetailsErrorCodeNotSetOwner          ProblemDetailsErrorCode = "not_set_owner"
-	ProblemDetailsErrorCodeEndpointNotFound     ProblemDetailsErrorCode = "endpoint_not_found"
-	ProblemDetailsErrorCodeMethodNotAllowed     ProblemDetailsErrorCode = "method_not_allowed"
-	ProblemDetailsErrorCodeUnsupportedMediaType ProblemDetailsErrorCode = "unsupported_media_type"
-	ProblemDetailsErrorCodeRequestBodyTooLarge  ProblemDetailsErrorCode = "request_body_too_large"
-	ProblemDetailsErrorCodeInternalError        ProblemDetailsErrorCode = "internal_error"
+	ProblemDetailsErrorCodeInvalidRequest           ProblemDetailsErrorCode = "invalid_request"
+	ProblemDetailsErrorCodeInvalidMusicXML          ProblemDetailsErrorCode = "invalid_music_xml"
+	ProblemDetailsErrorCodeInvalidCredentials       ProblemDetailsErrorCode = "invalid_credentials"
+	ProblemDetailsErrorCodeMissingRole              ProblemDetailsErrorCode = "missing_role"
+	ProblemDetailsErrorCodeScoreNotFound            ProblemDetailsErrorCode = "score_not_found"
+	ProblemDetailsErrorCodeSetNotFound              ProblemDetailsErrorCode = "set_not_found"
+	ProblemDetailsErrorCodeSetEntryNotFound         ProblemDetailsErrorCode = "set_entry_not_found"
+	ProblemDetailsErrorCodeInvalidSet               ProblemDetailsErrorCode = "invalid_set"
+	ProblemDetailsErrorCodeInvalidSetEntry          ProblemDetailsErrorCode = "invalid_set_entry"
+	ProblemDetailsErrorCodeUnknownScore             ProblemDetailsErrorCode = "unknown_score"
+	ProblemDetailsErrorCodeNotSetOwner              ProblemDetailsErrorCode = "not_set_owner"
+	ProblemDetailsErrorCodeCollectionNotFound       ProblemDetailsErrorCode = "collection_not_found"
+	ProblemDetailsErrorCodeCollectionEntryNotFound  ProblemDetailsErrorCode = "collection_entry_not_found"
+	ProblemDetailsErrorCodeInvalidCollection        ProblemDetailsErrorCode = "invalid_collection"
+	ProblemDetailsErrorCodeInvalidCollectionEntry   ProblemDetailsErrorCode = "invalid_collection_entry"
+	ProblemDetailsErrorCodeNotCollectionOwner       ProblemDetailsErrorCode = "not_collection_owner"
+	ProblemDetailsErrorCodeScoreAlreadyInCollection ProblemDetailsErrorCode = "score_already_in_collection"
+	ProblemDetailsErrorCodeEndpointNotFound         ProblemDetailsErrorCode = "endpoint_not_found"
+	ProblemDetailsErrorCodeMethodNotAllowed         ProblemDetailsErrorCode = "method_not_allowed"
+	ProblemDetailsErrorCodeUnsupportedMediaType     ProblemDetailsErrorCode = "unsupported_media_type"
+	ProblemDetailsErrorCodeRequestBodyTooLarge      ProblemDetailsErrorCode = "request_body_too_large"
+	ProblemDetailsErrorCodeInternalError            ProblemDetailsErrorCode = "internal_error"
 )
 
 // AllValues returns all ProblemDetailsErrorCode values.
@@ -601,6 +904,12 @@ func (ProblemDetailsErrorCode) AllValues() []ProblemDetailsErrorCode {
 		ProblemDetailsErrorCodeInvalidSetEntry,
 		ProblemDetailsErrorCodeUnknownScore,
 		ProblemDetailsErrorCodeNotSetOwner,
+		ProblemDetailsErrorCodeCollectionNotFound,
+		ProblemDetailsErrorCodeCollectionEntryNotFound,
+		ProblemDetailsErrorCodeInvalidCollection,
+		ProblemDetailsErrorCodeInvalidCollectionEntry,
+		ProblemDetailsErrorCodeNotCollectionOwner,
+		ProblemDetailsErrorCodeScoreAlreadyInCollection,
 		ProblemDetailsErrorCodeEndpointNotFound,
 		ProblemDetailsErrorCodeMethodNotAllowed,
 		ProblemDetailsErrorCodeUnsupportedMediaType,
@@ -633,6 +942,18 @@ func (s ProblemDetailsErrorCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsErrorCodeUnknownScore:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeNotSetOwner:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeCollectionNotFound:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeCollectionEntryNotFound:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeInvalidCollection:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeInvalidCollectionEntry:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeNotCollectionOwner:
+		return []byte(s), nil
+	case ProblemDetailsErrorCodeScoreAlreadyInCollection:
 		return []byte(s), nil
 	case ProblemDetailsErrorCodeEndpointNotFound:
 		return []byte(s), nil
@@ -685,6 +1006,24 @@ func (s *ProblemDetailsErrorCode) UnmarshalText(data []byte) error {
 	case ProblemDetailsErrorCodeNotSetOwner:
 		*s = ProblemDetailsErrorCodeNotSetOwner
 		return nil
+	case ProblemDetailsErrorCodeCollectionNotFound:
+		*s = ProblemDetailsErrorCodeCollectionNotFound
+		return nil
+	case ProblemDetailsErrorCodeCollectionEntryNotFound:
+		*s = ProblemDetailsErrorCodeCollectionEntryNotFound
+		return nil
+	case ProblemDetailsErrorCodeInvalidCollection:
+		*s = ProblemDetailsErrorCodeInvalidCollection
+		return nil
+	case ProblemDetailsErrorCodeInvalidCollectionEntry:
+		*s = ProblemDetailsErrorCodeInvalidCollectionEntry
+		return nil
+	case ProblemDetailsErrorCodeNotCollectionOwner:
+		*s = ProblemDetailsErrorCodeNotCollectionOwner
+		return nil
+	case ProblemDetailsErrorCodeScoreAlreadyInCollection:
+		*s = ProblemDetailsErrorCodeScoreAlreadyInCollection
+		return nil
 	case ProblemDetailsErrorCodeEndpointNotFound:
 		*s = ProblemDetailsErrorCodeEndpointNotFound
 		return nil
@@ -732,6 +1071,78 @@ func (s *ProblemDetailsStatusCode) SetResponse(val ProblemDetails) {
 }
 
 func (*ProblemDetailsStatusCode) healthzRes() {}
+
+type PutCollectionBadRequest ProblemDetails
+
+func (*PutCollectionBadRequest) putCollectionRes() {}
+
+type PutCollectionEntryBadRequest ProblemDetails
+
+func (*PutCollectionEntryBadRequest) putCollectionEntryRes() {}
+
+type PutCollectionEntryConflict ProblemDetails
+
+func (*PutCollectionEntryConflict) putCollectionEntryRes() {}
+
+type PutCollectionEntryForbidden ProblemDetails
+
+func (*PutCollectionEntryForbidden) putCollectionEntryRes() {}
+
+type PutCollectionEntryNotFound ProblemDetails
+
+func (*PutCollectionEntryNotFound) putCollectionEntryRes() {}
+
+type PutCollectionEntryRequestEntityTooLarge ProblemDetails
+
+func (*PutCollectionEntryRequestEntityTooLarge) putCollectionEntryRes() {}
+
+type PutCollectionEntryUnauthorized ProblemDetails
+
+func (*PutCollectionEntryUnauthorized) putCollectionEntryRes() {}
+
+type PutCollectionEntryUnsupportedMediaType ProblemDetails
+
+func (*PutCollectionEntryUnsupportedMediaType) putCollectionEntryRes() {}
+
+type PutCollectionEntryViewBadRequest ProblemDetails
+
+func (*PutCollectionEntryViewBadRequest) putCollectionEntryViewRes() {}
+
+type PutCollectionEntryViewForbidden ProblemDetails
+
+func (*PutCollectionEntryViewForbidden) putCollectionEntryViewRes() {}
+
+type PutCollectionEntryViewNotFound ProblemDetails
+
+func (*PutCollectionEntryViewNotFound) putCollectionEntryViewRes() {}
+
+type PutCollectionEntryViewRequestEntityTooLarge ProblemDetails
+
+func (*PutCollectionEntryViewRequestEntityTooLarge) putCollectionEntryViewRes() {}
+
+type PutCollectionEntryViewUnauthorized ProblemDetails
+
+func (*PutCollectionEntryViewUnauthorized) putCollectionEntryViewRes() {}
+
+type PutCollectionEntryViewUnsupportedMediaType ProblemDetails
+
+func (*PutCollectionEntryViewUnsupportedMediaType) putCollectionEntryViewRes() {}
+
+type PutCollectionForbidden ProblemDetails
+
+func (*PutCollectionForbidden) putCollectionRes() {}
+
+type PutCollectionRequestEntityTooLarge ProblemDetails
+
+func (*PutCollectionRequestEntityTooLarge) putCollectionRes() {}
+
+type PutCollectionUnauthorized ProblemDetails
+
+func (*PutCollectionUnauthorized) putCollectionRes() {}
+
+type PutCollectionUnsupportedMediaType ProblemDetails
+
+func (*PutCollectionUnsupportedMediaType) putCollectionRes() {}
 
 type PutScoreBadRequest ProblemDetails
 
@@ -1258,11 +1669,114 @@ func (s *SetEntry) SetView(val EntryView) {
 
 func (*SetEntry) putSetEntryRes() {}
 
-// A view as the player states it. It is the read view whole: there is nothing about a view the server
-// decides, and a write replaces it rather than adding to it.
+// A collection as the client states it: what the group of pieces is, and who may read it.
+//
+// What is in it is not here. An entry is a resource of its own, written and taken out one at a time at
+// `/collections/{collectionId}/entries/{entryId}`, so a collection is created empty and filled
+// afterwards. That is what keeps the whole of a book from being restated every time a title is
+// corrected, and what lets a client that added one piece send one piece.
+// Ref: #
+type WriteCollection struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	// The addresses the collection should be readable by.
+	//
+	// They are compared in lower case, since an address says nothing about who it belongs to by the case
+	// it was typed in. Anything that is not an address is refused rather than tidied up, so a share that
+	// was going to go nowhere is said so at the time it is written. The owner's own address is ignored:
+	// they already have the collection.
+	SharedWith []string `json:"shared_with"`
+}
+
+// GetTitle returns the value of Title.
+func (s *WriteCollection) GetTitle() string {
+	return s.Title
+}
+
+// GetDescription returns the value of Description.
+func (s *WriteCollection) GetDescription() string {
+	return s.Description
+}
+
+// GetSharedWith returns the value of SharedWith.
+func (s *WriteCollection) GetSharedWith() []string {
+	return s.SharedWith
+}
+
+// SetTitle sets the value of Title.
+func (s *WriteCollection) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetDescription sets the value of Description.
+func (s *WriteCollection) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetSharedWith sets the value of SharedWith.
+func (s *WriteCollection) SetSharedWith(val []string) {
+	s.SharedWith = val
+}
+
+// One piece of a collection as the owner of the collection states it.
+//
+// It says what the group does with the piece and nothing about how anyone looks at it: a view belongs
+// to a player rather than to a collection, and is written by the player it belongs to at
+// `/collections/{collectionId}/entries/{entryId}/view`. Writing an entry therefore leaves every
+// player's view of it alone, the owner's own included.
+//
+// Which entry it is, is in the path rather than here. Where it comes in the collection is nowhere at
+// all: a collection has no order to put a piece in.
+// Ref: #
+type WriteCollectionEntry struct {
+	// The piece, or `null` for one that is in the collection but not in here — a page of a book that has
+	// yet to be scanned. Such an entry is called by its `description`.
+	//
+	// A score that is already in this collection under another entry is refused; a collection holds a
+	// piece once. Writing the entry the score is already in is not that: it is saying what the group does
+	// with a piece the collection already has, which is what an entry is for.
+	ScoreID NilUUID `json:"score_id"`
+	// Whatever is worth remembering about this one.
+	Description string `json:"description"`
+	// How far the group plays this one from where it is written, in semitones, negative for down.
+	Transposition int `json:"transposition"`
+}
+
+// GetScoreID returns the value of ScoreID.
+func (s *WriteCollectionEntry) GetScoreID() NilUUID {
+	return s.ScoreID
+}
+
+// GetDescription returns the value of Description.
+func (s *WriteCollectionEntry) GetDescription() string {
+	return s.Description
+}
+
+// GetTransposition returns the value of Transposition.
+func (s *WriteCollectionEntry) GetTransposition() int {
+	return s.Transposition
+}
+
+// SetScoreID sets the value of ScoreID.
+func (s *WriteCollectionEntry) SetScoreID(val NilUUID) {
+	s.ScoreID = val
+}
+
+// SetDescription sets the value of Description.
+func (s *WriteCollectionEntry) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetTransposition sets the value of Transposition.
+func (s *WriteCollectionEntry) SetTransposition(val int) {
+	s.Transposition = val
+}
+
+// A view as the player states it, of one entry of a set or a collection. It is the read view whole:
+// there is nothing about a view the server decides, and a write replaces it rather than adding to it.
 // Ref: #
 type WriteEntryView struct {
-	// How far this player reads the score from where the band plays it, in semitones, negative for down.
+	// How far this player reads the score from where the others play it, in semitones, negative for down.
 	Transposition int `json:"transposition"`
 	// The parts of the score this player has off screen, by their MusicXML part id. They are replaced
 	// rather than merged: this is the whole of the list.

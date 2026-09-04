@@ -1,0 +1,76 @@
+type: object
+description: |
+  A group of scores that belong together without being played in any particular
+  order: the pieces a book holds, the repertoire a band can be asked for.
+
+  It is the other half of what a set is. A set is a gig — the same song may come
+  round twice in it, and the order is what is played — while a collection is a
+  shelf: order says nothing, and a score is in it or it is not. Everything else
+  is the same, because it is the same music: it is shared by address, its
+  entries carry the key the group plays a piece in, and every player has their
+  own view of every entry.
+
+  A collection says how a score is played, never what it is. Nothing in it
+  changes a score, and a score can be in as many collections as it belongs to
+  without any of them changing it.
+required:
+  - id
+  - title
+  - description
+  - entries
+  - shared_with
+  - is_owner
+  - last_changed_at
+  - deleted_at
+properties:
+  id:
+    type: string
+    format: uuid
+    description: The id the collection was stored under.
+  title:
+    type: string
+    examples: [The Real Book, vol. 1]
+  description:
+    type: string
+    description: Whatever is worth remembering about the collection as a whole.
+  entries:
+    type: array
+    description: |
+      The pieces in the collection, by title.
+
+      A collection has no order of its own, so this is not one: it is the order
+      a list somebody is looking through should be in, and a piece with no score
+      is filed under what is written next to it, which is the only name it has.
+      Nothing about a collection changes when two of them swap places.
+    items:
+      $ref: 'collection_entry.yaml'
+  shared_with:
+    type: array
+    description: |
+      The addresses the collection is readable by.
+
+      Only filled in for the owner; for everyone else it is empty. Who else
+      someone shares with is not the business of the people they share with.
+    items:
+      type: string
+      format: email
+    examples:
+      - [bas@example.com]
+  is_owner:
+    type: boolean
+    description: |
+      Whether this collection is the caller's to change. A collection that is
+      only shared with the caller can be read but not written or deleted.
+  last_changed_at:
+    type: string
+    format: date-time
+    description: When the collection was last written.
+  deleted_at:
+    type: [string, 'null']
+    format: date-time
+    description: |
+      When the collection was deleted, or null while it still exists.
+
+      A deleted collection is kept rather than removed, and it is still returned
+      by the change window, so that a client holding a copy learns that it is
+      gone instead of syncing it back.

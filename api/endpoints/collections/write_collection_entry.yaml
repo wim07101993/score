@@ -1,0 +1,42 @@
+type: object
+description: |
+  One piece of a collection as the owner of the collection states it.
+
+  It says what the group does with the piece and nothing about how anyone looks
+  at it: a view belongs to a player rather than to a collection, and is written
+  by the player it belongs to at
+  `/collections/{collectionId}/entries/{entryId}/view`. Writing an entry
+  therefore leaves every player's view of it alone, the owner's own included.
+
+  Which entry it is, is in the path rather than here. Where it comes in the
+  collection is nowhere at all: a collection has no order to put a piece in.
+required:
+  - score_id
+  - description
+  - transposition
+properties:
+  score_id:
+    type: [string, 'null']
+    format: uuid
+    description: |
+      The piece, or `null` for one that is in the collection but not in here —
+      a page of a book that has yet to be scanned. Such an entry is called by
+      its `description`.
+
+      A score that is already in this collection under another entry is refused;
+      a collection holds a piece once. Writing the entry the score is already in
+      is not that: it is saying what the group does with a piece the collection
+      already has, which is what an entry is for.
+  description:
+    type: string
+    description: |
+      Whatever is worth remembering about this one.
+    examples: [page 214, in the red folder, the arrangement we do]
+  transposition:
+    type: integer
+    minimum: -12
+    maximum: 12
+    description: |
+      How far the group plays this one from where it is written, in semitones,
+      negative for down.
+    examples: [-2]

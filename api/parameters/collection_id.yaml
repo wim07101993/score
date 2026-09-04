@@ -1,0 +1,7 @@
+name: collectionId
+in: path
+required: true
+description: The id the collection is stored under.
+schema:
+  type: string
+  format: uuid

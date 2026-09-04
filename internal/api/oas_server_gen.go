@@ -8,6 +8,34 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// DeleteCollection implements deleteCollection operation.
+	//
+	// Marks the collection as deleted. It is kept rather than removed, and it keeps turning up in the
+	// change window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+	//
+	// Only the owner of a collection can delete it. A collection that is not there, already deleted, or
+	// not the caller's is answered the same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /collections/{collectionId}
+	DeleteCollection(ctx context.Context, params DeleteCollectionParams) (DeleteCollectionRes, error)
+	// DeleteCollectionEntry implements deleteCollectionEntry operation.
+	//
+	// Removes the entry. What every player said about how they look at it goes with it: it was about a
+	// piece that is no longer in the collection.
+	//
+	// Unlike a collection, an entry is removed rather than kept as a headstone. A client that is holding a
+	// copy learns it is gone from the collection it is in, which it reads whole.
+	//
+	// Only the owner of a collection can take an entry out of it. An entry that is not there, is not in
+	// the collection that was named, or is in a collection the caller cannot read, are all answered the
+	// same way.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// DELETE /collections/{collectionId}/entries/{entryId}
+	DeleteCollectionEntry(ctx context.Context, params DeleteCollectionEntryParams) (DeleteCollectionEntryRes, error)
 	// DeleteSet implements deleteSet operation.
 	//
 	// Marks the set as deleted. It is kept rather than removed, and it keeps turning up in the change
@@ -35,6 +63,18 @@ type Handler interface {
 	//
 	// DELETE /sets/{setId}/entries/{entryId}
 	DeleteSetEntry(ctx context.Context, params DeleteSetEntryParams) (DeleteSetEntryRes, error)
+	// GetCollection implements getCollection operation.
+	//
+	// Returns the collection, whether the caller owns it or it is shared with them. `is_owner` says which
+	// of the two it is, and `shared_with` is only filled in for the owner.
+	//
+	// The pieces come back by title. A collection has no order of its own, so that is not one: it is the
+	// order a list somebody is looking through should be in.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// GET /collections/{collectionId}
+	GetCollection(ctx context.Context, params GetCollectionParams) (GetCollectionRes, error)
 	// GetScore implements getScore operation.
 	//
 	// Returns either the metadata of the score or the MusicXML document it was extracted from, whichever
@@ -61,6 +101,20 @@ type Handler interface {
 	//
 	// GET /healthz
 	Healthz(ctx context.Context, params HealthzParams) (HealthzRes, error)
+	// ListCollections implements listCollections operation.
+	//
+	// Returns every collection the caller owns or that is shared with them whose last change falls within
+	// the given window, most recently changed first. Both ends of the window are inclusive and both are
+	// required: a client synchronises by asking for everything since the moment it last asked.
+	//
+	// Collections that were deleted within the window are returned too, with `deleted_at` filled in, so
+	// that a client holding a copy learns that it is gone rather than syncing it back.
+	//
+	// Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
+	// keeping one asks no more of a user than reading the scores in it.
+	//
+	// GET /collections
+	ListCollections(ctx context.Context, params ListCollectionsParams) (ListCollectionsRes, error)
 	// ListScores implements listScores operation.
 	//
 	// Returns the metadata of every score whose last change falls within the given window, most recently
@@ -85,6 +139,69 @@ type Handler interface {
 	//
 	// GET /sets
 	ListSets(ctx context.Context, params ListSetsParams) (ListSetsRes, error)
+	// PutCollection implements putCollection operation.
+	//
+	// Stores the collection under the given id, replacing whatever was stored under it before, and returns
+	// it as it now reads. A collection that is not there yet belongs to whoever creates it; one that is
+	// can only be written by its owner.
+	//
+	// What is in the collection is not written here and is not touched by writing here: an entry is a
+	// resource of its own, so a collection is created empty and filled afterwards.
+	//
+	// Writing a collection that had been deleted brings it back: a client that still has it and edits it
+	// is saying it should exist.
+	//
+	// Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
+	// building one asks no more of a user than reading the scores in it.
+	//
+	// PUT /collections/{collectionId}
+	PutCollection(ctx context.Context, req *WriteCollection, params PutCollectionParams) (PutCollectionRes, error)
+	// PutCollectionEntry implements putCollectionEntry operation.
+	//
+	// Stores the entry under the given id and returns it as it now reads, including how the caller looks
+	// at it.
+	//
+	// A collection holds a piece once. An entry naming a score that is already in the collection under a
+	// different entry is refused, and the refusal names the entry it is already in — a client that has
+	// just been told a piece is in the book wants that page, not a second copy of it. Writing the entry
+	// the score is already in is not that: it is saying what the group does with a piece the collection
+	// already has, which is what an entry is for.
+	//
+	// An entry is its own resource because a collection is not rewritten to change one piece in it: a
+	// client that added a piece sends that piece, and a client that is catching up after a while offline
+	// sends what it changed rather than a collection that may have moved on without it.
+	//
+	// The id is the client's to name, which is what lets a player put a piece in and say how they read it
+	// before either has reached the server. An id that already belongs to an entry of another collection
+	// is refused rather than taken over: it would point this collection's entry at what another
+	// collection's players said about theirs.
+	//
+	// Only the owner of a collection can write its entries: what is in it is the collection, and the
+	// collection is theirs. How anybody reads it is not — that is
+	// `/collections/{collectionId}/entries/{entryId}/view`, which everyone the collection is shared with
+	// writes for themselves.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// PUT /collections/{collectionId}/entries/{entryId}
+	PutCollectionEntry(ctx context.Context, req *WriteCollectionEntry, params PutCollectionEntryParams) (PutCollectionEntryRes, error)
+	// PutCollectionEntryView implements putCollectionEntryView operation.
+	//
+	// Stores the caller's own view of this entry, replacing whatever they had said before, and returns it
+	// as it now reads.
+	//
+	// Anyone who can read the collection can write their own view of its entries: it says nothing about
+	// the collection and changes nothing anybody else sees, so it asks no more of a player than reading
+	// the collection does. Being the owner is neither needed nor enough to write somebody else's — there
+	// is no way to write a view that is not your own.
+	//
+	// A collection the caller cannot read, and an entry that is not in the collection named, are answered
+	// the same way as one that is not there at all.
+	//
+	// Requires the `score_viewer` role.
+	//
+	// PUT /collections/{collectionId}/entries/{entryId}/view
+	PutCollectionEntryView(ctx context.Context, req *WriteEntryView, params PutCollectionEntryViewParams) (PutCollectionEntryViewRes, error)
 	// PutScore implements putScore operation.
 	//
 	// Stores the MusicXML document under the given id, replacing whatever was stored under it before, and
