@@ -70,10 +70,49 @@
 }
 
 .entry-title {
-    align-self: center;
     font-weight: 600;
     overflow-wrap: anywhere;
 }
+
+/* WHAT A PIECE IS
+
+   The same handful of words the list of scores shows: who wrote it, what it is
+   written for, and what it is filed under. A running order is read against what
+   the library was chosen from, and a title on its own is two songs called
+   Wiegenlied. */
+.entry-what {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+    align-self: center;
+}
+
+.score-meta {
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+
+.score-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+/* On a phone the buttons go under what they are about. Beside it they leave a
+   column two words wide, and a composer's name down the side of one is not a
+   thing anybody reads. */
+@media (max-width: 32rem) {
+    .entry {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .entry-buttons {
+        justify-content: flex-end;
+    }
+}
+
 
 /* A song that is played from paper. It has no score here and never had one,
    which is a fact about the gig rather than something to put right, so it is
@@ -255,9 +294,10 @@
     background-color: var(--surface-3);
 }
 
-.score-option > .score-option-creators {
-    color: var(--text-2);
-    font-size: var(--text-sm);
+/* The chips in an option sit under what they are about, like everywhere else
+   a score is drawn. */
+.score-option > .score-tags {
+    margin-top: var(--space-1);
 }
 
 /* DELETING */

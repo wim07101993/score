@@ -87,6 +87,7 @@ export class OidcApi {
 
           OidcStorage.tokenResponse = tokenResponse;
           OidcStorage.refreshToken = tokenResponse.refresh_token;
+          OidcApi.returnToWhereTheFlowStarted(oidcFlowState.returnTo);
           return tokenResponse.access_token;
         } catch (e) {
           console.error('failed to exchange code for token', e);
@@ -118,7 +119,7 @@ export class OidcApi {
     }
 
     console.log('no callback happened or refresh-token received, initiating code flow');
-    oidcFlowState = await OidcFlowState.Create();
+    oidcFlowState = await OidcFlowState.Create(OidcApi.whereTheBrowserIs());
     OidcStorage.oidcFlowState = oidcFlowState;
     OidcApi.navigateToAuthorizationEndpoint(this._oidcConfig, scopes, oidcFlowState);
 
@@ -268,6 +269,67 @@ export class OidcApi {
     // return false needs to be here to make the redirect work...
     return false;
   }
+
+  /**
+   * The page the browser is on, without the answer a provider may have written
+   * onto it.
+   *
+   * This is remembered when a flow starts and come back to when it finishes,
+   * because the provider does not send anybody back to where they were: it
+   * sends them to the one redirect uri the client is registered with, which is
+   * the front page. Opening a score in a new tab is a tab with no token in it,
+   * and without this the sign-in it triggers quietly swaps the score the user
+   * asked for with the list of all of them.
+   *
+   * The code and state are dropped so that a flow started on a page that
+   * already carries a spent answer — an exchange that failed, and fell through
+   * to asking again — is not sent back to that spelling of the page.
+   *
+   * @return {string}
+   */
+  static whereTheBrowserIs() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    return url.href;
+  }
+
+  /**
+   * Puts the browser back where the sign-in interrupted it.
+   *
+   * Only somewhere on this app: what comes back out of the storage is written
+   * by this tab and nobody else, but a redirect is worth being sure about, and
+   * an off-origin one is worth being sure about twice.
+   *
+   * When there is nowhere else to be — the flow started on the redirect uri
+   * itself, which is the ordinary sign-in from the front page — the address is
+   * only tidied. The code has been spent by now, and leaving it on the address
+   * bar means a reload asks the provider to spend it again.
+   *
+   * @param returnTo {string|null|undefined}
+   * @return {boolean} whether the browser is on its way somewhere else.
+   */
+  static returnToWhereTheFlowStarted(returnTo) {
+    const here = OidcApi.whereTheBrowserIs();
+    let target = null;
+    try {
+      target = returnTo == null ? null : new URL(returnTo, window.location.href);
+    } catch (e) {
+      console.error(`cannot return to ${returnTo}`, e);
+    }
+
+    if (target == null || target.origin !== window.location.origin || target.href === here) {
+      window.history?.replaceState(null, '', here);
+      return false;
+    }
+
+    console.log(`returning to where the sign-in started: ${target.href}`);
+    // Replaced rather than pushed: the provider's redirect is already an entry
+    // in this tab's history, and going back to it is going back to a code that
+    // has been spent.
+    window.location.replace(target.href);
+    return true;
+  }
 }
 
 /**
@@ -324,23 +386,28 @@ export class OidcFlowState {
    * @param codeVerifier {string}
    * @param codeChallenge {string}
    * @param codeChallengeMethod {string}
+   * @param returnTo {string|null} the page the user was on when this flow
+   *   started, which is not where the provider will send them back to.
    */
-  constructor(state, codeVerifier, codeChallenge, codeChallengeMethod) {
+  constructor(state, codeVerifier, codeChallenge, codeChallengeMethod, returnTo = null) {
     this.state = state;
     this.codeVerifier = codeVerifier;
     this.codeChallenge = codeChallenge;
     this.codeChallengeMethod = codeChallengeMethod;
+    this.returnTo = returnTo;
   }
 
   /**
+   * @param returnTo {string|null} where to put the browser back once the
+   *   provider has answered.
    * @return {Promise<OidcFlowState>}
    */
-  static async Create() {
+  static async Create(returnTo = null) {
     const state = generateRandomString(16);
     const codeVerifier = generateRandomString(56);
     const codeChallenge = await OidcFlowState.createCodeChallenge(codeVerifier);
 
-    return new OidcFlowState(state, codeVerifier, codeChallenge, 'S256');
+    return new OidcFlowState(state, codeVerifier, codeChallenge, 'S256', returnTo);
   }
 
   /**

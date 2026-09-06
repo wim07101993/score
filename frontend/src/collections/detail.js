@@ -1,6 +1,7 @@
 import {App} from "../app.js";
 import {keepAppUpToDate} from "../domains/updates/app-update.js";
 import {forSearch, getScoreTitle} from "../data/helper-functions.js";
+import {getInstrumentName} from "../data/translations.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 import {ScoreAlreadyInCollectionError} from "../domains/collections/repository.js";
 
@@ -296,8 +297,59 @@ function _buildEntry(entry) {
     title.innerText = getScoreTitle(score);
   }
 
-  container.append(title, _buildEntryButtons(entry), _buildEntryControls(entry));
+  // What the piece is, as much of it as the list of scores says: a book is
+  // looked through by who wrote what is in it as much as by what it is called,
+  // and that is the same handful of words either way.
+  const what = document.createElement('span');
+  what.className = 'entry-what';
+  what.append(title, ..._buildScoreDetails(score));
+
+  container.append(what, _buildEntryButtons(entry), _buildEntryControls(entry));
   return container;
+}
+
+/**
+ * Who wrote a score, what it is written for, and what it is filed under — the
+ * same things, said the same way, as the row it has in the list of scores.
+ *
+ * Nothing at all for a piece nobody has scanned or one this device has not got:
+ * there is no score to say any of it, and a line of blanks under a title says
+ * less than no line.
+ *
+ * @param score {Object|null}
+ * @return {HTMLElement[]}
+ */
+function _buildScoreDetails(score) {
+  if (score == null) {
+    return [];
+  }
+
+  const said = [];
+
+  const creators = _creatorsOf(score);
+  const instruments = (score.instruments ?? []).map((one) => getInstrumentName(one)).join(', ');
+  const meta = [creators, instruments].filter((part) => part !== '');
+  if (meta.length > 0) {
+    const line = document.createElement('span');
+    line.className = 'score-meta';
+    line.innerText = meta.join(' · ');
+    said.push(line);
+  }
+
+  const tags = score.tags ?? [];
+  if (tags.length > 0) {
+    const chips = document.createElement('span');
+    chips.className = 'score-tags';
+    for (const tag of tags) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerText = tag;
+      chips.appendChild(chip);
+    }
+    said.push(chips);
+  }
+
+  return said;
 }
 
 /**
@@ -643,13 +695,11 @@ function _buildScoreOption(score) {
   option.className = 'score-option';
   option.innerText = getScoreTitle(score);
 
-  const creators = _creatorsOf(score);
-  if (creators !== '') {
-    const line = document.createElement('span');
-    line.className = 'score-option-creators';
-    line.innerText = creators;
-    option.appendChild(line);
-  }
+  // The same words the collection shows and the same words the list of scores
+  // shows. Choosing a piece out of a hundred is the moment those words are
+  // worth the most: two of them are called Wiegenlied, and only one is the one
+  // for two voices.
+  option.append(..._buildScoreDetails(score));
 
   // A collection holds a piece once, so a score that is already in it is said
   // to be rather than offered again. It stays a button: what it does is take

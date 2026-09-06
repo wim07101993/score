@@ -1,6 +1,7 @@
 import {App} from "../app.js";
 import {keepAppUpToDate} from "../domains/updates/app-update.js";
 import {forSearch, getScoreTitle} from "../data/helper-functions.js";
+import {getInstrumentName} from "../data/translations.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 
 const setState = document.getElementById('set-state');
@@ -271,11 +272,62 @@ function _buildEntry(entry, index, count) {
     title.innerText = getScoreTitle(score);
   }
 
+  // What the song is, as much of it as the list of scores says: a running order
+  // read on a stand is read against the same words the library was chosen from,
+  // and a title on its own is two songs called Wiegenlied.
+  const what = document.createElement('span');
+  what.className = 'entry-what';
+  what.append(title, ..._buildScoreDetails(score));
+
   container.append(
-    title,
+    what,
     _buildEntryButtons(entry, index, count),
     _buildEntryControls(entry));
   return container;
+}
+
+/**
+ * Who wrote a score, what it is written for, and what it is filed under — the
+ * same things, said the same way, as the row it has in the list of scores.
+ *
+ * Nothing at all for a song played from paper or one this device has not got:
+ * there is no score to say any of it, and a line of blanks under a title says
+ * less than no line.
+ *
+ * @param score {Object|null}
+ * @return {HTMLElement[]}
+ */
+function _buildScoreDetails(score) {
+  if (score == null) {
+    return [];
+  }
+
+  const said = [];
+
+  const creators = _creatorsOf(score);
+  const instruments = (score.instruments ?? []).map((one) => getInstrumentName(one)).join(', ');
+  const meta = [creators, instruments].filter((part) => part !== '');
+  if (meta.length > 0) {
+    const line = document.createElement('span');
+    line.className = 'score-meta';
+    line.innerText = meta.join(' · ');
+    said.push(line);
+  }
+
+  const tags = score.tags ?? [];
+  if (tags.length > 0) {
+    const chips = document.createElement('span');
+    chips.className = 'score-tags';
+    for (const tag of tags) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerText = tag;
+      chips.appendChild(chip);
+    }
+    said.push(chips);
+  }
+
+  return said;
 }
 
 /**
@@ -588,13 +640,11 @@ function _buildScoreOption(score) {
   option.className = 'score-option';
   option.innerText = getScoreTitle(score);
 
-  const creators = _creatorsOf(score);
-  if (creators !== '') {
-    const line = document.createElement('span');
-    line.className = 'score-option-creators';
-    line.innerText = creators;
-    option.appendChild(line);
-  }
+  // The same words the running order shows and the same words the list of
+  // scores shows. Choosing a song out of a hundred is the moment those words
+  // are worth the most: two of them are called Wiegenlied, and only one is the
+  // one for two voices.
+  option.append(..._buildScoreDetails(score));
 
   // The same score can be played more than once in a gig, each time with its
   // own key and its own note next to it, so this adds rather than toggles. It
