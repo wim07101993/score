@@ -1,6 +1,7 @@
 import {App} from "../app.js";
 import {keepAppUpToDate} from "../domains/updates/app-update.js";
 import {forSearch, getScoreTitle} from "../data/helper-functions.js";
+import {buildScoreDetails} from "../components/score-details.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 import {ScoreAlreadyInCollectionError} from "../domains/collections/repository.js";
 
@@ -296,7 +297,14 @@ function _buildEntry(entry) {
     title.innerText = getScoreTitle(score);
   }
 
-  container.append(title, _buildEntryButtons(entry), _buildEntryControls(entry));
+  // What the piece is, as much of it as the list of scores says: a book is
+  // looked through by who wrote what is in it as much as by what it is called,
+  // and that is the same handful of words either way.
+  const what = document.createElement('span');
+  what.className = 'entry-what';
+  what.append(title, ...buildScoreDetails(score));
+
+  container.append(what, _buildEntryButtons(entry), _buildEntryControls(entry));
   return container;
 }
 
@@ -643,13 +651,11 @@ function _buildScoreOption(score) {
   option.className = 'score-option';
   option.innerText = getScoreTitle(score);
 
-  const creators = _creatorsOf(score);
-  if (creators !== '') {
-    const line = document.createElement('span');
-    line.className = 'score-option-creators';
-    line.innerText = creators;
-    option.appendChild(line);
-  }
+  // The same words the collection shows and the same words the list of scores
+  // shows. Choosing a piece out of a hundred is the moment those words are
+  // worth the most: two of them are called Wiegenlied, and only one is the one
+  // for two voices.
+  option.append(...buildScoreDetails(score));
 
   // A collection holds a piece once, so a score that is already in it is said
   // to be rather than offered again. It stays a button: what it does is take

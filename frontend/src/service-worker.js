@@ -7,7 +7,7 @@
 // `domains/updates/app-update.js` — and what they compare is the bytes of this
 // file. A release that changes a page and leaves this line alone is a release
 // no device already carrying the app will ever see.
-const cacheName = "score-cache-v0.16";
+const cacheName = "score-cache-v0.17";
 // A directory is listed by the url a page is actually asked for, never as
 // "<dir>/index.html": the file server answers that spelling with a redirect to
 // the directory, and a redirect is not something that can be cached or handed
@@ -20,6 +20,7 @@ const cacheUrls = [
   "/components/score-card.component.js",
   "/components/set-card.component.js",
   "/components/collection-card.component.js",
+  "/components/score-details.js",
   "/data/helper-functions.js",
   "/data/translations.js",
   "/domains/auth/oidc-api.js",

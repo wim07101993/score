@@ -13,7 +13,11 @@
 <body>
 
 <header class="topbar">
-    <div class="page topbar-inner">
+    <!-- Wider than the rest of the app: this page is a list beside the ways of
+         narrowing it, and two columns in a column of reading width is two
+         narrow columns. The bar is widened with it so that the title stays
+         over the list. -->
+    <div class="page page--library topbar-inner">
         <h1 id="title">Scores</h1>
         <!-- Neither of these is ever hidden, whatever roles the user turns out
              to have: a user who is shown nothing at all is exactly the user who
@@ -41,12 +45,47 @@
     </div>
 </header>
 
-<main class="page">
-    <p id="empty-notice" class="muted" hidden>
-        No scores on this device yet.
-    </p>
-    <div id="score-list"></div>
+<main class="page page--library">
+    <!-- A library is looked through by name, and a list of a few hundred is a
+         list nobody scrolls. What is typed here never leaves the device: the
+         scores are all on it, so the search is over what is in front of you
+         rather than a question to ask a server that may not be there. -->
+    <div id="search-row" hidden>
+        <label class="visually-hidden" for="score-search">Search the scores</label>
+        <input type="search" id="score-search" class="input" autocomplete="off"
+               placeholder="Search by title, composer, instrument or tag"/>
+    </div>
+
+    <div id="library">
+        <!-- The other way of looking: the words the library is actually made of.
+             A search box needs you to know what you are looking for, and a
+             player who wants "something for two voices in dutch" does not. It
+             is a details element so that on a phone it can be one line the list
+             is not fighting with; the page opens it where there is room. -->
+        <aside id="filters" hidden>
+            <details id="filters-details">
+                <summary id="filters-summary">Filters</summary>
+                <div id="filters-body"></div>
+            </details>
+        </aside>
+
+        <div id="library-list">
+            <p id="empty-notice" class="muted" hidden>
+                No scores on this device yet.
+            </p>
+            <p id="search-notice" class="muted" hidden></p>
+            <div id="score-list"></div>
+        </div>
+    </div>
 </main>
+
+<!-- Which sets and collections a score is in, asked and answered without
+     leaving the list: putting a piece into a gig is a thing you do while
+     reading down the library, and a page of its own to come back from is a
+     page in the way. -->
+<dialog id="filing-dialog" class="filing-dialog" aria-label="Sets and collections">
+    <div id="filing-body"></div>
+</dialog>
 
 <script src="index.js" type="module"></script>
 </body>
