@@ -437,6 +437,22 @@ input, textarea, select, button {
   white-space: nowrap;
 }
 
+/* The handful of words a score is known by wherever it is shown: who wrote it,
+   what it is written for, and what it is filed under. A piece is by the same
+   composer read out of a set, out of a collection, or out of the library, so it
+   is said the same way in all three. */
+.score-meta {
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.score-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
 .muted {
   color: var(--text-2);
   font-size: var(--text-sm);

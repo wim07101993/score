@@ -20,6 +20,7 @@ const cacheUrls = [
   "/components/score-card.component.js",
   "/components/set-card.component.js",
   "/components/collection-card.component.js",
+  "/components/score-details.js",
   "/data/helper-functions.js",
   "/data/translations.js",
   "/domains/auth/oidc-api.js",

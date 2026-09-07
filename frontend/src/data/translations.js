@@ -20,7 +20,7 @@ export function getInstrumentName(instrument) {
     case 'pluck.bass.electric': return 'bass guitar';
     case 'strings.cello': return 'cello';
     case 'strings.contrabass': return 'contrabass';
-    case 'strings.violin': return 'flute';
+    case 'strings.violin': return 'violin';
     case 'strings.viola': return 'viola';
     case 'voice.vocals': return 'vocals';
     case 'voice.soprano': return 'soprano';
@@ -36,7 +36,7 @@ export function getInstrumentName(instrument) {
     case 'wind.reed.saxophone.alto': return 'alto saxophone';
     case 'wind.reed.saxophone.mezzo-soprano': return 'mezzo soprano saxophone';
     case 'wind.reed.saxophone.soprano': return 'soprano saxophone';
-    case 'wind.reed.saxophone.tenor': return 'tenor';
+    case 'wind.reed.saxophone.tenor': return 'tenor saxophone';
   }
   return instrument;
 }

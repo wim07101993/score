@@ -88,18 +88,6 @@
     align-self: center;
 }
 
-.score-meta {
-    color: var(--text-2);
-    font-size: var(--text-sm);
-    overflow-wrap: anywhere;
-}
-
-.score-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1);
-}
-
 /* On a phone the buttons go under what they are about. Beside it they leave a
    column two words wide, and a composer's name down the side of one is not a
    thing anybody reads. */
