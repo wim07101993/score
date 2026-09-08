@@ -40,3 +40,41 @@ export function getInstrumentName(instrument) {
   }
   return instrument;
 }
+
+/**
+ * The formatter, made once. Building one per row of a list is measurable on a
+ * library of any size, and it says the same thing every time.
+ *
+ * @type {Intl.DisplayNames|null}
+ */
+let languageNames = null;
+
+/**
+ * What a language is called, said the way the reader's own device says it.
+ *
+ * The codes come out of the document itself — the language the lyrics are
+ * marked as — so they are whatever the person who engraved it typed. One that
+ * means nothing to anybody is handed back as it came rather than dropped: a
+ * row that said nothing where a language belongs would read as a piece with no
+ * words at all.
+ *
+ * @param language {String} a language tag, such as `nl` or `en-GB`
+ * @returns {String} empty only when there was no tag to name
+ */
+export function getLanguageName(language) {
+  if (typeof language !== 'string' || language.trim() === '') {
+    return '';
+  }
+
+  const tag = language.trim();
+  try {
+    if (languageNames == null) {
+      languageNames = new Intl.DisplayNames(undefined, {type: 'language'});
+    }
+    return languageNames.of(tag) ?? tag;
+  } catch (error) {
+    // A tag that is not shaped like one at all makes Intl throw rather than
+    // shrug, and the tag itself is still the best thing there is to show.
+    return tag;
+  }
+}

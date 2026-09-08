@@ -1,9 +1,10 @@
 import {LitElement, html, nothing} from "../packages/lit-core.3.3.3.min.js";
 import {getScoreTitle} from "../data/helper-functions.js";
-import {getInstrumentName} from "../data/translations.js";
+import {getInstrumentName, getLanguageName} from "../data/translations.js";
 
 /**
- * One score in the list: what it is called, who wrote it, and what it is for.
+ * One score in the list: what it is called, who wrote it, what it is for, and
+ * what it is sung in.
  *
  * It draws into the light DOM rather than into a shadow root of its own. A
  * shadow root would keep the app's stylesheet out, and then the card would need
@@ -40,11 +41,25 @@ export class ScoreCard extends LitElement {
     const composers = (this.score.creators?.composers ?? [])
       .concat(this.score.creators?.lyricists ?? []);
     const instruments = (this.score.instruments ?? []).map((one) => getInstrumentName(one));
+    // Named rather than left as the codes they are stored as. A row that ends
+    // in "nl" is a row that has to be worked out; one that ends in "Dutch" is
+    // read. Instrumental music has no language at all and says nothing here.
+    const languages = (this.score.languages ?? [])
+      .map((one) => getLanguageName(one))
+      .filter((one) => one !== '');
     const tags = this.score.tags ?? [];
     // Everything that is not the title, said on one line. On a row there is no
-    // room for a label per fact, and who wrote a piece and what it is written
-    // for read as one sentence anyway.
-    const meta = [composers.join(', '), instruments.join(', ')]
+    // room for a label per fact, and who wrote a piece, what it is sung in and
+    // what it is written for read as one sentence anyway.
+    //
+    // The language comes before the instruments rather than after them, which
+    // is not the order the score's own page lists them in. The line is one line
+    // and runs out on a phone, and it runs out in the middle of the
+    // instruments: a word at the end is a word nobody ever sees. It is also the
+    // fact most likely to be the whole question — the same song in Dutch and in
+    // English is two rows that are otherwise identical — while a list of
+    // instruments cut short still says what kind of thing this is.
+    const meta = [composers.join(', '), languages.join(', '), instruments.join(', ')]
       .filter((part) => part !== '');
 
     return html`

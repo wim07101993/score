@@ -54,6 +54,41 @@
     padding-inline: var(--space-5);
 }
 
+/* THE OPENING BARS */
+
+/* A window onto the music rather than the music: as much of the page as fits,
+   cut off where the box ends. Ink on paper whatever the app around it is set
+   to, drawn the same way the playing page draws it, since a staff in the app's
+   own faint grey is a staff nobody can read. */
+.preview {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    max-height: 40vh;
+    min-height: 8rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-2);
+    background-color: var(--paper);
+    color: var(--ink);
+}
+
+.preview-sheet * {
+    font-family: serif;
+}
+
+/* Music that runs off the bottom is faded out rather than sliced through: a
+   staff cut in half by a border reads as a drawing that gave up. Nothing fades
+   when the bars happen to fit, which is what the class is for. */
+.preview--clipped::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: var(--space-7);
+    background: linear-gradient(to bottom, transparent, var(--paper));
+    pointer-events: none;
+}
+
 /* WHAT IS KNOWN ABOUT IT */
 
 /* Label above value rather than beside it: the values are lists of names that
