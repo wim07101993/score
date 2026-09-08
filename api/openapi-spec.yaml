@@ -30,6 +30,10 @@ tags:
     description: Sheet music and the metadata extracted from it.
   - name: sets
     description: The ordered lists of scores a gig is played from.
+  - name: collections
+    description: |
+      The unordered groups of scores that belong together: a book, a band's
+      repertoire.
   - name: health
     description: Whether the server is up.
 
@@ -49,6 +53,14 @@ paths:
     $ref: './endpoints/sets/by_id/entries/by_id/methods.yaml'
   /sets/{setId}/entries/{entryId}/view:
     $ref: './endpoints/sets/by_id/entries/by_id/view/methods.yaml'
+  /collections:
+    $ref: './endpoints/collections/methods.yaml'
+  /collections/{collectionId}:
+    $ref: './endpoints/collections/by_id/methods.yaml'
+  /collections/{collectionId}/entries/{entryId}:
+    $ref: './endpoints/collections/by_id/entries/by_id/methods.yaml'
+  /collections/{collectionId}/entries/{entryId}/view:
+    $ref: './endpoints/collections/by_id/entries/by_id/view/methods.yaml'
   /healthz:
     $ref: './endpoints/healthz/methods.yaml'
 

@@ -29,13 +29,23 @@ api/
 │   │       ├── get_score_response.yaml
 │   │       ├── put_score_request.yaml
 │   │       └── musicxml_document.yaml
-│   └── sets/
-│       ├── methods.yaml         what GET /sets answers to
-│       ├── set.yaml             what more than one of these is written in
-│       ├── set_entry.yaml
-│       ├── entry_view.yaml
-│       └── by_id/               a resource under a resource is a directory
-│           ├── methods.yaml         under a directory: the path is the path
+│   ├── sets/
+│   │   ├── methods.yaml         what GET /sets answers to
+│   │   ├── set.yaml             what more than one of these is written in
+│   │   ├── set_entry.yaml
+│   │   └── by_id/               a resource under a resource is a directory
+│   │       ├── methods.yaml         under a directory: the path is the path
+│   │       └── entries/
+│   │           └── by_id/
+│   │               ├── methods.yaml
+│   │               └── view/
+│   │                   └── methods.yaml
+│   └── collections/             the same shape, less the running order
+│       ├── methods.yaml
+│       ├── collection.yaml
+│       ├── collection_entry.yaml
+│       └── by_id/
+│           ├── methods.yaml
 │           └── entries/
 │               └── by_id/
 │                   ├── methods.yaml
@@ -44,6 +54,9 @@ api/
 ├── parameters/                  what the endpoints read out of a request
 ├── responses/                   what a failure comes back as, a file per status
 ├── schemas/                     what more than one endpoint is written in
+│   ├── problem_details.yaml
+│   ├── entry_view.yaml          a set and a collection are read the same way
+│   └── write_entry_view.yaml
 └── security/
     └── oauth2.yaml              how a caller proves who they are
 ```
@@ -99,12 +112,15 @@ frontend/src/
 ├── scores/detail.html           one score, drawn and played from
 ├── sets/index.html              the sets there are
 ├── sets/detail.html             one set, written
+├── collections/index.html       the collections there are
+├── collections/detail.html      one collection, written
 ├── settings.html                what this device prefers
 ├── profile.html                 what the app was told about the user
 ├── domains/                     what the app knows, a directory per subject
 │   ├── auth/                    proving who the user is
 │   ├── scores/                  the scores and the way one is looked at
 │   ├── sets/                    the playlists a gig is played from
+│   ├── collections/             the groups of scores that belong together
 │   ├── settings/                what this device prefers, and the page it lights
 │   └── updates/                 keeping the app itself up to date
 ├── components/                  the custom elements a list is drawn with
@@ -293,6 +309,60 @@ the player looking at the wrong song when the band starts the next one. When
 somebody gets round to uploading it, the same entry is given a score and keeps
 its place and everything anybody said about it.
 
+### A set is a gig; a collection is a book
+
+The other way a player groups music is not an order at all. A book the pieces
+are printed in, the repertoire of a band you play with, everything you know in
+one key — the pieces belong together, but nothing says which comes first, and a
+piece is either in it or it is not. Writing that down as a set means inventing a
+running order nobody means anything by, and a number nobody means anything by is
+a number somebody will end up sorting on.
+
+So a collection is its own resource, mirroring a set. Two things differ, and
+they are the only two:
+
+- **There is no position.** A collection comes back by title, which is not an
+  order it has — it is the order a list somebody is looking through should be
+  in. What a piece is called is in its score rather than in its entry, so the
+  server sorts by the title it stored and the pages sort by the title they draw,
+  and a piece with no score is filed under what is written next to it, which is
+  the only name it has.
+- **A score is in a collection at most once.** That is the whole of what makes a
+  collection a collection. It is held in the server, in a partial unique index,
+  and on the device, so that a player who is offline is told they already have a
+  piece at the moment they add it rather than at the next sync. The pieces that
+  have no score are outside the rule: they are told apart by what is written
+  next to them, and two lines of a book nobody has scanned are two pieces.
+
+  Which is why one of those has to be called something, and a set does not. A
+  blank line in a running order is a place in the gig, and where it comes is
+  what it means; a collection has nowhere for a piece to come, so an unnamed one
+  cannot be found, cannot be sorted, and cannot be told from the next unnamed
+  one. The server refuses it, the device refuses to queue it, the Add button is
+  off until there is a name, and clearing the box of a piece that has no score
+  puts the name back rather than taking it away.
+
+Being told a collection already holds a piece is not a refusal to show somebody.
+What they wanted was the piece to be in the book, and it is — so the answer
+carries `entryId`, the entry it is already in, and the page scrolls to it and
+lights it for a moment instead of putting up a dialog. It is the one refusal
+`CollectionsApiError` singles out.
+
+Everything else is the same, because it is the same music read by the same
+people: a collection is shared by address, its entries carry the key the group
+plays a piece in, every player has their own view of every entry, and all of it
+is written on the device first and pushed afterwards. A view is literally the
+same schema in both — `api/schemas/entry_view.yaml` — because a piece read a
+fourth up off a tablet at arm's length is read that way whether it was opened
+out of a gig or out of a book. What a view belongs to is the entry, so a score
+that is in a set and in a collection is two entries and two views: the band's
+arrangement of it and the book's are two different things to read.
+
+The score page opens either. `perform.html?set=…&entry=…` and
+`perform.html?collection=…&entry=…` are the same page, and the way through steps
+along whichever list it came out of — the running order for a gig, the titles
+for a book.
+
 ### Three resources, not one
 
 A set is what the gig is and who may read it. What is played in it is not part
@@ -301,10 +371,19 @@ entry. Each is written by itself, and by a different person for a different
 reason.
 
 ```
-PUT    /sets/{setId}                              the gig      the owner
-PUT    /sets/{setId}/entries/{entryId}            a song       the owner
+PUT    /sets/{setId}                              the gig        the owner
+PUT    /sets/{setId}/entries/{entryId}            a song         the owner
 DELETE /sets/{setId}/entries/{entryId}
 PUT    /sets/{setId}/entries/{entryId}/view       how I read it  everyone
+```
+
+A collection is the same three, and the same split for the same reasons:
+
+```
+PUT    /collections/{id}                          the book       the owner
+PUT    /collections/{id}/entries/{entryId}        a piece        the owner
+DELETE /collections/{id}/entries/{entryId}
+PUT    /collections/{id}/entries/{entryId}/view   how I read it  everyone
 ```
 
 A set is therefore created empty and filled afterwards, a song at a time. What

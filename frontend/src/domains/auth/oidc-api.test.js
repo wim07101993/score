@@ -253,3 +253,98 @@ test('a token that is refused twice is not asked about a third time', async () =
 
   assert.equal(asked.filter((url) => url === `${A_CONFIG.userInfoEndpoint}`).length, 2);
 });
+
+// ---------------------------------------------------------------------------
+// COMING BACK TO WHERE THE SIGN-IN INTERRUPTED
+// ---------------------------------------------------------------------------
+
+/**
+ * A browser standing on a page. What it was told to do next is recorded rather
+ * than done: there is nowhere for a test to navigate to.
+ *
+ * @param href {string}
+ */
+function aBrowserAt(href) {
+  const url = new URL(href);
+  const record = {replaced: null, pushed: null, addressBar: null};
+  globalThis.window = {
+    location: {
+      get href() {
+        return url.href;
+      },
+      set href(value) {
+        record.pushed = value;
+      },
+      origin: url.origin,
+      search: url.search,
+      replace: (value) => (record.replaced = value),
+    },
+    history: {
+      replaceState: (_state, _title, value) => (record.addressBar = value),
+    },
+  };
+  return record;
+}
+
+const A_SCORE_PAGE = 'https://app.example.com/scores/detail.html?id=a-score';
+
+test('a sign-in remembers the page it interrupted', async () => {
+  aBrowserAt(A_SCORE_PAGE);
+  aProvider({userInfo: () => ({status: 404, body: {}})});
+
+  assert.equal(await new OidcApi(A_CONFIG).getFreshAccessToken(), null);
+
+  assert.equal(OidcStorage.oidcFlowState.returnTo, A_SCORE_PAGE);
+});
+
+// The bug this was written for: the provider sends everybody back to the one
+// redirect uri the client is registered with, so opening a score in a new tab
+// — a tab with no token in it — signed the user in and then showed them the
+// list of every score instead of the one they asked for.
+test('a finished sign-in puts the browser back on the score it started from', async () => {
+  const browser = aBrowserAt('https://app.example.com/?code=an-auth-code&state=a-state');
+  OidcStorage.oidcFlowState = new OidcFlowState(
+    'a-state', 'a-verifier', 'a-challenge', 'S256', A_SCORE_PAGE);
+  aProvider({
+    token: {status: 200, body: {access_token: 'fresh', expires_in: 3600}},
+    userInfo: () => ({status: 404, body: {}}),
+  });
+
+  assert.equal(await new OidcApi(A_CONFIG).getFreshAccessToken(), 'fresh');
+
+  assert.equal(browser.replaced, A_SCORE_PAGE);
+});
+
+// The ordinary sign-in from the front page has nowhere else to be. The code has
+// been spent by then, and leaving it on the address bar means a reload asks the
+// provider to spend it twice.
+test('a sign-in that started where it ended only tidies the address', async () => {
+  const browser = aBrowserAt('https://app.example.com/?code=an-auth-code&state=a-state');
+  OidcStorage.oidcFlowState = new OidcFlowState(
+    'a-state', 'a-verifier', 'a-challenge', 'S256', 'https://app.example.com/');
+  aProvider({
+    token: {status: 200, body: {access_token: 'fresh', expires_in: 3600}},
+    userInfo: () => ({status: 404, body: {}}),
+  });
+
+  await new OidcApi(A_CONFIG).getFreshAccessToken();
+
+  assert.equal(browser.replaced, null);
+  assert.equal(browser.addressBar, 'https://app.example.com/');
+});
+
+// What comes out of the storage is written by this tab and nobody else, but a
+// redirect somewhere else entirely is worth being sure about.
+test('a sign-in is never returned to somewhere off this app', async () => {
+  const browser = aBrowserAt('https://app.example.com/?code=an-auth-code&state=a-state');
+  OidcStorage.oidcFlowState = new OidcFlowState(
+    'a-state', 'a-verifier', 'a-challenge', 'S256', 'https://elsewhere.example.com/');
+  aProvider({
+    token: {status: 200, body: {access_token: 'fresh', expires_in: 3600}},
+    userInfo: () => ({status: 404, body: {}}),
+  });
+
+  await new OidcApi(A_CONFIG).getFreshAccessToken();
+
+  assert.equal(browser.replaced, null);
+});

@@ -77,6 +77,55 @@ var (
 		"the set names a score that does not exist",
 	)
 
+	ErrCollectionNotFound = api.NewProblemDetailsError(
+		http.StatusNotFound,
+		api.ProblemDetailsErrorCodeCollectionNotFound,
+		"no collection found with the given id",
+	)
+	// ErrCollectionEntryNotFound is the answer to writing a view of an entry
+	// that is not there, is not in the collection that was named, or is in a
+	// collection the caller cannot read. Telling those apart would answer
+	// questions about other people's collections.
+	ErrCollectionEntryNotFound = api.NewProblemDetailsError(
+		http.StatusNotFound,
+		api.ProblemDetailsErrorCodeCollectionEntryNotFound,
+		"no entry found with the given id in the given collection",
+	)
+	// ErrNotCollectionOwner is only ever the answer to writing a collection
+	// that is shared with the caller. Reading one they may not see at all is
+	// ErrCollectionNotFound: saying "not yours" about a collection would say
+	// that it exists.
+	ErrNotCollectionOwner = api.NewProblemDetailsError(
+		http.StatusForbidden,
+		api.ProblemDetailsErrorCodeNotCollectionOwner,
+		"only the owner of a collection can change it",
+	)
+	ErrInvalidCollection = api.NewProblemDetailsError(
+		http.StatusBadRequest,
+		api.ProblemDetailsErrorCodeInvalidCollection,
+		"invalid collection",
+	)
+	ErrInvalidCollectionEntry = api.NewProblemDetailsError(
+		http.StatusBadRequest,
+		api.ProblemDetailsErrorCodeInvalidCollectionEntry,
+		"invalid collection entry",
+	)
+	ErrUnknownScoreInCollection = api.NewProblemDetailsError(
+		http.StatusBadRequest,
+		api.ProblemDetailsErrorCodeUnknownScore,
+		"the collection names a score that does not exist",
+	)
+	// ErrScoreAlreadyInCollection is the one refusal a set has no equivalent
+	// of: a collection holds a piece once. It is a conflict rather than a bad
+	// request because there is nothing wrong with what was sent — it is at odds
+	// with what is already stored, and the `entryId` it carries is the entry
+	// the score is already in, which is what the caller wanted.
+	ErrScoreAlreadyInCollection = api.NewProblemDetailsError(
+		http.StatusConflict,
+		api.ProblemDetailsErrorCodeScoreAlreadyInCollection,
+		"the collection already holds this score",
+	)
+
 	ErrReadRequestBody = api.NewProblemDetailsError(
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
@@ -131,6 +180,41 @@ var (
 		http.StatusInternalServerError,
 		api.ProblemDetailsErrorCodeInternalError,
 		"failed to save the view of a set entry",
+	)
+	ErrGetCollection = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to get collection",
+	)
+	ErrSaveCollection = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to save collection",
+	)
+	ErrDeleteCollection = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to delete collection",
+	)
+	ErrListCollections = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to get collections page",
+	)
+	ErrSaveCollectionEntry = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to save the entry of a collection",
+	)
+	ErrDeleteCollectionEntry = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to delete the entry of a collection",
+	)
+	ErrSaveCollectionEntryView = api.NewProblemDetailsError(
+		http.StatusInternalServerError,
+		api.ProblemDetailsErrorCodeInternalError,
+		"failed to save the view of a collection entry",
 	)
 	// ErrNoUserInfo is a request that got past the security handler without a
 	// caller on it. Nothing should be able to arrange that, so it is a fault

@@ -11,17 +11,7 @@ import (
 )
 
 var (
-	rn9AllowedHeaders = map[string]string{
-		"GET": "X-Correlation-Id",
-	}
-	rn10AllowedHeaders = map[string]string{
-		"GET": "Authorization,X-Correlation-Id",
-	}
-	rn7AllowedHeaders = map[string]string{
-		"GET": "Accept,Authorization,X-Correlation-Id",
-		"PUT": "Authorization,Content-Type,X-Correlation-Id",
-	}
-	rn11AllowedHeaders = map[string]string{
+	rn14AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Correlation-Id",
 	}
 	rn2AllowedHeaders = map[string]string{
@@ -33,7 +23,32 @@ var (
 		"DELETE": "Authorization,X-Correlation-Id",
 		"PUT":    "Authorization,Content-Type,X-Correlation-Id",
 	}
+	rn17AllowedHeaders = map[string]string{
+		"PUT": "Authorization,Content-Type,X-Correlation-Id",
+	}
+	rn13AllowedHeaders = map[string]string{
+		"GET": "X-Correlation-Id",
+	}
+	rn15AllowedHeaders = map[string]string{
+		"GET": "Authorization,X-Correlation-Id",
+	}
 	rn12AllowedHeaders = map[string]string{
+		"GET": "Accept,Authorization,X-Correlation-Id",
+		"PUT": "Authorization,Content-Type,X-Correlation-Id",
+	}
+	rn16AllowedHeaders = map[string]string{
+		"GET": "Authorization,X-Correlation-Id",
+	}
+	rn7AllowedHeaders = map[string]string{
+		"DELETE": "Authorization,X-Correlation-Id",
+		"GET":    "Authorization,X-Correlation-Id",
+		"PUT":    "Authorization,Content-Type,X-Correlation-Id",
+	}
+	rn9AllowedHeaders = map[string]string{
+		"DELETE": "Authorization,X-Correlation-Id",
+		"PUT":    "Authorization,Content-Type,X-Correlation-Id",
+	}
+	rn18AllowedHeaders = map[string]string{
 		"PUT": "Authorization,Content-Type,X-Correlation-Id",
 	}
 )
@@ -89,6 +104,148 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
+			case 'c': // Prefix: "collections"
+
+				if l := len("collections"); len(elem) >= l && elem[0:l] == "collections" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					switch r.Method {
+					case "GET":
+						s.handleListCollectionsRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET",
+							allowedHeaders: rn14AllowedHeaders,
+							acceptPost:     "",
+							acceptPatch:    "",
+						})
+					}
+
+					return
+				}
+				switch elem[0] {
+				case '/': // Prefix: "/"
+
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "collectionId"
+					// Match until "/"
+					idx := strings.IndexByte(elem, '/')
+					if idx < 0 {
+						idx = len(elem)
+					}
+					args[0] = elem[:idx]
+					elem = elem[idx:]
+
+					if len(elem) == 0 {
+						switch r.Method {
+						case "DELETE":
+							s.handleDeleteCollectionRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						case "GET":
+							s.handleGetCollectionRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						case "PUT":
+							s.handlePutCollectionRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "DELETE,GET,PUT",
+								allowedHeaders: rn2AllowedHeaders,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/entries/"
+
+						if l := len("/entries/"); len(elem) >= l && elem[0:l] == "/entries/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "entryId"
+						// Match until "/"
+						idx := strings.IndexByte(elem, '/')
+						if idx < 0 {
+							idx = len(elem)
+						}
+						args[1] = elem[:idx]
+						elem = elem[idx:]
+
+						if len(elem) == 0 {
+							switch r.Method {
+							case "DELETE":
+								s.handleDeleteCollectionEntryRequest([2]string{
+									args[0],
+									args[1],
+								}, elemIsEscaped, w, r)
+							case "PUT":
+								s.handlePutCollectionEntryRequest([2]string{
+									args[0],
+									args[1],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "DELETE,PUT",
+									allowedHeaders: rn4AllowedHeaders,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/view"
+
+							if l := len("/view"); len(elem) >= l && elem[0:l] == "/view" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch r.Method {
+								case "PUT":
+									s.handlePutCollectionEntryViewRequest([2]string{
+										args[0],
+										args[1],
+									}, elemIsEscaped, w, r)
+								default:
+									s.notAllowed(w, r, notAllowedParams{
+										allowedMethods: "PUT",
+										allowedHeaders: rn17AllowedHeaders,
+										acceptPost:     "",
+										acceptPatch:    "",
+									})
+								}
+
+								return
+							}
+
+						}
+
+					}
+
+				}
+
 			case 'h': // Prefix: "healthz"
 
 				if l := len("healthz"); len(elem) >= l && elem[0:l] == "healthz" {
@@ -105,7 +262,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET",
-							allowedHeaders: rn9AllowedHeaders,
+							allowedHeaders: rn13AllowedHeaders,
 							acceptPost:     "",
 							acceptPatch:    "",
 						})
@@ -141,7 +298,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn10AllowedHeaders,
+								allowedHeaders: rn15AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -181,7 +338,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "GET,PUT",
-									allowedHeaders: rn7AllowedHeaders,
+									allowedHeaders: rn12AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -207,7 +364,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						default:
 							s.notAllowed(w, r, notAllowedParams{
 								allowedMethods: "GET",
-								allowedHeaders: rn11AllowedHeaders,
+								allowedHeaders: rn16AllowedHeaders,
 								acceptPost:     "",
 								acceptPatch:    "",
 							})
@@ -250,7 +407,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							default:
 								s.notAllowed(w, r, notAllowedParams{
 									allowedMethods: "DELETE,GET,PUT",
-									allowedHeaders: rn2AllowedHeaders,
+									allowedHeaders: rn7AllowedHeaders,
 									acceptPost:     "",
 									acceptPatch:    "",
 								})
@@ -291,7 +448,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								default:
 									s.notAllowed(w, r, notAllowedParams{
 										allowedMethods: "DELETE,PUT",
-										allowedHeaders: rn4AllowedHeaders,
+										allowedHeaders: rn9AllowedHeaders,
 										acceptPost:     "",
 										acceptPatch:    "",
 									})
@@ -319,7 +476,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 									default:
 										s.notAllowed(w, r, notAllowedParams{
 											allowedMethods: "PUT",
-											allowedHeaders: rn12AllowedHeaders,
+											allowedHeaders: rn18AllowedHeaders,
 											acceptPost:     "",
 											acceptPatch:    "",
 										})
@@ -436,6 +593,154 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
+			case 'c': // Prefix: "collections"
+
+				if l := len("collections"); len(elem) >= l && elem[0:l] == "collections" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					switch method {
+					case "GET":
+						r.name = ListCollectionsOperation
+						r.summary = "List the collections that changed within a window."
+						r.operationID = "listCollections"
+						r.operationGroup = ""
+						r.pathPattern = "/collections"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+				switch elem[0] {
+				case '/': // Prefix: "/"
+
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "collectionId"
+					// Match until "/"
+					idx := strings.IndexByte(elem, '/')
+					if idx < 0 {
+						idx = len(elem)
+					}
+					args[0] = elem[:idx]
+					elem = elem[idx:]
+
+					if len(elem) == 0 {
+						switch method {
+						case "DELETE":
+							r.name = DeleteCollectionOperation
+							r.summary = "Delete a collection."
+							r.operationID = "deleteCollection"
+							r.operationGroup = ""
+							r.pathPattern = "/collections/{collectionId}"
+							r.args = args
+							r.count = 1
+							return r, true
+						case "GET":
+							r.name = GetCollectionOperation
+							r.summary = "Fetch a single collection."
+							r.operationID = "getCollection"
+							r.operationGroup = ""
+							r.pathPattern = "/collections/{collectionId}"
+							r.args = args
+							r.count = 1
+							return r, true
+						case "PUT":
+							r.name = PutCollectionOperation
+							r.summary = "Create or replace a collection."
+							r.operationID = "putCollection"
+							r.operationGroup = ""
+							r.pathPattern = "/collections/{collectionId}"
+							r.args = args
+							r.count = 1
+							return r, true
+						default:
+							return
+						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/entries/"
+
+						if l := len("/entries/"); len(elem) >= l && elem[0:l] == "/entries/" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						// Param: "entryId"
+						// Match until "/"
+						idx := strings.IndexByte(elem, '/')
+						if idx < 0 {
+							idx = len(elem)
+						}
+						args[1] = elem[:idx]
+						elem = elem[idx:]
+
+						if len(elem) == 0 {
+							switch method {
+							case "DELETE":
+								r.name = DeleteCollectionEntryOperation
+								r.summary = "Take one piece out of a collection."
+								r.operationID = "deleteCollectionEntry"
+								r.operationGroup = ""
+								r.pathPattern = "/collections/{collectionId}/entries/{entryId}"
+								r.args = args
+								r.count = 2
+								return r, true
+							case "PUT":
+								r.name = PutCollectionEntryOperation
+								r.summary = "Put one piece into a collection, or change what the group does with it."
+								r.operationID = "putCollectionEntry"
+								r.operationGroup = ""
+								r.pathPattern = "/collections/{collectionId}/entries/{entryId}"
+								r.args = args
+								r.count = 2
+								return r, true
+							default:
+								return
+							}
+						}
+						switch elem[0] {
+						case '/': // Prefix: "/view"
+
+							if l := len("/view"); len(elem) >= l && elem[0:l] == "/view" {
+								elem = elem[l:]
+							} else {
+								break
+							}
+
+							if len(elem) == 0 {
+								// Leaf node.
+								switch method {
+								case "PUT":
+									r.name = PutCollectionEntryViewOperation
+									r.summary = "Say how you look at one entry of a collection."
+									r.operationID = "putCollectionEntryView"
+									r.operationGroup = ""
+									r.pathPattern = "/collections/{collectionId}/entries/{entryId}/view"
+									r.args = args
+									r.count = 2
+									return r, true
+								default:
+									return
+								}
+							}
+
+						}
+
+					}
+
+				}
+
 			case 'h': // Prefix: "healthz"
 
 				if l := len("healthz"); len(elem) >= l && elem[0:l] == "healthz" {

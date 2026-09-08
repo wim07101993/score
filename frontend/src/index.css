@@ -57,73 +57,343 @@
     text-align: center;
 }
 
-/* THE CARDS */
+/* THE PAGE ITSELF */
 
-#score-list {
-    display: grid;
-    gap: var(--space-3);
-    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-    padding-bottom: var(--space-7);
+/* Wider than a page of reading: this one is a list beside the ways of
+   narrowing it, and two columns inside a column of reading width is two narrow
+   columns. The bar above is widened with it so the title stays over the list. */
+.page--library {
+    max-width: 76rem;
 }
 
-.score-card {
+#library {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+/* On a phone there is one column, and the ways of narrowing the list are a
+   line above it rather than a column beside it. */
+@media (max-width: 52rem) {
+    #library {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-3);
+    }
+}
+
+/* NARROWING THE LIST */
+
+#filters {
+    position: sticky;
+    /* Under the bar, which is sticky itself. */
+    top: 4.5rem;
+    min-width: 0;
+}
+
+@media (max-width: 52rem) {
+    #filters {
+        position: static;
+    }
+}
+
+#filters-details {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-3);
+    background-color: var(--surface-2);
+}
+
+#filters-summary {
+    min-height: var(--tap);
+    display: flex;
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    color: var(--text-2);
+    font-size: var(--text-sm);
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+}
+
+#filters-details[open] > #filters-summary {
+    border-bottom: 1px solid var(--border);
+}
+
+/* A line that can be folded has to look like one. The browser's own triangle
+   goes when the summary is laid out as a flex row, so the chevron is drawn
+   here and turned over when the panel is open. */
+#filters-summary {
+    list-style: none;
+}
+
+#filters-summary::-webkit-details-marker {
+    display: none;
+}
+
+#filters-summary::after {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-left: auto;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform var(--ease);
+}
+
+#filters-details[open] > #filters-summary::after {
+    transform: translateY(2px) rotate(-135deg);
+}
+
+#filters-body {
     display: flex;
     flex-direction: column;
+    gap: var(--space-4);
+    max-height: 70vh;
+    padding: var(--space-4);
+    overflow-y: auto;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+}
+
+/* The whole line is the label, so a box can be hit anywhere along it. */
+.filter-row {
+    display: flex;
+    align-items: center;
     gap: var(--space-2);
-    height: 100%;
+    min-height: 2rem;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-2);
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+
+.filter-row:hover {
+    background-color: var(--surface-3);
+}
+
+.filter-row > input {
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--brand);
+}
+
+/* A composer with a long name is cut off rather than wrapped over three lines:
+   the list is read down the first word or two of each. */
+.filter-row-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-count {
+    flex: 0 0 auto;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--text-sm);
+}
+
+/* The two buttons that are not choices: one folds a field out, the other empties
+   every field. Both are quiet and small — they are not what the sidebar is for. */
+.filter-more,
+.filters-clear {
+    align-self: flex-start;
+    min-height: 2rem;
+    padding-inline: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 550;
+    color: var(--text-2);
+}
+
+/* LOOKING FOR ONE */
+
+#search-row {
+    padding-block: var(--space-4) var(--space-3);
+}
+
+/* A search box is a box you are meant to type in immediately, so it is the
+   width of the page rather than a field with a label beside it. */
+#search-row .input {
+    width: 100%;
+}
+
+#search-notice {
+    padding-bottom: var(--space-3);
+}
+
+/* THE LIST */
+
+/* A library is read down a column of titles. The rows are separated by a line
+   rather than floated as cards: a dozen scores on a screen is what makes a list
+   worth reading, and twelve shadows is a pile rather than a list. */
+#score-list {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--space-7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-3);
+    background-color: var(--surface-2);
+    /* The rows are square and the list is not, so the corners are cut out of
+       what is drawn inside them. */
+    overflow: hidden;
+}
+
+.score-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-right: var(--space-2);
+    border-bottom: 1px solid var(--border);
+    transition: background-color var(--ease);
+}
+
+/* The last row ends the list; a line under it would be a line under nothing. */
+score-card:last-child .score-row {
+    border-bottom: none;
+}
+
+.score-row:hover {
+    background-color: var(--surface-3);
+}
+
+/* The whole row is the link, so it is the link that carries the padding: a
+   pointer anywhere on the row is on its way into the score. */
+.score-row-link {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-1) var(--space-3);
+    min-width: 0;
+    min-height: var(--tap);
+    padding: var(--space-3) var(--space-4);
+    color: inherit;
+    text-decoration: none;
+}
+
+.score-row-title {
+    grid-column: 1;
+    font-size: var(--text-base);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* Who wrote it and what it is for, on one line and cut off rather than wrapped:
+   what makes a list readable is that every row is the same height. */
+.score-row-meta {
+    grid-column: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-2);
+    font-size: var(--text-sm);
+}
+
+.score-row-tags {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-1);
+}
+
+/* On a phone the tags go under the title rather than beside it: a row that is
+   half title and half chips is a row with no room for either. */
+@media (max-width: 32rem) {
+    .score-row-link {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .score-row-tags {
+        grid-column: 1;
+        grid-row: auto;
+        justify-content: flex-start;
+    }
+}
+
+/* SETS AND COLLECTIONS OF ONE SCORE */
+
+.filing-dialog {
+    width: min(28rem, calc(100vw - 2 * var(--space-4)));
     padding: var(--space-4);
     border: 1px solid var(--border);
     border-radius: var(--radius-3);
     background-color: var(--surface-2);
-    box-shadow: var(--shadow-1);
-    color: inherit;
-    text-decoration: none;
-    /* The border is there from the start and only changes colour, so nothing
-       shifts by a pixel when the pointer arrives. */
-    transition: border-color var(--ease), box-shadow var(--ease), transform var(--ease);
-}
-
-.score-card:hover {
-    border-color: var(--brand-quiet);
+    color: var(--text-1);
     box-shadow: var(--shadow-2);
-    transform: translateY(-1px);
 }
 
-.score-card-title {
-    font-size: var(--text-lg);
-    overflow-wrap: break-word;
+.filing-dialog::backdrop {
+    background-color: rgb(0 0 0 / 0.45);
 }
 
-.score-card-line {
+#filing-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.filing-head {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-2);
-    color: var(--text-2);
-    font-size: var(--text-sm);
+    gap: var(--space-3);
+}
+
+.filing-head > .stack {
+    flex: 1 1 auto;
     min-width: 0;
 }
 
-.score-card-line > span {
+.filing-title {
     overflow-wrap: anywhere;
 }
 
-/* The icons are black line art, which is invisible on a dark card — so how far
-   they are turned round is a token, and the theme answers it however the app
-   came to be dark. */
-.score-card-icon {
-    flex: 0 0 auto;
-    width: 16px;
-    height: 16px;
-    margin-top: 0.2em;
-    filter: invert(var(--icon-invert));
-    opacity: var(--icon-fade);
+.filing-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
 }
 
-/* Tags sit at the bottom of the card whatever length the rest came out. */
-.score-card-tags {
+/* The name on the left and the way to put the piece in it on the right, with
+   the button a thumb's width high: this is used standing up, with a phone in
+   one hand. */
+.filing-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1);
-    margin-top: auto;
-    padding-top: var(--space-1);
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-2);
+}
+
+.filing-row:hover {
+    background-color: var(--surface-3);
+}
+
+.filing-row-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Small, because a list of them is a list of the same button over and over,
+   and what the reader is reading down is the names. */
+.filing-add {
+    flex: 0 0 auto;
+    min-height: 2.25rem;
+    padding-inline: var(--space-3);
+    font-size: var(--text-sm);
 }

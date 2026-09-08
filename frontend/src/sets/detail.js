@@ -1,6 +1,7 @@
 import {App} from "../app.js";
 import {keepAppUpToDate} from "../domains/updates/app-update.js";
 import {forSearch, getScoreTitle} from "../data/helper-functions.js";
+import {buildScoreDetails} from "../components/score-details.js";
 import {MAX_TRANSPOSITION, MIN_TRANSPOSITION} from "../domains/scores/score-view.js";
 
 const setState = document.getElementById('set-state');
@@ -271,8 +272,15 @@ function _buildEntry(entry, index, count) {
     title.innerText = getScoreTitle(score);
   }
 
+  // What the song is, as much of it as the list of scores says: a running order
+  // read on a stand is read against the same words the library was chosen from,
+  // and a title on its own is two songs called Wiegenlied.
+  const what = document.createElement('span');
+  what.className = 'entry-what';
+  what.append(title, ...buildScoreDetails(score));
+
   container.append(
-    title,
+    what,
     _buildEntryButtons(entry, index, count),
     _buildEntryControls(entry));
   return container;
@@ -588,13 +596,11 @@ function _buildScoreOption(score) {
   option.className = 'score-option';
   option.innerText = getScoreTitle(score);
 
-  const creators = _creatorsOf(score);
-  if (creators !== '') {
-    const line = document.createElement('span');
-    line.className = 'score-option-creators';
-    line.innerText = creators;
-    option.appendChild(line);
-  }
+  // The same words the running order shows and the same words the list of
+  // scores shows. Choosing a song out of a hundred is the moment those words
+  // are worth the most: two of them are called Wiegenlied, and only one is the
+  // one for two voices.
+  option.append(...buildScoreDetails(score));
 
   // The same score can be played more than once in a gig, each time with its
   // own key and its own note next to it, so this adds rather than toggles. It
