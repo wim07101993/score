@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:score/features/notation/render/score_painter.dart';
+import 'package:score/features/notation/parts.dart';
+import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
+import 'package:songbird_music_notation/songbird_music_notation.dart';
 
 /// The sheet, asked what colour it is.
 ///
@@ -37,8 +39,8 @@ double _contrast(Color a, Color b) {
       (darker.computeLuminance() + 0.05);
 }
 
-/// What the sheet handed the painter, having been drawn under [brightness].
-Future<({SheetPalette drawn, ScorePainter painter})> _sheet(
+/// The page and the ink the sheet actually drew with, under [brightness].
+Future<SheetPalette> _sheet(
   WidgetTester tester,
   Brightness brightness,
 ) async {
@@ -58,40 +60,35 @@ Future<({SheetPalette drawn, ScorePainter painter})> _sheet(
   );
   await tester.pump();
 
-  final painter = tester
-      .widget<CustomPaint>(find
-          .descendant(
-            of: find.byType(ScoreSheet),
-            matching: find.byType(CustomPaint),
-          )
-          .first)
-      .painter! as ScorePainter;
+  // Read off the style the sheet handed the engraver: it is what the notes and
+  // the staff lines are actually drawn with, rather than what was asked for on
+  // the way in.
+  final colors = tester
+      .widget<MusicScoreView>(
+        find.descendant(
+          of: find.byType(ScoreSheet),
+          matching: find.byType(MusicScoreView),
+        ),
+      )
+      .controller
+      .style
+      .colors;
 
-  final paper = tester
-      .widget<ColoredBox>(find
-          .descendant(
-            of: find.byType(ScoreSheet),
-            matching: find.byType(ColoredBox),
-          )
-          .first)
-      .color;
-
-  return (
-    drawn: SheetPalette(
-      paper: paper,
-      ink: painter.ink,
-      fadedInk: painter.fadedInk,
-    ),
-    painter: painter,
+  return SheetPalette(
+    paper: colors.background,
+    ink: colors.ink,
+    fadedInk: colors.editorial,
   );
 }
 
 void main() {
+  group('the music on the page', _smoke);
+
   group('the page and the ink on it', () {
     testWidgets('are far enough apart to read, on either theme',
         (tester) async {
       for (final brightness in Brightness.values) {
-        final drawn = (await _sheet(tester, brightness)).drawn;
+        final drawn = await _sheet(tester, brightness);
 
         // Above the 4.5 the accessibility guidelines ask of text, and
         // deliberately nowhere near as far apart on a dark page as on a white
@@ -118,8 +115,8 @@ void main() {
     });
 
     testWidgets('are the pair the theme calls for, both of them', (tester) async {
-      final light = (await _sheet(tester, Brightness.light)).drawn;
-      final dark = (await _sheet(tester, Brightness.dark)).drawn;
+      final light = await _sheet(tester, Brightness.light);
+      final dark = await _sheet(tester, Brightness.dark);
 
       expect(light, SheetPalette.light);
       expect(dark, SheetPalette.dark);
@@ -245,5 +242,93 @@ void main() {
 
       expect(warm.ink.r, greaterThan(warm.ink.b));
     });
+  });
+}
+
+/// The sheet, asked whether there is any music on it.
+///
+/// The colours above are worth nothing if nothing is drawn in them, and an
+/// engraver handed a score it cannot make sense of lays out an empty page
+/// rather than failing. So: a real file, and something on the page.
+void _smoke() {
+  testWidgets('draws the score it was given', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ScoreSheet(musicXml: _read('BeetAnGeSample.musicxml')),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final controller = tester
+        .widget<MusicScoreView>(find.byType(MusicScoreView))
+        .controller;
+
+    expect(controller.score.parts, hasLength(2));
+    expect(controller.score.measureCount, greaterThan(0));
+  });
+
+  testWidgets('leaves a hidden part off the page', (tester) async {
+    final musicXml = _read('BeetAnGeSample.musicxml');
+    final parts = readParts(parseMusicXml(musicXml));
+    final view = ScoreView.forParts([for (final part in parts) part.id])
+        .withPartVisible(parts.first.id, false);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ScoreSheet(musicXml: musicXml, view: view)),
+      ),
+    );
+    await tester.pump();
+
+    final controller = tester
+        .widget<MusicScoreView>(find.byType(MusicScoreView))
+        .controller;
+
+    // Hidden, not removed: the score still has both parts, because the
+    // document the app holds is the one that was uploaded.
+    expect(controller.visibleParts, hasLength(1));
+    expect(controller.score.parts, hasLength(2));
+  });
+
+  testWidgets('reads the score in the key the view asks for', (tester) async {
+    final musicXml = _read('BeetAnGeSample.musicxml');
+    final parts = readParts(parseMusicXml(musicXml));
+    final view = ScoreView.forParts([for (final part in parts) part.id]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ScoreSheet(
+            musicXml: musicXml,
+            view: view.withTransposition(3),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final controller = tester
+        .widget<MusicScoreView>(find.byType(MusicScoreView))
+        .controller;
+    expect(controller.transposition.chromaticSemitones, 3);
+
+    // Going from up a third to down a tone is not two transpositions stacked:
+    // the score is put back first, which is the thing that goes wrong when
+    // a transposition is treated as a setting rather than a step.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ScoreSheet(
+            musicXml: musicXml,
+            view: view.withTransposition(-2),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(controller.transposition.chromaticSemitones, -2);
   });
 }

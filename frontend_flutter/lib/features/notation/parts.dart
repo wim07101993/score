@@ -1,4 +1,19 @@
-import 'package:score/features/notation/musicxml/model.dart';
+import 'package:songbird_musicxml/songbird_musicxml.dart';
+import 'package:songbird_score/songbird_score.dart';
+
+/// Reading a score, and naming its parts.
+///
+/// The engraving, the model and the file format all come from
+/// `songbird_music_notation`; what is left here is the little the app adds on
+/// top — a part needs a name to put in a control, and a score needs to be read
+/// somewhere.
+
+/// The score a MusicXML document describes.
+///
+/// Throws if the document cannot be read as one, which is what the upload path
+/// leans on: a file that cannot be read is a file the band cannot play, and
+/// finding that out after it is on the server is finding it out too late.
+Score parseMusicXml(String musicXml) => const MusicXmlReader().read(musicXml);
 
 /// The parts of a score, as the app names them.
 ///
@@ -24,7 +39,7 @@ class ScorePartRef {
 }
 
 /// The parts of a score, in the order it lists them.
-List<ScorePartRef> readParts(MusicXmlScore score) {
+List<ScorePartRef> readParts(Score score) {
   final parts = <ScorePartRef>[];
   final taken = <String>{};
 
@@ -37,7 +52,7 @@ List<ScorePartRef> readParts(MusicXmlScore score) {
     }
     taken.add(id);
 
-    final name = (part.name ?? '').trim();
+    final name = part.name.trim();
     parts.add(ScorePartRef(id, name.isEmpty ? 'Part ${index + 1}' : name));
   }
 

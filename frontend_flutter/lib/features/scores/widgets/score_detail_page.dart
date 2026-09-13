@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:score/app.dart';
 import 'package:score/features/files/file_saver.dart';
-import 'package:score/features/notation/musicxml/parser.dart';
 import 'package:score/features/notation/parts.dart';
 import 'package:score/features/notation/view/musicxml_view.dart';
 import 'package:score/features/notation/view/score_view.dart';

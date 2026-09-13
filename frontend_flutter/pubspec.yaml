@@ -10,9 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The score engine. Everything a score is drawn from is parsed with this;
-  # nothing else here knows what MusicXML looks like.
-  xml: ^6.5.0
+  # The score engine. Reading a MusicXML file, engraving what it says, and
+  # writing it back out — the model, the layout and the painter all come from
+  # here, so nothing in this app knows what a beam or a ledger line is.
+  songbird_music_notation: ^0.1.1
+  songbird_musicxml: ^0.1.1
+  songbird_score: ^0.1.0
 
   # Talking to the API and to the identity provider.
   http: ^1.2.2
@@ -39,6 +42,7 @@ dependencies:
 
   uuid: ^4.5.1
   web: ^1.1.0
+  openid_client: ^0.4.10+1
 
 dev_dependencies:
   flutter_test:
@@ -51,10 +55,3 @@ flutter:
   assets:
     - assets/config.json
 
-  fonts:
-    # The reference SMuFL font. Every notehead, clef, rest and accidental on
-    # screen is a glyph out of this, positioned by the metrics that ship with
-    # it (lib/features/notation/render/smufl.dart).
-    - family: Bravura
-      fonts:
-        - asset: assets/fonts/Bravura.otf

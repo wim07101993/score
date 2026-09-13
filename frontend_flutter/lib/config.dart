@@ -57,6 +57,7 @@ class ApiConfig {
 class OidcConfig {
   const OidcConfig({
     required this.clientId,
+    required this.issuer,
     required this.redirectUri,
     required this.nativeRedirectUri,
     required this.desktopRedirectUri,
@@ -71,6 +72,13 @@ class OidcConfig {
     Map<String, dynamic> json,
   ) => OidcConfig(
         clientId: '${json['clientId']}',
+        issuer: json['issuer'] == null
+            // Not stated, so taken to be wherever the endpoints are. Every
+            // provider worth the name serves its metadata at the root of the
+            // same host, and a wrong guess here costs nothing: discovery that
+            // fails falls back to the endpoints written out below.
+            ? Uri.parse(_uri(json['authorizationEndpoint']).origin)
+            : _uri(json['issuer']),
         redirectUri: _uri(json['redirectUri']),
         nativeRedirectUri: json['nativeRedirectUri'] == null
             ? Uri.parse('app.wvl.score://callback')
@@ -86,6 +94,15 @@ class OidcConfig {
       );
 
   final String clientId;
+
+  /// Where the provider describes itself.
+  ///
+  /// Asking it — `/.well-known/openid-configuration` — is how the endpoints
+  /// below are learned rather than assumed, and how anything the provider moves
+  /// is followed without this app being rebuilt. What is written below is what
+  /// is used when it cannot be asked, which on a device with no network is the
+  /// ordinary case rather than an error.
+  final Uri issuer;
 
   /// Where the provider sends a browser back to. On the web this is the app
   /// itself, so the page that comes back is the page that asked.

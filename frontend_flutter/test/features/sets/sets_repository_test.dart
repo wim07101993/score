@@ -18,6 +18,7 @@ import 'package:score/features/sets/repository.dart';
 /// the token is only ever something the repository has to be holding.
 final _oidcConfig = OidcConfig(
   clientId: 'test',
+  issuer: Uri.parse('http://nowhere'),
   redirectUri: Uri.parse('http://localhost/'),
   nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
   desktopRedirectUri: Uri.parse('http://localhost:7005/'),

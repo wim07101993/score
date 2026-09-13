@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:openid_client/openid_client.dart' as openid;
 import 'package:score/config.dart';
 import 'package:score/features/auth/authorizer.dart';
 import 'package:score/features/sembast/local_store.dart';
@@ -14,18 +14,32 @@ import 'package:score/features/sembast/local_store.dart';
 /// are all clients that cannot keep a secret. What the app gets out of it is an
 /// access token to call the API with and a set of roles to decide what to show.
 ///
-/// Where this differs from the app it replaces: the tokens are kept where they
-/// survive a restart rather than only for as long as a tab is open. A device
-/// that is closed and opened again at the next rehearsal should not ask the
-/// player to sign in again, and a refresh token that lives no longer than a tab
-/// is a refresh token that never gets used. Signing out throws them away, which
-/// is what the profile page is for.
+/// The protocol is `openid_client`'s: discovery, the code exchange, the
+/// refresh, the userinfo call. What is *not* its is getting the user to the
+/// provider and back — see [Authorizer]. That package has transports of its own
+/// for both, and they are the same shape as the ones here, but they are not
+/// wired to this app's two awkward cases: a desktop that must not have its
+/// sign-in cancelled the moment the window takes focus back, and a web app that
+/// refuses to start a flow it can see will not come back. Those are kept.
+///
+/// The tokens are kept where they survive a restart rather than only for as
+/// long as a tab is open. A device that is closed and opened again at the next
+/// rehearsal should not ask the player to sign in again, and a refresh token
+/// that lives no longer than a tab is a refresh token that never gets used.
+/// Signing out throws them away, which is what the profile page is for.
 const List<String> _scopes = ['openid', 'email', 'profile', 'offline_access'];
 
 const _tokenKey = 'auth_token_response';
-const _refreshTokenKey = 'auth_refresh_token';
 const _flowStateKey = 'auth_flow_state';
 const _userInfoKey = 'app_user_info';
+
+/// How much of a token's life to leave unspent.
+///
+/// A token handed to a request that takes longer to arrive than the token has
+/// left is a token that arrives expired, and the request fails for a reason
+/// nothing on either end can see. So one this close to the end is treated as
+/// already gone.
+const Duration _slack = Duration(seconds: 30);
 
 class OidcApi {
   OidcApi(
@@ -33,14 +47,51 @@ class OidcApi {
     this._store, {
     http.Client? client,
     Authorizer? authorizer,
-  })
-      : _client = client ?? http.Client(),
+  })  : _http = client ?? http.Client(),
         _authorizer = authorizer ?? Authorizer(_config);
 
   final OidcConfig _config;
   final LocalStore _store;
-  final http.Client _client;
+  final http.Client _http;
   final Authorizer _authorizer;
+
+  Future<openid.Client>? _clientFuture;
+
+  /// The provider, as this app talks to it.
+  ///
+  /// Worked out once and held: discovery is a request, and every call that
+  /// wants a token would otherwise make it again.
+  Future<openid.Client> _client() =>
+      _clientFuture ??= _describeProvider().then(
+        (issuer) => openid.Client(issuer, _config.clientId, httpClient: _http),
+      );
+
+  /// What the provider says about itself, or what the config says when it
+  /// cannot be asked.
+  ///
+  /// Asking is better: it follows anything the provider moves, and it is where
+  /// the list of scopes it will actually grant comes from. But a device opening
+  /// the app on a train has no way to ask, and a sign-in is not the only thing
+  /// that needs a token — so a provider that cannot be reached falls back to
+  /// the endpoints the config was built with rather than failing.
+  Future<openid.Issuer> _describeProvider() async {
+    try {
+      return await openid.Issuer.discover(_config.issuer, httpClient: _http);
+    } catch (_) {
+      return openid.Issuer(openid.OpenIdProviderMetadata.fromJson({
+        'issuer': _config.issuer.toString(),
+        'authorization_endpoint': _config.authorizationEndpoint.toString(),
+        'token_endpoint': _config.tokenEndpoint.toString(),
+        'userinfo_endpoint': _config.userInfoEndpoint.toString(),
+        'response_types_supported': ['code'],
+        // Not decoration. A flow keeps only the scopes the provider is known to
+        // support, so a metadata document that lists none asks for none — and
+        // an authorization request with no `openid` scope is not a sign-in at
+        // all. See [_flow].
+        'scopes_supported': _scopes,
+      }));
+    }
+  }
 
   /// A token that is good right now, asking for a new one when there is not
   /// one. `null` when the user has to sign in and the app is about to send them
@@ -53,23 +104,14 @@ class OidcApi {
     return getFreshAccessToken();
   }
 
+  /// The token this device is holding, refreshed on the spot if it has run out
+  /// and there is a refresh token to do it with.
   Future<String?> _heldToken() async {
-    final json = await _store.readSetting(_tokenKey);
-    if (json == null) {
+    final credential = await _heldCredential();
+    if (credential == null) {
       return null;
     }
-
-    final token = jsonDecode(json) as Map<String, dynamic>;
-    final expiresAt = token['expires_at'];
-    if (expiresAt is int &&
-        DateTime.now().millisecondsSinceEpoch >
-            expiresAt - const Duration(seconds: 30).inMilliseconds) {
-      // Half a minute of slack, so that a token is never spent on a request
-      // that will take longer to arrive than the token has left.
-      return null;
-    }
-    final access = token['access_token'];
-    return access is String && access.isNotEmpty ? access : null;
+    return _spend(credential);
   }
 
   /// Gets a token by whatever means are left: the code the user just came back
@@ -84,9 +126,9 @@ class OidcApi {
       }
     }
 
-    final refreshToken = await _store.readSetting(_refreshTokenKey);
-    if (refreshToken != null) {
-      final token = await _refresh(refreshToken);
+    final credential = await _heldCredential();
+    if (credential?.refreshToken != null) {
+      final token = await _spend(credential!, force: true);
       if (token != null) {
         return token;
       }
@@ -95,27 +137,47 @@ class OidcApi {
     return _startFlow();
   }
 
+  /// Reads the token out of [credential], refreshing first when it is spent or
+  /// about to be, and keeps whatever came back.
+  ///
+  /// A provider that rotates refresh tokens hands a new one out with every
+  /// refresh, and a device that did not write it down cannot refresh twice.
+  Future<String?> _spend(
+    openid.Credential credential, {
+    bool force = false,
+  }) async {
+    try {
+      final response = await credential.getTokenResponse(force);
+      await _keep(credential);
+      return response.accessToken;
+    } catch (_) {
+      await _forgetTokens();
+      return null;
+    }
+  }
+
   /// Turns the code the user came back with into a token. `null` when there was
   /// nothing to turn, or when the provider refused it.
   Future<String?> _exchangeCallback(Callback callback) async {
-    final flow = await _readFlowState();
-    if (flow == null || flow.state != callback.state) {
-      // A code that came back with a state this device never sent is a code
-      // this device did not ask for.
+    final held = await _readFlowState();
+    if (held == null) {
+      // Nothing was sent from this device, so nothing can have come back to it.
       return null;
     }
 
     try {
-      final token = await _callTokenEndpoint({
-        'client_id': _config.clientId,
-        'grant_type': 'authorization_code',
-        'redirect_uri': _authorizer.redirectUri.toString(),
+      // The same flow the user was sent away on, built again: the verifier it
+      // will prove the code with is the one whose challenge went out, and on
+      // the web that was in a previous life of this app. `openid_client` checks
+      // the state itself and refuses a mismatch.
+      final flow = await _flow(held);
+      final credential = await flow.callback({
         'code': callback.code,
-        'code_verifier': flow.verifier,
+        'state': callback.state,
       });
-      await _keep(token);
-      return token['access_token'] as String?;
-    } catch (error) {
+      await _keep(credential);
+      return (await credential.getTokenResponse()).accessToken;
+    } catch (_) {
       await _forgetTokens();
       return null;
     } finally {
@@ -123,83 +185,103 @@ class OidcApi {
     }
   }
 
-  Future<String?> _refresh(String refreshToken) async {
-    try {
-      final token = await _callTokenEndpoint({
-        'client_id': _config.clientId,
-        'grant_type': 'refresh_token',
-        'redirect_uri': _authorizer.redirectUri.toString(),
-        'scope': _scopes.join(' '),
-        'refresh_token': refreshToken,
-      });
-      await _keep(token);
-      return token['access_token'] as String?;
-    } catch (error) {
-      await _forgetTokens();
-      return null;
-    }
-  }
-
   /// Sends the user to the provider. On a device the answer comes back here; on
   /// the web the app is on its way out and the answer will be waiting when it
   /// starts again.
   Future<String?> _startFlow() async {
-    final flow = _FlowState.create();
-    await _store.writeSetting(_flowStateKey, jsonEncode(flow.toJson()));
+    final started = _FlowState(_randomString(24), _randomString(56));
+    final flow = await _flow(started);
 
-    final url = _config.authorizationEndpoint.replace(queryParameters: {
-      'client_id': _config.clientId,
-      'redirect_uri': _authorizer.redirectUri.toString(),
-      'scope': _scopes.join(' '),
-      'response_type': 'code',
-      'code_challenge': flow.challenge,
-      'code_challenge_method': 'S256',
-      'state': flow.state,
-    });
+    // Written down before the user goes anywhere. On the web this app is about
+    // to stop existing, and what comes back is worthless without these.
+    await _store.writeSetting(
+      _flowStateKey,
+      jsonEncode({'state': started.state, 'verifier': started.verifier}),
+    );
 
-    final callback = await _authorizer.authorize(url);
+    final callback = await _authorizer.authorize(flow.authenticationUri);
     if (callback == null) {
       return null;
     }
     return _exchangeCallback(callback);
   }
 
-  Future<Map<String, dynamic>> _callTokenEndpoint(
-      Map<String, String> body) async {
-    final response = await _client.post(
-      _config.tokenEndpoint,
-      headers: const {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: body,
-    );
+  /// The authorization-code flow, built on [started].
+  ///
+  /// The same two values build the flow that goes out and the flow that reads
+  /// the answer — which on the web are in two different lives of this app, and
+  /// is the whole reason they are written down rather than kept in memory.
+  Future<openid.Flow> _flow(_FlowState started) async {
+    final client = await _client();
+    final flow = openid.Flow.authorizationCodeWithPKCE(
+      client,
+      scopes: _scopes,
+      state: started.state,
+      codeVerifier: started.verifier,
+    )..redirectUri = _authorizer.redirectUri;
 
-    if (response.statusCode >= 400) {
+    // A flow keeps only the scopes the provider says it supports, and drops the
+    // rest without a word. Losing `openid` means what goes out is not a sign-in
+    // request at all, and the failure would surface much later as a provider
+    // refusing a code for no stated reason.
+    if (!flow.scopes.contains('openid')) {
       throw OidcException(
-        'failed to get an access token: ${response.statusCode} ${response.body}',
+        'the provider at ${_config.issuer} does not offer the openid scope,'
+        ' so it cannot be signed in to',
       );
     }
-    return jsonDecode(response.body) as Map<String, dynamic>;
+
+    return flow;
   }
 
-  /// Keeps what the provider sent, with the moment it runs out worked out now:
-  /// what it says is how long the token lasts, and how long is only an answer
-  /// while it is being read.
-  Future<void> _keep(Map<String, dynamic> token) async {
-    final expiresIn = token['expires_in'];
-    token['expires_at'] = DateTime.now()
-        .add(Duration(seconds: expiresIn is int ? expiresIn : 300))
-        .millisecondsSinceEpoch;
-
-    await _store.writeSetting(_tokenKey, jsonEncode(token));
-
-    final refresh = token['refresh_token'];
-    if (refresh is String && refresh.isNotEmpty) {
-      await _store.writeSetting(_refreshTokenKey, refresh);
+  /// Keeps what the provider sent, so that the next start does not have to ask
+  /// for it again.
+  Future<void> _keep(openid.Credential credential) async {
+    final response = credential.response;
+    if (response == null) {
+      return;
     }
+    await _store.writeSetting(_tokenKey, jsonEncode(response));
+  }
+
+  /// What this device is holding, as something that can be spent and refreshed.
+  Future<openid.Credential?> _heldCredential() async {
+    final json = await _store.readSetting(_tokenKey);
+    if (json == null) {
+      return null;
+    }
+
+    final Map<String, dynamic> token;
+    try {
+      token = jsonDecode(json) as Map<String, dynamic>;
+    } catch (_) {
+      await _forgetTokens();
+      return null;
+    }
+
+    final client = await _client();
+    return client.createCredential(
+      accessToken: token['access_token'] as String?,
+      tokenType: token['token_type'] as String?,
+      refreshToken: token['refresh_token'] as String?,
+      idToken: token['id_token'] as String?,
+      // Brought forward by the slack, so that a token with seconds left on it
+      // is refreshed now rather than spent on a request it cannot outlive.
+      expiresAt: _expiryOf(token)?.subtract(_slack),
+    );
+  }
+
+  static DateTime? _expiryOf(Map<String, dynamic> token) {
+    final at = token['expires_at'];
+    if (at is int) {
+      // Seconds since the epoch, which is how a token response states it.
+      return DateTime.fromMillisecondsSinceEpoch(at * 1000);
+    }
+    return null;
   }
 
   Future<void> _forgetTokens() async {
     await _store.writeSetting(_tokenKey, null);
-    await _store.writeSetting(_refreshTokenKey, null);
   }
 
   Future<_FlowState?> _readFlowState() async {
@@ -207,7 +289,12 @@ class OidcApi {
     if (json == null) {
       return null;
     }
-    return _FlowState.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    try {
+      final map = jsonDecode(json) as Map<String, dynamic>;
+      return _FlowState('${map['state']}', '${map['verifier']}');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// What the provider says about the user right now.
@@ -217,7 +304,11 @@ class OidcApi {
       return null;
     }
 
-    final response = await _client.get(
+    // Asked for over the wire with the access token rather than read out of a
+    // token this app decoded itself. What a provider will say to a bearer of
+    // this token is the thing being asked about, and it is also the answer that
+    // cannot be wrong about itself.
+    final response = await _http.get(
       _config.userInfoEndpoint,
       headers: {'Authorization': 'Bearer $token'},
     );
@@ -250,7 +341,7 @@ class OidcApi {
   /// device, and a network that is down is the very case it is asked in.
   Future<bool> canBeReached() async {
     try {
-      final response = await _client
+      final response = await _http
           .get(_config.healthzEndpoint)
           .timeout(const Duration(seconds: 5));
       return response.statusCode < 400;
@@ -259,12 +350,29 @@ class OidcApi {
     }
   }
 
+  /// Where to send the browser to end the session at the provider as well.
+  ///
+  /// `null` when the provider does not say it has anywhere for that, which is
+  /// its right — in which case [forgetUser] is the whole of what can be done.
+  ///
+  /// Not called by anything yet. It is here because it is the missing half of
+  /// signing out: this app can forget a user, and until somebody sends the
+  /// browser here, the provider has not.
+  Future<Uri?> endSessionUrl({Uri? returnTo}) async {
+    final credential = await _heldCredential();
+    if (credential == null) {
+      return null;
+    }
+    return credential.generateLogoutUrl(redirectUri: returnTo);
+  }
+
   /// Forgets who is signed in on this device.
   ///
   /// It signs nobody out at the provider — that is the provider's own business,
   /// and this app is in no position to speak for it. What it does is make the
   /// next visit ask again from the beginning, which is the way out of a token
-  /// or a set of roles that has gone stale.
+  /// or a set of roles that has gone stale. See [endSessionUrl] for the other
+  /// half.
   ///
   /// The scores and sets on this device are left alone: they are what makes the
   /// app work without a network, and they are no use to anyone who cannot get a
@@ -292,34 +400,16 @@ class OidcException implements Exception {
 // ---------------------------------------------------------------------------
 
 /// What this device has to remember while the user is away at the provider: the
-/// secret it will prove the code with, and a nonce to recognise its own answer
-/// by.
+/// secret it will prove the code with, and the state it will know its own
+/// answer by.
 class _FlowState {
-  _FlowState(
+  const _FlowState(
     this.state,
     this.verifier,
-    this.challenge,
   );
-
-  factory _FlowState.create() {
-    final verifier = _randomString(56);
-    return _FlowState(_randomString(16), verifier, _challengeFor(verifier));
-  }
-
-  factory _FlowState.fromJson(
-    Map<String, dynamic> json,
-  ) => _FlowState(
-        '${json['state']}',
-        '${json['verifier']}',
-        '${json['challenge']}',
-      );
 
   final String state;
   final String verifier;
-  final String challenge;
-
-  Map<String, dynamic> toJson() =>
-      {'state': state, 'verifier': verifier, 'challenge': challenge};
 }
 
 const _alphabet =
@@ -332,12 +422,6 @@ String _randomString(int length) {
       _alphabet.codeUnitAt(random.nextInt(_alphabet.length)),
   ]);
 }
-
-/// The verifier as the provider will check it: hashed, and written the way a
-/// url can carry it.
-String _challengeFor(String verifier) => base64Url
-    .encode(sha256.convert(utf8.encode(verifier)).bytes)
-    .replaceAll('=', '');
 
 // ---------------------------------------------------------------------------
 // THE USER
