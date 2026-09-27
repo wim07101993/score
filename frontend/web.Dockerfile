@@ -4,5 +4,5 @@
 # context before this is built.
 FROM nginx:1.29-otel AS package
 
-COPY frontend_flutter/web.nginx.conf /etc/nginx/conf.d/default.conf
-COPY frontend_flutter/build/web/ /usr/share/nginx/html/
+COPY frontend/web.nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/build/web/ /usr/share/nginx/html/

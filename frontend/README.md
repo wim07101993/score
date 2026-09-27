@@ -1,14 +1,14 @@
 # The frontend, in Flutter
 
-The same app as [frontend/](../frontend), written once and run on the web, on a
-desktop and on a phone. The old one is still there and still works; this is
-beside it rather than instead of it.
+The frontend of [score](../README.md), written once and run on the web, on a
+desktop and on a phone.
 
-The one thing that is not a translation is the score itself. The app it replaces
-draws sheet music with [OpenSheetMusicDisplay](https://opensheetmusicdisplay.org),
-which is JavaScript and only runs in a browser. This one draws it in Dart, so
-what a player sees on a phone at a gig and what they see in a browser at home is
-the same drawing, worked out by the same code.
+It replaced a frontend of plain ES modules, and the one thing that is not a
+translation of it is the score itself. That app drew sheet music with
+[OpenSheetMusicDisplay](https://opensheetmusicdisplay.org), which is JavaScript
+and only runs in a browser. This one draws it in Dart, so what a player sees on a
+phone at a gig and what they see in a browser at home is the same drawing, worked
+out by the same code.
 
 ## Drawing a score
 
@@ -182,8 +182,9 @@ those are exactly where there is no network.
 
 The rules a set is written under — what is queued, in what order it goes out,
 and what happens when the server refuses — are the ones
-[the old frontend's README](../README.md#the-sets) describes, and they are
-ported rather than reinvented. A set owes the server three separate things in
+[the project README](../README.md#sets-are-written-offline) describes, and they
+were ported from the app this replaced rather than reinvented. A set owes the
+server three separate things in
 order: what the set is, the songs added or moved, and how this player reads
 them. Each is written against the one before it, so whatever did not get through
 keeps what depends on it queued behind it.
@@ -214,9 +215,8 @@ exactly, port and all, and `flutter run -d chrome` on its own picks a free port
 at random — so the app is served from an address the provider has never heard
 of, and a sign-in started there would send the player somewhere nothing is
 listening. `--web-port=3000` is the address registered in
-[assets/config.json](assets/config.json), which is also the one the old frontend
-is served from; the two cannot be running at once. The app says so and refuses
-rather than leaving on a journey it cannot finish.
+[assets/config.json](assets/config.json). Started anywhere else the app says so
+and refuses, rather than leaving on a journey it cannot finish.
 
 A desktop has no such problem: it listens on `desktopRedirectUri`'s port itself,
 for as long as the sign-in takes, so there is nothing to line up by hand.

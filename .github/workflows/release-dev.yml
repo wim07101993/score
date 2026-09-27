@@ -32,21 +32,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score:dev-latest
 
-      - name: Set config
-        run: mv frontend/src/config.dev.json frontend/src/config.json
-
-      - name: Remove dev config
-        run: rm frontend/src/config.prod.json
-
-      - name: See config
-        run: |
-          ls frontend/src/
-          cat frontend/src/config.json
-        
-      - name: Build and Push frondend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: frontend/frontend.Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:dev-latest       
+      # No frontend image here. The Flutter app reads assets/config.json at
+      # start-up rather than having it swapped in at build time, so there is
+      # nothing for a dev build of the image to do differently — see
+      # flutter-release.yml for the one that is published, off a tag.

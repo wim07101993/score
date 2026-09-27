@@ -32,25 +32,9 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score:latest
 
-      - name: Set config
-        run: mv frontend/src/config.prod.json frontend/src/config.json
-
-      - name: Remove dev config
-        run: rm frontend/src/config.dev.json
-
-      - name: See config
-        run: |
-          ls frontend/src/
-          cat frontend/src/config.json
-
-      - name: Build and Push frondend
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: frontend/frontend.Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
-      
+      # The frontend image is built by flutter-release.yml, which runs off the
+      # same tag: it packages the web build the four-platform build already
+      # produced rather than building it a second time here.
 
       - name: Create release
         uses: ncipollo/release-action@v1
