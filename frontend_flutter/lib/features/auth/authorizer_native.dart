@@ -48,7 +48,7 @@ class PlatformAuthorizer implements Authorizer {
   @override
   Future<Callback?> authorize(Uri authorizationUrl) async {
     if (_listensOnAPort) {
-      return _answerOnAPort(authorizationUrl);
+      return await _answerOnAPort(authorizationUrl);
     }
 
     final answer = await FlutterWebAuth2.authenticate(

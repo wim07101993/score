@@ -1,0 +1,216 @@
+name: Flutter Build
+
+on:
+  workflow_call:
+    inputs:
+      build-args:
+        description: >-
+          Extra flags handed to every `flutter build`. The release workflow uses
+          this to stamp the tag as the version; left empty the version in
+          pubspec.yaml is used as it stands.
+        type: string
+        default: ''
+  workflow_dispatch:
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'frontend_flutter/**'
+      - '.github/workflows/flutter-*.yml'
+
+# Four platforms is not a cheap run, and a second push to a branch makes the
+# one already going pointless. A tag is left alone: a release that gets
+# cancelled halfway leaves half a release behind.
+concurrency:
+  group: flutter-build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  FLUTTER_VERSION: '3.47.1'
+  BUILD_ARGS: ${{ inputs.build-args }}
+
+defaults:
+  run:
+    working-directory: frontend_flutter
+
+jobs:
+  test:
+    uses: ./.github/workflows/flutter-test.yml
+
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # 17, to match the sourceCompatibility the app module asks for.
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # Absent the secrets this writes nothing and the build falls back to the
+      # debug key (see android/app/build.gradle.kts), so a fork still gets an
+      # APK it can install — just not one the Play Store will take.
+      - name: Release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set; signing the release with the debug key."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          cat > android/key.properties <<EOF
+          storeFile=$RUNNER_TEMP/release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: APK
+        run: flutter build apk --release $BUILD_ARGS
+
+      - name: App bundle
+        run: flutter build appbundle --release $BUILD_ARGS
+
+      - name: Collect
+        run: |
+          version="${GITHUB_REF_NAME//\//-}"
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/score-$version-android.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "dist/score-$version-android.aab"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-android
+          path: frontend_flutter/dist/
+          if-no-files-found: error
+
+  linux:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # libwebkit2gtk is not on Flutter's own list of Linux desktop
+      # prerequisites. It is here because desktop_webview_window pulls it in,
+      # which is what the sign-in flow opens on desktop.
+      - name: Toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libwebkit2gtk-4.1-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Build
+        run: flutter build linux --release $BUILD_ARGS
+
+      - name: Collect
+        run: |
+          version="${GITHUB_REF_NAME//\//-}"
+          mkdir -p dist
+          tar -czf "dist/score-$version-linux-x64.tar.gz" \
+            -C build/linux/x64/release/bundle .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: frontend_flutter/dist/
+          if-no-files-found: error
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    defaults:
+      run:
+        # bash, so the packaging below reads the same as the other three jobs.
+        shell: bash
+        working-directory: frontend_flutter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Build
+        run: flutter build windows --release $BUILD_ARGS
+
+      - name: Collect
+        run: |
+          version="${GITHUB_REF_NAME//\//-}"
+          mkdir -p dist
+          cd build/windows/x64/runner/Release
+          7z a -tzip \
+            "$GITHUB_WORKSPACE/frontend_flutter/dist/score-$version-windows-x64.zip" ./*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows
+          path: frontend_flutter/dist/
+          if-no-files-found: error
+
+  web:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Build
+        run: flutter build web --release $BUILD_ARGS
+
+      - name: Collect
+        run: |
+          version="${GITHUB_REF_NAME//\//-}"
+          mkdir -p dist
+          (cd build/web && zip -qr \
+            "$GITHUB_WORKSPACE/frontend_flutter/dist/score-$version-web.zip" .)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-web
+          path: frontend_flutter/dist/
+          if-no-files-found: error
+
+      # Unpacked as well as zipped: the release workflow builds the nginx image
+      # straight from this rather than running the web build a second time.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: frontend_flutter/build/web/
+          if-no-files-found: error

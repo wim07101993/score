@@ -73,8 +73,8 @@ sealed class AppRoute {
 
   static String score(String scoreId, {String? setId, String? entryId}) {
     final query = <String, String>{
-      if (setId != null) 'set': setId,
-      if (entryId != null) 'entry': entryId,
+      'set': ?setId,
+      'entry': ?entryId,
     };
     final path = '/scores/$scoreId';
     return query.isEmpty

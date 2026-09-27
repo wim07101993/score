@@ -6,5 +6,7 @@ import 'package:sembast/sembast_io.dart';
 /// operating system will not clear out behind the user's back.
 Future<Database> openDatabase(String name) async {
   final directory = await getApplicationSupportDirectory();
-  return databaseFactoryIo.openDatabase(p.join(directory.path, '$name.db'));
+  return await databaseFactoryIo.openDatabase(
+    p.join(directory.path, '$name.db'),
+  );
 }

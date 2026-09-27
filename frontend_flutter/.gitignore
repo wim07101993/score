@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android release signing. CI writes these from secrets at build time; a
+# keystore in the repository is a keystore anyone can sign as you with.
+/android/key.properties
+*.jks
+*.keystore

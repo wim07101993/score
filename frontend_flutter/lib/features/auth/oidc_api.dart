@@ -101,7 +101,7 @@ class OidcApi {
     if (held != null) {
       return held;
     }
-    return getFreshAccessToken();
+    return await getFreshAccessToken();
   }
 
   /// The token this device is holding, refreshed on the spot if it has run out
@@ -111,7 +111,7 @@ class OidcApi {
     if (credential == null) {
       return null;
     }
-    return _spend(credential);
+    return await _spend(credential);
   }
 
   /// Gets a token by whatever means are left: the code the user just came back
@@ -134,7 +134,7 @@ class OidcApi {
       }
     }
 
-    return _startFlow();
+    return await _startFlow();
   }
 
   /// Reads the token out of [credential], refreshing first when it is spent or
@@ -203,7 +203,7 @@ class OidcApi {
     if (callback == null) {
       return null;
     }
-    return _exchangeCallback(callback);
+    return await _exchangeCallback(callback);
   }
 
   /// The authorization-code flow, built on [started].
