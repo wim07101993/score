@@ -4,8 +4,9 @@
 /// it. The facts are what a list is drawn from and what a search looks through;
 /// the document is fetched separately, because it is a thousand times the size
 /// and is only wanted when the score is actually opened.
-
 library;
+
+import 'package:score/features/scores/instruments.dart';
 
 class Score {
   const Score({
@@ -97,8 +98,18 @@ class Score {
   List<String> get creatorNames => [...creators.composers, ...creators.lyricists];
 
   /// Everything about it worth typing into a filter.
-  String get searchText =>
-      [title, ...creatorNames, ...tags, ...instruments].join(' ').toLowerCase();
+  ///
+  /// Instruments go in twice over: as the MusicXML code the document carries,
+  /// and as the name the list shows for it. Somebody looking for a piano part
+  /// types `piano`, not `keyboard.piano`, and the code is kept as well because
+  /// it is what an instrument with no name of its own is shown as.
+  String get searchText => [
+        title,
+        ...creatorNames,
+        ...tags,
+        ...instruments,
+        ...instruments.map(instrumentName),
+      ].join(' ').toLowerCase();
 
   Score copyWith({
     DateTime? lastSyncedAt,

@@ -27,6 +27,15 @@ sealed class AppRoute {
     return switch (target) {
       ScoresRoute() => [target],
       SetDetailRoute() => [const ScoresRoute(), const SetsRoute(), target],
+      // A score opened out of a set: the set goes behind it, so leaving the
+      // score arrives back at the running order it was being played from
+      // rather than skipping past it to the list of every score there is.
+      ScoreDetailRoute(setId: final setId?) => [
+          const ScoresRoute(),
+          const SetsRoute(),
+          SetDetailRoute(setId: setId),
+          target,
+        ],
       _ => [const ScoresRoute(), target],
     };
   }

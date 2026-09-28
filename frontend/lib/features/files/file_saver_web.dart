@@ -25,6 +25,11 @@ Future<bool> savePlatformFile({
   link.remove();
 
   // The blob stays in memory until it is let go of, and a score is not small.
-  web.URL.revokeObjectURL(url);
+  // Not straight away, though: clicking the link only starts the download, and
+  // a browser that has not yet read the blob when the URL is revoked saves an
+  // empty file — which is the sort of thing that only happens to somebody else.
+  Future<void>.delayed(const Duration(minutes: 1), () {
+    web.URL.revokeObjectURL(url);
+  });
   return true;
 }

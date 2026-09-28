@@ -8,6 +8,11 @@ on:
       - 'frontend/**'
       - '.github/workflows/flutter-*.yml'
 
+# Nothing here writes anything back: it reads the checkout and runs the
+# analyzer and the tests. Said out loud so the token cannot do more than that.
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: frontend

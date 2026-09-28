@@ -6,6 +6,11 @@ on:
     tags: 
     - 'v*'
 
+# Read-only by default. The job below needs more than that for the release it
+# creates, and says so.
+permissions:
+  contents: read
+
 jobs:
   test:
     uses: ./.github/workflows/test.yml
@@ -13,6 +18,9 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      # ncipollo/release-action, at the end, creates the GitHub release.
+      contents: write
 
     steps:
       - name: Checkout code
@@ -34,7 +42,10 @@ jobs:
 
       # The frontend image is built by flutter-release.yml, which runs off the
       # same tag: it packages the web build the four-platform build already
-      # produced rather than building it a second time here.
+      # produced rather than building it a second time here. The config swap
+      # that used to be done here went with it — assets/config.prod.json is put
+      # in place there, before the build, because everything but the web reads
+      # that file out of the bundle the build wrote.
 
       - name: Create release
         uses: ncipollo/release-action@v1

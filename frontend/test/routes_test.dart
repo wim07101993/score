@@ -58,6 +58,24 @@ void main() {
       expect(stack, [isA<ScoresRoute>(), isA<SetsRoute>(), isA<SetDetailRoute>()]);
     });
 
+    test('a score played from a set is left through that set', () {
+      final stack = AppRoute.stackFor('/scores/abc?set=def&entry=ghi');
+
+      expect(stack, [
+        isA<ScoresRoute>(),
+        isA<SetsRoute>(),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
+        isA<ScoreDetailRoute>(),
+      ]);
+    });
+
+    test('a score opened on its own has no set behind it', () {
+      expect(AppRoute.stackFor('/scores/abc'), [
+        isA<ScoresRoute>(),
+        isA<ScoreDetailRoute>(),
+      ]);
+    });
+
     test('the list of scores is not put behind itself', () {
       expect(AppRoute.stackFor('/'), [isA<ScoresRoute>()]);
       expect(AppRoute.stackFor('/nowhere'), [isA<ScoresRoute>()]);

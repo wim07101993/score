@@ -1,4 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- A release build is merged from this manifest alone: the debug and
+         profile ones next to it are not part of it. Both of those ask for
+         INTERNET for the sake of the tooling, which is why a debug build could
+         sign in and reach the API and an installed release build could not. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="score"
         android:name="${applicationName}"

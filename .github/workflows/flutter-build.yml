@@ -10,6 +10,21 @@ on:
           pubspec.yaml is used as it stands.
         type: string
         default: ''
+      config:
+        description: >-
+          A config file to put in place of `assets/config.json` before
+          building. Named rather than always swapped, because the file in the
+          tree is the development one and that is what a branch build should
+          keep pointing at; a release names the production one instead.
+        type: string
+        default: ''
+      web-only:
+        description: >-
+          Build the web app and nothing else. The development release wants the
+          image and only the image, and android, linux and windows together are
+          the bulk of the run.
+        type: boolean
+        default: false
   workflow_dispatch:
   push:
     branches: [ "master" ]
@@ -23,6 +38,11 @@ on:
 concurrency:
   group: flutter-build-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+# Building is reading: the code comes out of the checkout and the results leave
+# as artifacts, which upload-artifact does without the token.
+permissions:
+  contents: read
 
 env:
   FLUTTER_VERSION: '3.47.1'
@@ -38,6 +58,7 @@ jobs:
 
   android:
     needs: test
+    if: ${{ !inputs.web-only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,6 +97,14 @@ jobs:
           keyPassword=$KEY_PASSWORD
           EOF
 
+      # assets/config.json is read at start-up rather than compiled in, but on
+      # every platform but the web it is read out of the bundle this build
+      # writes — so pointing a release at the production server is something
+      # that has to happen before the build, not to the artifact afterwards.
+      - name: Configuration
+        if: ${{ inputs.config != '' }}
+        run: cp "${{ inputs.config }}" assets/config.json
+
       - name: Dependencies
         run: flutter pub get
 
@@ -100,6 +129,7 @@ jobs:
 
   linux:
     needs: test
+    if: ${{ !inputs.web-only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -119,6 +149,14 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      # assets/config.json is read at start-up rather than compiled in, but on
+      # every platform but the web it is read out of the bundle this build
+      # writes — so pointing a release at the production server is something
+      # that has to happen before the build, not to the artifact afterwards.
+      - name: Configuration
+        if: ${{ inputs.config != '' }}
+        run: cp "${{ inputs.config }}" assets/config.json
 
       - name: Dependencies
         run: flutter pub get
@@ -141,6 +179,7 @@ jobs:
 
   windows:
     needs: test
+    if: ${{ !inputs.web-only }}
     runs-on: windows-latest
     defaults:
       run:
@@ -155,6 +194,14 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      # assets/config.json is read at start-up rather than compiled in, but on
+      # every platform but the web it is read out of the bundle this build
+      # writes — so pointing a release at the production server is something
+      # that has to happen before the build, not to the artifact afterwards.
+      - name: Configuration
+        if: ${{ inputs.config != '' }}
+        run: cp "${{ inputs.config }}" assets/config.json
 
       - name: Dependencies
         run: flutter pub get
@@ -187,6 +234,14 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      # assets/config.json is read at start-up rather than compiled in, but on
+      # every platform but the web it is read out of the bundle this build
+      # writes — so pointing a release at the production server is something
+      # that has to happen before the build, not to the artifact afterwards.
+      - name: Configuration
+        if: ${{ inputs.config != '' }}
+        run: cp "${{ inputs.config }}" assets/config.json
 
       - name: Dependencies
         run: flutter pub get
