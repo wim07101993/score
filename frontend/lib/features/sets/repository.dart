@@ -368,7 +368,7 @@ class SetsRepository extends ChangeNotifier {
       // about what a set is — but not about what has been done to it here and
       // not sent yet, which is newer than anything the server can say.
       await _keep([
-        _carryPending(ScoreSet.fromApi(stored, DateTime.now()), set),
+        _carryPending(ScoreSet.fromApi(stored, _syncedOutsideAPull(set)), set),
       ]);
     } on SetsApiException catch (error) {
       if (error.isWorthRetrying) {
@@ -520,7 +520,7 @@ class SetsRepository extends ChangeNotifier {
         )
       ]);
     } else {
-      await _keep([ScoreSet.fromApi(fromApi, DateTime.now())]);
+      await _keep([ScoreSet.fromApi(fromApi, _syncedOutsideAPull(set))]);
     }
 
     _reportProblem(SyncProblem(
@@ -533,12 +533,15 @@ class SetsRepository extends ChangeNotifier {
     final token = await _oidc.getActiveAccessToken();
     if (token == null) return;
 
-    final fromApi = await _api.listSets(_lastSyncedAt(), DateTime.now(), token);
+    // The end of the window is what is recorded as synced, and not the moment
+    // the answer arrives: a set that changed while the request was on its way
+    // is not in this answer, and has to be in the next one.
+    final syncedAt = DateTime.now();
+    final fromApi = await _api.listSets(_lastSyncedAt(), syncedAt, token);
     if (fromApi.isEmpty) {
       return;
     }
 
-    final syncedAt = DateTime.now();
     final toStore = <ScoreSet>[];
     for (final json in fromApi) {
       final existing = _sets['${json['id']}'];
@@ -569,6 +572,16 @@ class SetsRepository extends ChangeNotifier {
     }
     return latest;
   }
+
+  /// What a set that was read by itself, rather than listed in a pull, records
+  /// as synced.
+  ///
+  /// It must not move the watermark: another set may have changed since the
+  /// last pull, and a later moment here would make the next pull skip it. But
+  /// it cannot stay empty either, because an empty one means the server has
+  /// never heard of the set, and a set like that is deleted without asking.
+  DateTime _syncedOutsideAPull(ScoreSet set) =>
+      set.lastSyncedAt ?? _lastSyncedAt() ?? DateTime.utc(1970);
 
   Future<void> _keep(List<ScoreSet> sets) async {
     if (sets.isEmpty) {

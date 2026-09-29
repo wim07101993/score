@@ -58,14 +58,18 @@ class ScoresRepository extends ChangeNotifier {
       return;
     }
 
-    final fromApi = await _api.listScores(_lastSyncedAt(), DateTime.now(), token);
+    // The end of the window is what is recorded as synced, and not the moment
+    // the answer arrives: a score that changed while the request was on its
+    // way is not in this answer, and has to be in the next one.
+    final until = DateTime.now();
+    final fromApi = await _api.listScores(_lastSyncedAt(), until, token);
     if (fromApi.isEmpty) {
       return;
     }
 
     final incoming = [
       for (final json in fromApi)
-        Score.fromApi(json, existing: _scores[json['id']]),
+        Score.fromApi(json, existing: _scores[json['id']], syncedAt: until),
     ];
     await _keep(incoming);
 

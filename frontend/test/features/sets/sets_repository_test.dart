@@ -47,6 +47,9 @@ class _WorkingApi extends SetsApi {
   /// What a listing will answer with, whatever is actually stored.
   List<Map<String, dynamic>> answers = [];
 
+  /// The change windows that were asked about, in order.
+  final List<(DateTime?, DateTime?)> windows = [];
+
   @override
   Future<bool> canBeReached() async => true;
 
@@ -54,6 +57,7 @@ class _WorkingApi extends SetsApi {
   Future<List<Map<String, dynamic>>> listSets(
       DateTime? since, DateTime? until, String token) async {
     calls.add('list');
+    windows.add((since, until));
     return answers;
   }
 
@@ -470,6 +474,56 @@ void main() {
         sets.getSet('mine')!.entries.any((entry) => entry.scoreId == 'here-only'),
         isTrue,
       );
+    });
+  });
+
+  group('the change window', () {
+    Map<String, dynamic> answer(String id) => {
+          'id': id,
+          'title': id,
+          'description': '',
+          'entries': <Map<String, dynamic>>[],
+          'shared_with': <String>[],
+          'is_owner': true,
+          'last_changed_at': DateTime.now().toIso8601String(),
+        };
+
+    test('the next one starts where the last one ended', () async {
+      // Not where its answer arrived: a set that changed while the request was
+      // on its way is in neither answer otherwise, and is missed for good.
+      final api = _WorkingApi();
+      final (sets, _) = await _repository(api);
+
+      api.answers = [answer('a')];
+      await sets.syncWithApi();
+      api.answers = [];
+      await sets.syncWithApi();
+
+      final (_, firstUntil) = api.windows.first;
+      final (secondSince, _) = api.windows.last;
+      expect(firstUntil, isNotNull);
+      expect(secondSince, firstUntil);
+      expect(sets.getSet('a')!.lastSyncedAt, firstUntil);
+    });
+
+    test('a set written outside a pull does not move it', () async {
+      // Another set may have changed since the last pull, and a watermark
+      // moved to the moment of this write would have the next pull skip it.
+      final api = _WorkingApi();
+      final (sets, _) = await _repository(api);
+
+      api.answers = [answer('a')];
+      await sets.syncWithApi();
+      final (_, pulledUntil) = api.windows.last;
+
+      api.answers = [];
+      final written = await sets.saveSet(title: 'Written later');
+      await sets.syncWithApi();
+
+      final (since, _) = api.windows.last;
+      expect(since, pulledUntil);
+      expect(sets.getSet(written.id)!.lastSyncedAt, isNotNull,
+          reason: 'the server has it, so a delete has to be sent there');
     });
   });
 

@@ -26,9 +26,14 @@ class Score {
   /// A score the way the API hands it over, as one this app keeps: the moments
   /// as dates rather than as the strings they arrive as, and whatever is only
   /// known locally carried over from the score being replaced.
+  ///
+  /// [syncedAt] is the end of the change window the score was listed in. A
+  /// score that was read by itself was not part of any window, so it moves
+  /// no watermark and keeps whatever it had.
   factory Score.fromApi(
     Map<String, dynamic> json, {
     Score? existing,
+    DateTime? syncedAt,
   }) => Score(
         id: '${json['id']}',
         work: Work.fromJson(json['work']),
@@ -38,7 +43,7 @@ class Score {
         instruments: _strings(json['instruments']),
         lastChangedAt: _date(json['last_changed_at']),
         tags: _strings(json['tags']),
-        lastSyncedAt: DateTime.now(),
+        lastSyncedAt: syncedAt ?? existing?.lastSyncedAt,
         lastFetchedFileAt: existing?.lastFetchedFileAt,
         lastViewedAt: existing?.lastViewedAt,
       );

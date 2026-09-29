@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:score/features/sembast/database_factory_io.dart'
     if (dart.library.js_interop) 'package:score/features/sembast/database_factory_web.dart';
+import 'package:score/features/sembast/legacy_store_io.dart'
+    if (dart.library.js_interop) 'package:score/features/sembast/legacy_store_web.dart';
 import 'package:sembast/sembast_memory.dart';
 
 /// Where everything this device knows is kept between visits.
@@ -33,7 +36,62 @@ class LocalStore {
   static Future<LocalStore> open() async {
     final data = await openDatabase('score');
     final documents = await openDatabase('score_documents');
-    return LocalStore._(data, documents);
+    final store = LocalStore._(data, documents);
+    await store._bringOverLegacyData();
+    return store;
+  }
+
+  /// Set once what the app before this one kept has been brought over.
+  static const _legacyDataBroughtOver = 'legacy_data_brought_over';
+
+  /// Brings over, once, what the app that was there before this one kept in
+  /// this browser.
+  ///
+  /// Without it, a player who upgrades opens the app to find the scores they
+  /// had downloaded for tonight gone, and the set they edited at the last gig
+  /// without a network gone with the edit it still owed the server.
+  ///
+  /// A record that is here already is left as it is: whatever this app wrote
+  /// is newer than anything the old one did. When the reading fails it is not
+  /// marked as done, so it is tried again the next time the app starts.
+  Future<void> _bringOverLegacyData() async {
+    if (await readSetting(_legacyDataBroughtOver) != null) {
+      return;
+    }
+
+    try {
+      final legacy = await readLegacyData();
+      if (legacy != null) {
+        await _data.transaction((transaction) async {
+          for (final (store, records) in [
+            (_scores, legacy.scores),
+            (_sets, legacy.sets),
+          ]) {
+            for (final record in records) {
+              final ref = store.record('${record['id']}');
+              if (!await ref.exists(transaction)) {
+                await ref.put(transaction, record);
+              }
+            }
+          }
+        });
+        await _documents.transaction((transaction) async {
+          for (final MapEntry(key: scoreId, value: musicXml)
+              in legacy.musicXml.entries) {
+            final ref = _files.record(scoreId);
+            if (!await ref.exists(transaction)) {
+              await ref.put(transaction, musicXml);
+            }
+          }
+        });
+      }
+    } catch (error) {
+      debugPrint('could not bring over what was kept before: $error');
+      return;
+    }
+
+    await writeSetting(
+        _legacyDataBroughtOver, DateTime.now().toIso8601String());
   }
 
   /// A store on nothing, which is what the tests keep things in: they have
