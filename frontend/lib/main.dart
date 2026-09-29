@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:score/app.dart';
 import 'package:score/features/auth/widgets/profile_page.dart';
 import 'package:score/features/scores/widgets/score_detail_page.dart';
@@ -11,6 +12,11 @@ import 'package:score/theme.dart';
 import 'package:score/widgets/starting.dart';
 
 void main() {
+  // The addresses are paths — `/scores/abc` — as they were in the app this
+  // replaces, rather than the `/#/scores/abc` a Flutter web app uses unless it
+  // is told otherwise. Without this a link written down before would reach the
+  // app as `/`. Everywhere but the web it does nothing.
+  usePathUrlStrategy();
   runApp(const ScoreApp());
 }
 

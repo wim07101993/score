@@ -268,12 +268,14 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final bytes = file?.bytes;
     if (bytes == null) return;
 
-    final musicXml = utf8.decode(bytes, allowMalformed: true);
-
     // Read before it is sent: a file that cannot be read is a file the band
     // cannot play, and finding that out after it is on the server is finding it
-    // out too late.
+    // out too late. That goes for the bytes as much as for the XML: a file that
+    // is not UTF-8 is refused rather than read with its accents replaced, which
+    // would upload a score whose titles and lyrics are quietly wrong.
+    final String musicXml;
     try {
+      musicXml = utf8.decode(bytes);
       parseMusicXml(musicXml);
     } catch (error) {
       _say('That file could not be read as a score: $error');

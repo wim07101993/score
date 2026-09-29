@@ -67,9 +67,12 @@ class ScoresRepository extends ChangeNotifier {
       return;
     }
 
-    final incoming = [
+    // Kept without moving the watermark yet: what the server said is worth
+    // showing straight away, but the window is only done once the documents it
+    // made stale are fetched too.
+    var incoming = [
       for (final json in fromApi)
-        Score.fromApi(json, existing: _scores[json['id']], syncedAt: until),
+        Score.fromApi(json, existing: _scores[json['id']]),
     ];
     await _keep(incoming);
 
@@ -77,6 +80,7 @@ class ScoresRepository extends ChangeNotifier {
     // when it is opened. One whose document *is* here and has been uploaded
     // again since is fetched now, so that the player who has it downloaded has
     // the version the band is playing from.
+    var refreshedAll = true;
     for (final score in incoming) {
       final fetched = score.lastFetchedFileAt;
       if (fetched == null) continue;
@@ -84,13 +88,35 @@ class ScoresRepository extends ChangeNotifier {
         continue;
       }
 
-      final accessToken = await _oidc.getActiveAccessToken();
-      if (accessToken == null) return;
+      try {
+        final accessToken = await _oidc.getActiveAccessToken();
+        if (accessToken == null) {
+          refreshedAll = false;
+          break;
+        }
 
-      final musicXml = await _api.getScoreMusicXml(score.id, accessToken);
-      await _store.writeMusicXml(score.id, musicXml);
-      await _keep([score.copyWith(lastFetchedFileAt: DateTime.now())]);
+        final musicXml = await _api.getScoreMusicXml(score.id, accessToken);
+        await _store.writeMusicXml(score.id, musicXml);
+        await _keep([score.copyWith(lastFetchedFileAt: DateTime.now())]);
+      } catch (error) {
+        // The others are still worth fetching, but this window is not done.
+        debugPrint('the document of ${score.id} could not be refreshed: '
+            '$error');
+        refreshedAll = false;
+      }
     }
+
+    // A score changed in this window is in no later window, so a document that
+    // could not be fetched is only ever retried if the watermark stays put: the
+    // next sync then asks for the same window again, and finds it stale again.
+    if (!refreshedAll) {
+      return;
+    }
+    incoming = [
+      for (final score in incoming)
+        (_scores[score.id] ?? score).copyWith(lastSyncedAt: until),
+    ];
+    await _keep(incoming);
   }
 
   /// Where the next change window starts. `null` when the server has never said

@@ -48,7 +48,12 @@ List<ScorePartRef> readParts(Score score) {
 
     var id = part.id.trim();
     if (id.isEmpty || taken.contains(id)) {
-      id = 'part-$index';
+      // A document is free to call a real part `part-1` too, so the fallback
+      // is walked on until it is one nothing has taken.
+      var fallback = index;
+      do {
+        id = 'part-${fallback++}';
+      } while (taken.contains(id));
     }
     taken.add(id);
 

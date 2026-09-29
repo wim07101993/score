@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Only for the path url strategy, which keeps the web app's addresses the
+  # ones the app it replaces used.
+  flutter_web_plugins:
+    sdk: flutter
 
   # The score engine. Reading a MusicXML file, engraving what it says, and
   # writing it back out — the model, the layout and the painter all come from

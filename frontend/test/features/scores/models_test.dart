@@ -44,4 +44,35 @@ void main() {
       expect(score.searchText, contains('jazz'));
     });
   });
+
+  group('looking for a score', () {
+    const score = Score(
+      id: 'abc',
+      work: Work(title: 'Après un rêve'),
+      creators: Creators(composers: ['Gabriel Fauré']),
+    );
+
+    test('finds it without the accents', () {
+      expect(score.matches('apres'), isTrue);
+      expect(score.matches('faure'), isTrue);
+    });
+
+    test('finds it with the accents too', () {
+      expect(score.matches('APRÈS'), isTrue);
+    });
+
+    test('finds every word anywhere, in any order', () {
+      expect(score.matches('faure reve'), isTrue);
+      expect(score.matches('  rêve   gabriel '), isTrue);
+    });
+
+    test('does not find it when one of the words is not there', () {
+      expect(score.matches('faure ravel'), isFalse);
+    });
+
+    test('an empty search finds everything', () {
+      expect(score.matches(''), isTrue);
+      expect(score.matches('   '), isTrue);
+    });
+  });
 }

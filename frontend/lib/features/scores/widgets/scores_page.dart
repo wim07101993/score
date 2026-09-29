@@ -71,10 +71,9 @@ class _ScoresPageState extends State<ScoresPage> {
           : ListenableBuilder(
               listenable: app.scores,
               builder: (context, _) {
-                final needle = _filter.trim().toLowerCase();
+                final needle = _filter.trim();
                 final scores = app.scores.scores
-                    .where((score) =>
-                        needle.isEmpty || score.searchText.contains(needle))
+                    .where((score) => score.matches(needle))
                     .toList();
 
                 return RefreshIndicator(

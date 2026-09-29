@@ -490,7 +490,7 @@ device and a desktop each need one of their own — `nativeRedirectUri` and
 `desktopRedirectUri` — because an app cannot be sent back to a web page.
 
 The web build is published as a docker image by
-[.github/workflows/flutter-release.yml](.github/workflows/flutter-release.yml),
+[.github/workflows/release.yaml](.github/workflows/release.yaml),
 which packages the build the release already produced behind nginx
 ([frontend/web.nginx.conf](frontend/web.nginx.conf)); the desktop and Android
 builds are attached to the release as files.

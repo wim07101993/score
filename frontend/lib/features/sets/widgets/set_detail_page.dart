@@ -286,9 +286,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
   }
 
   Widget _picker(App app) {
-    final needle = _filter.text.trim().toLowerCase();
+    final needle = _filter.text.trim();
     final scores = app.scores.scores
-        .where((score) => needle.isEmpty || score.searchText.contains(needle))
+        .where((score) => score.matches(needle))
         .toList()
       ..sort((a, b) => a.title.compareTo(b.title));
 
