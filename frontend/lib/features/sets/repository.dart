@@ -37,6 +37,9 @@ class SetsRepository extends ChangeNotifier {
 
   final List<void Function(SyncProblem)> _problemListeners = [];
 
+  /// The push that is out for each set, if there is one.
+  final Map<String, Future<void>> _pushing = {};
+
   /// The sets there are, most recently changed first. The deleted ones are kept
   /// but are no longer sets anyone has.
   List<ScoreSet> get sets {
@@ -259,8 +262,10 @@ class SetsRepository extends ChangeNotifier {
         // no row there to mark as gone, and the headstone here is enough.
         pendingChange: existing.lastSyncedAt == null ? null : PendingChange.delete,
         clearPendingChange: existing.lastSyncedAt == null,
-        // How anybody read a set that is gone is not worth a request.
+        // How anybody read a set that is gone is not worth a request, and
+        // neither is what was put into it or taken out of it.
         pendingViews: const [],
+        pendingEntries: const [],
       )
     ]);
     await _pushIfPossible(setId);
@@ -324,6 +329,25 @@ class SetsRepository extends ChangeNotifier {
   /// the problem is reported — an edit that is quietly dropped is worse than
   /// one that is dropped loudly.
   Future<void> _push(String setId) async {
+    // One push at a time for a set. Two of them out at once would each square
+    // what is here with an answer that knows nothing about the other, and
+    // whichever came back last would put back what the first one had already
+    // moved past. A push asked for while one is out goes after it, and reads
+    // what is owed at that point.
+    final previous = _pushing[setId] ?? Future<void>.value();
+    final next =
+        previous.catchError((Object _) {}).then((_) => _pushNow(setId));
+    _pushing[setId] = next;
+    try {
+      await next;
+    } finally {
+      if (identical(_pushing[setId], next)) {
+        _pushing.remove(setId);
+      }
+    }
+  }
+
+  Future<void> _pushNow(String setId) async {
     final set = _sets[setId];
     if (set == null) {
       return;
@@ -355,7 +379,12 @@ class SetsRepository extends ChangeNotifier {
 
       if (action == PendingChange.delete) {
         await _api.deleteSet(set.id, token);
-        await _keep([set.copyWith(clearPendingChange: true)]);
+        // Written again while the delete was on its way, which brings it back:
+        // that write is newer than the delete and is still owed.
+        final current = _sets[setId]!;
+        if (!_changedSince(set)) {
+          await _keep([current.copyWith(clearPendingChange: true)]);
+        }
         return;
       }
 
@@ -364,11 +393,29 @@ class SetsRepository extends ChangeNotifier {
         'description': set.description,
         'shared_with': set.sharedWith,
       });
+      final syncedAt = _syncedOutsideAPull(set);
+      final current = _sets[setId]!;
+      if (_changedSince(set)) {
+        // It was written again, or deleted, while this was on its way. That is
+        // newer than the answer and is still owed; all the answer says that is
+        // still true is that the server now has the set.
+        await _keep([
+          current.copyWith(
+            lastSyncedAt: syncedAt,
+            pendingChange: current.deletedAt == null
+                ? PendingChange.write
+                : PendingChange.delete,
+          )
+        ]);
+        return;
+      }
       // What comes back is the set as the server has it, which is the truth
       // about what a set is — but not about what has been done to it here and
-      // not sent yet, which is newer than anything the server can say.
+      // not sent yet, which is newer than anything the server can say. That is
+      // read from the set as it is now rather than as it was sent: a song may
+      // have been put in while the request was out.
       await _keep([
-        _carryPending(ScoreSet.fromApi(stored, _syncedOutsideAPull(set)), set),
+        _carryPending(ScoreSet.fromApi(stored, syncedAt), current),
       ]);
     } on SetsApiException catch (error) {
       if (error.isWorthRetrying) {
@@ -401,7 +448,7 @@ class SetsRepository extends ChangeNotifier {
 
         if (owed.action == PendingChange.delete) {
           await _api.deleteEntry(setId, owed.id, token);
-          await _keep([_withoutPendingEntry(_sets[setId]!, owed.id)]);
+          await _keep([_settled(_sets[setId]!, owed)]);
           continue;
         }
 
@@ -409,9 +456,13 @@ class SetsRepository extends ChangeNotifier {
           'score_id': entry!.scoreId,
           'description': entry.description,
           'transposition': entry.transposition,
-          'position': set.entries.indexOf(entry),
+          'position': _placeOnTheServer(set, entry),
         });
-        await _keep([_withStoredEntry(_sets[setId]!, stored)]);
+        final current = _sets[setId]!;
+        final settled = _isStillOwed(current, owed)
+            ? _withStoredEntry(current, stored)
+            : _writtenBehindAWrite(current, owed.id);
+        await _keep([settled]);
       } on SetsApiException catch (error) {
         if (error.isWorthRetrying) {
           debugPrint('failed to ${owed.action} entry ${owed.id}; it stays'
@@ -421,7 +472,7 @@ class SetsRepository extends ChangeNotifier {
 
         final current = _sets[setId];
         if (current != null) {
-          await _keep([_withoutPendingEntry(current, owed.id)]);
+          await _keep([_settled(current, owed)]);
         }
         _reportProblem(SyncProblem(
           setId: setId,
@@ -461,9 +512,18 @@ class SetsRepository extends ChangeNotifier {
           'transposition': entry.view.transposition,
           'hidden_parts': entry.view.hiddenParts,
         });
+        final current = _sets[setId]!;
+        final now = current.entries
+            .where((candidate) => candidate.id == entryId)
+            .firstOrNull;
+        if (now == null || !identical(now.view, entry.view)) {
+          // It was looked at differently again while this was on its way, and
+          // that is what goes next.
+          continue;
+        }
         await _keep([
           _withEntryView(
-            _sets[setId]!,
+            current,
             entryId,
             EntryView.fromJson(stored),
             owed: false,
@@ -497,6 +557,12 @@ class SetsRepository extends ChangeNotifier {
   /// that was last changed before that. When that read fails too, what is here
   /// stays as it was: it is no longer owed to anybody, so it is stale rather
   /// than lost, and any later change to it brings it back in step.
+  ///
+  /// Only the set's own write is taken back. The songs put into it and the
+  /// views of them are separate writes the server has not refused, so they stay
+  /// owed — unless there is no set left to put them into. And a set that was
+  /// written again while the refused write was out is left owing that newer
+  /// write, which the server has not said anything about yet.
   Future<void> _giveUpOn(
       ScoreSet set, String action, SetsApiException error) async {
     Map<String, dynamic>? fromApi;
@@ -504,23 +570,33 @@ class SetsRepository extends ChangeNotifier {
       final token = await _oidc.getActiveAccessToken();
       fromApi = token == null ? null : await _api.getSet(set.id, token);
     } catch (readError) {
-      await _keep([set.copyWith(clearPendingChange: true)]);
+      final current = _sets[set.id] ?? set;
+      if (!_changedSince(set)) {
+        await _keep([current.copyWith(clearPendingChange: true)]);
+      }
       _reportProblem(SyncProblem(
           setId: set.id, title: set.title, action: action, error: error));
       return;
     }
 
+    final current = _sets[set.id] ?? set;
     if (fromApi == null) {
       // There is no such set for this user: whatever was written here is a set
-      // that does not exist, and a headstone is what that looks like.
+      // that does not exist, and a headstone is what that looks like. Nothing
+      // that was to go into it can go anywhere.
       await _keep([
-        set.copyWith(
-          deletedAt: set.deletedAt ?? DateTime.now(),
+        current.copyWith(
+          deletedAt: current.deletedAt ?? DateTime.now(),
           clearPendingChange: true,
+          pendingViews: const [],
+          pendingEntries: const [],
         )
       ]);
-    } else {
-      await _keep([ScoreSet.fromApi(fromApi, _syncedOutsideAPull(set))]);
+    } else if (!_changedSince(set)) {
+      await _keep([
+        _carryPending(
+            ScoreSet.fromApi(fromApi, _syncedOutsideAPull(set)), current),
+      ]);
     }
 
     _reportProblem(SyncProblem(
@@ -537,7 +613,8 @@ class SetsRepository extends ChangeNotifier {
     // the answer arrives: a set that changed while the request was on its way
     // is not in this answer, and has to be in the next one.
     final syncedAt = DateTime.now();
-    final fromApi = await _api.listSets(_lastSyncedAt(), syncedAt, token);
+    final fromApi = await _api.listSets(
+        _lastSyncedAt()?.subtract(pullOverlap), syncedAt, token);
     if (fromApi.isEmpty) {
       return;
     }
@@ -545,16 +622,24 @@ class SetsRepository extends ChangeNotifier {
     final toStore = <ScoreSet>[];
     for (final json in fromApi) {
       final existing = _sets['${json['id']}'];
-      // A set that still owes the server a write was written here after the
-      // last thing the server told us, so it is the newer of the two and the
-      // answer is out of date the moment it arrives.
-      if (existing?.pendingChange != null) {
-        continue;
-      }
-      // What has been written here and not sent yet is newer than the answer
-      // for the same reason, and is kept on top of it; the rest of what the
-      // server says is taken as it stands.
-      toStore.add(_carryPending(ScoreSet.fromApi(json, syncedAt), existing));
+      // What has been written here and not sent yet was written after the last
+      // thing the server told us, so it is the newer of the two and is kept on
+      // top of the answer; the rest of what the server says is taken as it
+      // stands. That goes for the songs in a set whose own write is still owed
+      // too: skipping the answer whole would move the window past what other
+      // devices put into it, and it would never be asked for again.
+      final carried = _carryPending(ScoreSet.fromApi(json, syncedAt), existing);
+      toStore.add(existing?.pendingChange == null
+          ? carried
+          : carried.copyWith(
+              title: existing!.title,
+              description: existing.description,
+              sharedWith: existing.sharedWith,
+              lastChangedAt: existing.lastChangedAt,
+              deletedAt: existing.deletedAt,
+              clearDeletedAt: existing.deletedAt == null,
+              pendingChange: existing.pendingChange,
+            ));
     }
 
     await _keep(toStore);
@@ -582,6 +667,12 @@ class SetsRepository extends ChangeNotifier {
   /// never heard of the set, and a set like that is deleted without asking.
   DateTime _syncedOutsideAPull(ScoreSet set) =>
       set.lastSyncedAt ?? _lastSyncedAt() ?? DateTime.utc(1970);
+
+  /// Whether the set itself was written or deleted here since [sent] was read,
+  /// which a push has to know once its answer is in: the request was out for a
+  /// while, and the player did not stop in the meantime.
+  bool _changedSince(ScoreSet sent) =>
+      _sets[sent.id]?.lastChangedAt != sent.lastChangedAt;
 
   Future<void> _keep(List<ScoreSet> sets) async {
     if (sets.isEmpty) {
@@ -631,7 +722,8 @@ ScoreSet _carryPending(ScoreSet incoming, ScoreSet? existing) {
   }
 
   final owedEntries = existing.pendingEntries;
-  final entries = owedEntries.isNotEmpty ? existing.entries : incoming.entries;
+  final entries =
+      _mergedEntries(incoming.entries, existing.entries, owedEntries);
   final owedViews = _keptOf(existing.pendingViews, entries);
 
   return incoming.copyWith(
@@ -653,6 +745,47 @@ ScoreSet _carryPending(ScoreSet incoming, ScoreSet? existing) {
   );
 }
 
+/// The running order the server has, with the songs that are owed to it as this
+/// device has them.
+///
+/// Only those are taken from here. The rest is the server's, and that includes
+/// whatever another device put in or took out: keeping this device's order
+/// whole while one song is owed would lose that for good, since the next sync
+/// only asks about what changed after this one. A song that is owed goes back
+/// in at the place it has here, which is where it is sent to as well.
+List<SetEntry> _mergedEntries(
+  List<SetEntry> incoming,
+  List<SetEntry> existing,
+  List<PendingEntry> owed,
+) {
+  if (owed.isEmpty) {
+    return incoming;
+  }
+  final owedIds = {for (final entry in owed) entry.id};
+  final merged = [
+    for (final entry in incoming)
+      if (!owedIds.contains(entry.id)) entry,
+  ];
+  for (final (index, entry) in existing.indexed) {
+    if (owedIds.contains(entry.id)) {
+      merged.insert(index.clamp(0, merged.length), entry);
+    }
+  }
+  return merged;
+}
+
+/// Where an entry goes in the running order the server has.
+///
+/// That is its place here counting only the songs the server has heard of: a
+/// song that is still waiting to be sent is not in the server's order, so
+/// counting it would put this one that much further down. The songs are sent
+/// in the order they were put in, so by the time a song goes, the ones that
+/// were put in ahead of it and have gone are counted.
+int _placeOnTheServer(ScoreSet set, SetEntry entry) => set.entries
+    .takeWhile((candidate) => candidate.id != entry.id)
+    .where((candidate) => candidate.synced)
+    .length;
+
 /// The same set with a different running order, and a different idea of what is
 /// owed about it.
 ScoreSet _withEntries(
@@ -667,14 +800,17 @@ ScoreSet _withEntries(
 /// about that entry.
 ///
 /// The place it came back in is where it goes: the server closes the set up
-/// around an entry, so writing one can move the others.
+/// around an entry, so writing one can move the others. That place is in the
+/// server's order, which does not have the songs still waiting to be sent, so
+/// it is counted in the songs here that the server has too; and an entry that
+/// is already at that place here stays where it is among the ones that are
+/// still waiting.
 ScoreSet _withStoredEntry(ScoreSet set, Map<String, dynamic> json) {
   var stored = SetEntry.fromApi(json);
   final others = set.entries.where((entry) => entry.id != stored.id).toList();
-  final position = (json['position'] is num
-          ? (json['position'] as num).round()
-          : others.length)
-      .clamp(0, others.length);
+  final position = json['position'] is num
+      ? (json['position'] as num).round()
+      : null;
 
   // Its own view is the one this device has: the answer carries the view the
   // server knew about, which is older than one that is still waiting to be
@@ -684,15 +820,74 @@ ScoreSet _withStoredEntry(ScoreSet set, Map<String, dynamic> json) {
     stored = stored.copyWith(view: here.view);
   }
 
+  final at = here != null &&
+          (position == null || _placeOnTheServer(set, here) == position)
+      ? set.entries.indexOf(here)
+      : _placeHere(others, position);
+
   return _withEntries(
     set,
-    [...others.sublist(0, position), stored, ...others.sublist(position)],
+    [...others.sublist(0, at), stored, ...others.sublist(at)],
     _withoutOwed(set.pendingEntries, stored.id),
   );
 }
 
+/// Where the given place in the server's order is in [entries]: just before the
+/// song the server has at that place, or the end when there is none.
+int _placeHere(List<SetEntry> entries, int? position) {
+  if (position == null) {
+    return entries.length;
+  }
+  var seen = 0;
+  for (final (index, entry) in entries.indexed) {
+    if (!entry.synced) continue;
+    if (seen == position) return index;
+    seen++;
+  }
+  return entries.length;
+}
+
 ScoreSet _withoutPendingEntry(ScoreSet set, String entryId) =>
     _withEntries(set, set.entries, _withoutOwed(set.pendingEntries, entryId));
+
+/// Whether [owed] is still what is owed about its entry, rather than something
+/// said about the entry since. Every edit queues a new one, so a write that was
+/// out while the entry was edited again is not the one still in the queue.
+bool _isStillOwed(ScoreSet set, PendingEntry owed) =>
+    set.pendingEntries.any((candidate) => identical(candidate, owed));
+
+/// The same set with [owed] no longer owed, and anything said about the entry
+/// since it went out still owed.
+ScoreSet _settled(ScoreSet set, PendingEntry owed) => _withEntries(
+      set,
+      set.entries,
+      set.pendingEntries
+          .where((candidate) => !identical(candidate, owed))
+          .toList(),
+    );
+
+/// The same set once the server has taken an entry that was changed again here
+/// while it was on its way.
+///
+/// What is here is newer and stays owed; the answer only says that the server
+/// has the entry now. So an entry that was taken out in the meantime, which
+/// was dropped as one the server had never heard of, has to be taken out there
+/// too.
+ScoreSet _writtenBehindAWrite(ScoreSet set, String entryId) {
+  final here = set.entries.where((entry) => entry.id == entryId).firstOrNull;
+  if (here != null) {
+    return set.copyWith(entries: [
+      for (final entry in set.entries)
+        if (entry.id == entryId) entry.copyWith(synced: true) else entry,
+    ]);
+  }
+  if (set.pendingEntries.any((owed) => owed.id == entryId)) {
+    return set;
+  }
+  return set.copyWith(
+    pendingEntries: _owing(set.pendingEntries, entryId, PendingChange.delete),
+  );
+}
 
 /// What is owed about the entries of a set, with one entry now owing this.
 ///

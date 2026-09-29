@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// The note next to one song of the set.
-class EntryDescriptionField extends StatelessWidget {
+class EntryDescriptionField extends StatefulWidget {
   const EntryDescriptionField({
     super.key,
     required this.initialValue,
@@ -14,17 +14,58 @@ class EntryDescriptionField extends StatelessWidget {
   final ValueChanged<String> onSubmitted;
 
   @override
+  State<EntryDescriptionField> createState() => _EntryDescriptionFieldState();
+}
+
+class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initialValue);
+
+  /// The note as it read when this field last took it from the set, which is
+  /// what the text is compared with to tell whether the player changed it.
+  late String _taken = widget.initialValue;
+
+  @override
+  void didUpdateWidget(EntryDescriptionField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The note can change underneath the field — a sync bringing in what
+    // somebody wrote on another device. What the player has not touched takes
+    // that on; what they are typing is theirs until they are done with it.
+    if (widget.initialValue != oldWidget.initialValue &&
+        _controller.text == _taken) {
+      _controller.text = widget.initialValue;
+      _taken = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit(String text) {
+    // Pressing enter on a note nobody changed is not a write: it would only
+    // send back what this field last read, over whatever came in since.
+    if (text == _taken) {
+      return;
+    }
+    _taken = text;
+    widget.onSubmitted(text);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      initialValue: initialValue,
-      enabled: enabled,
+    return TextField(
+      controller: _controller,
+      enabled: widget.enabled,
       decoration: const InputDecoration(
         isDense: true,
         hintText: 'capo 2, second verse only, straight into the next',
       ),
       // On submitted rather than on changed: every one of these is a write of
       // that song, and a write per keystroke is a write per keystroke.
-      onFieldSubmitted: onSubmitted,
+      onSubmitted: _submit,
     );
   }
 }

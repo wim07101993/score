@@ -58,11 +58,17 @@ class ScoresRepository extends ChangeNotifier {
       return;
     }
 
-    // The end of the window is what is recorded as synced, and not the moment
-    // the answer arrives: a score that changed while the request was on its
-    // way is not in this answer, and has to be in the next one.
-    final until = DateTime.now();
-    final fromApi = await _api.listScores(_lastSyncedAt(), until, token);
+    // The window is asked about up to this device's now, but where it is
+    // recorded to have ended is read off what the server answered: the server
+    // filters on its own clock, and a device whose clock runs ahead would
+    // otherwise record a watermark past edits the server has yet to make. The
+    // overlap takes in a change whose moment was set before the newest one in
+    // the answer but that only became visible after it was given.
+    final fromApi = await _api.listScores(
+      _lastSyncedAt()?.subtract(syncOverlap),
+      DateTime.now(),
+      token,
+    );
     if (fromApi.isEmpty) {
       return;
     }
@@ -97,7 +103,7 @@ class ScoresRepository extends ChangeNotifier {
 
         final musicXml = await _api.getScoreMusicXml(score.id, accessToken);
         await _store.writeMusicXml(score.id, musicXml);
-        await _keep([score.copyWith(lastFetchedFileAt: DateTime.now())]);
+        await _keep([score.copyWith(lastFetchedFileAt: _fetchedAt(score))]);
       } catch (error) {
         // The others are still worth fetching, but this window is not done.
         debugPrint('the document of ${score.id} could not be refreshed: '
@@ -112,12 +118,26 @@ class ScoresRepository extends ChangeNotifier {
     if (!refreshedAll) {
       return;
     }
+    DateTime? until;
+    for (final score in incoming) {
+      final changed = score.lastChangedAt;
+      if (changed != null && (until == null || changed.isAfter(until))) {
+        until = changed;
+      }
+    }
+    if (until == null) {
+      return;
+    }
     incoming = [
       for (final score in incoming)
         (_scores[score.id] ?? score).copyWith(lastSyncedAt: until),
     ];
     await _keep(incoming);
   }
+
+  /// How far back of the watermark a sync starts asking again. Whatever falls
+  /// inside it twice is simply kept again.
+  static const syncOverlap = Duration(minutes: 1);
 
   /// Where the next change window starts. `null` when the server has never said
   /// anything, which asks about everything there has ever been.
@@ -131,6 +151,14 @@ class ScoresRepository extends ChangeNotifier {
     }
     return latest;
   }
+
+  /// What a document just fetched is recorded as being fetched at: the moment
+  /// the server says the score last changed, rather than this device's now.
+  /// It is compared with that same moment later on, and a device whose clock
+  /// runs ahead would otherwise never see an upload as newer than its copy.
+  /// A document newer than that moment is only fetched once more for it.
+  static DateTime _fetchedAt(Score score) =>
+      score.lastChangedAt ?? DateTime.utc(1970);
 
   /// Stores scores, keeping whichever of the two is newer. A score the server
   /// describes as older than the one here is an answer that arrived out of
@@ -215,7 +243,7 @@ class ScoresRepository extends ChangeNotifier {
 
     final score = await ensureScore(scoreId);
     if (score != null) {
-      await _keep([score.copyWith(lastFetchedFileAt: DateTime.now())]);
+      await _keep([score.copyWith(lastFetchedFileAt: _fetchedAt(score))]);
     }
     return musicXml;
   }
@@ -226,8 +254,27 @@ class ScoresRepository extends ChangeNotifier {
     if (token == null) {
       throw ScoresApiException('you are not signed in', null);
     }
+    final before = _scores[scoreId]?.lastChangedAt;
     await _api.putScore(scoreId, token, musicXml);
     await _store.writeMusicXml(scoreId, musicXml);
+
+    // Recorded as a copy held, or a sync would leave it be and this device
+    // would never pick up a corrected upload from someone else. When the
+    // server put this upload is not known here, so it is recorded as the
+    // version before it: the next sync then fetches this same upload once,
+    // which costs a download, rather than taking a later one for this one.
+    try {
+      final score = await ensureScore(scoreId);
+      if (score != null) {
+        await _keep([
+          score.copyWith(lastFetchedFileAt: before ?? DateTime.utc(1970)),
+        ]);
+      }
+    } catch (error) {
+      // The upload itself went through; the score is read in on the next sync
+      // and its document fetched when it is next opened.
+      debugPrint('the score $scoreId could not be read back: $error');
+    }
   }
 
   /// Says that this score was just looked at, which is what the list is sorted

@@ -13,6 +13,15 @@ library;
 // be shown in would be a set nobody could play.
 import 'package:score/features/notation/view/score_view.dart';
 
+/// How far back each sync asks for changes before the end of the last one.
+///
+/// The window a sync asks about is measured on this device's clock, and the
+/// server filters it on its own. A device whose clock runs ahead would record a
+/// window that ends after changes the server has not made yet, and the next
+/// sync would start after them. Asking again for a stretch that was already
+/// asked for costs a few sets and collections read twice; not asking loses them.
+const Duration pullOverlap = Duration(minutes: 15);
+
 /// What a set is waiting to have done to it on the server.
 class PendingChange {
   /// It was written here and the write has not reached the server yet.

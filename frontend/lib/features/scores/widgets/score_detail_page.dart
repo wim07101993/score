@@ -271,7 +271,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     if (entry == null || view == null) return true;
 
     final hidden = entry.view.hiddenParts;
-    return entry.readAt == view.transposition &&
+    return _readingOffset(
+              band: entry.transposition,
+              saved: entry.view.transposition,
+              savedReadAt: entry.readAt,
+              onScreen: view.transposition,
+            ) ==
+            entry.view.transposition &&
         hidden.length == view.hiddenPartIds.length &&
         hidden.every(view.isHidden);
   }
@@ -294,7 +300,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       final saved = await app.sets.saveEntryView(
         context.set.id,
         context.entry.id,
-        transposition: view.transposition - context.entry.transposition,
+        transposition: _readingOffset(
+          band: context.entry.transposition,
+          saved: context.entry.view.transposition,
+          savedReadAt: context.entry.readAt,
+          onScreen: view.transposition,
+        ),
         hiddenParts: [...view.hiddenPartIds],
       );
       // Where the entry comes in the set is read again rather than kept: a sync
@@ -325,7 +336,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     if (entry == null || view == null) return true;
 
     final hidden = entry.view.hiddenParts;
-    return entry.readAt == view.transposition &&
+    return _readingOffset(
+              band: entry.transposition,
+              saved: entry.view.transposition,
+              savedReadAt: entry.readAt,
+              onScreen: view.transposition,
+            ) ==
+            entry.view.transposition &&
         hidden.length == view.hiddenPartIds.length &&
         hidden.every(view.isHidden) &&
         (_spaceFor(entry.view.zoom) - _space).abs() < 0.01;
@@ -354,7 +371,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       final saved = await app.collections.saveEntryView(
         context.collection.id,
         entry.id,
-        transposition: view.transposition - entry.transposition,
+        transposition: _readingOffset(
+          band: entry.transposition,
+          saved: entry.view.transposition,
+          savedReadAt: entry.readAt,
+          onScreen: view.transposition,
+        ),
         hiddenParts: [...view.hiddenPartIds],
         zoom: _zoom,
       );
@@ -882,4 +904,26 @@ void unawaited(Future<void> future) {
   future.catchError((Object error) {
     debugPrint('a background task failed: $error');
   });
+}
+
+/// How far from the key the band plays it in ([band]) a player reads a score,
+/// as saving what is on screen would store it.
+///
+/// What is on screen is the band's key and the player's own offset added and
+/// then held to an octave either way, so it cannot always be taken apart
+/// again: the band up ten and the player up five shows as up twelve, and
+/// twelve less ten is not five. So while the screen is still where the saved
+/// reading put it ([savedReadAt]), the offset that was [saved] is kept as it
+/// was, and hiding a part does not quietly turn up five into up two. Only a
+/// key the player actually moved to is worked out again, and held to the
+/// octave the API takes, so that a save button compared against this turns
+/// off once there is nothing different left to save.
+int _readingOffset({
+  required int band,
+  required int saved,
+  required int savedReadAt,
+  required int onScreen,
+}) {
+  if (onScreen == savedReadAt) return saved;
+  return (onScreen - band).clamp(minTransposition, maxTransposition);
 }

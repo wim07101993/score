@@ -27,7 +27,8 @@ class Score {
   /// as dates rather than as the strings they arrive as, and whatever is only
   /// known locally carried over from the score being replaced.
   ///
-  /// [syncedAt] is the end of the change window the score was listed in. A
+  /// [syncedAt] is the watermark of the change window the score was listed in:
+  /// the newest moment the server gave in it, on the server's clock. A
   /// score that was read by itself was not part of any window, so it moves
   /// no watermark and keeps whatever it had.
   factory Score.fromApi(
@@ -80,8 +81,10 @@ class Score {
   /// window starts.
   final DateTime? lastSyncedAt;
 
-  /// When the document itself was last fetched, which is how the app knows a
-  /// score it is holding has been uploaded again since.
+  /// Which version of the document this device holds, as the moment the server
+  /// said the score last changed when it was fetched — the server's clock, so
+  /// that it can be compared with that moment later on. It is how the app
+  /// knows a score it is holding has been uploaded again since.
   final DateTime? lastFetchedFileAt;
 
   /// When it was last opened on this device, which is what the list is sorted

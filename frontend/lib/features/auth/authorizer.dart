@@ -5,6 +5,42 @@ import 'package:score/features/auth/authorizer_native.dart'
 /// What a code the user came back with looks like.
 typedef Callback = ({String code, String state});
 
+/// Reads the provider's answer out of the query it was sent back with.
+///
+/// `null` when there is no answer in it at all. An answer that is not a code —
+/// the user said no, or the provider would not ask them — is thrown, because
+/// it is an answer: taking it for no answer is what sends the user straight
+/// back to the provider to be refused again.
+Callback? readCallback(Map<String, String> query) {
+  final error = query['error'];
+  if (error != null) {
+    throw AuthorizationRefused(error, query['error_description']);
+  }
+  final code = query['code'];
+  final state = query['state'];
+  if (code == null || code.isEmpty || state == null) {
+    return null;
+  }
+  return (code: code, state: state);
+}
+
+/// The provider sent the user back without a code.
+class AuthorizationRefused implements Exception {
+  const AuthorizationRefused(
+    this.error, [
+    this.description,
+  ]);
+
+  /// The OAuth error code, `access_denied` most often.
+  final String error;
+  final String? description;
+
+  @override
+  String toString() => description == null || description!.isEmpty
+      ? 'the provider did not sign you in: $error'
+      : 'the provider did not sign you in: $error ($description)';
+}
+
 /// Sending the user to the provider and getting them back.
 ///
 /// This is the one part of signing in that is not the same everywhere, and the
@@ -32,7 +68,8 @@ abstract class Authorizer {
   /// in [pendingCallback] the next time it starts.
   Future<Callback?> authorize(Uri authorizationUrl);
 
-  /// A code the app was started with, if it was.
+  /// A code the app was started with, if it was. Throws
+  /// [AuthorizationRefused] when it was started with a refusal instead.
   Future<Callback?> pendingCallback();
 
   /// Takes the code out of wherever it was found, so that a reload is not read

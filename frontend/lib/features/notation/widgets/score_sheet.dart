@@ -136,6 +136,7 @@ class _ScoreSheetState extends State<ScoreSheet> {
       return;
     }
 
+    _giveEveryPartItsOwnId(score);
     final controller = ScoreController(
       score: score,
       baseStaffSpace: widget.space,
@@ -160,22 +161,50 @@ class _ScoreSheetState extends State<ScoreSheet> {
     if (view == _applied) return;
     _applied = view;
 
+    // By place, the way the download matches them. The controller itself
+    // hides by the part's id, which is only the same thing because every part
+    // was given an id of its own when the score was read.
     final refs = readParts(controller.score);
-    final hidden = view == null
-        ? const <String>{}
-        : {for (final ref in refs) if (view.isHidden(ref.id)) ref.id};
-
     for (var index = 0; index < controller.score.parts.length; index++) {
       if (index >= refs.length) break;
       controller.setPartVisible(
         controller.score.parts[index],
-        !hidden.contains(refs[index].id),
+        view == null || !view.isHidden(refs[index].id),
       );
     }
 
     final wanted = view?.transposition ?? 0;
     controller.resetTransposition();
     if (wanted != 0) controller.transposeBySemitones(wanted);
+  }
+
+  /// Renames every part whose id is empty or taken to the one [readParts]
+  /// names it by.
+  ///
+  /// The controller hides a part by its id, so two parts that share one would
+  /// come and go together, while the view and the download both tell them
+  /// apart by their place. This score is only ever drawn, never written out,
+  /// so the name it gets here goes nowhere.
+  static void _giveEveryPartItsOwnId(Score score) {
+    final refs = readParts(score);
+    for (var index = 0; index < score.parts.length; index++) {
+      final part = score.parts[index];
+      final id = refs[index].id;
+      if (part.id == id) continue;
+      score.parts[index] = Part(
+        id: id,
+        name: part.name,
+        measures: part.measures,
+        abbreviation: part.abbreviation,
+        nameDisplay: part.nameDisplay,
+        abbreviationDisplay: part.abbreviationDisplay,
+        instruments: part.instruments,
+        midiInstruments: part.midiInstruments,
+        spanners: part.spanners,
+        printName: part.printName,
+        printAbbreviation: part.printAbbreviation,
+      );
+    }
   }
 
   SheetPalette _paletteFor(BuildContext context) =>

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/config.dart';
 import 'package:score/features/auth/oidc_api.dart';
@@ -703,6 +705,9 @@ void main() {
           reason: 'what the collection is was not owed, so the server says it');
       expect(now.entries.any((entry) => entry.scoreId == 'here-only'), isTrue,
           reason: 'the answer cannot know about the piece that is waiting');
+      expect(now.entries.any((entry) => entry.scoreId == 'somebody-elses'),
+          isTrue,
+          reason: 'what another device put in is not asked for again');
     });
   });
 
@@ -728,7 +733,8 @@ void main() {
       expect(since, isNull);
     });
 
-    test('the next one starts where the last one ended', () async {
+    test('the next one starts where the last one ended, less the overlap',
+        () async {
       final api = _WorkingApi();
       final (collections, _) = await _repository(api);
 
@@ -740,7 +746,7 @@ void main() {
       final (_, firstUntil) = api.windows.first;
       final (secondSince, _) = api.windows.last;
       expect(firstUntil, isNotNull);
-      expect(secondSince, firstUntil);
+      expect(secondSince, firstUntil!.subtract(pullOverlap));
       expect(collections.getCollection('a')!.lastSyncedAt, firstUntil);
     });
 
@@ -757,7 +763,7 @@ void main() {
       await collections.syncWithApi();
 
       final (since, _) = api.windows.last;
-      expect(since, pulledUntil);
+      expect(since, pulledUntil!.subtract(pullOverlap));
       expect(collections.getCollection(written.id)!.lastSyncedAt, isNotNull,
           reason: 'the server has it, so a delete has to be sent there');
     });
@@ -847,4 +853,119 @@ void main() {
 
     expect(collection.sharedWith, ['bas@example.com', 'ann@example.com']);
   });
+
+  group('what is written while a push is out', () {
+    test('a piece put into a new collection before it is stored stays in it',
+        () async {
+      // The picker shows up as soon as the collection is kept here, so a piece
+      // can be put in while the collection itself is still on its way.
+      final api = _HeldApi();
+      final (collections, _) = await _repository(api);
+
+      final saving = collections.saveCollection(id: 'book', title: 'Book');
+      await pumpEventQueue();
+      expect(api.calls, ['putCollection']);
+
+      final adding = collections.saveEntry('book', scoreId: 'score-1');
+      await pumpEventQueue();
+      api.release();
+      await saving;
+      await adding;
+
+      final now = collections.getCollection('book')!;
+      expect(now.entries.map((entry) => entry.scoreId), ['score-1']);
+      expect(now.entries.single.synced, isTrue);
+      expect(api.entryWrites, hasLength(1));
+      expect(collections.hasPendingChanges, isFalse);
+    });
+  });
+
+  group('what the server refuses', () {
+    test('a refused collection write keeps the pieces put into it', () async {
+      // A mistyped address is the collection's own write. The pieces are
+      // separate writes the server has said nothing against.
+      final api = _RefusingApi();
+      final (collections, store) = await _repository(api);
+      api.stored['book'] = {
+        'id': 'book',
+        'title': 'Book',
+        'is_owner': true,
+        'entries': <Map<String, dynamic>>[],
+      };
+      await store.writeCollections([
+        Collection(
+          id: 'book',
+          title: 'Book',
+          sharedWith: const ['not an address'],
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+          pendingChange: PendingChange.write,
+          entries: const [CollectionEntry(id: 'e1', scoreId: 'score-1')],
+          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+        ).toJson(),
+      ]);
+      await collections.init();
+
+      final problems = <CollectionSyncProblem>[];
+      collections.addSyncProblemListener(problems.add);
+      await collections.syncWithApi();
+
+      final now = collections.getCollection('book')!;
+      expect(problems, hasLength(1));
+      expect(now.sharedWith, isEmpty, reason: 'the refused write is taken back');
+      expect(now.entries.map((entry) => entry.id), ['e1']);
+      expect(api.calls, contains('putEntry'));
+      expect(collections.hasPendingChanges, isFalse);
+    });
+
+    test('a collection that is not there takes what was to go in it with it',
+        () async {
+      final api = _RefusingApi();
+      final (collections, store) = await _repository(api);
+      await store.writeCollections([
+        Collection(
+          id: 'gone',
+          title: 'Gone',
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+          pendingChange: PendingChange.write,
+          entries: const [CollectionEntry(id: 'e1', scoreId: 'score-1')],
+          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+        ).toJson(),
+      ]);
+      await collections.init();
+
+      final problems = <CollectionSyncProblem>[];
+      collections.addSyncProblemListener(problems.add);
+      await collections.syncWithApi();
+
+      expect(problems, hasLength(1), reason: 'one problem, not one per piece');
+      expect(api.calls, isNot(contains('putEntry')));
+      expect(collections.hasPendingChanges, isFalse);
+    });
+  });
+}
+
+/// An API that holds on to the first collection write until it is let go,
+/// the way a slow network does, with its answer as it was when the write
+/// arrived.
+class _HeldApi extends _WorkingApi {
+  Completer<void>? _held = Completer<void>();
+
+  void release() => _held?.complete();
+
+  @override
+  Future<Map<String, dynamic>> putCollection(
+      String collectionId, String token, Map<String, Object?> write) async {
+    final answer = {
+      ...await super.putCollection(collectionId, token, write),
+      'entries': <Map<String, dynamic>>[],
+    };
+    final held = _held;
+    if (held != null) {
+      await held.future;
+      _held = null;
+    }
+    return answer;
+  }
 }

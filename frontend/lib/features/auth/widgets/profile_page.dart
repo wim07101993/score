@@ -51,7 +51,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _refresh() async {
     setState(() => _asking = true);
-    await AppScope.read(context).updateAuth();
+    // The user asking is the one thing that may start a sign-in that failed
+    // before over again.
+    await AppScope.read(context).updateAuth(retry: true);
+    if (!mounted) return;
     await _ask();
     if (mounted) setState(() => _asking = false);
   }
@@ -106,6 +109,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         ' roles may have changed since.'
                     : 'Asked of the provider just now.',
           ),
+          if (app.authProblem != null)
+            _Section(
+              title: 'Signing in did not finish',
+              rows: [('What went wrong', '${app.authProblem}')],
+              footer: 'Nothing will send you to the provider again on its own.'
+                  ' Ask the provider again to try once more.',
+            ),
           _Section(
             title: 'What you may do',
             rows: [

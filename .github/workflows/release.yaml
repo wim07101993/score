@@ -110,8 +110,13 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/score-frontend:${{ github.ref_name }}
             ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
 
+  # Only on a tag: a manual run has no tag to make a release of, and would
+  # otherwise build everything only to fail here. It waits for the web image
+  # too, which runs on exactly the same condition, so that a release is not
+  # published for a tag whose image failed to go out.
   release:
-    needs: [backend-image, build]
+    needs: [backend-image, build, web-image]
+    if: ${{ github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

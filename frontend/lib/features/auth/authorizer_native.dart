@@ -122,14 +122,7 @@ class PlatformAuthorizer implements Authorizer {
   /// find a password, short enough not to hold a port forever.
   static const Duration _patience = Duration(minutes: 5);
 
-  Callback? _read(Map<String, String> query) {
-    final code = query['code'];
-    final state = query['state'];
-    if (code == null || code.isEmpty || state == null) {
-      return null;
-    }
-    return (code: code, state: state);
-  }
+  Callback? _read(Map<String, String> query) => readCallback(query);
 
   /// What to listen on for the answer.
   ///

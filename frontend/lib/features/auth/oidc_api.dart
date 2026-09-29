@@ -93,9 +93,44 @@ class OidcApi {
     }
   }
 
+  /// Why the last sign-in did not finish, until one does or the user asks to
+  /// try again.
+  ///
+  /// While there is one, nothing starts a sign-in on its own. On the web a
+  /// sign-in is a redirect, and a callback that failed would otherwise send the
+  /// browser straight back to the provider — which sends it straight back here
+  /// to fail the same way, for as long as the tab is open, with nothing on
+  /// screen long enough to read. So it stops, says why, and waits for the user.
+  Object? get signInFailure => _signInFailure;
+  Object? _signInFailure;
+
+  /// Lets the next token asked for start a sign-in again. For the user asking
+  /// to try again, and nothing else.
+  void forgetSignInFailure() => _signInFailure = null;
+
+  /// The one refresh in flight, shared by everyone who wants it.
+  ///
+  /// A provider that rotates refresh tokens takes each one exactly once. Two
+  /// syncs refreshing at the same moment would both spend the same token, and
+  /// the second would be refused — and forget the fresh one the first had just
+  /// written down.
+  Future<String?>? _refreshing;
+
+  /// The one sign-in in flight, shared for the same reason: two would open two
+  /// browsers, or on a desktop try to listen on the same port twice.
+  Future<String?>? _signingIn;
+
+  /// The code the app was started with being exchanged, shared so that it is
+  /// spent once. A second exchange of the same code is refused.
+  Future<String?>? _finishing;
+
   /// A token that is good right now, asking for a new one when there is not
   /// one. `null` when the user has to sign in and the app is about to send them
-  /// away to do it.
+  /// away to do it, or when signing in failed — see [signInFailure].
+  ///
+  /// Throws when a refresh could not be done for a reason that says nothing
+  /// about the refresh token, like a network that went away halfway through:
+  /// the token is kept for the next try, and the caller hears about it.
   Future<String?> getActiveAccessToken() async {
     final held = await _heldToken();
     if (held != null) {
@@ -111,61 +146,137 @@ class OidcApi {
     if (credential == null) {
       return null;
     }
-    return await _spend(credential);
+    if (!_isSpent(credential)) {
+      return credential.response?['access_token'] as String?;
+    }
+    return await _refresh();
   }
 
   /// Gets a token by whatever means are left: the code the user just came back
   /// with, the refresh token this device is holding, or by asking them.
   Future<String?> getFreshAccessToken() async {
-    final callback = await _authorizer.pendingCallback();
-    if (callback != null) {
-      // Read before the exchange, which throws the flow away once it is done.
-      final started = await _readFlowState();
-      final token = await _exchangeCallback(callback);
-      await _authorizer.clearCallback();
-      if (token != null) {
-        await _authorizer.returnTo(started?.returnTo);
-        return token;
-      }
+    final finished = await (_finishing ??=
+        _finishPendingSignIn().whenComplete(() => _finishing = null));
+    if (finished != null) {
+      return finished;
     }
 
-    final credential = await _heldCredential();
-    if (credential?.refreshToken != null) {
-      final token = await _spend(credential!, force: true);
-      if (token != null) {
-        return token;
-      }
+    final refreshed = await _refresh();
+    if (refreshed != null) {
+      return refreshed;
     }
 
-    return await _startFlow();
+    if (_signInFailure != null) {
+      return null;
+    }
+    return await (_signingIn ??=
+        _startFlow().whenComplete(() => _signingIn = null));
   }
 
-  /// Reads the token out of [credential], refreshing first when it is spent or
-  /// about to be, and keeps whatever came back.
-  ///
-  /// A provider that rotates refresh tokens hands a new one out with every
-  /// refresh, and a device that did not write it down cannot refresh twice.
-  Future<String?> _spend(
-    openid.Credential credential, {
-    bool force = false,
-  }) async {
+  /// Exchanges the code the app was started with, if it was. `null` when it
+  /// was not, or when the exchange failed — which is kept in [signInFailure],
+  /// so that the app does not go straight back to the provider to fail again.
+  Future<String?> _finishPendingSignIn() async {
+    final Callback? callback;
     try {
-      final response = await credential.getTokenResponse(force);
+      callback = await _authorizer.pendingCallback();
+    } catch (error) {
+      // The provider sent the user back with a refusal rather than a code.
+      await _authorizer.clearCallback();
+      await _store.writeSetting(_flowStateKey, null);
+      _signInFailure = error;
+      return null;
+    }
+    if (callback == null) {
+      return null;
+    }
+
+    // Read before the exchange, which throws the flow away once it is done.
+    final started = await _readFlowState();
+    final String token;
+    try {
+      token = await _exchangeCallback(callback);
+    } catch (error) {
+      _signInFailure = error;
+      return null;
+    } finally {
+      await _authorizer.clearCallback();
+    }
+    await _authorizer.returnTo(started?.returnTo);
+    return token;
+  }
+
+  /// Whether the token in [credential] is gone, or too close to it to spend.
+  static bool _isSpent(openid.Credential credential) {
+    final response = credential.response;
+    if (response == null || response['access_token'] == null) {
+      return true;
+    }
+    final expiresAt = _expiryOf(response);
+    return expiresAt != null &&
+        !expiresAt.subtract(_slack).isAfter(DateTime.now());
+  }
+
+  /// Refreshes the token this device is holding, joining a refresh already on
+  /// its way rather than starting a second. `null` when there is no refresh
+  /// token, or the provider refused the one there was.
+  Future<String?> _refresh() =>
+      _refreshing ??= _refreshNow().whenComplete(() => _refreshing = null);
+
+  /// Keeps whatever came back: a provider that rotates refresh tokens hands a
+  /// new one out with every refresh, and a device that did not write it down
+  /// cannot refresh twice.
+  ///
+  /// The refresh token is only forgotten when the provider says it is no good.
+  /// A refresh that failed because the network did is the same refresh token
+  /// working fine the next time there is one, and throwing it away would make
+  /// a player sign in again over a dropped connection.
+  Future<String?> _refreshNow() async {
+    // Read again rather than handed in: a refresh that finished a moment ago
+    // may have written down a newer one, and the old one is already spent.
+    final credential = await _heldCredential();
+    if (credential == null) {
+      return null;
+    }
+    if (!_isSpent(credential)) {
+      return credential.response!['access_token'] as String?;
+    }
+    if (credential.refreshToken == null) {
+      return null;
+    }
+
+    try {
+      final response = await credential.getTokenResponse(true);
       await _keep(credential);
       return response.accessToken;
-    } catch (_) {
+    } catch (error) {
+      if (!_refused(error)) {
+        rethrow;
+      }
       await _forgetTokens();
       return null;
     }
   }
 
-  /// Turns the code the user came back with into a token. `null` when there was
-  /// nothing to turn, or when the provider refused it.
-  Future<String?> _exchangeCallback(Callback callback) async {
+  /// Whether [error] is the token endpoint saying the refresh token is no good,
+  /// as opposed to not having been reached, or having had a bad moment.
+  static bool _refused(Object error) => switch (error) {
+        openid.OpenIdException(:final code) => code == 'invalid_grant',
+        openid.HttpRequestException(:final statusCode) =>
+          statusCode == 400 || statusCode == 401,
+        _ => false,
+      };
+
+  /// Turns the code the user came back with into a token. Throws when there was
+  /// no sign-in started here for it to belong to, or when the provider refused
+  /// it.
+  Future<String> _exchangeCallback(Callback callback) async {
     final held = await _readFlowState();
     if (held == null) {
       // Nothing was sent from this device, so nothing can have come back to it.
-      return null;
+      throw OidcException(
+        'a sign-in came back that was not started on this device',
+      );
     }
 
     try {
@@ -179,10 +290,12 @@ class OidcApi {
         'state': callback.state,
       });
       await _keep(credential);
-      return (await credential.getTokenResponse()).accessToken;
-    } catch (_) {
-      await _forgetTokens();
-      return null;
+      final token = (await credential.getTokenResponse()).accessToken;
+      if (token == null) {
+        throw OidcException('the provider sent no access token');
+      }
+      _signInFailure = null;
+      return token;
     } finally {
       await _store.writeSetting(_flowStateKey, null);
     }
@@ -211,11 +324,17 @@ class OidcApi {
       }),
     );
 
-    final callback = await _authorizer.authorize(flow.authenticationUri);
-    if (callback == null) {
+    try {
+      final callback = await _authorizer.authorize(flow.authenticationUri);
+      if (callback == null) {
+        return null;
+      }
+      return await _exchangeCallback(callback);
+    } catch (error) {
+      // Kept, so that the next sync does not open another browser to fail in.
+      _signInFailure = error;
       return null;
     }
-    return await _exchangeCallback(callback);
   }
 
   /// The authorization-code flow, built on [started].
@@ -277,9 +396,11 @@ class OidcApi {
       tokenType: token['token_type'] as String?,
       refreshToken: token['refresh_token'] as String?,
       idToken: token['id_token'] as String?,
-      // Brought forward by the slack, so that a token with seconds left on it
-      // is refreshed now rather than spent on a request it cannot outlive.
-      expiresAt: _expiryOf(token)?.subtract(_slack),
+      // The expiry the provider gave, as it gave it: this is written back as
+      // it is read, so bringing it forward here would bring it forward again
+      // every time. The slack is allowed for where it is checked — see
+      // [_isSpent].
+      expiresAt: _expiryOf(token),
     );
   }
 
@@ -431,6 +552,7 @@ class OidcApi {
   /// app work without a network, and they are no use to anyone who cannot get a
   /// token to read them with anyway.
   Future<void> forgetUser() async {
+    _signInFailure = null;
     await _forgetTokens();
     await _store.writeSetting(_flowStateKey, null);
     await _store.writeSetting(_userInfoKey, null);

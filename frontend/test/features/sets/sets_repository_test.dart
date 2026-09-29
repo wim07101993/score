@@ -502,7 +502,42 @@ void main() {
       expect(
         sets.getSet('mine')!.entries.any((entry) => entry.scoreId == 'here-only'),
         isTrue,
+      );      // And the song another device put in is not lost either: the next sync
+      // only asks about what changed after this one.
+      expect(
+        sets.getSet('mine')!.entries.map((entry) => entry.scoreId),
+        ['here-only', 'somebody-elses'],
       );
+    });
+
+    test('a song goes to the place it has among the songs the server has',
+        () async {
+      // Two songs put at the top of the set while offline: the first one to
+      // go out is not behind the second in the server's order, because the
+      // server has not heard of the second yet.
+      final store = await LocalStore.inMemory();
+      await store.writeSets([
+        ScoreSet(
+          id: 'mine',
+          title: 'Zomerbar',
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+          entries: const [SetEntry(id: 'a', scoreId: 'a', synced: true)],
+        ).toJson(),
+      ]);
+      final offline = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      await offline.init();
+      await offline.saveEntry('mine', id: 'x', scoreId: 'x', position: 0);
+      await offline.saveEntry('mine', id: 'y', scoreId: 'y', position: 0);
+
+      final api = _WorkingApi();
+      final online = SetsRepository(store, api, _SignedIn(store));
+      await online.init();
+      await online.syncWithApi();
+
+      expect(api.entryWrites.map((write) => write['position']), [0, 0]);
+      expect(online.getSet('mine')!.entries.map((entry) => entry.id),
+          ['y', 'x', 'a']);
     });
   });
 
@@ -517,7 +552,8 @@ void main() {
           'last_changed_at': DateTime.now().toIso8601String(),
         };
 
-    test('the next one starts where the last one ended', () async {
+    test('the next one starts where the last one ended, less the overlap',
+        () async {
       // Not where its answer arrived: a set that changed while the request was
       // on its way is in neither answer otherwise, and is missed for good.
       final api = _WorkingApi();
@@ -531,7 +567,7 @@ void main() {
       final (_, firstUntil) = api.windows.first;
       final (secondSince, _) = api.windows.last;
       expect(firstUntil, isNotNull);
-      expect(secondSince, firstUntil);
+      expect(secondSince, firstUntil!.subtract(pullOverlap));
       expect(sets.getSet('a')!.lastSyncedAt, firstUntil);
     });
 
@@ -550,7 +586,7 @@ void main() {
       await sets.syncWithApi();
 
       final (since, _) = api.windows.last;
-      expect(since, pulledUntil);
+      expect(since, pulledUntil!.subtract(pullOverlap));
       expect(sets.getSet(written.id)!.lastSyncedAt, isNotNull,
           reason: 'the server has it, so a delete has to be sent there');
     });
@@ -578,6 +614,28 @@ void main() {
       expect(sets.sets, isEmpty);
       expect(sets.hasPendingChanges, isTrue,
           reason: 'the server has to be told');
+    });
+
+    test('and takes what was to go into it with it', () async {
+      final (sets, store) = await _repository(_OfflineApi());
+      await store.writeSets([
+        ScoreSet(
+          id: 'gone',
+          title: 'Last summer',
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+          entries: const [SetEntry(id: 'e1', scoreId: 'score-1')],
+          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+        ).toJson(),
+      ]);
+      await sets.init();
+
+      await sets.deleteSet('gone');
+
+      final kept = (await store.readSets()).map(ScoreSet.fromJson).single;
+      expect(kept.pendingChange, PendingChange.delete);
+      expect(kept.pendingEntries, isEmpty,
+          reason: 'there is no set left on the server to put them into');
     });
 
     test('and was never sent is nothing to tell the server about', () async {

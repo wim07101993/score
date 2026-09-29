@@ -42,6 +42,15 @@ String musicXmlForView(String musicXml, ScoreView? view) {
 void applyView(Score score, ScoreView view) {
   final refs = readParts(score);
 
+  // The key is read before any part is dropped, off the first part of the
+  // whole score, because that is the one the sheet on screen reads it off: it
+  // hides parts rather than dropping them. Read after, with the first part
+  // hidden, the same number of semitones could be spelled as another key — F
+  // flat major in the file where the screen shows E.
+  final key = score.parts.isEmpty
+      ? KeySignature.cMajor
+      : score.parts.first.contextAtMeasure(0).keyFor(allStaves);
+
   // Parts are matched by the place they come in the score, the same way the
   // view names them, so a document with two parts that share an id still has
   // two parts that hide separately.
@@ -51,13 +60,16 @@ void applyView(Score score, ScoreView view) {
         score.parts[index],
   ];
   if (keep.isNotEmpty && keep.length != score.parts.length) {
-    score.parts = keep;
+    // Through withParts rather than by setting the list, because a part group
+    // holds the places of its parts: left alone, a bracket would span parts
+    // that have moved up, or places that are no longer there.
+    final kept = score.withParts(keep);
+    score
+      ..parts = kept.parts
+      ..partGroups = kept.partGroups;
   }
 
   if (view.transposition != 0) {
-    final key = score.parts.isEmpty
-        ? KeySignature.cMajor
-        : score.parts.first.contextAtMeasure(0).keyFor(allStaves);
     ScoreEditor(score).execute(
       TransposeCommand(
         interval: Interval.chromaticFromKey(view.transposition, key),

@@ -57,15 +57,8 @@ class PlatformAuthorizer implements Authorizer {
   }
 
   @override
-  Future<Callback?> pendingCallback() async {
-    final query = Uri.parse(web.window.location.href).queryParameters;
-    final code = query['code'];
-    final state = query['state'];
-    if (code == null || code.isEmpty || state == null) {
-      return null;
-    }
-    return (code: code, state: state);
-  }
+  Future<Callback?> pendingCallback() async =>
+      readCallback(Uri.parse(web.window.location.href).queryParameters);
 
   @override
   Future<void> clearCallback() async {
@@ -90,7 +83,10 @@ class PlatformAuthorizer implements Authorizer {
     final here = Uri.parse(web.window.location.href);
     final query = {...here.queryParameters}
       ..remove('code')
-      ..remove('state');
+      ..remove('state')
+      ..remove('error')
+      ..remove('error_description')
+      ..remove('error_uri');
     return Uri(
       scheme: here.scheme,
       host: here.host,

@@ -89,12 +89,13 @@ void main() {
     // The window was not closed, so it is asked about again.
     api.documentsFail = false;
     await scores.syncWithApi();
-    expect(api.since, [fetched, fetched]);
+    final asked = fetched.subtract(ScoresRepository.syncOverlap);
+    expect(api.since, [asked, asked]);
     expect(await store.readMusicXml('abc'), '<new/>');
 
     // And now it is.
     api.answers = [];
     await scores.syncWithApi();
-    expect(api.since.last, isNot(fetched));
+    expect(api.since.last, isNot(asked));
   });
 }

@@ -20,7 +20,7 @@ import 'package:score/features/sets/models.dart'
     show PendingChange, PendingEntry, transpositionOf;
 
 export 'package:score/features/sets/models.dart'
-    show PendingChange, PendingEntry, addressesOf, transpositionOf;
+    show PendingChange, PendingEntry, addressesOf, pullOverlap, transpositionOf;
 
 /// The smallest a player may draw a score, where 1 is the size it is written
 /// at. It is the API's bound, and a view outside it is one the API refuses.

@@ -40,6 +40,9 @@ class CollectionsRepository extends ChangeNotifier {
 
   final List<void Function(CollectionSyncProblem)> _problemListeners = [];
 
+  /// The push that is out for each collection, if there is one.
+  final Map<String, Future<void>> _pushing = {};
+
   /// The collections there are, most recently changed first. The deleted ones
   /// are kept but are no longer collections anyone has.
   List<Collection> get collections {
@@ -404,6 +407,26 @@ class CollectionsRepository extends ChangeNotifier {
   /// it, and the problem is reported — an edit that is quietly dropped is worse
   /// than one that is dropped loudly.
   Future<void> _push(String collectionId) async {
+    // One push at a time for a collection. Two of them out at once would each
+    // square what is here with an answer that knows nothing about the other,
+    // and whichever came back last would put back what the first one had
+    // already moved past. A push asked for while one is out goes after it, and
+    // reads what is owed at that point.
+    final previous = _pushing[collectionId] ?? Future<void>.value();
+    final next = previous
+        .catchError((Object _) {})
+        .then((_) => _pushNow(collectionId));
+    _pushing[collectionId] = next;
+    try {
+      await next;
+    } finally {
+      if (identical(_pushing[collectionId], next)) {
+        _pushing.remove(collectionId);
+      }
+    }
+  }
+
+  Future<void> _pushNow(String collectionId) async {
     final collection = _collections[collectionId];
     if (collection == null) {
       return;
@@ -436,7 +459,12 @@ class CollectionsRepository extends ChangeNotifier {
 
       if (action == PendingChange.delete) {
         await _api.deleteCollection(collection.id, token);
-        await _keep([collection.copyWith(clearPendingChange: true)]);
+        // Written again while the delete was on its way, which brings it back:
+        // that write is newer than the delete and is still owed.
+        final current = _collections[collectionId]!;
+        if (!_changedSince(collection)) {
+          await _keep([current.copyWith(clearPendingChange: true)]);
+        }
         return;
       }
 
@@ -445,15 +473,29 @@ class CollectionsRepository extends ChangeNotifier {
         'description': collection.description,
         'shared_with': collection.sharedWith,
       });
+      final syncedAt = _syncedOutsideAPull(collection);
+      final current = _collections[collectionId]!;
+      if (_changedSince(collection)) {
+        // It was written again, or deleted, while this was on its way. That is
+        // newer than the answer and is still owed; all the answer says that is
+        // still true is that the server now has the collection.
+        await _keep([
+          current.copyWith(
+            lastSyncedAt: syncedAt,
+            pendingChange: current.deletedAt == null
+                ? PendingChange.write
+                : PendingChange.delete,
+          )
+        ]);
+        return;
+      }
       // What comes back is the collection as the server has it, which is the
       // truth about what a collection is — but not about what has been done to
       // it here and not sent yet, which is newer than anything the server can
-      // say.
+      // say. That is read from the collection as it is now rather than as it
+      // was sent: a piece may have been put in while the request was out.
       await _keep([
-        _carryPending(
-          Collection.fromApi(stored, _syncedOutsideAPull(collection)),
-          collection,
-        ),
+        _carryPending(Collection.fromApi(stored, syncedAt), current),
       ]);
     } on CollectionsApiException catch (error) {
       if (error.isWorthRetrying) {
@@ -491,8 +533,7 @@ class CollectionsRepository extends ChangeNotifier {
 
         if (owed.action == PendingChange.delete) {
           await _api.deleteEntry(collectionId, owed.id, token);
-          await _keep(
-              [_withoutPendingEntry(_collections[collectionId]!, owed.id)]);
+          await _keep([_settled(_collections[collectionId]!, owed)]);
           continue;
         }
 
@@ -503,7 +544,11 @@ class CollectionsRepository extends ChangeNotifier {
           'description': entry.description,
           'transposition': entry.transposition,
         });
-        await _keep([_withStoredEntry(_collections[collectionId]!, stored)]);
+        final current = _collections[collectionId]!;
+        final settled = _isStillOwed(current, owed)
+            ? _withStoredEntry(current, stored)
+            : _writtenBehindAWrite(current, owed.id);
+        await _keep([settled]);
       } on CollectionsApiException catch (error) {
         // The collection already holds the piece. That is somebody having added
         // it on another device while this one was offline, and the answer is
@@ -514,6 +559,11 @@ class CollectionsRepository extends ChangeNotifier {
           debugPrint('the collection already holds the score of entry'
               ' ${owed.id}; dropping this copy of it');
           final current = _collections[collectionId]!;
+          if (!_isStillOwed(current, owed)) {
+            // It was changed again while this was on its way, and that is
+            // what goes next.
+            continue;
+          }
           await _keep([
             _withEntries(
               current,
@@ -534,7 +584,7 @@ class CollectionsRepository extends ChangeNotifier {
 
         final current = _collections[collectionId];
         if (current != null) {
-          await _keep([_withoutPendingEntry(current, owed.id)]);
+          await _keep([_settled(current, owed)]);
         }
         _reportProblem(CollectionSyncProblem(
           collectionId: collectionId,
@@ -581,9 +631,18 @@ class CollectionsRepository extends ChangeNotifier {
           'hidden_parts': entry.view.hiddenParts,
           'zoom': entry.view.zoom,
         });
+        final current = _collections[collectionId]!;
+        final now = current.entries
+            .where((candidate) => candidate.id == entryId)
+            .firstOrNull;
+        if (now == null || !identical(now.view, entry.view)) {
+          // It was looked at differently again while this was on its way, and
+          // that is what goes next.
+          continue;
+        }
         await _keep([
           _withEntryView(
-            _collections[collectionId]!,
+            current,
             entryId,
             CollectionEntryView.fromJson(stored),
             owed: false,
@@ -617,6 +676,13 @@ class CollectionsRepository extends ChangeNotifier {
   /// one that was last changed before that. When that read fails too, what is
   /// here stays as it was: it is no longer owed to anybody, so it is stale
   /// rather than lost, and any later change to it brings it back in step.
+  ///
+  /// Only the collection's own write is taken back. The pieces put into it and
+  /// the views of them are separate writes the server has not refused, so they
+  /// stay owed — unless there is no collection left to put them into. And a
+  /// collection that was written again while the refused write was out is
+  /// left owing that newer write, which the server has not said anything
+  /// about yet.
   Future<void> _giveUpOn(
     Collection collection,
     String action,
@@ -628,7 +694,10 @@ class CollectionsRepository extends ChangeNotifier {
       fromApi =
           token == null ? null : await _api.getCollection(collection.id, token);
     } catch (readError) {
-      await _keep([collection.copyWith(clearPendingChange: true)]);
+      final current = _collections[collection.id] ?? collection;
+      if (!_changedSince(collection)) {
+        await _keep([current.copyWith(clearPendingChange: true)]);
+      }
       _reportProblem(CollectionSyncProblem(
         collectionId: collection.id,
         title: collection.title,
@@ -638,19 +707,26 @@ class CollectionsRepository extends ChangeNotifier {
       return;
     }
 
+    final current = _collections[collection.id] ?? collection;
     if (fromApi == null) {
       // There is no such collection for this user: whatever was written here
       // is a collection that does not exist, and a headstone is what that
-      // looks like.
+      // looks like. Nothing that was to go into it can go anywhere.
       await _keep([
-        collection.copyWith(
-          deletedAt: collection.deletedAt ?? DateTime.now(),
+        current.copyWith(
+          deletedAt: current.deletedAt ?? DateTime.now(),
           clearPendingChange: true,
+          pendingViews: const [],
+          pendingEntries: const [],
         )
       ]);
-    } else {
-      await _keep(
-          [Collection.fromApi(fromApi, _syncedOutsideAPull(collection))]);
+    } else if (!_changedSince(collection)) {
+      await _keep([
+        _carryPending(
+          Collection.fromApi(fromApi, _syncedOutsideAPull(collection)),
+          current,
+        )
+      ]);
     }
 
     _reportProblem(CollectionSyncProblem(
@@ -671,8 +747,8 @@ class CollectionsRepository extends ChangeNotifier {
     // the answer arrives: a collection that changed while the request was on
     // its way is not in this answer, and has to be in the next one.
     final syncedAt = DateTime.now();
-    final fromApi =
-        await _api.listCollections(_lastSyncedAt(), syncedAt, token);
+    final fromApi = await _api.listCollections(
+        _lastSyncedAt()?.subtract(pullOverlap), syncedAt, token);
     if (fromApi.isEmpty) {
       return;
     }
@@ -680,16 +756,25 @@ class CollectionsRepository extends ChangeNotifier {
     final toStore = <Collection>[];
     for (final json in fromApi) {
       final existing = _collections['${json['id']}'];
-      // A collection that still owes the server a write was written here after
-      // the last thing the server told us, so it is the newer of the two and
-      // the answer is out of date the moment it arrives.
-      if (existing?.pendingChange != null) {
-        continue;
-      }
-      // What has been written here and not sent yet is newer than the answer
-      // for the same reason, and is kept on top of it; the rest of what the
-      // server says is taken as it stands.
-      toStore.add(_carryPending(Collection.fromApi(json, syncedAt), existing));
+      // What has been written here and not sent yet was written after the last
+      // thing the server told us, so it is the newer of the two and is kept on
+      // top of the answer; the rest of what the server says is taken as it
+      // stands. That goes for the pieces in a collection whose own write is
+      // still owed too: skipping the answer whole would move the window past
+      // what other devices put into it, and it would never be asked for again.
+      final carried =
+          _carryPending(Collection.fromApi(json, syncedAt), existing);
+      toStore.add(existing?.pendingChange == null
+          ? carried
+          : carried.copyWith(
+              title: existing!.title,
+              description: existing.description,
+              sharedWith: existing.sharedWith,
+              lastChangedAt: existing.lastChangedAt,
+              deletedAt: existing.deletedAt,
+              clearDeletedAt: existing.deletedAt == null,
+              pendingChange: existing.pendingChange,
+            ));
     }
 
     await _keep(toStore);
@@ -718,6 +803,12 @@ class CollectionsRepository extends ChangeNotifier {
   /// asking.
   DateTime _syncedOutsideAPull(Collection collection) =>
       collection.lastSyncedAt ?? _lastSyncedAt() ?? DateTime.utc(1970);
+
+  /// Whether the collection itself was written or deleted here since [sent]
+  /// was read, which a push has to know once its answer is in: the request
+  /// was out for a while, and the player did not stop in the meantime.
+  bool _changedSince(Collection sent) =>
+      _collections[sent.id]?.lastChangedAt != sent.lastChangedAt;
 
   Future<void> _keep(List<Collection> collections) async {
     if (collections.isEmpty) {
@@ -788,7 +879,11 @@ Collection _carryPending(Collection incoming, Collection? existing) {
   }
 
   final owedEntries = existing.pendingEntries;
-  final entries = owedEntries.isNotEmpty ? existing.entries : incoming.entries;
+  final entries = _mergedEntries(
+    incoming.entries,
+    existing.entries,
+    owedEntries,
+  );
   final owedViews = _keptOf(existing.pendingViews, entries);
 
   return incoming.copyWith(
@@ -808,6 +903,36 @@ Collection _carryPending(Collection incoming, Collection? existing) {
     pendingViews: owedViews,
     pendingEntries: owedEntries,
   );
+}
+
+/// The pieces the server says are in a collection, with the ones that are owed
+/// to it as this device has them.
+///
+/// Only those are taken from here. The rest is the server's, and that includes
+/// whatever another device put in or took out: keeping this device's list
+/// whole while one piece is owed would lose that for good, since the next sync
+/// only asks about what changed after this one. A piece that is owed goes back
+/// in at the place it has here, which is as close as a list that has changed
+/// underneath it can come to where it was put.
+List<CollectionEntry> _mergedEntries(
+  List<CollectionEntry> incoming,
+  List<CollectionEntry> existing,
+  List<PendingEntry> owed,
+) {
+  if (owed.isEmpty) {
+    return incoming;
+  }
+  final owedIds = {for (final entry in owed) entry.id};
+  final merged = [
+    for (final entry in incoming)
+      if (!owedIds.contains(entry.id)) entry,
+  ];
+  for (final (index, entry) in existing.indexed) {
+    if (owedIds.contains(entry.id)) {
+      merged.insert(index.clamp(0, merged.length), entry);
+    }
+  }
+  return merged;
 }
 
 /// The same collection holding different pieces, and with a different idea of
@@ -857,6 +982,48 @@ Collection _withStoredEntry(Collection collection, Map<String, dynamic> json) {
 Collection _withoutPendingEntry(Collection collection, String entryId) =>
     _withEntries(collection, collection.entries,
         _withoutOwed(collection.pendingEntries, entryId));
+
+/// Whether [owed] is still what is owed about its entry, rather than something
+/// said about the entry since. Every edit queues a new one, so a write that was
+/// out while the entry was edited again is not the one still in the queue.
+bool _isStillOwed(Collection collection, PendingEntry owed) =>
+    collection.pendingEntries.any((candidate) => identical(candidate, owed));
+
+/// The same collection with [owed] no longer owed, and anything said about the
+/// entry since it went out still owed.
+Collection _settled(Collection collection, PendingEntry owed) => _withEntries(
+      collection,
+      collection.entries,
+      collection.pendingEntries
+          .where((candidate) => !identical(candidate, owed))
+          .toList(),
+    );
+
+/// The same collection once the server has taken an entry that was changed
+/// again here while it was on its way.
+///
+/// What is here is newer and stays owed; the answer only says that the server
+/// has the entry now. So an entry that was taken out in the meantime, which
+/// was dropped as one the server had never heard of, has to be taken out
+/// there too.
+Collection _writtenBehindAWrite(Collection collection, String entryId) {
+  final here = collection.entries
+      .where((entry) => entry.id == entryId)
+      .firstOrNull;
+  if (here != null) {
+    return collection.copyWith(entries: [
+      for (final entry in collection.entries)
+        if (entry.id == entryId) entry.copyWith(synced: true) else entry,
+    ]);
+  }
+  if (collection.pendingEntries.any((owed) => owed.id == entryId)) {
+    return collection;
+  }
+  return collection.copyWith(
+    pendingEntries:
+        _owing(collection.pendingEntries, entryId, PendingChange.delete),
+  );
+}
 
 /// What is owed about the entries of a collection, with one entry now owing
 /// this.

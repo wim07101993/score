@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:score/config.dart';
 import 'package:score/features/auth/oidc_api.dart';
@@ -79,8 +82,36 @@ class App extends ChangeNotifier {
     await app.scores.init();
     await app.sets.init();
     await app.collections.init();
-    await app.updateAuth();
+
+    if (kIsWeb) {
+      // On the web signing in is a redirect, which does not keep anything
+      // waiting — and the code a redirect came back with is best dealt with
+      // before any page is drawn, since dealing with it may put the user on
+      // another page altogether.
+      await app.updateAuth();
+    } else {
+      // On a device it can be a browser left open for minutes, and the scores
+      // already downloaded are no less readable for the user not having signed
+      // in yet. So the app starts with who this device last knew, and asks the
+      // provider once it is showing.
+      app.user = await oidc.keptUserInfo();
+      app.userIsFromThisDevice = app.user != null;
+      unawaited(app._updateAuthAfterStart());
+    }
     return app;
+  }
+
+  /// Signs in behind a page that is already showing, and then fetches what a
+  /// page that was drawn before there was anyone to fetch it for did not.
+  Future<void> _updateAuthAfterStart() async {
+    final couldView = user?.isScoreViewer == true;
+    await updateAuth();
+    if (couldView || user?.isScoreViewer != true) {
+      return;
+    }
+    await updateScores();
+    await updateSets();
+    await updateCollections();
   }
 
   /// Asks the provider who the user is, falling back on what this device was
@@ -90,7 +121,13 @@ class App extends ChangeNotifier {
   /// player on a stage with no signal still has to be able to read the scores
   /// they downloaded. So the copy this device kept is used, and the app says so
   /// rather than pretending it just asked.
-  Future<UserInfo?> updateAuth() async {
+  ///
+  /// A sign-in that failed is not started again on its own — see
+  /// [OidcApi.signInFailure]. [retry] is the user asking for it anyway.
+  Future<UserInfo?> updateAuth({bool retry = false}) async {
+    if (retry) {
+      oidc.forgetSignInFailure();
+    }
     if (!await oidc.canBeReached()) {
       user = await oidc.keptUserInfo();
       userIsFromThisDevice = true;
@@ -102,7 +139,7 @@ class App extends ChangeNotifier {
     try {
       user = await oidc.getUserInfo();
       userIsFromThisDevice = false;
-      authProblem = null;
+      authProblem = oidc.signInFailure;
     } catch (error) {
       debugPrint('failed to ask the provider who this is: $error');
       user = await oidc.keptUserInfo();
@@ -117,6 +154,7 @@ class App extends ChangeNotifier {
     await oidc.forgetUser();
     user = null;
     userIsFromThisDevice = false;
+    authProblem = null;
     notifyListeners();
   }
 
