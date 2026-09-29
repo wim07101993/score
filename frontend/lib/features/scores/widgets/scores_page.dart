@@ -5,6 +5,7 @@ import 'package:score/features/scores/models.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 import 'package:score/features/scores/widgets/upload_score_fab.dart';
 import 'package:score/routes.dart';
+import 'package:score/widgets/collections_button.dart';
 import 'package:score/widgets/profile_button.dart';
 import 'package:score/widgets/sets_button.dart';
 import 'package:score/widgets/settings_button.dart';
@@ -41,10 +42,12 @@ class _ScoresPageState extends State<ScoresPage> {
 
     setState(() => _syncing = true);
     await app.updateScores();
-    // Whatever was written to a set while there was nothing to send it to is
-    // still owed to the server, and any page with a network is a chance to send
-    // it: waiting for the player to open the sets again is waiting for nothing.
+    // Whatever was written to a set or a collection while there was nothing to
+    // send it to is still owed to the server, and any page with a network is a
+    // chance to send it: waiting for the player to open the sets or the
+    // collections again is waiting for nothing.
     await app.updateSets();
+    await app.updateCollections();
     if (mounted) {
       setState(() => _syncing = false);
     }
@@ -61,6 +64,9 @@ class _ScoresPageState extends State<ScoresPage> {
         title: const Text('Scores'),
         actions: [
           if (mayView) const SetsButton(),
+          // A collection names scores but changes nothing about them, so
+          // keeping one asks no more of a player than reading the scores in it.
+          if (mayView) const CollectionsButton(),
           const SettingsButton(),
           const ProfileButton(),
         ],

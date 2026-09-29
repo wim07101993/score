@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:score/app.dart';
 import 'package:score/features/auth/widgets/profile_page.dart';
+import 'package:score/features/collections/widgets/collection_detail_page.dart';
+import 'package:score/features/collections/widgets/collections_page.dart';
 import 'package:score/features/scores/widgets/score_detail_page.dart';
 import 'package:score/features/scores/widgets/scores_page.dart';
 import 'package:score/features/sets/widgets/set_detail_page.dart';
@@ -50,18 +52,32 @@ class _ScoreAppState extends State<ScoreApp> {
       _page(AppRoute.parse(settings.name), settings);
 
   MaterialPageRoute<void> _page(AppRoute target, RouteSettings settings) {
-    return MaterialPageRoute<void>(
-      settings: settings,
-      builder: (context) => switch (target) {
-        ScoresRoute() => const ScoresPage(),
-        ScoreDetailRoute(:final scoreId, :final setId, :final entryId) =>
-          ScoreDetailPage(scoreId: scoreId, setId: setId, entryId: entryId),
-        SetsRoute() => const SetsPage(),
-        SetDetailRoute(:final setId) => SetDetailPage(setId: setId),
-        ProfileRoute() => const ProfilePage(),
-        SettingsRoute() => const SettingsPage(),
-      },
-    );
+    Widget builder(BuildContext context) => switch (target) {
+          ScoresRoute() => const ScoresPage(),
+          ScoreDetailRoute(
+            :final scoreId,
+            :final setId,
+            :final collectionId,
+            :final entryId,
+          ) =>
+            ScoreDetailPage(
+              scoreId: scoreId,
+              setId: setId,
+              collectionId: collectionId,
+              entryId: entryId,
+            ),
+          SetsRoute() => const SetsPage(),
+          SetDetailRoute(:final setId) => SetDetailPage(setId: setId),
+          CollectionsRoute() => const CollectionsPage(),
+          CollectionDetailRoute(:final collectionId) =>
+            CollectionDetailPage(collectionId: collectionId),
+          ProfileRoute() => const ProfilePage(),
+          SettingsRoute() => const SettingsPage(),
+        };
+
+    return settings.arguments == AppRoute.renamed
+        ? _RenamedPageRoute<void>(settings: settings, builder: builder)
+        : MaterialPageRoute<void>(settings: settings, builder: builder);
   }
 
   /// The pages the app is opened onto, when it is opened at an address rather
@@ -105,4 +121,17 @@ class _ScoreAppState extends State<ScoreApp> {
       },
     );
   }
+}
+
+/// A page swapped in for the one it already was, under the name it has just
+/// been given. It is there at once rather than drawn arriving, and leaves the
+/// way any other page does.
+class _RenamedPageRoute<T> extends MaterialPageRoute<T> {
+  _RenamedPageRoute({required super.builder, super.settings});
+
+  @override
+  Duration get transitionDuration => Duration.zero;
+
+  @override
+  Duration get reverseTransitionDuration => super.transitionDuration;
 }

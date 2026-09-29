@@ -9,15 +9,18 @@ import 'package:web/web.dart';
 
 /// Reads what the app that was there before this one kept in this browser.
 ///
-/// It kept what is known about the scores and the sets in IndexedDB databases
-/// of their own, `scores` and `sets`, and the score files in the Origin Private
-/// File System, one `scores_<id>.musicxml` per score. None of it is removed:
-/// if this app has to be rolled back, the old one finds its things where it
-/// left them.
+/// It kept what is known about the scores, the sets and the collections in
+/// IndexedDB databases of their own — `scores`, `sets` and `collections`, each
+/// with one store by the same name — and the score files in the Origin Private
+/// File System, one `scores_<id>.musicxml` per score. What a set or a
+/// collection still owed the server was kept on the record itself, so it comes
+/// over with it. None of it is removed: if this app has to be rolled back, the
+/// old one finds its things where it left them.
 Future<LegacyData?> readLegacyData() async {
   final scores = await _readAll('scores', 'scores');
   final sets = await _readAll('sets', 'sets');
-  if (scores.isEmpty && sets.isEmpty) {
+  final collections = await _readAll('collections', 'collections');
+  if (scores.isEmpty && sets.isEmpty && collections.isEmpty) {
     return null;
   }
 
@@ -33,7 +36,12 @@ Future<LegacyData?> readLegacyData() async {
     }
   }
 
-  return LegacyData(scores: scores, sets: sets, musicXml: musicXml);
+  return LegacyData(
+    scores: scores,
+    sets: sets,
+    collections: collections,
+    musicXml: musicXml,
+  );
 }
 
 /// Every record in one store of one database, or none when the database was

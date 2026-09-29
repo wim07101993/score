@@ -80,4 +80,44 @@ class PlatformAuthorizer implements Authorizer {
       without.endsWith('?') ? without.substring(0, without.length - 1) : without,
     );
   }
+
+  /// The page the browser is on, without an answer a provider may have written
+  /// onto it: a flow started on a page that already carries a spent code — an
+  /// exchange that failed and fell through to asking again — is not sent back
+  /// to that spelling of it.
+  @override
+  Uri? whereTheUserIs() {
+    final here = Uri.parse(web.window.location.href);
+    final query = {...here.queryParameters}
+      ..remove('code')
+      ..remove('state');
+    return Uri(
+      scheme: here.scheme,
+      host: here.host,
+      port: here.port,
+      path: here.path,
+      queryParameters: query.isEmpty ? null : query,
+    );
+  }
+
+  /// Only ever somewhere on this app. What is read back was written by this app
+  /// and nobody else, but a redirect is worth being sure about.
+  ///
+  /// Replaced rather than pushed: the provider's redirect is already an entry
+  /// in this tab's history, and going back to it is going back to a code that
+  /// has been spent. And the app is started again at that address rather than
+  /// navigated inside, because it has already started on the front page.
+  @override
+  Future<void> returnTo(Uri? where) async {
+    if (where == null) return;
+    final here = whereTheUserIs()!;
+    if (where.origin != here.origin || _same(where, here)) return;
+    web.window.location.replace(where.toString());
+  }
+
+  static bool _same(Uri a, Uri b) =>
+      _pathOf(a) == _pathOf(b) && a.query == b.query;
+
+  /// `https://x/` and `https://x` are the same front page.
+  static String _pathOf(Uri uri) => uri.path.isEmpty ? '/' : uri.path;
 }

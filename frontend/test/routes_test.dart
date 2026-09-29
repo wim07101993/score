@@ -28,10 +28,66 @@ void main() {
       expect(AppRoute.parse('/'), isA<ScoresRoute>());
     });
 
+    test("the old app's pages open what they always opened", () {
+      expect(
+        AppRoute.parse('/scores/detail.html?id=abc'),
+        isA<ScoreDetailRoute>().having((r) => r.scoreId, 'scoreId', 'abc'),
+      );
+      expect(
+        AppRoute.parse('/scores/perform.html?id=abc&set=def&entry=ghi'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.scoreId, 'scoreId', 'abc')
+            .having((r) => r.setId, 'setId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+      expect(
+        AppRoute.parse('/scores/perform.html?id=abc&collection=def&entry=ghi'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.collectionId, 'collectionId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+      expect(
+        AppRoute.parse('/sets/detail.html?id=def'),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
+      );
+      expect(
+        AppRoute.parse('/collections/detail.html?id=def'),
+        isA<CollectionDetailRoute>()
+            .having((r) => r.collectionId, 'collectionId', 'def'),
+      );
+      expect(AppRoute.parse('/index.html'), isA<ScoresRoute>());
+      expect(AppRoute.parse('/sets/'), isA<SetsRoute>());
+      expect(AppRoute.parse('/sets/index.html'), isA<SetsRoute>());
+      expect(AppRoute.parse('/collections/'), isA<CollectionsRoute>());
+      expect(AppRoute.parse('/profile.html'), isA<ProfileRoute>());
+      expect(AppRoute.parse('/settings.html'), isA<SettingsRoute>());
+    });
+
+    test("the old app's pages with no id are the new thing they made", () {
+      expect(
+        AppRoute.parse('/scores/detail.html'),
+        isA<ScoreDetailRoute>().having((r) => r.scoreId, 'scoreId', 'new'),
+      );
+      expect(
+        AppRoute.parse('/sets/detail.html'),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'new'),
+      );
+    });
+
+    test('a song with no score, opened from a set, is its set', () {
+      expect(
+        AppRoute.parse('/scores/perform.html?set=def&entry=ghi'),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
+      );
+    });
+
     test('an address read and written again is the address it was', () {
       const addresses = [
         '/',
         '/sets',
+        '/collections',
+        '/collections/abc',
+        '/scores/abc?collection=def&entry=ghi',
         '/profile',
         '/settings',
         '/sets/abc',
@@ -69,6 +125,16 @@ void main() {
       ]);
     });
 
+    test('a score played from a collection is left through it', () {
+      expect(AppRoute.stackFor('/scores/abc?collection=def&entry=ghi'), [
+        isA<ScoresRoute>(),
+        isA<CollectionsRoute>(),
+        isA<CollectionDetailRoute>()
+            .having((r) => r.collectionId, 'collectionId', 'def'),
+        isA<ScoreDetailRoute>(),
+      ]);
+    });
+
     test('a score opened on its own has no set behind it', () {
       expect(AppRoute.stackFor('/scores/abc'), [
         isA<ScoresRoute>(),
@@ -88,6 +154,9 @@ void main() {
         '/sets/abc',
         '/scores/abc',
         '/scores/abc?set=def&entry=ghi',
+        '/collections',
+        '/collections/abc',
+        '/scores/abc?collection=def&entry=ghi',
         '/profile',
         '/settings',
       ];

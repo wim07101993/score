@@ -119,9 +119,12 @@ class OidcApi {
   Future<String?> getFreshAccessToken() async {
     final callback = await _authorizer.pendingCallback();
     if (callback != null) {
+      // Read before the exchange, which throws the flow away once it is done.
+      final started = await _readFlowState();
       final token = await _exchangeCallback(callback);
       await _authorizer.clearCallback();
       if (token != null) {
+        await _authorizer.returnTo(started?.returnTo);
         return token;
       }
     }
@@ -189,14 +192,23 @@ class OidcApi {
   /// the web the app is on its way out and the answer will be waiting when it
   /// starts again.
   Future<String?> _startFlow() async {
-    final started = _FlowState(_randomString(24), _randomString(56));
+    final started = _FlowState(
+      _randomString(24),
+      _randomString(56),
+      returnTo: _authorizer.whereTheUserIs(),
+    );
     final flow = await _flow(started);
 
     // Written down before the user goes anywhere. On the web this app is about
-    // to stop existing, and what comes back is worthless without these.
+    // to stop existing, and what comes back is worthless without these — and
+    // the user is lost without the last one.
     await _store.writeSetting(
       _flowStateKey,
-      jsonEncode({'state': started.state, 'verifier': started.verifier}),
+      jsonEncode({
+        'state': started.state,
+        'verifier': started.verifier,
+        'return_to': started.returnTo?.toString(),
+      }),
     );
 
     final callback = await _authorizer.authorize(flow.authenticationUri);
@@ -284,6 +296,27 @@ class OidcApi {
     await _store.writeSetting(_tokenKey, null);
   }
 
+  /// Throws away the access token and keeps the refresh token, so that the next
+  /// token asked for is a refreshed one.
+  Future<void> _forgetAccessToken() async {
+    final json = await _store.readSetting(_tokenKey);
+    if (json == null) {
+      return;
+    }
+    try {
+      final token = jsonDecode(json) as Map<String, dynamic>
+        ..remove('access_token')
+        ..remove('expires_at')
+        ..remove('expires_in');
+      await _store.writeSetting(
+        _tokenKey,
+        token['refresh_token'] == null ? null : jsonEncode(token),
+      );
+    } catch (_) {
+      await _forgetTokens();
+    }
+  }
+
   Future<_FlowState?> _readFlowState() async {
     final json = await _store.readSetting(_flowStateKey);
     if (json == null) {
@@ -291,7 +324,12 @@ class OidcApi {
     }
     try {
       final map = jsonDecode(json) as Map<String, dynamic>;
-      return _FlowState('${map['state']}', '${map['verifier']}');
+      final returnTo = map['return_to'];
+      return _FlowState(
+        '${map['state']}',
+        '${map['verifier']}',
+        returnTo: returnTo is String ? Uri.tryParse(returnTo) : null,
+      );
     } catch (_) {
       return null;
     }
@@ -308,10 +346,20 @@ class OidcApi {
     // token this app decoded itself. What a provider will say to a bearer of
     // this token is the thing being asked about, and it is also the answer that
     // cannot be wrong about itself.
-    final response = await _http.get(
-      _config.userInfoEndpoint,
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    var response = await _askUserInfo(token);
+    if (response.statusCode == 401) {
+      // Refused by the provider, however long this device thinks the token has
+      // left: revoked, or the session behind it ended somewhere else. Kept, it
+      // would be handed over again at every start until it ran out on its own,
+      // so it is spent now — refreshed if there is a refresh token to do it
+      // with, and signed in for again if not.
+      await _forgetAccessToken();
+      final fresh = await getFreshAccessToken();
+      if (fresh == null) {
+        return null;
+      }
+      response = await _askUserInfo(fresh);
+    }
     if (response.statusCode >= 400) {
       throw OidcException(
         'failed to get the user info: ${response.statusCode} ${response.body}',
@@ -323,6 +371,11 @@ class OidcApi {
     await _store.writeSetting(_userInfoKey, jsonEncode(user.toJson()));
     return user;
   }
+
+  Future<http.Response> _askUserInfo(String token) => _http.get(
+        _config.userInfoEndpoint,
+        headers: {'Authorization': 'Bearer $token'},
+      );
 
   /// What the provider last said about the user, from before there was no
   /// network to ask over.
@@ -405,11 +458,15 @@ class OidcException implements Exception {
 class _FlowState {
   const _FlowState(
     this.state,
-    this.verifier,
-  );
+    this.verifier, {
+    this.returnTo,
+  });
 
   final String state;
   final String verifier;
+
+  /// Where the user was when they were sent to sign in.
+  final Uri? returnTo;
 }
 
 const _alphabet =

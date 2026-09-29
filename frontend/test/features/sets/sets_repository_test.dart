@@ -44,6 +44,9 @@ class _WorkingApi extends SetsApi {
   final List<String> calls = [];
   final Map<String, Map<String, dynamic>> stored = {};
 
+  /// What each song was written as, in order.
+  final List<Map<String, Object?>> entryWrites = [];
+
   /// What a listing will answer with, whatever is actually stored.
   List<Map<String, dynamic>> answers = [];
 
@@ -80,6 +83,7 @@ class _WorkingApi extends SetsApi {
   Future<Map<String, dynamic>> putEntry(String setId, String entryId,
       String token, Map<String, Object?> write) async {
     calls.add('putEntry');
+    entryWrites.add(write);
     return {
       'id': entryId,
       'score_id': write['score_id'],
@@ -368,6 +372,31 @@ void main() {
       expect(api.calls.where((call) => call != 'list').toList(),
           ['putSet', 'putEntry', 'putEntryView']);
       expect(online.hasPendingChanges, isFalse);
+    });
+
+    test('a song played from paper goes out as having no score', () async {
+      // Not as the text `null`, which the server would take for the id of a
+      // score and refuse.
+      final api = _WorkingApi();
+      final (sets, _) = await _repository(_OfflineApi());
+
+      final set = await sets.saveSet(title: 'Zomerbar');
+      final added = await sets.saveEntry(set.id, description: 'Happy birthday');
+      final written = await sets.saveEntry(set.id,
+          id: added.entries.first.id, description: 'Happy birthday, twice');
+
+      final store = await LocalStore.inMemory();
+      final online = SetsRepository(store, api, _SignedIn(store));
+      await store.writeSets([sets.getSet(set.id)!.toJson()]);
+      await online.init();
+      await online.syncWithApi();
+
+      expect(written.entries.single.scoreId, isNull);
+      expect(api.entryWrites, isNotEmpty);
+      for (final write in api.entryWrites) {
+        expect(write, containsPair('score_id', null));
+      }
+      expect(online.getSet(set.id)!.entries.single.scoreId, isNull);
     });
 
     test('a set the server refuses is taken back and reported', () async {

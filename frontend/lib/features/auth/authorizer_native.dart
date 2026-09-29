@@ -149,6 +149,13 @@ class PlatformAuthorizer implements Authorizer {
 
   @override
   Future<void> clearCallback() async {}
+
+  // A window opens over the app and closes again; the app stays where it was.
+  @override
+  Uri? whereTheUserIs() => null;
+
+  @override
+  Future<void> returnTo(Uri? where) async {}
 }
 
 /// What the browser is left showing once it has handed the answer over.

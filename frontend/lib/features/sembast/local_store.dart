@@ -7,9 +7,10 @@ import 'package:sembast/sembast_memory.dart';
 
 /// Where everything this device knows is kept between visits.
 ///
-/// A score is read on a stage and a set is edited at a gig, and both of those
-/// are exactly where there is no network. So nothing here waits on the API:
-/// what is stored is what is shown, and the API is squared with it afterwards.
+/// A score is read on a stage, a set is edited at a gig and a piece is put into
+/// the book where the book is, and all of those are exactly where there is no
+/// network. So nothing here waits on the API: what is stored is what is shown,
+/// and the API is squared with it afterwards.
 ///
 /// It is one store that works the same on a browser and on a device, so that
 /// nothing above it ever has to ask which one it is on.
@@ -30,6 +31,7 @@ class LocalStore {
 
   final _scores = stringMapStoreFactory.store('scores');
   final _sets = stringMapStoreFactory.store('sets');
+  final _collections = stringMapStoreFactory.store('collections');
   final _settings = StoreRef<String, String>('settings');
   final _files = StoreRef<String, String>('musicxml');
 
@@ -44,18 +46,35 @@ class LocalStore {
   /// Set once what the app before this one kept has been brought over.
   static const _legacyDataBroughtOver = 'legacy_data_brought_over';
 
+  /// Set once the collections the app before this one kept have been brought
+  /// over.
+  ///
+  /// They have a mark of their own because they were brought over later than
+  /// the rest: a browser that already ran an earlier build of this app has the
+  /// first mark set, and would otherwise never look for its collections at
+  /// all. Everything else is not read again on their account — a score this app
+  /// has since let go of is not one to bring back.
+  static const _legacyCollectionsBroughtOver =
+      'legacy_collections_brought_over';
+
   /// Brings over, once, what the app that was there before this one kept in
   /// this browser.
   ///
   /// Without it, a player who upgrades opens the app to find the scores they
   /// had downloaded for tonight gone, and the set they edited at the last gig
-  /// without a network gone with the edit it still owed the server.
+  /// — or the piece they put into the book — without a network gone with the
+  /// edit it still owed the server. What was owed comes over with the record
+  /// it is owed about, because the old app kept the two together: the queue is
+  /// part of the record, and is sent at the next sync like any other.
   ///
   /// A record that is here already is left as it is: whatever this app wrote
   /// is newer than anything the old one did. When the reading fails it is not
   /// marked as done, so it is tried again the next time the app starts.
   Future<void> _bringOverLegacyData() async {
-    if (await readSetting(_legacyDataBroughtOver) != null) {
+    final everything = await readSetting(_legacyDataBroughtOver) == null;
+    final collections =
+        await readSetting(_legacyCollectionsBroughtOver) == null;
+    if (!everything && !collections) {
       return;
     }
 
@@ -64,8 +83,9 @@ class LocalStore {
       if (legacy != null) {
         await _data.transaction((transaction) async {
           for (final (store, records) in [
-            (_scores, legacy.scores),
-            (_sets, legacy.sets),
+            if (everything) (_scores, legacy.scores),
+            if (everything) (_sets, legacy.sets),
+            if (collections) (_collections, legacy.collections),
           ]) {
             for (final record in records) {
               final ref = store.record('${record['id']}');
@@ -75,23 +95,26 @@ class LocalStore {
             }
           }
         });
-        await _documents.transaction((transaction) async {
-          for (final MapEntry(key: scoreId, value: musicXml)
-              in legacy.musicXml.entries) {
-            final ref = _files.record(scoreId);
-            if (!await ref.exists(transaction)) {
-              await ref.put(transaction, musicXml);
+        if (everything) {
+          await _documents.transaction((transaction) async {
+            for (final MapEntry(key: scoreId, value: musicXml)
+                in legacy.musicXml.entries) {
+              final ref = _files.record(scoreId);
+              if (!await ref.exists(transaction)) {
+                await ref.put(transaction, musicXml);
+              }
             }
-          }
-        });
+          });
+        }
       }
     } catch (error) {
       debugPrint('could not bring over what was kept before: $error');
       return;
     }
 
-    await writeSetting(
-        _legacyDataBroughtOver, DateTime.now().toIso8601String());
+    final now = DateTime.now().toIso8601String();
+    await writeSetting(_legacyDataBroughtOver, now);
+    await writeSetting(_legacyCollectionsBroughtOver, now);
   }
 
   /// A store on nothing, which is what the tests keep things in: they have
@@ -103,17 +126,22 @@ class LocalStore {
       );
 
   // -------------------------------------------------------------------------
-  // WHAT IS KNOWN ABOUT THE SCORES AND THE SETS
+  // WHAT IS KNOWN ABOUT THE SCORES, THE SETS AND THE COLLECTIONS
   // -------------------------------------------------------------------------
 
   Future<List<Map<String, Object?>>> readScores() => _readAll(_scores);
   Future<List<Map<String, Object?>>> readSets() => _readAll(_sets);
+  Future<List<Map<String, Object?>>> readCollections() =>
+      _readAll(_collections);
 
   Future<void> writeScores(List<Map<String, Object?>> records) =>
       _writeAll(_scores, records);
 
   Future<void> writeSets(List<Map<String, Object?>> records) =>
       _writeAll(_sets, records);
+
+  Future<void> writeCollections(List<Map<String, Object?>> records) =>
+      _writeAll(_collections, records);
 
   Future<List<Map<String, Object?>>> _readAll(
       StoreRef<String, Map<String, Object?>> store) async {

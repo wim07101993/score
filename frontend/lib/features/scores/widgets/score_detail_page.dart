@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:score/app.dart';
+import 'package:score/features/collections/models.dart'
+    show Collection, CollectionEntry, entriesByTitle, maxZoom, minZoom;
 import 'package:score/features/files/file_saver.dart';
 import 'package:score/features/notation/parts.dart';
 import 'package:score/features/notation/view/musicxml_view.dart';
@@ -10,6 +12,7 @@ import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
 import 'package:score/features/scores/widgets/download_score_button.dart';
 import 'package:score/features/scores/widgets/next_score_button.dart';
+import 'package:score/features/scores/widgets/open_collection_button.dart';
 import 'package:score/features/scores/widgets/open_set_button.dart';
 import 'package:score/features/scores/widgets/part_visibility_chip.dart';
 import 'package:score/features/scores/widgets/previous_score_button.dart';
@@ -35,6 +38,7 @@ class ScoreDetailPage extends StatefulWidget {
     super.key,
     required this.scoreId,
     this.setId,
+    this.collectionId,
     this.entryId,
   });
 
@@ -42,6 +46,18 @@ class ScoreDetailPage extends StatefulWidget {
   final String scoreId;
 
   final String? setId;
+
+  /// The collection this score is being played from, when it is being played
+  /// from one rather than from a set.
+  ///
+  /// A set is a gig and a collection is a book, but what a score is opened as
+  /// is the same thing in both — a piece, in the key the others play it in,
+  /// read the way this player reads it, with the rest of the list either side
+  /// of it. What differs is which repository a view is written to, and what
+  /// order the list is in.
+  final String? collectionId;
+
+  /// Which entry of the set or the collection this is.
   final String? entryId;
 
   @override
@@ -62,11 +78,23 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   bool _loading = true;
   Object? _failure;
 
+  /// What one staff space is worth on screen when the score is drawn the size
+  /// it is written at — which is what a zoom of 1 means in a view.
+  static const _writtenSpace = 7.5;
+
+  /// As far as the zoom buttons go either way.
+  static const _minSpace = 4.0;
+  static const _maxSpace = 20.0;
+
   /// What one staff space is worth on screen — the zoom.
-  double _space = 7.5;
+  double _space = _writtenSpace;
 
   /// The set this score is being played from, when it is being played from one.
   _SetContext? _set;
+
+  /// The collection this score is being played from, when it is being played
+  /// from one.
+  _CollectionContext? _collection;
 
   bool get _isNew => widget.scoreId == 'new';
 
@@ -91,6 +119,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     try {
       await _readSetContext();
+      await _readCollectionContext();
       final musicXml = await app.scores.getMusicXml(widget.scoreId);
       if (!mounted) return;
 
@@ -133,6 +162,16 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           .withHiddenParts(entry.view.hiddenParts);
     }
 
+    final piece = _collection?.entry;
+    if (piece != null) {
+      // The same out of a book, where how big it is drawn comes too: that is
+      // this player's alone and is not added to anything.
+      view = view
+          .withTransposition(piece.readAt)
+          .withHiddenParts(piece.view.hiddenParts);
+      _space = _spaceFor(piece.view.zoom);
+    }
+
     setState(() {
       _musicXml = musicXml;
       _parts = parts;
@@ -171,6 +210,48 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     _set = _SetContext(set: set, index: index);
   }
+
+  /// Works out which collection this score is being played from, if any.
+  ///
+  /// A collection this device has never heard of is asked for once — a link
+  /// into one can be followed on a device that has not synced since it was
+  /// shared — and, failing that, the score is played for itself.
+  Future<void> _readCollectionContext() async {
+    final collectionId = widget.collectionId;
+    final entryId = widget.entryId;
+    // Which entry it is has to have been said: a collection with nothing said
+    // about which of its entries this is, is a score that happens to be in
+    // one, and reading that as the first would play it in the wrong key.
+    if (widget.setId != null || collectionId == null || entryId == null) {
+      return;
+    }
+
+    final app = AppScope.read(context);
+    var collection = app.collections.getCollection(collectionId);
+    if (collection == null) {
+      await app.updateCollections();
+      collection = app.collections.getCollection(collectionId);
+    }
+    if (collection == null) return;
+
+    final entry = collection.entries
+        .where((candidate) => candidate.id == entryId)
+        .firstOrNull;
+    // The entry has to be an entry of this score, for the same reason as in a
+    // set: the score is what the page is of, so the collection gives way.
+    if (entry == null || entry.scoreId != widget.scoreId) return;
+
+    _collection = _CollectionContext(collection: collection, entryId: entryId);
+  }
+
+  /// What one staff space is worth for a view drawn at [zoom], held to what
+  /// the zoom buttons go to.
+  double _spaceFor(double zoom) =>
+      (_writtenSpace * zoom).clamp(_minSpace, _maxSpace);
+
+  /// How big the score is drawn now, as a view says it: where 1 is the size it
+  /// is written at.
+  double get _zoom => (_space / _writtenSpace).clamp(minZoom, maxZoom);
 
   void _changeView(ScoreView Function(ScoreView) change) {
     final view = _view;
@@ -224,6 +305,64 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       if (!mounted) return;
       setState(() {
         _set = moved < 0 ? null : _SetContext(set: saved, index: moved);
+      });
+    } catch (error) {
+      if (!mounted) return;
+      _say('This view could not be saved: $error');
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // PLAYING FROM A COLLECTION
+  // -------------------------------------------------------------------------
+
+  /// Whether the way the score is on screen is the way the collection says it
+  /// is played and this player reads it — the size it is drawn at included.
+  /// While it is, there is nothing to save.
+  bool get _viewMatchesCollectionEntry {
+    final entry = _collection?.entry;
+    final view = _view;
+    if (entry == null || view == null) return true;
+
+    final hidden = entry.view.hiddenParts;
+    return entry.readAt == view.transposition &&
+        hidden.length == view.hiddenPartIds.length &&
+        hidden.every(view.isHidden) &&
+        (_spaceFor(entry.view.zoom) - _space).abs() < 0.01;
+  }
+
+  /// Whether there is a reading of this score to keep, against whichever of a
+  /// set or a collection it is being played from.
+  bool get _canSaveView =>
+      (_set != null && !_viewMatchesEntry) ||
+      (_collection != null && !_viewMatchesCollectionEntry);
+
+  /// Writes the way this player is looking at the score into the collection,
+  /// so that it opens that way the next time they play it out of the book.
+  ///
+  /// As for a set, it is their own reading and nobody else's, and it is stored
+  /// as how far they read it from the key the group plays it in. How big it is
+  /// drawn goes with it, since that is theirs too.
+  Future<void> _saveViewToCollection() async {
+    final context = _collection;
+    final view = _view;
+    final entry = context?.entry;
+    if (context == null || view == null || entry == null) return;
+
+    final app = AppScope.read(this.context);
+    try {
+      final saved = await app.collections.saveEntryView(
+        context.collection.id,
+        entry.id,
+        transposition: view.transposition - entry.transposition,
+        hiddenParts: [...view.hiddenPartIds],
+        zoom: _zoom,
+      );
+      if (!mounted) return;
+      setState(() {
+        _collection = saved.entries.any((piece) => piece.id == entry.id)
+            ? _CollectionContext(collection: saved, entryId: entry.id)
+            : null;
       });
     } catch (error) {
       if (!mounted) return;
@@ -289,6 +428,18 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     try {
       await app.scores.putMusicXml(scoreId, musicXml);
       if (!mounted) return;
+      if (_isNew) {
+        // Uploaded, it is a score like any other and is at its own address, so
+        // that reloading it or keeping it opens this score rather than another
+        // empty upload page. The file is on this device by now, so the page at
+        // that address opens straight onto it.
+        unawaited(app.updateScores());
+        Navigator.of(context).pushReplacementNamed(
+          AppRoute.score(scoreId),
+          arguments: AppRoute.renamed,
+        );
+        return;
+      }
       setState(() => _scoreId = scoreId);
       _show(musicXml);
       await app.updateScores();
@@ -369,11 +520,11 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           if (_musicXml != null) ...[
             ZoomOutButton(
               onPressed: () =>
-                  setState(() => _space = (_space - 0.8).clamp(4.0, 20.0)),
+                  setState(() => _space = (_space - 0.8).clamp(_minSpace, _maxSpace)),
             ),
             ZoomInButton(
               onPressed: () =>
-                  setState(() => _space = (_space + 0.8).clamp(4.0, 20.0)),
+                  setState(() => _space = (_space + 0.8).clamp(_minSpace, _maxSpace)),
             ),
             DownloadScoreButton(onPressed: _download),
           ],
@@ -389,13 +540,34 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           : Column(
               children: [
                 if (_set != null) _SetBar(context: _set!),
+                if (_collection != null)
+                  // Drawn from the collection as it is now rather than as it
+                  // was when the page opened: the titles the way through it is
+                  // sorted by arrive with the scores, after the page has
+                  // opened, and a sync can bring in pieces somebody else put
+                  // into the book.
+                  ListenableBuilder(
+                    listenable:
+                        Listenable.merge([app.collections, app.scores]),
+                    builder: (context, _) => _CollectionBar(
+                      context: _collection!.refreshedFrom(
+                        app.collections.getCollection(
+                            _collection!.collection.id),
+                      ),
+                      titleOf: (scoreId) => app.scores.getScore(scoreId)?.title,
+                    ),
+                  ),
                 if (_view != null)
                   _ViewControls(
                     view: _view!,
                     parts: _parts,
                     onChange: _changeView,
-                    canSaveToSet: _set != null && !_viewMatchesEntry,
-                    onSaveToSet: _set == null ? null : _saveViewToSet,
+                    canSaveToSet: _canSaveView,
+                    onSaveToSet: _set != null
+                        ? _saveViewToSet
+                        : _collection != null
+                            ? _saveViewToCollection
+                            : null,
                   ),
                 Expanded(child: _sheet()),
               ],
@@ -431,13 +603,18 @@ class _SetBar extends StatelessWidget {
     final set = context.set;
     final entry = context.entry;
 
-    String? at(int index) {
-      if (index < 0 || index >= set.entries.length) return null;
-      return AppRoute.score(
-        set.entries[index].scoreId,
-        setId: set.id,
-        entryId: set.entries[index].id,
-      );
+    /// The nearest song that way that has a score to open. One that is played
+    /// from paper has nothing to put on the stand, so it is stepped over.
+    String? nearest(int step) {
+      for (var index = context.index + step;
+          index >= 0 && index < set.entries.length;
+          index += step) {
+        final entry = set.entries[index];
+        final scoreId = entry.scoreId;
+        if (scoreId == null) continue;
+        return AppRoute.score(scoreId, setId: set.id, entryId: entry.id);
+      }
+      return null;
     }
 
     void go(String? route) {
@@ -445,8 +622,8 @@ class _SetBar extends StatelessWidget {
       Navigator.of(buildContext).pushReplacementNamed(route);
     }
 
-    final previous = at(context.index - 1);
-    final next = at(context.index + 1);
+    final previous = nearest(-1);
+    final next = nearest(1);
 
     return Material(
       color: theme.colorScheme.secondaryContainer,
@@ -464,6 +641,117 @@ class _SetBar extends StatelessWidget {
             ),
             Text(
               '${context.index + 1} of ${set.entries.length}',
+              style: theme.textTheme.labelMedium,
+            ),
+            NextScoreButton(
+              onPressed: next == null ? null : () => go(next),
+            ),
+            if (entry.description.trim().isNotEmpty)
+              Expanded(
+                child: Text(
+                  entry.description,
+                  style: theme.textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Which collection this score is being played from, and which of its pieces
+/// it is.
+///
+/// Where it comes in the collection is not kept: a collection has no order, so
+/// the way through it is by title, and the titles are in the scores — which
+/// can arrive after the page has opened. So it is worked out each time the bar
+/// is drawn, and "3 of 21" means the third one down the page somebody was just
+/// looking at.
+class _CollectionContext {
+  const _CollectionContext({
+    required this.collection,
+    required this.entryId,
+  });
+
+  final Collection collection;
+  final String entryId;
+
+  CollectionEntry? get entry => collection.entries
+      .where((candidate) => candidate.id == entryId)
+      .firstOrNull;
+
+  /// The same piece of the collection as it now stands, or of the collection
+  /// as it was when there is no longer one on this device to read.
+  _CollectionContext refreshedFrom(Collection? now) {
+    if (now == null || !now.entries.any((entry) => entry.id == entryId)) {
+      return this;
+    }
+    return _CollectionContext(collection: now, entryId: entryId);
+  }
+}
+
+/// The way through the collection: the pieces either side of this one, by
+/// title.
+class _CollectionBar extends StatelessWidget {
+  const _CollectionBar({
+    required this.context,
+    required this.titleOf,
+  });
+
+  final _CollectionContext context;
+  final String? Function(String scoreId) titleOf;
+
+  @override
+  Widget build(BuildContext buildContext) {
+    final theme = Theme.of(buildContext);
+    final collection = context.collection;
+    final entries = entriesByTitle(collection.entries, titleOf);
+    final index = entries.indexWhere((entry) => entry.id == context.entryId);
+    if (index < 0) return const SizedBox.shrink();
+    final entry = entries[index];
+
+    /// The nearest piece that way that has a score to open. One that has yet
+    /// to be scanned has nothing to put on the stand, so it is stepped over.
+    String? nearest(int step) {
+      for (var at = index + step; at >= 0 && at < entries.length; at += step) {
+        final candidate = entries[at];
+        final scoreId = candidate.scoreId;
+        if (scoreId == null) continue;
+        return AppRoute.score(
+          scoreId,
+          collectionId: collection.id,
+          entryId: candidate.id,
+        );
+      }
+      return null;
+    }
+
+    void go(String? route) {
+      if (route == null) return;
+      Navigator.of(buildContext).pushReplacementNamed(route);
+    }
+
+    final previous = nearest(-1);
+    final next = nearest(1);
+
+    return Material(
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          children: [
+            PreviousScoreButton(
+              onPressed: previous == null ? null : () => go(previous),
+            ),
+            OpenCollectionButton(
+              title: collection.displayTitle,
+              onPressed: () => Navigator.of(buildContext)
+                  .pushNamed(AppRoute.collection(collection.id)),
+            ),
+            Text(
+              '${index + 1} of ${entries.length}',
               style: theme.textTheme.labelMedium,
             ),
             NextScoreButton(

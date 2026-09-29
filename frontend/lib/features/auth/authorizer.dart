@@ -38,4 +38,17 @@ abstract class Authorizer {
   /// Takes the code out of wherever it was found, so that a reload is not read
   /// as a second sign-in with a code that has already been spent.
   Future<void> clearCallback();
+
+  /// Where the user is when a sign-in starts, so that finishing it can put
+  /// them back there. `null` where the app is never left to sign in, and so
+  /// never loses its place.
+  Uri? whereTheUserIs();
+
+  /// Puts the user back where a sign-in was started from, once it is done.
+  ///
+  /// The provider only ever sends the user back to the one address the app is
+  /// registered with — the front page — so without this a link to a score
+  /// opened in a tab with no token in it signs the player in and then shows
+  /// them the list of every score instead.
+  Future<void> returnTo(Uri? where);
 }

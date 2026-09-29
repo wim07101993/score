@@ -144,7 +144,7 @@ class SetsRepository extends ChangeNotifier {
 
     final written = SetEntry(
       id: entryId,
-      scoreId: scoreId ?? known?.scoreId ?? '',
+      scoreId: scoreId ?? known?.scoreId,
       description: description ?? known?.description ?? '',
       transposition: transpositionOf(transposition ?? known?.transposition),
       // How this user reads it is theirs and is written on its own, so an entry

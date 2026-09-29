@@ -152,6 +152,15 @@ class _SetDetailPageState extends State<SetDetailPage> {
       );
       if (!mounted) return;
       setState(() => _dirty = false);
+      if (widget.setId == 'new') {
+        // Saved, it is a set like any other and is at its own address, so that
+        // reloading it or keeping it opens this set rather than a new empty
+        // one.
+        Navigator.of(context).pushReplacementNamed(
+          AppRoute.set(_setId),
+          arguments: AppRoute.renamed,
+        );
+      }
     } catch (error) {
       if (mounted) _say('The set could not be saved: $error');
     }
@@ -266,7 +275,10 @@ class _SetDetailPageState extends State<SetDetailPage> {
               count: entries.length,
               setId: _setId,
               owner: owner,
-              score: app.scores.getScore(entries[index].scoreId),
+              score: switch (entries[index].scoreId) {
+                final scoreId? => app.scores.getScore(scoreId),
+                null => null,
+              },
               onMove: (to) =>
                   _writeEntry(id: entries[index].id, position: to),
               onDescription: (text) =>
@@ -463,21 +475,31 @@ class _EntryCard extends StatelessWidget {
                 Text('${index + 1}.', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: score == null
-                      ? Tooltip(
-                          message: entry.scoreId,
-                          child: Text('Not on this device yet',
-                              style: TextStyle(
-                                  color: theme.colorScheme.outline,
-                                  fontStyle: FontStyle.italic)),
-                        )
-                      : Text(score!.title, style: theme.textTheme.titleSmall),
+                  child: switch ((entry.scoreId, score)) {
+                    (_, final score?) =>
+                      Text(score.title, style: theme.textTheme.titleSmall),
+                    (null, _) => Text('Played from paper',
+                        style: TextStyle(
+                            color: theme.colorScheme.outline,
+                            fontStyle: FontStyle.italic)),
+                    (final scoreId?, _) => Tooltip(
+                        message: scoreId,
+                        child: Text('Not on this device yet',
+                            style: TextStyle(
+                                color: theme.colorScheme.outline,
+                                fontStyle: FontStyle.italic)),
+                      ),
+                  },
                 ),
                 OpenScoreButton(
-                  onPressed: () => Navigator.of(context).pushNamed(
-                    AppRoute.score(entry.scoreId,
-                        setId: setId, entryId: entry.id),
-                  ),
+                  onPressed: switch (entry.scoreId) {
+                    final scoreId? => () => Navigator.of(context).pushNamed(
+                          AppRoute.score(scoreId,
+                              setId: setId, entryId: entry.id),
+                        ),
+                    // There is nothing to open for a song with no score.
+                    null => null,
+                  },
                 ),
                 if (owner) ...[
                   MoveEntryUpButton(

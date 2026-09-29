@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:score/config.dart';
 import 'package:score/features/auth/oidc_api.dart';
+import 'package:score/features/collections/api.dart';
+import 'package:score/features/collections/repository.dart';
 import 'package:score/features/scores/api.dart';
 import 'package:score/features/scores/repository.dart';
 import 'package:score/features/sembast/local_store.dart';
@@ -16,7 +18,8 @@ import 'package:score/features/settings/settings.dart';
 /// straight away, and whatever the server has to add arrives when it arrives.
 class App extends ChangeNotifier {
   App._(this.config, this.store, this.settings, this.oidc, this.scoresApi,
-      this.setsApi, this.scores, this.sets);
+      this.setsApi, this.collectionsApi, this.scores, this.sets,
+      this.collections);
 
   final Config config;
   final LocalStore store;
@@ -28,8 +31,10 @@ class App extends ChangeNotifier {
   final OidcApi oidc;
   final ScoresApi scoresApi;
   final SetsApi setsApi;
+  final CollectionsApi collectionsApi;
   final ScoresRepository scores;
   final SetsRepository sets;
+  final CollectionsRepository collections;
 
   /// Who is signed in, as far as this device knows.
   UserInfo? user;
@@ -56,6 +61,7 @@ class App extends ChangeNotifier {
     final oidc = OidcApi(config.oidc, store);
     final scoresApi = ScoresApi(config.api);
     final setsApi = SetsApi(config.api);
+    final collectionsApi = CollectionsApi(config.api);
 
     final app = App._(
       config,
@@ -64,12 +70,15 @@ class App extends ChangeNotifier {
       oidc,
       scoresApi,
       setsApi,
+      collectionsApi,
       ScoresRepository(store, scoresApi, oidc),
       SetsRepository(store, setsApi, oidc),
+      CollectionsRepository(store, collectionsApi, oidc),
     );
 
     await app.scores.init();
     await app.sets.init();
+    await app.collections.init();
     await app.updateAuth();
     return app;
   }
@@ -135,6 +144,19 @@ class App extends ChangeNotifier {
       await sets.syncWithApi();
     } catch (error) {
       debugPrint('failed to sync the sets: $error');
+    }
+  }
+
+  /// Squares the collections with the API, which is also when whatever was
+  /// written while it could not be reached is sent.
+  Future<void> updateCollections() async {
+    if (!await collectionsApi.canBeReached() || !await oidc.canBeReached()) {
+      return;
+    }
+    try {
+      await collections.syncWithApi();
+    } catch (error) {
+      debugPrint('failed to sync the collections: $error');
     }
   }
 }

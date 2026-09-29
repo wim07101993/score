@@ -87,6 +87,18 @@ class _Obliging implements Authorizer {
     cleared++;
     pending = null;
   }
+
+  /// Where the user is, as far as the next sign-in is concerned.
+  Uri? here;
+
+  /// Where the user was put back to, once signed in.
+  Uri? returnedTo;
+
+  @override
+  Uri? whereTheUserIs() => here;
+
+  @override
+  Future<void> returnTo(Uri? where) async => returnedTo = where;
 }
 
 /// An authorizer that never answers.
@@ -95,7 +107,15 @@ class _Obliging implements Authorizer {
 /// provider and this app stops existing. Whatever it was waiting for arrives in
 /// the *next* life of the app, through [Authorizer.pendingCallback].
 class _GoesAway implements Authorizer {
+  _GoesAway({this.here});
+
   Uri? sentTo;
+  final Uri? here;
+
+  @override
+  Uri? whereTheUserIs() => here;
+  @override
+  Future<void> returnTo(Uri? where) async {}
 
   @override
   Uri get redirectUri => Uri.parse('http://localhost:3000/');
@@ -118,7 +138,12 @@ class _Provider {
     this.discoverable = true,
     this.reissuesRefreshTokens = true,
     this.claims = const {},
+    this.refused = const {},
   });
+
+  /// Access tokens the provider no longer takes, however long they had left.
+  final Set<String> refused;
+  final List<String?> userInfoAskedWith = [];
 
   final String host;
   final bool discoverable;
@@ -171,6 +196,11 @@ class _Provider {
         }
 
         if (path.endsWith('/userinfo')) {
+          final bearer = request.headers['Authorization']?.substring(7);
+          userInfoAskedWith.add(bearer);
+          if (refused.contains(bearer)) {
+            return http.Response('revoked', 401, request: request);
+          }
           return http.Response(jsonEncode(claims), 200,
               request: request,
               headers: {'content-type': 'application/json'});
@@ -280,6 +310,31 @@ void main() {
           reason: 'a code left in the address would be spent twice on reload');
       expect(restarted.sentTo, isNull,
           reason: 'it had an answer already; it should not have asked again');
+    });
+
+    test('puts the user back where the sign-in was started from', () async {
+      final provider = _Provider(_nextHost());
+      final store = await LocalStore.inMemory();
+      final link = Uri.parse('http://localhost:3000/scores/abc?set=def');
+
+      // A link to a score, opened in a tab with no token in it.
+      final leaving = _GoesAway(here: link);
+      final (first, _) = await _api(provider, authorizer: leaving, store: store);
+      await first.getActiveAccessToken();
+      final state = leaving.sentTo!.queryParameters['state']!;
+
+      // The provider sends it back to the front page.
+      final restarted = _Obliging()
+        ..pending = (code: 'the-code', state: state)
+        ..here = Uri.parse('http://localhost:3000/');
+      final (second, _) = await _api(
+        _Provider(provider.host),
+        authorizer: restarted,
+        store: store,
+      );
+
+      expect(await second.getActiveAccessToken(), isNotNull);
+      expect(restarted.returnedTo, link);
     });
   });
 
@@ -430,6 +485,68 @@ void main() {
       expect(remembered!.name, 'A Player');
       expect(remembered.isScoreViewer, isTrue);
       expect(store, isNotNull);
+    });
+
+    test('is asked about again with a refreshed token when the provider'
+        ' refuses the one held', () async {
+      // Revoked, or signed out somewhere else: this device still thinks it has
+      // an hour left on it.
+      final provider = _Provider(
+        _nextHost(),
+        claims: const {'sub': 'user-1', 'name': 'A Player'},
+        refused: const {'revoked'},
+      );
+      final store = await LocalStore.inMemory();
+      await store.writeSetting(
+        'auth_token_response',
+        jsonEncode({
+          'access_token': 'revoked',
+          'token_type': 'Bearer',
+          'refresh_token': 'the-refresh-token',
+          'expires_at':
+              DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
+                  1000,
+        }),
+      );
+      final authorizer = _Obliging();
+      final (api, _) = await _api(provider, authorizer: authorizer, store: store);
+
+      final user = await api.getUserInfo();
+
+      expect(user?.name, 'A Player');
+      expect(provider.userInfoAskedWith, ['revoked', 'access-1']);
+      expect(provider.tokenRequests.single['grant_type'], 'refresh_token');
+      expect(authorizer.sentTo, isNull,
+          reason: 'a refresh that worked should not disturb the player');
+      expect(await api.getActiveAccessToken(), 'access-1',
+          reason: 'the refused token was kept');
+    });
+
+    test('is signed in for again when a refused token cannot be refreshed',
+        () async {
+      final provider = _Provider(
+        _nextHost(),
+        claims: const {'sub': 'user-1'},
+        refused: const {'revoked'},
+      );
+      final store = await LocalStore.inMemory();
+      await store.writeSetting(
+        'auth_token_response',
+        jsonEncode({
+          'access_token': 'revoked',
+          'token_type': 'Bearer',
+          'expires_at':
+              DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
+                  1000,
+        }),
+      );
+      final authorizer = _Obliging();
+      final (api, _) = await _api(provider, authorizer: authorizer, store: store);
+
+      await api.getUserInfo();
+
+      expect(authorizer.sentTo, isNotNull);
+      expect(provider.userInfoAskedWith.last, 'access-1');
     });
 
     test('is forgotten on the way out', () async {

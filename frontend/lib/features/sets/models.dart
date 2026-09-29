@@ -192,6 +192,16 @@ class ScoreSet {
       };
 }
 
+/// Reads the score an entry plays, which is nothing for a song that has none.
+///
+/// Anything that is not an id is nothing: this app once stored such an entry's
+/// score as the text `null`, and an entry read back like that would be sent to
+/// the server as a score that does not exist.
+String? scoreIdOf(Object? json) => switch (json) {
+      final String id when id.isNotEmpty && id != 'null' => id,
+      _ => null,
+    };
+
 /// One score in a set.
 ///
 /// Everything here but the view is what the band does, which is the same for
@@ -210,7 +220,7 @@ class SetEntry {
     Map<String, dynamic> json,
   ) => SetEntry(
         id: '${json['id']}',
-        scoreId: '${json['score_id']}',
+        scoreId: scoreIdOf(json['score_id']),
         description: '${json['description'] ?? ''}',
         transposition: transpositionOf(json['transposition']),
         view: EntryView.fromJson(json['view']),
@@ -222,7 +232,7 @@ class SetEntry {
     Map<String, Object?> json,
   ) => SetEntry(
         id: '${json['id']}',
-        scoreId: '${json['score_id']}',
+        scoreId: scoreIdOf(json['score_id']),
         description: '${json['description'] ?? ''}',
         transposition: transpositionOf(json['transposition']),
         view: EntryView.fromJson(json['view']),
@@ -236,7 +246,10 @@ class SetEntry {
   /// and the server keeps the name.
   final String id;
 
-  final String scoreId;
+  /// The score that is played, or null for a song that has none — one the
+  /// band still plays from paper. It is still in the running order, in its
+  /// place, with its description.
+  final String? scoreId;
   final String description;
 
   /// How far the band plays this one from where it is written, in semitones,
