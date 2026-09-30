@@ -27,14 +27,14 @@ sealed class AppRoute {
     return switch (target) {
       ScoresRoute() => [target],
       SetDetailRoute() => [const ScoresRoute(), const SetsRoute(), target],
-      // A score opened out of a set: the set goes behind it, so leaving the
-      // score arrives back at the running order it was being played from
-      // rather than skipping past it to the list of every score there is.
       CollectionDetailRoute() => [
           const ScoresRoute(),
           const CollectionsRoute(),
           target,
         ],
+      // A score opened out of a set: the set goes behind it, so leaving the
+      // score arrives back at the running order it was being played from
+      // rather than skipping past it to the list of every score there is.
       ScoreDetailRoute(setId: final setId?) => [
           const ScoresRoute(),
           const SetsRoute(),
@@ -61,12 +61,21 @@ sealed class AppRoute {
   /// as the pages they always were, rather than `detail.html` being taken for
   /// the id of a score.
   static AppRoute parse(String? name) {
-    final uri = Uri.parse(name ?? '/');
-    final query = uri.queryParameters;
-    final segments = [
-      for (final segment in uri.pathSegments)
-        if (segment.isNotEmpty && segment != 'index.html') segment,
-    ];
+    final Map<String, String> query;
+    final List<String> segments;
+    try {
+      final uri = Uri.parse(name ?? '/');
+      query = uri.queryParameters;
+      segments = [
+        for (final segment in uri.pathSegments)
+          if (segment.isNotEmpty && segment != 'index.html') segment,
+      ];
+    } on FormatException {
+      // An address that is not one — a link mangled on its way here, escapes
+      // that are not UTF-8 — is still an address the app was opened at, and
+      // throwing here would leave nothing on screen at all.
+      return const ScoresRoute();
+    }
 
     if (segments.isEmpty) {
       return const ScoresRoute();
@@ -93,8 +102,17 @@ sealed class AppRoute {
           );
         }
         // An entry that has no score yet — a piece still on paper — was
-        // opened all the same, to say which piece it is and what it is in.
-        // Here that is the running order it is in.
+        // opened all the same, to say which piece it is and what it is in,
+        // and it still is.
+        final entryId = query['entry'];
+        if (entryId != null && (setId != null || collectionId != null)) {
+          return ScoreDetailRoute(
+            scoreId: ScoreDetailRoute.paper,
+            setId: setId,
+            collectionId: setId == null ? collectionId : null,
+            entryId: entryId,
+          );
+        }
         if (setId != null) return SetDetailRoute(setId: setId);
         if (collectionId != null) {
           return CollectionDetailRoute(collectionId: collectionId);
@@ -130,7 +148,6 @@ sealed class AppRoute {
         return const CollectionsRoute();
 
       case ['scores']:
-      case ['index.html']:
         return const ScoresRoute();
 
       case ['profile' || 'profile.html']:
@@ -151,6 +168,22 @@ sealed class AppRoute {
 
   /// A new score, which has no id until it is uploaded.
   static String newScore() => '/scores/new';
+
+  /// An entry of a set or a collection that is played from paper, and has no
+  /// score to open. It is opened all the same, in its place in the running
+  /// order: skipping it would have the player looking at the next song while
+  /// the band plays this one.
+  static String paper({
+    String? setId,
+    String? collectionId,
+    required String entryId,
+  }) =>
+      score(
+        ScoreDetailRoute.paper,
+        setId: setId,
+        collectionId: collectionId,
+        entryId: entryId,
+      );
 
   static String score(
     String scoreId, {
@@ -196,8 +229,13 @@ class ScoreDetailRoute extends AppRoute {
     this.entryId,
   });
 
-  /// `new` for a score that is about to be uploaded and has no id yet.
+  /// `new` for a score that is about to be uploaded and has no id yet, and
+  /// [paper] for an entry that is played from paper.
   final String scoreId;
+
+  /// What stands in for the id of a score an entry does not have. Ids are
+  /// UUIDs, so no score is ever called this.
+  static const paper = 'paper';
 
   /// The set this score is being played from, when it is being played from one.
   final String? setId;

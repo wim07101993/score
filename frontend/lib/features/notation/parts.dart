@@ -17,12 +17,13 @@ Score parseMusicXml(String musicXml) => const MusicXmlReader().read(musicXml);
 
 /// The parts of a score, as the app names them.
 ///
-/// A view names its parts by the place they come in the score rather than by
-/// anything written in the document: MusicXML part ids are unique in a valid
-/// document, but a document that is being read is not always valid, and a part
-/// with no usable id is still a part. Taking one off the screen matches them up
-/// the same way, so a score with two parts both called `P1` still has two parts
-/// that can be hidden separately.
+/// A view names its parts by the id the document gives them, and falls back on
+/// the place they come in the score when that id is no use: MusicXML part ids
+/// are unique in a valid document, but a document that is being read is not
+/// always valid, and a part with an empty id, or one another part already took,
+/// is still a part. Taking one off the screen matches them up the same way, so
+/// a score with two parts both called `P1` still has two parts that can be
+/// hidden separately.
 class ScorePartRef {
   const ScorePartRef(
     this.id,

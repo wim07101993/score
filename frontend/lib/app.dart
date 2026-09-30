@@ -1,7 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:score/api.dart';
+import 'package:score/background.dart';
 import 'package:score/config.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/collections/api.dart';
@@ -20,12 +21,11 @@ import 'package:score/features/settings/settings.dart';
 /// shown and the syncs are started after: what is on this device is on screen
 /// straight away, and whatever the server has to add arrives when it arrives.
 class App extends ChangeNotifier {
-  App._(this.config, this.store, this.settings, this.oidc, this.scoresApi,
+  App._(this.config, this.settings, this.oidc, this.scoresApi,
       this.setsApi, this.collectionsApi, this.scores, this.sets,
       this.collections);
 
   final Config config;
-  final LocalStore store;
 
   /// What this device prefers. Notifies on its own — the theme changes without
   /// anything else about the app having changed.
@@ -61,14 +61,15 @@ class App extends ChangeNotifier {
     final store = await LocalStore.open();
     final settings = await Settings.load(store);
 
-    final oidc = OidcApi(config.oidc, store);
-    final scoresApi = ScoresApi(config.api);
-    final setsApi = SetsApi(config.api);
-    final collectionsApi = CollectionsApi(config.api);
+    // One client for every request the app makes, none of which waits for good.
+    final client = TimingOutClient(http.Client());
+    final oidc = OidcApi(config.oidc, store, client: client);
+    final scoresApi = ScoresApi(config.api, client: client);
+    final setsApi = SetsApi(config.api, client: client);
+    final collectionsApi = CollectionsApi(config.api, client: client);
 
     final app = App._(
       config,
-      store,
       settings,
       oidc,
       scoresApi,
@@ -83,29 +84,38 @@ class App extends ChangeNotifier {
     await app.sets.init();
     await app.collections.init();
 
-    if (kIsWeb) {
+    final kept = await oidc.keptUserInfo();
+    if (kIsWeb && (kept == null || await oidc.isFinishingASignIn())) {
       // On the web signing in is a redirect, which does not keep anything
       // waiting — and the code a redirect came back with is best dealt with
       // before any page is drawn, since dealing with it may put the user on
-      // another page altogether.
+      // another page altogether. So is a first start, which has nobody to
+      // show anything for until it has asked.
       await app.updateAuth();
     } else {
       // On a device it can be a browser left open for minutes, and the scores
       // already downloaded are no less readable for the user not having signed
       // in yet. So the app starts with who this device last knew, and asks the
-      // provider once it is showing.
-      app.user = await oidc.keptUserInfo();
+      // provider once it is showing. So does the web, with nothing to finish:
+      // asking is two round trips, which on a venue's wifi is a long time to
+      // look at a spinner in front of scores that are already here.
+      app.user = kept;
       app.userIsFromThisDevice = app.user != null;
-      unawaited(app._updateAuthAfterStart());
+      inTheBackground(app.updateAuthAndCatchUp());
     }
     return app;
   }
 
-  /// Signs in behind a page that is already showing, and then fetches what a
-  /// page that was drawn before there was anyone to fetch it for did not.
-  Future<void> _updateAuthAfterStart() async {
+  /// Asks the provider who the user is behind a page that is already showing,
+  /// and then fetches what a page drawn before there was anyone to fetch it for
+  /// did not: a page asks for its sync once, when it is opened, and a user who
+  /// only became a reader of scores after that would otherwise wait for the
+  /// next page to be opened.
+  ///
+  /// [retry] is as for [updateAuth].
+  Future<void> updateAuthAndCatchUp({bool retry = false}) async {
     final couldView = user?.isScoreViewer == true;
-    await updateAuth();
+    await updateAuth(retry: retry);
     if (couldView || user?.isScoreViewer != true) {
       return;
     }
@@ -137,8 +147,18 @@ class App extends ChangeNotifier {
     }
 
     try {
-      user = await oidc.getUserInfo();
-      userIsFromThisDevice = false;
+      final asked = await oidc.getUserInfo();
+      if (asked != null) {
+        user = asked;
+        userIsFromThisDevice = false;
+      } else {
+        // No token could be had — the sign-in was cancelled, timed out, or
+        // failed — which says nothing about who uses this device. The copy it
+        // kept is still who it was, and the scores downloaded for them are no
+        // less readable for it; only forgetting the user forgets them.
+        user = await oidc.keptUserInfo();
+        userIsFromThisDevice = user != null;
+      }
       authProblem = oidc.signInFailure;
     } catch (error) {
       debugPrint('failed to ask the provider who this is: $error');
@@ -158,43 +178,118 @@ class App extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The sync of each kind that is running, and the one to run after it.
+  final Map<String, Future<void>> _syncing = {};
+  final Map<String, Future<void>> _syncingNext = {};
+
+  /// Runs one [sync] of a kind at a time.
+  ///
+  /// Every page that opens asks for the syncs it shows, and a link into a song
+  /// of a set opens four of them at once — each of which would otherwise list
+  /// the same changes and fetch the same documents side by side. One asked for
+  /// while one is running goes once after it, however many ask: what it reads
+  /// may have changed after the running one read it.
+  Future<void> _oneAtATime(String kind, Future<void> Function() sync) {
+    final running = _syncing[kind];
+    if (running == null) {
+      return _syncing[kind] =
+          sync().whenComplete(() => _syncing.remove(kind));
+    }
+    return _syncingNext[kind] ??= running.then((_) {
+      _syncingNext.remove(kind);
+      return _oneAtATime(kind, sync);
+    });
+  }
+
   /// Squares the scores with the API. Never throws: this is called from pages
   /// that are already drawn, and a sync that cannot happen is not a page that
   /// should break.
-  Future<void> updateScores() async {
-    if (!await scoresApi.canBeReached()) {
+  Future<void> updateScores() => _oneAtATime('scores', _updateScores);
+
+  Future<void> _updateScores() async {
+    // The provider too, as for the sets: a sync with no token to hand starts a
+    // sign-in, and on the web a sign-in is the page leaving for a provider that
+    // is not there.
+    if (!await scoresApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
       await scores.syncWithApi();
+      await _sayIfNoLongerSignedIn();
     } catch (error) {
       debugPrint('failed to sync the scores: $error');
+      await _forgetTokenIfRefused(error);
     }
   }
 
   /// Squares the sets with the API, which is also when whatever was written
   /// while it could not be reached is sent.
-  Future<void> updateSets() async {
+  Future<void> updateSets() => _oneAtATime('sets', _updateSets);
+
+  Future<void> _updateSets() async {
     if (!await setsApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
       await sets.syncWithApi();
+      await _sayIfNoLongerSignedIn();
     } catch (error) {
       debugPrint('failed to sync the sets: $error');
+      await _forgetTokenIfRefused(error);
     }
+  }
+
+  /// A token the API refused is spent, however long this device thinks it has
+  /// left: revoked, or the session behind it ended somewhere else. It is
+  /// forgotten, so that the next sync asks for a fresh one rather than sending
+  /// the same one again until it runs out on its own.
+  ///
+  /// With no refresh token to get the next one with, the user has to sign in
+  /// again — which is said, rather than done: a sync does not send anybody to
+  /// the provider (see [OidcApi.getActiveAccessToken]), and one that did would
+  /// go round for as long as the API refused what the provider handed out.
+  Future<void> _forgetTokenIfRefused(Object error) async {
+    final status = switch (error) {
+      ScoresApiException(:final status) => status,
+      SetsApiException(:final status) => status,
+      CollectionsApiException(:final status) => status,
+      _ => null,
+    };
+    if (status == 401) {
+      await oidc.forgetAccessToken();
+    }
+    await _sayIfNoLongerSignedIn();
+  }
+
+  /// Says so when a sync left this device with no token and nothing to get
+  /// one with: the API refused it, and there was no refresh token behind it.
+  /// The repositories forget such a token themselves, so this is asked after
+  /// every sync rather than only when one throws.
+  Future<void> _sayIfNoLongerSignedIn() async {
+    if (user == null || authProblem != null || await oidc.holdsAToken()) {
+      return;
+    }
+    authProblem = OidcException(
+      'the server no longer takes this sign-in; sign in again to sync',
+    );
+    notifyListeners();
   }
 
   /// Squares the collections with the API, which is also when whatever was
   /// written while it could not be reached is sent.
-  Future<void> updateCollections() async {
+  Future<void> updateCollections() =>
+      _oneAtATime('collections', _updateCollections);
+
+  Future<void> _updateCollections() async {
     if (!await collectionsApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
       await collections.syncWithApi();
+      await _sayIfNoLongerSignedIn();
     } catch (error) {
       debugPrint('failed to sync the collections: $error');
+      await _forgetTokenIfRefused(error);
     }
   }
 }

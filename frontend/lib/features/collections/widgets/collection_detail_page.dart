@@ -4,26 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:score/app.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/features/collections/repository.dart';
-import 'package:score/features/collections/widgets/add_paper_entry_button.dart';
 import 'package:score/features/collections/widgets/add_score_to_collection_chip.dart';
 import 'package:score/features/collections/widgets/collection_description_field.dart';
 import 'package:score/features/collections/widgets/collection_entry_description_field.dart';
-import 'package:score/features/collections/widgets/collection_shared_with_field.dart';
 import 'package:score/features/collections/widgets/collection_title_field.dart';
-import 'package:score/features/collections/widgets/confirm_delete_collection_button.dart';
 import 'package:score/features/collections/widgets/delete_collection_button.dart';
-import 'package:score/features/collections/widgets/keep_collection_button.dart';
 import 'package:score/features/collections/widgets/open_collection_entry_button.dart';
-import 'package:score/features/collections/widgets/paper_entry_field.dart';
 import 'package:score/features/collections/widgets/remove_collection_entry_button.dart';
-import 'package:score/features/collections/widgets/save_collection_button.dart';
-import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/scores/models.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
-import 'package:score/features/sets/widgets/semitone_down_button.dart';
-import 'package:score/features/sets/widgets/semitone_up_button.dart';
-import 'package:score/features/sets/widgets/show_all_parts_button.dart';
 import 'package:score/routes.dart';
+import 'package:score/widgets/add_paper_entry_button.dart';
+import 'package:score/widgets/confirm_delete_button.dart';
+import 'package:score/widgets/keep_button.dart';
+import 'package:score/widgets/paper_entry_field.dart';
+import 'package:score/widgets/save_button.dart';
+import 'package:score/widgets/semitones.dart';
+import 'package:score/widgets/shared_with_field.dart';
+import 'package:score/widgets/show_all_parts_button.dart';
+import 'package:score/widgets/unsaved_changes_guard.dart';
 import 'package:uuid/uuid.dart';
 
 /// One collection, written.
@@ -76,6 +75,11 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   void Function(CollectionSyncProblem)? _problemListener;
 
+  /// The collections this page listens to, kept for [dispose]: by then the
+  /// page is out of the tree, and [context] can no longer be used to look
+  /// anything up.
+  CollectionsRepository? _repository;
+
   @override
   void initState() {
     super.initState();
@@ -86,9 +90,13 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   @override
   void dispose() {
-    final listener = _problemListener;
-    if (listener != null) {
-      AppScope.read(context).collections.removeSyncProblemListener(listener);
+    final repository = _repository;
+    if (repository != null) {
+      final listener = _problemListener;
+      if (listener != null) {
+        repository.removeSyncProblemListener(listener);
+      }
+      repository.removeListener(_takeStoredChanges);
     }
     _pointing?.cancel();
     _title.dispose();
@@ -133,7 +141,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         setState(() {});
       }
     };
-    app.collections.addSyncProblemListener(_problemListener!);
+    _repository = app.collections
+      ..addSyncProblemListener(_problemListener!)
+      ..addListener(_takeStoredChanges);
 
     // The scores are what the pieces are called by, and they may bring in ones
     // this collection names; and, when nothing is being typed, the sync may
@@ -148,12 +158,26 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     }
   }
 
+  /// What a sync or another page stored for this collection is what the
+  /// fields show, for as long as nothing is being typed into them: fields that
+  /// went on showing what the collection was would be sent back by the next
+  /// save, over it.
+  void _takeStoredChanges() {
+    if (!mounted || _dirty) return;
+    setState(_readFromStored);
+  }
+
   void _readFromStored() {
     final collection =
         AppScope.read(context).collections.getCollection(_collectionId);
-    _title.text = collection?.title ?? '';
-    _description.text = collection?.description ?? '';
-    _sharedWith.text = (collection?.sharedWith ?? const []).join('\n');
+    // Only what differs is written: writing a field puts its cursor at the end.
+    void show(TextEditingController field, String text) {
+      if (field.text != text) field.text = text;
+    }
+
+    show(_title, collection?.title ?? '');
+    show(_description, collection?.description ?? '');
+    show(_sharedWith, (collection?.sharedWith ?? const []).join('\n'));
     _dirty = false;
   }
 
@@ -172,20 +196,30 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   Future<void> _save() async {
     final app = AppScope.read(context);
+    final title = _title.text;
+    final description = _description.text;
+    final sharedWith = _sharedWith.text;
     try {
       await app.collections.saveCollection(
         id: _collectionId,
-        title: _title.text,
-        description: _description.text,
-        sharedWith: _sharedWith.text
-            .split(RegExp(r'[\n,;]'))
-            .map((address) => address.trim())
-            .where((address) => address.isNotEmpty)
-            .toList(),
+        title: title,
+        description: description,
+        sharedWith: addressesIn(sharedWith),
       );
       if (!mounted) return;
-      setState(() => _dirty = false);
-      if (widget.collectionId == 'new') {
+      // Only what was sent is saved. Whatever was typed while the write was
+      // out is still to be saved; and when nothing was, the fields show what
+      // is stored now, which after a refused write is what the server has.
+      if (_title.text == title &&
+          _description.text == description &&
+          _sharedWith.text == sharedWith) {
+        setState(_readFromStored);
+      }
+      // Only once nothing typed is left unsaved: the page at the new address
+      // reads what is stored, and would drop it.
+      if (widget.collectionId == 'new' &&
+          !_dirty &&
+          app.collections.getCollection(_collectionId) != null) {
         // Saved, it is a collection like any other and is at its own address,
         // so that reloading it or keeping it opens this collection rather than
         // a new empty one.
@@ -206,9 +240,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         title: const Text('Delete this collection?'),
         content: const Text('The scores in it stay where they are.'),
         actions: [
-          KeepCollectionButton(
+          KeepButton(
               onPressed: () => Navigator.of(context).pop(false)),
-          ConfirmDeleteCollectionButton(
+          ConfirmDeleteButton(
             onPressed: () => Navigator.of(context).pop(true),
           ),
         ],
@@ -469,7 +503,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           ' play from it; changing it stays yours.',
         ),
         const SizedBox(height: 8),
-        CollectionSharedWithField(
+        SharedWithField(
           controller: _sharedWith,
           onChanged: (_) => setState(() => _dirty = true),
         ),
@@ -493,7 +527,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     // The titles the pieces are listed by are in the scores, so a list of
     // them is drawn again when the scores change as well as when the
     // collection does.
-    return ListenableBuilder(
+    return UnsavedChangesGuard(
+      unsaved: _dirty,
+      child: ListenableBuilder(
       listenable: Listenable.merge([app.collections, app.scores]),
       builder: (context, _) {
         final collection = _stored;
@@ -508,13 +544,19 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                 child: Center(child: Text(_stateOf(collection))),
               ),
               if (owner)
-                SaveCollectionButton(onPressed: _dirty ? _save : null),
+                SaveButton(onPressed: _dirty ? _save : null),
             ],
           ),
           body: _loading
               ? const Center(child: CircularProgressIndicator())
-              : ListView(
+              // Laid out whole rather than as the list scrolls: the piece a
+              // player is pointed at (see _pointAt) has to be on the page to
+              // be scrolled to, and with a long list of scores to pick from
+              // below it, the pieces above can be scrolled out of a lazy one.
+              : SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
+                  child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _about(owner),
                     const SizedBox(height: 24),
@@ -529,9 +571,11 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                         DeleteCollectionButton(onPressed: _delete),
                     ],
                   ],
+                  ),
                 ),
         );
       },
+      ),
     );
   }
 }
@@ -646,8 +690,12 @@ class _EntryCard extends StatelessWidget {
                           AppRoute.score(scoreId,
                               collectionId: collectionId, entryId: entry.id),
                         ),
-                    // There is nothing to open for a piece with no score.
-                    null => null,
+                    // A piece with no score opens all the same, to say which
+                    // piece it is, with the way on to the next.
+                    null => () => Navigator.of(context).pushNamed(
+                          AppRoute.paper(
+                              collectionId: collectionId, entryId: entry.id),
+                        ),
                   },
                 ),
                 if (owner) RemoveCollectionEntryButton(onPressed: onRemove),
@@ -666,7 +714,7 @@ class _EntryCard extends StatelessWidget {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _Semitones(
+                Semitones(
                   label: 'all',
                   tooltip: 'The key this one is played in, counted in'
                       ' semitones from where it is written. Everyone sees'
@@ -676,7 +724,7 @@ class _EntryCard extends StatelessWidget {
                   onChanged: onGroupTransposition,
                 ),
                 const Text('+'),
-                _Semitones(
+                Semitones(
                   label: 'me',
                   tooltip: 'How far you read it on top of that, again in'
                       ' semitones. Only you see this.',
@@ -723,51 +771,6 @@ class _EntryCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Semitones extends StatelessWidget {
-  const _Semitones({
-    required this.label,
-    required this.tooltip,
-    required this.value,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String tooltip;
-  final int value;
-  final bool enabled;
-  final void Function(int) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label),
-          const SizedBox(width: 6),
-          SemitoneDownButton(
-            onPressed: enabled && value > minTransposition
-                ? () => onChanged(value - 1)
-                : null,
-          ),
-          SizedBox(
-            width: 28,
-            child: Text('${value > 0 ? '+' : ''}$value',
-                textAlign: TextAlign.center),
-          ),
-          SemitoneUpButton(
-            onPressed: enabled && value < maxTransposition
-                ? () => onChanged(value + 1)
-                : null,
-          ),
-        ],
       ),
     );
   }

@@ -183,6 +183,70 @@ class _RefusingApi extends _WorkingApi {
   }
 }
 
+/// An API whose listing is made when it is asked for, and answered only once
+/// it is let go — the way a slow network delivers an answer the server made
+/// before a write that arrived after it.
+class _SlowListingApi extends _WorkingApi {
+  final Completer<void> asked = Completer<void>();
+  final Completer<void> answer = Completer<void>();
+
+  @override
+  Future<List<Map<String, dynamic>>> listCollections(
+      DateTime? since, DateTime? until, String token) async {
+    final made = await super.listCollections(since, until, token);
+    asked.complete();
+    await answer.future;
+    return made;
+  }
+}
+
+/// An API that is there or not, as the test says.
+class _SometimesThereApi extends _WorkingApi {
+  bool there = false;
+
+  @override
+  Future<bool> canBeReached() async => there;
+
+  /// The titles every write of a collection sent, in order.
+  final List<Object?> titlesWritten = [];
+
+  @override
+  Future<Map<String, dynamic>> putCollection(
+      String collectionId, String token, Map<String, Object?> write) {
+    titlesWritten.add(write['title']);
+    return super.putCollection(collectionId, token, write);
+  }
+}
+
+/// An API that refuses the token itself.
+class _TokenRefusedApi extends _WorkingApi {
+  @override
+  Future<Map<String, dynamic>> putCollection(
+      String collectionId, String token, Map<String, Object?> write) {
+    throw CollectionsApiException('the token is no good', 401);
+  }
+}
+
+/// A provider that counts the tokens it was told to forget.
+class _Counting extends _SignedIn {
+  _Counting(super.store);
+
+  int forgotten = 0;
+
+  @override
+  Future<void> forgetAccessToken() async => forgotten++;
+}
+
+/// A provider whose token cannot be had right now: a refresh that failed
+/// because the network did.
+class _TokenFails extends _SignedIn {
+  _TokenFails(super.store);
+
+  @override
+  Future<String?> getActiveAccessToken({bool signIn = true}) async =>
+      throw Exception('the network went away');
+}
+
 /// A provider that always has a token to hand.
 class _SignedIn extends OidcApi {
   _SignedIn(
@@ -190,7 +254,7 @@ class _SignedIn extends OidcApi {
   ) : super(_oidcConfig, store);
 
   @override
-  Future<String?> getActiveAccessToken() async => 'a-token';
+  Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
 
   @override
   Future<bool> canBeReached() async => true;
@@ -598,6 +662,64 @@ void main() {
       expect(online.hasPendingChanges, isFalse);
     });
 
+    test('the copy that stays is read in at once', () async {
+      // The collection was synced before, so nothing else this sync sends
+      // brings back what the server holds.
+      final store = await LocalStore.inMemory();
+      await store.writeCollections([
+        Collection(
+          id: 'book',
+          title: 'Book',
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+        ).toJson(),
+      ]);
+      final offline =
+          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+      await offline.init();
+      await offline.saveEntry('book', scoreId: 'score-1');
+
+      final api = _WorkingApi()
+        ..stored['book'] = {
+          'id': 'book',
+          'title': 'Book',
+          'is_owner': true,
+          'entries': <Map<String, dynamic>>[
+            {'id': 'somebody-elses-entry', 'score_id': 'score-1'},
+          ],
+        };
+      final online = CollectionsRepository(store, api, _SignedIn(store));
+      await online.init();
+      await online.syncWithApi();
+
+      expect(online.getCollection('book')!.entries.map((entry) => entry.id),
+          ['somebody-elses-entry'],
+          reason: 'the piece should not be missing until the next sync');
+    });
+
+    test('a dropped copy with a note of its own is said out loud', () async {
+      final api = _WorkingApi();
+      final (offline, _) = await _repository(_OfflineApi());
+      final collection = await offline.saveCollection(title: 'Book');
+      await offline.saveEntry(collection.id,
+          scoreId: 'score-1', description: 'capo 2');
+      api.stored[collection.id] = {
+        'id': collection.id,
+        'title': 'Book',
+        'entries': <Map<String, dynamic>>[
+          {'id': 'somebody-elses-entry', 'score_id': 'score-1'},
+        ],
+      };
+
+      final online = await _online(offline, api);
+      final problems = <CollectionSyncProblem>[];
+      online.addSyncProblemListener(problems.add);
+      await online.syncWithApi();
+
+      expect(problems, hasLength(1));
+      expect(problems.single.error.isAlreadyInTheCollection, isTrue);
+    });
+
     test('a collection the server refuses is taken back and reported',
         () async {
       final api = _RefusingApi();
@@ -712,6 +834,9 @@ void main() {
   });
 
   group('the change window', () {
+    // The server's clock, an hour behind this device's.
+    final serverNow = DateTime.now().toUtc().subtract(const Duration(hours: 1));
+
     Map<String, dynamic> answer(String id, {String? deletedAt}) => {
           'id': id,
           'title': id,
@@ -719,7 +844,7 @@ void main() {
           'entries': <Map<String, dynamic>>[],
           'shared_with': <String>[],
           'is_owner': true,
-          'last_changed_at': DateTime.now().toIso8601String(),
+          'last_changed_at': serverNow.toIso8601String(),
           'deleted_at': deletedAt,
         };
 
@@ -733,8 +858,8 @@ void main() {
       expect(since, isNull);
     });
 
-    test('the next one starts where the last one ended, less the overlap',
-        () async {
+    test('the next one starts at the newest change the server answered with,'
+        ' less the overlap', () async {
       final api = _WorkingApi();
       final (collections, _) = await _repository(api);
 
@@ -743,11 +868,9 @@ void main() {
       api.answers = [];
       await collections.syncWithApi();
 
-      final (_, firstUntil) = api.windows.first;
       final (secondSince, _) = api.windows.last;
-      expect(firstUntil, isNotNull);
-      expect(secondSince, firstUntil!.subtract(pullOverlap));
-      expect(collections.getCollection('a')!.lastSyncedAt, firstUntil);
+      expect(secondSince, serverNow.subtract(pullOverlap));
+      expect(collections.getCollection('a')!.lastSyncedAt, serverNow);
     });
 
     test('a collection written outside a pull does not move it', () async {
@@ -756,14 +879,13 @@ void main() {
 
       api.answers = [answer('a')];
       await collections.syncWithApi();
-      final (_, pulledUntil) = api.windows.last;
 
       api.answers = [];
       final written = await collections.saveCollection(title: 'Written later');
       await collections.syncWithApi();
 
       final (since, _) = api.windows.last;
-      expect(since, pulledUntil!.subtract(pullOverlap));
+      expect(since, serverNow.subtract(pullOverlap));
       expect(collections.getCollection(written.id)!.lastSyncedAt, isNotNull,
           reason: 'the server has it, so a delete has to be sent there');
     });
@@ -880,7 +1002,172 @@ void main() {
     });
   });
 
+  group('what is sent and what is read back at the same time', () {
+    test('edits made one straight after another all stay', () async {
+      final (collections, store) = await _repository(_OfflineApi());
+      final made = await collections.saveCollection(title: 'Book');
+      await collections.saveEntry(made.id, id: 'a', scoreId: 'a');
+      await collections.saveEntry(made.id, id: 'b', scoreId: 'b');
+
+      await Future.wait([
+        collections.saveEntry(made.id, id: 'a', description: 'page 62'),
+        collections.saveEntry(made.id, id: 'b', description: 'red folder'),
+        collections.saveCollection(id: made.id, title: 'Book, renamed'),
+      ]);
+
+      final reopened =
+          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+      await reopened.init();
+      for (final now in [
+        collections.getCollection(made.id)!,
+        reopened.getCollection(made.id)!,
+      ]) {
+        expect(now.title, 'Book, renamed');
+        expect(now.entries.map((entry) => entry.description),
+            ['page 62', 'red folder']);
+      }
+    });
+
+    test('a pull made before a write and answered after it does not undo it',
+        () async {
+      final api = _SlowListingApi();
+      final store = await LocalStore.inMemory();
+      final before = Collection(
+        id: 'book',
+        title: 'Old title',
+        lastChangedAt: DateTime.now(),
+        lastSyncedAt: DateTime.now(),
+      );
+      await store.writeCollections([before.toJson()]);
+      final collections = CollectionsRepository(store, api, _SignedIn(store));
+      await collections.init();
+
+      api.answers = [
+        {...before.toJson(), 'is_owner': true, 'entries': <Object?>[]},
+      ];
+      final syncing = collections.syncWithApi();
+      await api.asked.future;
+      await collections.saveCollection(id: 'book', title: 'New title');
+      api.answer.complete();
+      await syncing;
+
+      expect(collections.getCollection('book')!.title, 'New title');
+    });
+
+    test('a sync in another tab does not drop a piece put in here meanwhile',
+        () async {
+      final store = await LocalStore.inMemory();
+      final before = Collection(
+        id: 'book',
+        title: 'Real Book',
+        lastChangedAt: DateTime.now(),
+        lastSyncedAt: DateTime.now(),
+      );
+      await store.writeCollections([before.toJson()]);
+      final api = _SlowListingApi()
+        ..answers = [
+          {...before.toJson(), 'is_owner': true, 'entries': <Object?>[]},
+        ];
+      final otherTab = CollectionsRepository(store, api, _SignedIn(store));
+      await otherTab.init();
+      final thisTab =
+          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+      await thisTab.init();
+
+      final syncing = otherTab.syncWithApi();
+      await api.asked.future;
+      await thisTab.saveEntry('book', id: 'n', scoreId: 'n');
+      api.answer.complete();
+      await syncing;
+
+      await thisTab.saveCollection(id: 'book', title: 'Real Book 2');
+      expect(thisTab.getCollection('book')!.entries.map((entry) => entry.id),
+          ['n']);
+      expect(
+          thisTab.getCollection('book')!.pendingEntries.map((owed) => owed.id),
+          ['n']);
+    });
+
+    test('what another tab stored is not sent back over by this one', () async {
+      final store = await LocalStore.inMemory();
+      await store.writeCollections([
+        Collection(
+          id: 'book',
+          title: 'Before',
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+        ).toJson(),
+      ]);
+      final api = _SometimesThereApi();
+      final thisTab = CollectionsRepository(store, api, _SignedIn(store));
+      await thisTab.init();
+      await thisTab.saveCollection(id: 'book', title: 'Offline');
+
+      api.there = true;
+      final otherTab = CollectionsRepository(store, api, _SignedIn(store));
+      await otherTab.init();
+      await otherTab.syncWithApi();
+      await otherTab.saveCollection(id: 'book', title: 'Latest');
+
+      await thisTab.syncWithApi();
+
+      expect(api.titlesWritten, ['Offline', 'Latest']);
+      expect(thisTab.getCollection('book')!.title, 'Latest');
+    });
+
+    test('a write whose token could not be had stays queued', () async {
+      final store = await LocalStore.inMemory();
+      final collections =
+          CollectionsRepository(store, _WorkingApi(), _TokenFails(store));
+      await collections.init();
+
+      final saved = await collections.saveCollection(title: 'Book');
+
+      expect(collections.getCollection(saved.id)!.pendingChange,
+          PendingChange.write);
+    });
+
+    test('a token the API refuses is forgotten, and the write stays queued',
+        () async {
+      final store = await LocalStore.inMemory();
+      final oidc = _Counting(store);
+      final collections =
+          CollectionsRepository(store, _TokenRefusedApi(), oidc);
+      await collections.init();
+
+      final saved = await collections.saveCollection(title: 'Book');
+
+      expect(oidc.forgotten, 1);
+      expect(collections.getCollection(saved.id)!.pendingChange,
+          PendingChange.write);
+    });
+  });
+
   group('what the server refuses', () {
+    test('a new collection it refuses is kept with the pieces put into it',
+        () async {
+      // It was never on the server, so there is nothing there to take it back
+      // to: what the player made stays, and its pieces wait for a write of the
+      // collection the server will take.
+      final (offline, _) = await _repository(_OfflineApi());
+      final made =
+          await offline.saveCollection(title: 'Book', sharedWith: ['bas']);
+      await offline.saveEntry(made.id, scoreId: 'score-1');
+
+      final api = _RefusingApi();
+      final online = await _online(offline, api);
+      final problems = <CollectionSyncProblem>[];
+      online.addSyncProblemListener(problems.add);
+      await online.syncWithApi();
+
+      final now = online.getCollection(made.id);
+      expect(problems, hasLength(1));
+      expect(now, isNotNull, reason: 'a refused write is not a deleted book');
+      expect(now!.entries, hasLength(1));
+      expect(now.pendingEntries, hasLength(1));
+      expect(api.calls, isNot(contains('putEntry')));
+    });
+
     test('a refused collection write keeps the pieces put into it', () async {
       // A mistyped address is the collection's own write. The pieces are
       // separate writes the server has said nothing against.

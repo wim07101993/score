@@ -7,6 +7,7 @@
 library;
 
 import 'package:score/features/scores/instruments.dart';
+import 'package:score/json.dart';
 
 class Score {
   const Score({
@@ -26,25 +27,19 @@ class Score {
   /// A score the way the API hands it over, as one this app keeps: the moments
   /// as dates rather than as the strings they arrive as, and whatever is only
   /// known locally carried over from the score being replaced.
-  ///
-  /// [syncedAt] is the watermark of the change window the score was listed in:
-  /// the newest moment the server gave in it, on the server's clock. A
-  /// score that was read by itself was not part of any window, so it moves
-  /// no watermark and keeps whatever it had.
   factory Score.fromApi(
     Map<String, dynamic> json, {
     Score? existing,
-    DateTime? syncedAt,
   }) => Score(
         id: '${json['id']}',
         work: Work.fromJson(json['work']),
         movement: Movement.fromJson(json['movement']),
         creators: Creators.fromJson(json['creators']),
-        languages: _strings(json['languages']),
-        instruments: _strings(json['instruments']),
-        lastChangedAt: _date(json['last_changed_at']),
-        tags: _strings(json['tags']),
-        lastSyncedAt: syncedAt ?? existing?.lastSyncedAt,
+        languages: stringsOf(json['languages']),
+        instruments: stringsOf(json['instruments']),
+        lastChangedAt: dateOf(json['last_changed_at']),
+        tags: stringsOf(json['tags']),
+        lastSyncedAt: existing?.lastSyncedAt,
         lastFetchedFileAt: existing?.lastFetchedFileAt,
         lastViewedAt: existing?.lastViewedAt,
       );
@@ -56,13 +51,13 @@ class Score {
         work: Work.fromJson(json['work']),
         movement: Movement.fromJson(json['movement']),
         creators: Creators.fromJson(json['creators']),
-        languages: _strings(json['languages']),
-        instruments: _strings(json['instruments']),
-        lastChangedAt: _date(json['last_changed_at']),
-        tags: _strings(json['tags']),
-        lastSyncedAt: _date(json['last_synced_at']),
-        lastFetchedFileAt: _date(json['last_fetched_file_at']),
-        lastViewedAt: _date(json['last_viewed_at']),
+        languages: stringsOf(json['languages']),
+        instruments: stringsOf(json['instruments']),
+        lastChangedAt: dateOf(json['last_changed_at']),
+        tags: stringsOf(json['tags']),
+        lastSyncedAt: dateOf(json['last_synced_at']),
+        lastFetchedFileAt: dateOf(json['last_fetched_file_at']),
+        lastViewedAt: dateOf(json['last_viewed_at']),
       );
 
   final String id;
@@ -111,13 +106,23 @@ class Score {
   /// and as the name the list shows for it. Somebody looking for a piano part
   /// types `piano`, not `keyboard.piano`, and the code is kept as well because
   /// it is what an instrument with no name of its own is shown as.
-  String get searchText => [
+  ///
+  /// Worked out once, the first time it is asked for: a score never changes
+  /// (a changed one is a new [Score]), and a filter asks every score in the
+  /// library for it on every key typed. It is kept beside the score in
+  /// [_searchTexts] rather than in a `late final` field of its own, because a
+  /// class with one of those can no longer be built `const`, and scores are.
+  String get searchText => _searchTexts[this] ??= [
         title,
         ...creatorNames,
         ...tags,
         ...instruments,
         ...instruments.map(instrumentName),
       ].map(forSearch).join(' ');
+
+  /// [searchText], for every score that has been asked for it. An [Expando]
+  /// lets a score go when nothing else holds it, text and all.
+  static final _searchTexts = Expando<String>('Score.searchText');
 
   /// Whether this is one of the scores being looked for.
   ///
@@ -126,12 +131,15 @@ class Score {
   /// looking for the whole phrase in one field would not. Somebody searching a
   /// library types what they remember about a piece, and what they remember is
   /// rarely one field of it in the order it is written.
-  bool matches(String query) {
+  bool matches(String query) => matchesWords(searchWords(query));
+
+  /// [matches], for a query that was already taken apart with [searchWords].
+  ///
+  /// A list filters every score it has with the same query, and taking that
+  /// query apart once rather than once per score is the whole point of this.
+  bool matchesWords(List<String> words) {
     final text = searchText;
-    return forSearch(query)
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .every(text.contains);
+    return words.every(text.contains);
   }
 
   Score copyWith({
@@ -160,11 +168,13 @@ class Score {
         'creators': creators.toJson(),
         'languages': languages,
         'instruments': instruments,
-        'last_changed_at': lastChangedAt?.toIso8601String(),
+        // In UTC: a local moment written without an offset is read back in
+        // whatever zone the device is in by then.
+        'last_changed_at': lastChangedAt?.toUtc().toIso8601String(),
         'tags': tags,
-        'last_synced_at': lastSyncedAt?.toIso8601String(),
-        'last_fetched_file_at': lastFetchedFileAt?.toIso8601String(),
-        'last_viewed_at': lastViewedAt?.toIso8601String(),
+        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
+        'last_fetched_file_at': lastFetchedFileAt?.toUtc().toIso8601String(),
+        'last_viewed_at': lastViewedAt?.toUtc().toIso8601String(),
       };
 }
 
@@ -219,8 +229,8 @@ class Creators {
   ) {
     if (json is! Map) return const Creators();
     return Creators(
-      composers: _strings(json['composers']),
-      lyricists: _strings(json['lyricists']),
+      composers: stringsOf(json['composers']),
+      lyricists: stringsOf(json['lyricists']),
     );
   }
 
@@ -231,15 +241,14 @@ class Creators {
       {'composers': composers, 'lyricists': lyricists};
 }
 
-List<String> _strings(Object? value) {
-  if (value is! List) return const [];
-  return [for (final item in value) '$item'];
-}
 
-DateTime? _date(Object? value) {
-  if (value is! String || value.isEmpty) return null;
-  return DateTime.tryParse(value);
-}
+/// A query as the words [Score.matchesWords] looks for: each put through
+/// [forSearch], and none of them empty, so that a query of nothing but spaces
+/// is no words at all and matches everything.
+List<String> searchWords(String query) => forSearch(query)
+    .split(RegExp(r'\s+'))
+    .where((word) => word.isNotEmpty)
+    .toList();
 
 /// Text as a search compares it: in lower case and without its accents.
 ///

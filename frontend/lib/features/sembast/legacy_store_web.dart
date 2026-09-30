@@ -14,15 +14,17 @@ import 'package:web/web.dart';
 /// with one store by the same name — and the score files in the Origin Private
 /// File System, one `scores_<id>.musicxml` per score. What a set or a
 /// collection still owed the server was kept on the record itself, so it comes
-/// over with it. None of it is removed: if this app has to be rolled back, the
-/// old one finds its things where it left them.
+/// over with it. What the device had been told to prefer, and who it last knew
+/// to be signed in, it kept in `localStorage`. None of it is removed: if this
+/// app has to be rolled back, the old one finds its things where it left them.
+///
+/// The preferences are read whether or not there are any records: a player who
+/// only ever set the app to dark has nothing in IndexedDB, and is no less
+/// blinded by a white screen for it.
 Future<LegacyData?> readLegacyData() async {
   final scores = await _readAll('scores', 'scores');
   final sets = await _readAll('sets', 'sets');
   final collections = await _readAll('collections', 'collections');
-  if (scores.isEmpty && sets.isEmpty && collections.isEmpty) {
-    return null;
-  }
 
   final musicXml = <String, String>{};
   final directory = await _privateDirectory();
@@ -36,12 +38,30 @@ Future<LegacyData?> readLegacyData() async {
     }
   }
 
-  return LegacyData(
+  final legacy = LegacyData(
     scores: scores,
     sets: sets,
     collections: collections,
     musicXml: musicXml,
+    themeMode: _readPreference('score-theme-mode'),
+    pageLookLight: _readPreference('score-page-look-light'),
+    pageLookDark: _readPreference('score-page-look-dark'),
+    userInfo: _readPreference('app_user_info'),
   );
+  return legacy.isEmpty ? null : legacy;
+}
+
+/// One of the things the old app kept in `localStorage`, or null when it kept
+/// nothing there — or when the browser will not open the storage at all, which
+/// it may refuse to in a private window, and which is no reason to lose the
+/// scores that are being brought over alongside it.
+String? _readPreference(String key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    debugPrint('could not read $key as it was kept before: $error');
+    return null;
+  }
 }
 
 /// Every record in one store of one database, or none when the database was

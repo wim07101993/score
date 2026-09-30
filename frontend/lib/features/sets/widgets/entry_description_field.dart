@@ -25,6 +25,17 @@ class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
   /// what the text is compared with to tell whether the player changed it.
   late String _taken = widget.initialValue;
 
+  /// Leaving the field is done with it as much as pressing enter is: a note
+  /// typed and then left for the next control, or for the page before, is a
+  /// note the player meant to keep. There is no save button for it.
+  late final FocusNode _focus = FocusNode()..addListener(_submitWhenLeft);
+
+  void _submitWhenLeft() {
+    if (!_focus.hasFocus) {
+      _submit(_controller.text);
+    }
+  }
+
   @override
   void didUpdateWidget(EntryDescriptionField oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -40,6 +51,7 @@ class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
 
   @override
   void dispose() {
+    _focus.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -58,6 +70,7 @@ class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
+      focusNode: _focus,
       enabled: widget.enabled,
       decoration: const InputDecoration(
         isDense: true,

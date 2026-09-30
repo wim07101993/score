@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:score/api.dart';
 import 'package:score/config.dart';
 
 /// The collections endpoints of the API.
@@ -11,69 +12,27 @@ import 'package:score/config.dart';
 /// Whether the write is worth trying again decides between keeping the edit
 /// queued and giving it up, and that is what [CollectionsApiException] carries.
 
-/// A call that did not come back with what was asked for.
-///
-/// The status is the one http gave, and [errorCode] the one this API gives —
-/// which is the one to branch on, the way the API says. Both are absent when
-/// the call never reached a server at all.
-class CollectionsApiException implements Exception {
+/// A call to the collections endpoints that did not come back with what was
+/// asked for; see [ApiException].
+class CollectionsApiException extends ApiException {
   CollectionsApiException(
-    this.message,
-    this.status, [
-    this.problem,
+    super.message,
+    super.status, [
+    super.problem,
   ]);
 
-  final String message;
-  final int? status;
-
-  /// The RFC 9457 body, when there was one.
-  final Map<String, dynamic>? problem;
-
-  String? get errorCode => problem?['errorCode'] as String?;
-
-  String get detail => (problem?['detail'] as String?) ?? message;
-
-  /// Whether the same call is worth making again later.
-  ///
-  /// A request the server refused to read is refused just as firmly the next
-  /// time: a collection naming a score that does not exist, or an address that
-  /// is not an address, is not going to start being accepted because time
-  /// passed. What is worth trying again is everything that says nothing about
-  /// the request — the network being down, the server being unwell, a token
-  /// that has run out.
-  bool get isWorthRetrying {
-    if (status == null) {
-      // Nothing answered, so nothing has been said about the request.
-      return true;
-    }
-    if (errorCode == 'not_collection_owner') {
-      // The collection belongs to someone else, and waiting does not change
-      // whose it is.
-      return false;
-    }
-    if (status == 401 || status == 403) {
-      // A token that expired mid-sync, or a role that has yet to be granted:
-      // both are about the caller rather than about what was written.
-      return true;
-    }
-    return status! < 400 || status! >= 500;
-  }
+  /// The collection belongs to someone else, and waiting does not change whose
+  /// it is.
+  @override
+  String get notTheOwnersCode => 'not_collection_owner';
 
   /// Whether this is the collection saying it already holds the piece.
   ///
   /// It is the one refusal a set has no equivalent of, and the only one that
   /// is worth acting on rather than reporting: the piece the client was trying
-  /// to add is in the collection, which is what it wanted. What it is in is
-  /// [alreadyInEntryId].
+  /// to add is in the collection, which is what it wanted.
   bool get isAlreadyInTheCollection =>
       errorCode == 'score_already_in_collection';
-
-  /// The entry the piece is already in, when that is what went wrong.
-  String? get alreadyInEntryId =>
-      isAlreadyInTheCollection ? (problem?['entryId'] as String?) : null;
-
-  @override
-  String toString() => message;
 }
 
 class CollectionsApi {
@@ -93,24 +52,23 @@ class CollectionsApi {
     DateTime? changesUntil,
     String authToken,
   ) async {
-    final response = await _call(
+    const what = 'list the collections';
+    final response = await callTheApi(
       () => _client.get(
         _config.path('collections', {
-          'Changes-Since': _formatDate(changesSince ?? DateTime.utc(1970)),
-          'Changes-Until': _formatDate(changesUntil ?? DateTime.now()),
+          'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
+          'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
         }),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Accept': 'application/json',
         },
       ),
-      'list the collections',
+      what,
+      CollectionsApiException.new,
     );
-    _throwUnlessOk(response, 'list the collections');
-    return [
-      for (final collection in jsonDecode(response.body) as List)
-        (collection as Map).cast<String, dynamic>(),
-    ];
+    throwUnlessOk(response, what, CollectionsApiException.new);
+    return objectsIn(response, what, CollectionsApiException.new);
   }
 
   /// One collection, asked for by id. `null` when there is no such collection,
@@ -123,7 +81,8 @@ class CollectionsApi {
     String collectionId,
     String authToken,
   ) async {
-    final response = await _call(
+    const what = 'fetch the collection';
+    final response = await callTheApi(
       () => _client.get(
         _config.path('collections/$collectionId'),
         headers: {
@@ -131,13 +90,19 @@ class CollectionsApi {
           'Accept': 'application/json',
         },
       ),
-      'fetch the collection',
+      what,
+      CollectionsApiException.new,
     );
-    if (response.statusCode == 404) {
+    if (isNotThere(
+      response,
+      const {'collection_not_found'},
+      what,
+      CollectionsApiException.new,
+    )) {
       return null;
     }
-    _throwUnlessOk(response, 'fetch the collection');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    throwUnlessOk(response, what, CollectionsApiException.new);
+    return objectIn(response, what, CollectionsApiException.new);
   }
 
   /// Stores what the collection is — the group of pieces, and who may read it
@@ -150,22 +115,9 @@ class CollectionsApi {
     String collectionId,
     String authToken,
     Map<String, Object?> writeCollection,
-  ) async {
-    final response = await _call(
-      () => _client.put(
-        _config.path('collections/$collectionId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(writeCollection),
-      ),
-      'save the collection',
-    );
-    _throwUnlessOk(response, 'save the collection');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
-  }
+  ) =>
+      _write('collections/$collectionId', authToken, writeCollection,
+          'save the collection');
 
   /// Puts one piece into a collection, or changes what the group does with it,
   /// and hands the entry back as it now reads.
@@ -179,22 +131,9 @@ class CollectionsApi {
     String entryId,
     String authToken,
     Map<String, Object?> writeEntry,
-  ) async {
-    final response = await _call(
-      () => _client.put(
-        _config.path('collections/$collectionId/entries/$entryId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(writeEntry),
-      ),
-      'save the entry',
-    );
-    _throwUnlessOk(response, 'save the entry');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
-  }
+  ) =>
+      _write('collections/$collectionId/entries/$entryId', authToken,
+          writeEntry, 'save the entry');
 
   /// Takes one piece out of a collection. An entry that is already gone is not
   /// an error: what was asked for is the state it is now in.
@@ -202,19 +141,9 @@ class CollectionsApi {
     String collectionId,
     String entryId,
     String authToken,
-  ) async {
-    final response = await _call(
-      () => _client.delete(
-        _config.path('collections/$collectionId/entries/$entryId'),
-        headers: {'Authorization': 'Bearer $authToken'},
-      ),
-      'delete the entry',
-    );
-    if (response.statusCode == 404) {
-      return;
-    }
-    _throwUnlessOk(response, 'delete the entry');
-  }
+  ) =>
+      _delete('collections/$collectionId/entries/$entryId', authToken,
+          'delete the entry');
 
   /// Stores how the caller looks at one entry of a collection, and hands it
   /// back as it now reads.
@@ -228,85 +157,57 @@ class CollectionsApi {
     String entryId,
     String authToken,
     Map<String, Object?> writeView,
+  ) =>
+      _write('collections/$collectionId/entries/$entryId/view', authToken,
+          writeView, 'save the view');
+
+  /// Marks the collection as deleted. One that was already gone is not an
+  /// error: what was asked for is the state it is now in.
+  Future<void> deleteCollection(String collectionId, String authToken) =>
+      _delete('collections/$collectionId', authToken, 'delete the collection');
+
+  Future<bool> canBeReached() => apiCanBeReached(_client, _config);
+
+  Future<Map<String, dynamic>> _write(
+    String path,
+    String authToken,
+    Map<String, Object?> body,
+    String what,
   ) async {
-    final response = await _call(
+    final response = await callTheApi(
       () => _client.put(
-        _config.path('collections/$collectionId/entries/$entryId/view'),
+        _config.path(path),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode(writeView),
+        body: jsonEncode(body),
       ),
-      'save the view',
+      what,
+      CollectionsApiException.new,
     );
-    _throwUnlessOk(response, 'save the view');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    throwUnlessOk(response, what, CollectionsApiException.new);
+    return objectIn(response, what, CollectionsApiException.new);
   }
 
-  /// Marks the collection as deleted. One that was already gone is not an
-  /// error: what was asked for is the state it is now in.
-  Future<void> deleteCollection(String collectionId, String authToken) async {
-    final response = await _call(
+  Future<void> _delete(String path, String authToken, String what) async {
+    final response = await callTheApi(
       () => _client.delete(
-        _config.path('collections/$collectionId'),
+        _config.path(path),
         headers: {'Authorization': 'Bearer $authToken'},
       ),
-      'delete the collection',
+      what,
+      CollectionsApiException.new,
     );
-    if (response.statusCode == 404) {
+    if (isNotThere(
+      response,
+      const {'collection_not_found', 'collection_entry_not_found'},
+      what,
+      CollectionsApiException.new,
+    )) {
       return;
     }
-    _throwUnlessOk(response, 'delete the collection');
-  }
-
-  Future<bool> canBeReached() async {
-    try {
-      final response = await _client
-          .get(_config.path('healthz'))
-          .timeout(const Duration(seconds: 5));
-      return response.statusCode < 400;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /// Makes the call, turning a network that is not there into the same kind of
-  /// failure as a server that said no — one with no status, since nothing
-  /// answered.
-  Future<http.Response> _call(
-      Future<http.Response> Function() send, String what) async {
-    try {
-      return await send();
-    } catch (error) {
-      throw CollectionsApiException('failed to $what: $error', null);
-    }
+    throwUnlessOk(response, what, CollectionsApiException.new);
   }
 }
-
-void _throwUnlessOk(http.Response response, String what) {
-  if (response.statusCode < 400) {
-    return;
-  }
-
-  Map<String, dynamic>? problem;
-  try {
-    final parsed = jsonDecode(response.body);
-    // Every failure this API answers with is an RFC 9457 object; anything else
-    // came from something in between that does not know about it.
-    problem = parsed is Map ? parsed.cast<String, dynamic>() : null;
-  } catch (error) {
-    problem = null;
-  }
-
-  throw CollectionsApiException(
-    'failed to $what: ${response.statusCode} ${response.body}',
-    response.statusCode,
-    problem,
-  );
-}
-
-/// Writes a moment the way the API reads it: RFC 3339, in UTC, so that a window
-/// ends exactly where it was asked to.
-String _formatDate(DateTime date) => date.toUtc().toIso8601String();

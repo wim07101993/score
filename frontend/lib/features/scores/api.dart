@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:score/api.dart';
 import 'package:score/config.dart';
 
 /// The scores endpoints of the API.
@@ -25,47 +26,64 @@ class ScoresApi {
     DateTime? changesUntil,
     String authToken,
   ) async {
-    final response = await _client.get(
-      _config.path('scores', {
-        'Changes-Since': _formatDate(changesSince ?? DateTime.utc(1970)),
-        'Changes-Until': _formatDate(changesUntil ?? DateTime.now()),
-      }),
-      headers: {'Authorization': 'Bearer $authToken'},
+    const what = 'list the scores';
+    final response = await callTheApi(
+      () => _client.get(
+        _config.path('scores', {
+          'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
+          'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
+        }),
+        headers: {'Authorization': 'Bearer $authToken'},
+      ),
+      what,
+      ScoresApiException.new,
     );
-    _throwUnlessOk(response, 'list the scores');
-    return [
-      for (final score in jsonDecode(response.body) as List)
-        (score as Map).cast<String, dynamic>(),
-    ];
+    throwUnlessOk(response, what, ScoresApiException.new);
+    return objectsIn(response, what, ScoresApiException.new);
   }
 
   /// The metadata of one score, asked for by id. `null` when there is nothing
   /// stored under it.
   Future<Map<String, dynamic>?> getScore(String scoreId, String authToken) async {
-    final response = await _client.get(
-      _config.path('scores/$scoreId'),
-      headers: {
-        'Authorization': 'Bearer $authToken',
-        'Accept': 'application/json',
-      },
+    const what = 'fetch the score';
+    final response = await callTheApi(
+      () => _client.get(
+        _config.path('scores/$scoreId'),
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Accept': 'application/json',
+        },
+      ),
+      what,
+      ScoresApiException.new,
     );
-    if (response.statusCode == 404) {
+    if (isNotThere(
+      response,
+      const {'score_not_found'},
+      what,
+      ScoresApiException.new,
+    )) {
       return null;
     }
-    _throwUnlessOk(response, 'fetch the score');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    throwUnlessOk(response, what, ScoresApiException.new);
+    return objectIn(response, what, ScoresApiException.new);
   }
 
   /// The document itself.
   Future<String> getScoreMusicXml(String scoreId, String authToken) async {
-    final response = await _client.get(
-      _config.path('scores/$scoreId'),
-      headers: {
-        'Authorization': 'Bearer $authToken',
-        'Accept': 'application/vnd.recordare.musicxml',
-      },
+    const what = 'fetch the score';
+    final response = await callTheApi(
+      () => _client.get(
+        _config.path('scores/$scoreId'),
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Accept': 'application/vnd.recordare.musicxml',
+        },
+      ),
+      what,
+      ScoresApiException.new,
     );
-    _throwUnlessOk(response, 'fetch the score');
+    throwUnlessOk(response, what, ScoresApiException.new);
     // Read as utf-8 rather than as whatever the header happens to say: a
     // MusicXML document says its own encoding, and a score with an umlaut in
     // its title comes back mangled if the body is read as latin-1.
@@ -74,53 +92,31 @@ class ScoresApi {
 
   Future<void> putScore(
       String scoreId, String authToken, String musicXml) async {
-    final response = await _client.put(
-      _config.path('scores/$scoreId'),
-      headers: {
-        'Authorization': 'Bearer $authToken',
-        'Content-Type': 'application/vnd.recordare.musicxml',
-      },
-      body: utf8.encode(musicXml),
+    const what = 'save the score';
+    final response = await callTheApi(
+      () => _client.put(
+        _config.path('scores/$scoreId'),
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Content-Type': 'application/vnd.recordare.musicxml',
+        },
+        body: utf8.encode(musicXml),
+      ),
+      what,
+      ScoresApiException.new,
     );
-    _throwUnlessOk(response, 'save the score');
+    throwUnlessOk(response, what, ScoresApiException.new);
   }
 
-  Future<bool> canBeReached() async {
-    try {
-      final response = await _client
-          .get(_config.path('healthz'))
-          .timeout(const Duration(seconds: 5));
-      return response.statusCode < 400;
-    } catch (error) {
-      return false;
-    }
-  }
+  Future<bool> canBeReached() => apiCanBeReached(_client, _config);
 }
 
-class ScoresApiException implements Exception {
+/// A call to the scores endpoints that did not come back with what was asked
+/// for; see [ApiException].
+class ScoresApiException extends ApiException {
   ScoresApiException(
-    this.message,
-    this.status,
-  );
-
-  final String message;
-  final int? status;
-
-  @override
-  String toString() => message;
+    super.message,
+    super.status, [
+    super.problem,
+  ]);
 }
-
-void _throwUnlessOk(http.Response response, String what) {
-  if (response.statusCode < 400) {
-    return;
-  }
-  throw ScoresApiException(
-    'failed to $what: ${response.statusCode} ${response.body}',
-    response.statusCode,
-  );
-}
-
-/// Writes a moment the way the API reads it: RFC 3339, in UTC, keeping the
-/// milliseconds, so that a window ends exactly where it was asked to and
-/// nothing that changed inside the second it was asked about falls outside it.
-String _formatDate(DateTime date) => date.toUtc().toIso8601String();

@@ -52,18 +52,27 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _refresh() async {
     setState(() => _asking = true);
     // The user asking is the one thing that may start a sign-in that failed
-    // before over again.
-    await AppScope.read(context).updateAuth(retry: true);
-    if (!mounted) return;
-    await _ask();
-    if (mounted) setState(() => _asking = false);
+    // before over again. A user who can read scores now and could not before
+    // has everything fetched for them, rather than waiting for a page to be
+    // opened again to ask for it.
+    try {
+      await AppScope.read(context).updateAuthAndCatchUp(retry: true);
+      if (!mounted) return;
+      await _ask();
+    } finally {
+      if (mounted) setState(() => _asking = false);
+    }
   }
 
-  Future<void> _signOutHere() async {
-    await AppScope.read(context).forgetUser();
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-    }
+  /// Forgets who is signed in here and signs in from the beginning — which is
+  /// what the button says, rather than leaving the player signed out on a page
+  /// that tells them they may not read scores.
+  Future<void> _signInAgain() async {
+    final app = AppScope.read(context);
+    final navigator = Navigator.of(context);
+    await app.forgetUser();
+    navigator.pushNamedAndRemoveUntil('/', (route) => false);
+    await app.updateAuthAndCatchUp(retry: true);
   }
 
   String? _rolesExplanation(
@@ -136,7 +145,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ('API reachable', _asked(_apiReachable)),
               ('Provider', '${app.config.oidc.authorizationEndpoint}'),
               ('Provider reachable', _asked(_providerReachable)),
-              ('Client id', app.config.oidc.clientId),
+              ('Client id', app.config.oidc.clientIdHere),
               ('Redirect (web)', '${app.config.oidc.redirectUri}'),
               ('Redirect (device)', '${app.config.oidc.nativeRedirectUri}'),
             ],
@@ -181,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
             runSpacing: 12,
             children: [
               AskProviderAgainButton(onPressed: _asking ? null : _refresh),
-              SignInAgainButton(onPressed: _signOutHere),
+              SignInAgainButton(onPressed: _signInAgain),
             ],
           ),
           const SizedBox(height: 12),

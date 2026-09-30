@@ -28,6 +28,14 @@ void main() {
       expect(AppRoute.parse('/'), isA<ScoresRoute>());
     });
 
+    test('an address that cannot be read at all is the list of scores', () {
+      // A link mangled on its way here is still the address the app was
+      // opened at, and throwing would leave nothing on screen.
+      expect(AppRoute.parse('/scores/%E9t%E9'), isA<ScoresRoute>());
+      expect(AppRoute.parse('/scores/abc?set=%FF'), isA<ScoresRoute>());
+      expect(AppRoute.stackFor('//a:b/'), [isA<ScoresRoute>()]);
+    });
+
     test("the old app's pages open what they always opened", () {
       expect(
         AppRoute.parse('/scores/detail.html?id=abc'),
@@ -74,9 +82,24 @@ void main() {
       );
     });
 
-    test('a song with no score, opened from a set, is its set', () {
+    test('a song with no score, opened from a set, is that song on paper', () {
       expect(
         AppRoute.parse('/scores/perform.html?set=def&entry=ghi'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.scoreId, 'scoreId', ScoreDetailRoute.paper)
+            .having((r) => r.setId, 'setId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+      expect(
+        AppRoute.stackFor('/scores/perform.html?set=def&entry=ghi')
+            .map((route) => route.path),
+        ['/', '/sets', '/sets/def', '/scores/paper?set=def&entry=ghi'],
+      );
+    });
+
+    test('a link to a set with no song in it is still the set', () {
+      expect(
+        AppRoute.parse('/scores/perform.html?set=def'),
         isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
       );
     });
@@ -88,6 +111,7 @@ void main() {
         '/collections',
         '/collections/abc',
         '/scores/abc?collection=def&entry=ghi',
+        '/scores/paper?set=def&entry=ghi',
         '/profile',
         '/settings',
         '/sets/abc',

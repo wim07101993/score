@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Who may read the collection: one address per line.
-class CollectionSharedWithField extends StatelessWidget {
-  const CollectionSharedWithField({
+/// Who may read a set or a collection: one address per line.
+class SharedWithField extends StatelessWidget {
+  const SharedWithField({
     super.key,
     required this.controller,
     required this.onChanged,

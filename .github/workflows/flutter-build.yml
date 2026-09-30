@@ -45,7 +45,6 @@ permissions:
   contents: read
 
 env:
-  FLUTTER_VERSION: '3.47.1'
   BUILD_ARGS: ${{ inputs.build-args }}
 
 defaults:
@@ -53,6 +52,9 @@ defaults:
     working-directory: frontend
 
 jobs:
+  # Also where the Flutter version comes from: flutter-test.yml pins it and
+  # hands it out, so every job below builds with the SDK the tests ran on and
+  # the version is written down in one place.
   test:
     uses: ./.github/workflows/flutter-test.yml
 
@@ -61,7 +63,7 @@ jobs:
     if: ${{ !inputs.web-only }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-java@v4
         with:
@@ -71,7 +73,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ needs.test.outputs.flutter-version }}
           channel: stable
           cache: true
 
@@ -132,11 +134,17 @@ jobs:
     if: ${{ !inputs.web-only }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # libwebkit2gtk is not on Flutter's own list of Linux desktop
-      # prerequisites. It is here because desktop_webview_window pulls it in,
-      # which is what the sign-in flow opens on desktop.
+      # prerequisites. It is here because flutter_web_auth_2 depends on
+      # desktop_webview_window, whose Linux plugin links against it. The app
+      # never opens that webview — on Linux the sign-in hands the browser the
+      # address and catches the callback on a local port (see
+      # lib/features/auth/authorizer_native.dart) — but the plugin is linked
+      # all the same, so the bundle will not even start on a machine without
+      # the runtime library, libwebkit2gtk-4.1-0. The README and the release
+      # notes say so.
       - name: Toolchain
         run: |
           sudo apt-get update
@@ -146,7 +154,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ needs.test.outputs.flutter-version }}
           channel: stable
           cache: true
 
@@ -187,11 +195,11 @@ jobs:
         shell: bash
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ needs.test.outputs.flutter-version }}
           channel: stable
           cache: true
 
@@ -227,18 +235,20 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: ${{ needs.test.outputs.flutter-version }}
           channel: stable
           cache: true
 
-      # assets/config.json is read at start-up rather than compiled in, but on
-      # every platform but the web it is read out of the bundle this build
-      # writes — so pointing a release at the production server is something
-      # that has to happen before the build, not to the artifact afterwards.
+      # The web app fetches assets/config.json from the server when it starts,
+      # so here, unlike on the other platforms, the file could be swapped after
+      # the build. It is put in place before it anyway, so that the zip and the
+      # image built from web-build both carry the same one, and so that the
+      # hash the service worker keeps for it (see below) is the hash of the
+      # file that is actually served.
       - name: Configuration
         if: ${{ inputs.config != '' }}
         run: cp "${{ inputs.config }}" assets/config.json
@@ -246,8 +256,15 @@ jobs:
       - name: Dependencies
         run: flutter pub get
 
+      # --no-web-resources-cdn: CanvasKit is served with the app rather than
+      # fetched from Google's CDN, which is what lets the app start where there
+      # is no network. The service worker is then told which files to keep; see
+      # web/service-worker.js and tool/precache.dart.
       - name: Build
-        run: flutter build web --release $BUILD_ARGS
+        run: flutter build web --release --no-web-resources-cdn $BUILD_ARGS
+
+      - name: Keep the app for use without a network
+        run: dart run tool/precache.dart build/web
 
       - name: Collect
         run: |

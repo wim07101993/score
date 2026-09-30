@@ -11,11 +11,16 @@ class Starting extends StatelessWidget {
     super.key,
     required this.theme,
     required this.darkTheme,
+    this.themeMode = ThemeMode.system,
     this.failure,
   });
 
   final ThemeData theme;
   final ThemeData darkTheme;
+
+  /// Light or dark as this device was last told, where that can be known
+  /// before the settings are loaded: see [rememberedThemeMode].
+  final ThemeMode themeMode;
 
   /// What went wrong, when what went wrong is that the app could not start.
   final Object? failure;
@@ -48,6 +53,7 @@ class Starting extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: theme,
       darkTheme: darkTheme,
+      themeMode: themeMode,
       // This is one screen, but the address it is started at is whatever the
       // browser was pointed at — a link straight to a score, most of the time.
       // Left to itself a navigator builds a page for every prefix of that

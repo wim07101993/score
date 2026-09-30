@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
 import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/settings/theme_hint.dart';
 
 /// How the page is lit: what it gives off, and how far from grey it is.
 ///
@@ -32,9 +33,14 @@ class Settings extends ChangeNotifier {
   /// The alternative is starting light and correcting a moment later, which on
   /// a dark stage is a white screen in somebody's face.
   static Future<Settings> load(LocalStore store) async {
+    final themeMode = _readThemeMode(await store.readSetting(_themeKey));
+    // Kept in step with the store, which is where the choice lives: a choice
+    // made before the hint was, or brought over from the app before this one,
+    // is painted from the next start on.
+    rememberThemeMode(themeMode);
     return Settings._(
       store,
-      _readThemeMode(await store.readSetting(_themeKey)),
+      themeMode,
       {
         for (final brightness in Brightness.values)
           brightness: _readLook(
@@ -58,6 +64,7 @@ class Settings extends ChangeNotifier {
     // On screen first: the write is a round trip to a database, and a player
     // who has just tapped "dark" in a dark room should not wait for it.
     notifyListeners();
+    rememberThemeMode(mode);
     // Following the system is what an app does when it has been told nothing,
     // so it is stored as nothing. A device that has never been asked and one
     // that has been put back to "follow the system" are the same device.
@@ -74,24 +81,55 @@ class Settings extends ChangeNotifier {
   PageLook pageLook(Brightness brightness) =>
       _looks[brightness] ?? _defaultLookFor(brightness);
 
+  /// Lights the page the way [look] says, on screen only.
+  ///
+  /// A slider is dragged, not tapped: the page has to keep up with the thumb,
+  /// and a thumb reports every pixel it crosses. Writing each of those to the
+  /// database is a round trip per frame for values nobody will ever read back,
+  /// so a drag is shown with this and kept with [setPageLook] when it lets go.
+  void previewPageLook(Brightness brightness, PageLook look) {
+    if (_hold(brightness, look)) {
+      _unsaved.add(brightness);
+    }
+  }
+
+  /// Lights the page the way [look] says, and keeps it for the next start.
+  ///
+  /// Written even when the page is already lit that way, as long as it only
+  /// got there by [previewPageLook]: the end of a drag lands on the value the
+  /// drag already showed, and that is exactly the value that has to be kept.
   Future<void> setPageLook(Brightness brightness, PageLook look) async {
-    final held = (
-      brightness: look.brightness.clamp(SheetPalette.dimmest, SheetPalette.full),
-      warmth: look.warmth.clamp(0.0, 1.0),
-    );
-    if (held == pageLook(brightness)) {
+    final previewed = _unsaved.remove(brightness);
+    if (!_hold(brightness, look) && !previewed) {
       return;
     }
-    _looks[brightness] = held;
-    // A slider is dragged, not tapped: the page has to keep up with the thumb,
-    // and the writing can happen behind it.
-    notifyListeners();
+    final held = pageLook(brightness);
     await _store.writeSetting(
       _lookKey(brightness),
       held == _defaultLookFor(brightness)
           ? null
           : '${held.brightness},${held.warmth}',
     );
+  }
+
+  /// Which pages are lit differently on screen from what is stored, because a
+  /// drag has not let go yet.
+  final Set<Brightness> _unsaved = {};
+
+  /// Puts [look] on screen, within what can be read off, and says so to anyone
+  /// listening. False when it was already there, which is not a change to
+  /// redraw for.
+  bool _hold(Brightness brightness, PageLook look) {
+    final held = (
+      brightness: look.brightness.clamp(SheetPalette.dimmest, SheetPalette.full),
+      warmth: look.warmth.clamp(0.0, 1.0),
+    );
+    if (held == pageLook(brightness)) {
+      return false;
+    }
+    _looks[brightness] = held;
+    notifyListeners();
+    return true;
   }
 
   /// Puts the page back to what it was before anybody touched it.

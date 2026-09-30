@@ -36,6 +36,8 @@ class SettingsPage extends StatelessWidget {
             brightness: brightness,
             look: app.settings.pageLook(brightness),
             onLookChanged: (look) =>
+                app.settings.previewPageLook(brightness, look),
+            onLookCommitted: (look) =>
                 app.settings.setPageLook(brightness, look),
             onLookReset: app.settings.isPageLookDefault(brightness)
                 ? null
@@ -59,6 +61,7 @@ class Appearance extends StatelessWidget {
     required this.brightness,
     required this.look,
     required this.onLookChanged,
+    this.onLookCommitted,
     this.onLookReset,
   });
 
@@ -71,7 +74,12 @@ class Appearance extends StatelessWidget {
   final Brightness brightness;
 
   final PageLook look;
+  /// Called for every step of a drag: what the page should look like now.
   final ValueChanged<PageLook> onLookChanged;
+
+  /// Called once a drag lets go, with where it was left: what is worth
+  /// keeping. Null when nothing is kept beyond what [onLookChanged] was told.
+  final ValueChanged<PageLook>? onLookCommitted;
 
   /// Null when there is nothing to put back.
   final VoidCallback? onLookReset;
@@ -172,6 +180,10 @@ class Appearance extends StatelessWidget {
                   high: Icons.brightness_high_outlined,
                   onChanged: (value) =>
                       onLookChanged((brightness: value, warmth: look.warmth)),
+                  onChangeEnd: onLookCommitted == null
+                      ? null
+                      : (value) => onLookCommitted!(
+                          (brightness: value, warmth: look.warmth)),
                 ),
                 _Dial(
                   label: 'Warmth',
@@ -185,6 +197,10 @@ class Appearance extends StatelessWidget {
                   high: Icons.local_fire_department_outlined,
                   onChanged: (value) => onLookChanged(
                       (brightness: look.brightness, warmth: value)),
+                  onChangeEnd: onLookCommitted == null
+                      ? null
+                      : (value) => onLookCommitted!(
+                          (brightness: look.brightness, warmth: value)),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -252,6 +268,7 @@ class _Dial extends StatelessWidget {
     required this.low,
     required this.high,
     required this.onChanged,
+    this.onChangeEnd,
   });
 
   final String label;
@@ -262,6 +279,7 @@ class _Dial extends StatelessWidget {
   final IconData low;
   final IconData high;
   final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChangeEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +311,7 @@ class _Dial extends StatelessWidget {
                 max: max,
                 readout: readout,
                 onChanged: onChanged,
+                onChangeEnd: onChangeEnd,
               ),
             ),
             Icon(high, size: 18, color: theme.colorScheme.onSurfaceVariant),
@@ -344,9 +363,10 @@ class _StaffSample extends CustomPainter {
     const space = 7.5;
     final top = (size.height - space * 4) / 2;
 
-    // Whole rows, the way the real thing is drawn. A sample showing the smeared
-    // staff lines the engine no longer produces would be showing the wrong
-    // thing. See `ScorePainter`.
+    // Whole rows, so that the sample shows the ink rather than a staff line
+    // smeared across two rows of pixels at half cover — which on a dimmed page
+    // is half way to the page, and would be judging the lamp by the wrong
+    // thing.
     for (var i = 0; i < 5; i++) {
       final y = (top + i * space).roundToDouble();
       canvas.drawRect(

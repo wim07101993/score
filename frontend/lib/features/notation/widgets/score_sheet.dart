@@ -31,7 +31,7 @@ class ScoreSheet extends StatefulWidget {
     this.space = 7.0,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     this.palette,
-    this.onNoteTapped,
+    this.onPinched,
   });
 
   /// The score as it was uploaded. Never written to.
@@ -53,8 +53,12 @@ class ScoreSheet extends StatefulWidget {
 
   final EdgeInsets padding;
 
-  /// Called with whatever was clicked, for a page that wants to know.
-  final void Function(LayoutHit hit)? onNoteTapped;
+  /// Called with how much a pinch, or ctrl and the scroll wheel, has made the
+  /// score bigger or smaller than [space] says — 1 before anybody has, and
+  /// again for each new document. It is on top of [space], not instead of it:
+  /// what is on screen is the two multiplied, which is what a page that keeps
+  /// the size it is read at has to keep.
+  final ValueChanged<double>? onPinched;
 
   @override
   State<ScoreSheet> createState() => _ScoreSheetState();
@@ -69,6 +73,19 @@ class _ScoreSheetState extends State<ScoreSheet> {
   /// What the controller has already been told, so that a rebuild which
   /// changes neither does not ask it to transpose the score again.
   ScoreView? _applied;
+
+  /// The pinch last reported to [ScoreSheet.onPinched].
+  double _pinched = 1;
+
+  /// Tells the page about a pinch. The engraver changes its own zoom for one,
+  /// and says nothing to anybody; a size the page sets is its base size and
+  /// is not a pinch, so this only speaks when the zoom itself has moved.
+  void _reportPinch() {
+    final zoom = _controller?.zoom ?? 1;
+    if (zoom == _pinched) return;
+    _pinched = zoom;
+    widget.onPinched?.call(zoom);
+  }
 
   @override
   void didUpdateWidget(ScoreSheet old) {
@@ -114,11 +131,13 @@ class _ScoreSheetState extends State<ScoreSheet> {
 
   @override
   void dispose() {
+    _controller?.removeListener(_reportPinch);
     _controller?.dispose();
     super.dispose();
   }
 
   void _read() {
+    _controller?.removeListener(_reportPinch);
     _controller?.dispose();
     _controller = null;
     _applied = null;
@@ -143,8 +162,15 @@ class _ScoreSheetState extends State<ScoreSheet> {
       style: _styleFor(_paletteFor(context)),
     );
     _syncView(controller);
-    _controller = controller;
+    _controller = controller..addListener(_reportPinch);
     _error = null;
+    // A new document starts at the size the page says, whatever the last one
+    // was pinched to — and the page is told so once it has finished building.
+    if (_pinched != 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _reportPinch();
+      });
+    }
 
     if (mounted) setState(() {});
   }
@@ -250,7 +276,6 @@ class _ScoreSheetState extends State<ScoreSheet> {
     return MusicScoreView(
       controller: controller,
       padding: widget.padding,
-      onTapElement: widget.onNoteTapped,
     );
   }
 }

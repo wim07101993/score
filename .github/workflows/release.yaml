@@ -19,8 +19,18 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
+  # Both images wait for both test runs, the Go one (test) and the Flutter one
+  # (inside build): a tag whose tests fail pushes no image at all, rather than
+  # the half that happened not to be tested by the job it waited for.
+  #
+  # Only on a tag, like web-image. A manual run of this workflow is not on a
+  # tag, and would otherwise push score:latest from whatever branch it was
+  # started on. A manually pushed development image is what release-dev.yml is
+  # for (it has its own workflow_dispatch and pushes score:dev-latest), so
+  # nothing that used to be done by hand goes missing here.
   backend-image:
-    needs: test
+    needs: [test, build]
+    if: ${{ github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -79,11 +89,11 @@ jobs:
   # before the build, because everything but the web reads that file out of the
   # bundle the build wrote.
   web-image:
-    needs: build
+    needs: [test, build]
     runs-on: ubuntu-latest
     if: ${{ github.ref_type == 'tag' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/download-artifact@v4
         with:
@@ -92,13 +102,13 @@ jobs:
           path: frontend/build/web
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
       - name: Build and push the web image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: frontend/web.Dockerfile
@@ -111,9 +121,9 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
 
   # Only on a tag: a manual run has no tag to make a release of, and would
-  # otherwise build everything only to fail here. It waits for the web image
-  # too, which runs on exactly the same condition, so that a release is not
-  # published for a tag whose image failed to go out.
+  # otherwise build everything only to fail here. It waits for both images
+  # too, which run on exactly the same condition, so that a release is not
+  # published for a tag whose images failed to go out.
   release:
     needs: [backend-image, build, web-image]
     if: ${{ github.ref_type == 'tag' }}
@@ -121,7 +131,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/download-artifact@v4
         with:
@@ -138,6 +148,14 @@ jobs:
         with:
           artifacts: "dist/*"
           generateReleaseNotes: true
+          # Put in front of the generated notes, which only list what changed.
+          # The Linux bundle links WebKitGTK through a plugin the sign-in never
+          # uses on Linux, but the loader still wants the library there before
+          # the app can start at all.
+          body: |
+            **Linux:** the Linux build needs WebKitGTK 4.1 installed to start
+            (`libwebkit2gtk-4.1-0` on Debian and Ubuntu; the WebKitGTK 4.1
+            package on other distributions), in addition to GTK 3.
           # A re-run of a failed release finds the release the first attempt
           # made, and should finish it rather than fail on it.
           allowUpdates: true

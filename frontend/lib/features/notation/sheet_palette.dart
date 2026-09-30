@@ -115,9 +115,8 @@ class SheetPalette {
   ///
   /// The two are nearer together than black on white — about six to one against
   /// twenty-one — because a dimmer page has less room between its darkest and
-  /// its lightest, and because there is no longer any need to shout: since
-  /// `ScorePainter` began putting hairlines on whole pixels, a staff line is the
-  /// ink rather than a half-covered grey, and it holds at this distance.
+  /// its lightest, and because there is no need to shout: a staff line drawn
+  /// in the ink holds at this distance.
   ///
   /// This is only where the lamp *starts* in the dark. Where it ends up is the
   /// reader's, in the settings, because how dim a page wants to be is a question

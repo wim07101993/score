@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:score/app.dart';
+import 'package:score/features/app_update/new_version_bar.dart';
 import 'package:score/features/auth/widgets/profile_page.dart';
 import 'package:score/features/collections/widgets/collection_detail_page.dart';
 import 'package:score/features/collections/widgets/collections_page.dart';
@@ -8,6 +11,7 @@ import 'package:score/features/scores/widgets/score_detail_page.dart';
 import 'package:score/features/scores/widgets/scores_page.dart';
 import 'package:score/features/sets/widgets/set_detail_page.dart';
 import 'package:score/features/sets/widgets/sets_page.dart';
+import 'package:score/features/settings/theme_hint.dart';
 import 'package:score/features/settings/widgets/settings_page.dart';
 import 'package:score/routes.dart';
 import 'package:score/theme.dart';
@@ -19,13 +23,34 @@ void main() {
   // is told otherwise. Without this a link written down before would reach the
   // app as `/`. Everywhere but the web it does nothing.
   usePathUrlStrategy();
-  runApp(const ScoreApp());
+  // Read before anything has a navigator. On the web the engine forgets the
+  // address the page was opened at as soon as the first navigator reports a
+  // route — which the starting screen's does — so the app that replaces it
+  // would otherwise always open on the list of scores, whatever link it was
+  // opened from.
+  final initialRoute = WidgetsFlutterBinding.ensureInitialized()
+      .platformDispatcher
+      .defaultRouteName;
+  // The text font is shipped with the app (see pubspec.yaml), and its licence
+  // goes with it.
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+      const ['Roboto'],
+      await rootBundle.loadString('assets/fonts/roboto/LICENSE.txt'),
+    );
+  });
+  runApp(ScoreApp(initialRoute: initialRoute));
 }
 
 class ScoreApp extends StatefulWidget {
   const ScoreApp({
     super.key,
+    this.initialRoute,
   });
+
+  /// The address the app was opened at. See [main] for why it is handed over
+  /// rather than read when the app is built.
+  final String? initialRoute;
 
   @override
   State<ScoreApp> createState() => _ScoreAppState();
@@ -34,20 +59,21 @@ class ScoreApp extends StatefulWidget {
 class _ScoreAppState extends State<ScoreApp> {
   late final Future<App> _app = App.start();
 
-  /// Where a path leads.
-  ///
-  /// The addresses are the ones the app it replaces used, so a link a player has
-  /// in their browser or written down still opens the score it always opened —
-  /// including one into a set, which carries which set and which entry of it.
   /// The screen shown until there is an app to show. It cannot ask what this
   /// device prefers — that is one of the things being loaded — so it follows
   /// the machine, as an app that has been told nothing does.
   Widget _starting({Object? failure}) => Starting(
         theme: appTheme(Brightness.light),
         darkTheme: appTheme(Brightness.dark),
+        themeMode: rememberedThemeMode(),
         failure: failure,
       );
 
+  /// Where a path leads.
+  ///
+  /// The addresses are the ones the app it replaces used, so a link a player has
+  /// in their browser or written down still opens the score it always opened —
+  /// including one into a set, which carries which set and which entry of it.
   Route<dynamic> _route(RouteSettings settings) =>
       _page(AppRoute.parse(settings.name), settings);
 
@@ -113,8 +139,10 @@ class _ScoreAppState extends State<ScoreApp> {
               theme: appTheme(Brightness.light),
               darkTheme: appTheme(Brightness.dark),
               themeMode: app.settings.themeMode,
+              initialRoute: widget.initialRoute,
               onGenerateRoute: _route,
               onGenerateInitialRoutes: _initialRoutes,
+              builder: (context, child) => NewVersionBar(child: child!),
             ),
           ),
         );

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// What the app has to be told before it can do anything: where the API is, and
@@ -57,6 +58,7 @@ class ApiConfig {
 class OidcConfig {
   const OidcConfig({
     required this.clientId,
+    String? nativeClientId,
     required this.issuer,
     required this.redirectUri,
     required this.nativeRedirectUri,
@@ -66,12 +68,15 @@ class OidcConfig {
     required this.userInfoEndpoint,
     required this.healthzEndpoint,
     required this.rolesKey,
-  });
+  }) : nativeClientId = nativeClientId ?? clientId;
 
   factory OidcConfig.fromJson(
     Map<String, dynamic> json,
   ) => OidcConfig(
         clientId: '${json['clientId']}',
+        nativeClientId: json['nativeClientId'] == null
+            ? null
+            : '${json['nativeClientId']}',
         issuer: json['issuer'] == null
             // Not stated, so taken to be wherever the endpoints are. Every
             // provider worth the name serves its metadata at the root of the
@@ -93,7 +98,21 @@ class OidcConfig {
         rolesKey: '${json['rolesKey']}',
       );
 
+  /// The client the web app signs in as.
   final String clientId;
+
+  /// The client a phone or a desktop signs in as, and the same as [clientId]
+  /// when none is given.
+  ///
+  /// A provider may well refuse the web's client for them: it is a client
+  /// whose redirect addresses are web pages, where a phone comes back to a
+  /// scheme of its own and a desktop to a port on localhost (see
+  /// [nativeRedirectUri] and [desktopRedirectUri]). Zitadel wants a native
+  /// application for that, with those addresses registered on it.
+  final String nativeClientId;
+
+  /// The client this build signs in as.
+  String get clientIdHere => kIsWeb ? clientId : nativeClientId;
 
   /// Where the provider describes itself.
   ///

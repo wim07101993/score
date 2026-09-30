@@ -114,7 +114,10 @@ Two things about it decide how the rest of this document reads:
 
 - **A page reads what is stored and asks for a sync; it never waits on the
   network to draw.** A score is read on a stage and a set is written at a gig,
-  and both of those are exactly where there is no network.
+  and both of those are exactly where there is no network. That goes for the
+  web app too: it can be installed from the browser, and once it has been opened
+  with a network it opens without one, the app itself kept by a service worker
+  and what it knows kept in the browser's storage.
 - **What this device prefers is the device's and not the account's.** Which way
   round the app is, and how much light the page a score is drawn on throws, are
   kept on the device and never sent to the server: a player reads off a bright
@@ -493,4 +496,8 @@ The web build is published as a docker image by
 [.github/workflows/release.yaml](.github/workflows/release.yaml),
 which packages the build the release already produced behind nginx
 ([frontend/web.nginx.conf](frontend/web.nginx.conf)); the desktop and Android
-builds are attached to the release as files.
+builds are attached to the release as files. A web build made by hand has to be
+made the same way for it to work offline —
+`flutter build web --release --no-web-resources-cdn`, then
+`dart run tool/precache.dart` — see
+[frontend/README.md](frontend/README.md#the-web-app-works-without-a-network).

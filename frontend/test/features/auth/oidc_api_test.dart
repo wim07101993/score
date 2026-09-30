@@ -312,6 +312,82 @@ void main() {
           reason: 'it had an answer already; it should not have asked again');
     });
 
+    test("is not done for work running behind the user's back", () async {
+      // A sync or a queued write finding no token: on the web a sign-in is the
+      // page leaving, and a token the API keeps refusing would be signed in
+      // for over and over with nobody asking.
+      final provider = _Provider(_nextHost());
+      final authorizer = _Obliging();
+      final (api, _) = await _api(provider, authorizer: authorizer);
+
+      expect(await api.getActiveAccessToken(signIn: false), isNull);
+      expect(authorizer.sentTo, isNull);
+      expect(await api.holdsAToken(), isFalse);
+    });
+
+    test("behind the user's back still spends a refresh token", () async {
+      final provider = _Provider(_nextHost());
+      final store = await LocalStore.inMemory();
+      await store.writeSetting(
+        'auth_token_response',
+        jsonEncode({'token_type': 'Bearer', 'refresh_token': 'the-refresh'}),
+      );
+      final authorizer = _Obliging();
+      final (api, _) =
+          await _api(provider, authorizer: authorizer, store: store);
+
+      expect(await api.getActiveAccessToken(signIn: false), 'access-1');
+      expect(authorizer.sentTo, isNull);
+    });
+
+    test('two tabs sent to sign in at once each keep their own sign-in',
+        () async {
+      // Every tab of the web app shares the one store. The sign-in the second
+      // tab started must not be written over the first's, or the first to come
+      // back is refused for a state that is not its own.
+      final provider = _Provider(_nextHost());
+      final store = await LocalStore.inMemory();
+      final firstTab = _GoesAway();
+      final secondTab = _GoesAway();
+      final (first, _) =
+          await _api(provider, authorizer: firstTab, store: store);
+      final (second, _) =
+          await _api(_Provider(provider.host), authorizer: secondTab, store: store);
+      await first.getActiveAccessToken();
+      await second.getActiveAccessToken();
+
+      final back = _Obliging()
+        ..pending = (
+          code: 'the-code',
+          state: firstTab.sentTo!.queryParameters['state']!,
+        );
+      final (firstAgain, _) =
+          await _api(_Provider(provider.host), authorizer: back, store: store);
+
+      expect(await firstAgain.getActiveAccessToken(), isNotNull);
+      expect(firstAgain.signInFailure, isNull);
+    });
+
+    test('forgetting the user forgets every sign-in that is out', () async {
+      final provider = _Provider(_nextHost());
+      final store = await LocalStore.inMemory();
+      final leaving = _GoesAway();
+      final (api, _) = await _api(provider, authorizer: leaving, store: store);
+      await api.getActiveAccessToken();
+
+      await api.forgetUser();
+
+      final back = _Obliging()
+        ..pending = (
+          code: 'the-code',
+          state: leaving.sentTo!.queryParameters['state']!,
+        );
+      final (again, _) =
+          await _api(_Provider(provider.host), authorizer: back, store: store);
+      expect(await again.getActiveAccessToken(), isNot('access-1'),
+          reason: 'a sign-in started before signing out was finished after it');
+    });
+
     test('puts the user back where the sign-in was started from', () async {
       final provider = _Provider(_nextHost());
       final store = await LocalStore.inMemory();
@@ -407,6 +483,122 @@ void main() {
 
       expect(await api.getActiveAccessToken(), 'access-1');
       expect(provider.tokenRequests.single['grant_type'], 'refresh_token');
+    });
+
+    test('is not thrown away when another tab spent its refresh token first',
+        () async {
+      // Two tabs opened again the next morning both find the token run out and
+      // both refresh with the same refresh token. A provider that rotates them
+      // takes it once; the tab that lost goes on with what the other wrote down
+      // rather than throwing it away and sending both to sign in.
+      final host = _nextHost();
+      final store = await LocalStore.inMemory();
+      final expired =
+          DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
+              1000;
+      await store.writeSetting(
+        'auth_token_response',
+        jsonEncode({
+          'access_token': 'stale',
+          'token_type': 'Bearer',
+          'refresh_token': 'spent-by-the-other-tab',
+          'expires_at': expired,
+        }),
+      );
+
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/.well-known/openid-configuration')) {
+          return http.Response(jsonEncode(_metadata(host)), 200,
+              request: request,
+              headers: {'content-type': 'application/json'});
+        }
+        // The other tab's refresh lands first, and is written down...
+        await store.writeSetting(
+          'auth_token_response',
+          jsonEncode({
+            'access_token': 'the-other-tabs',
+            'token_type': 'Bearer',
+            'refresh_token': 'the-other-tabs-refresh-token',
+            'expires_at': DateTime.now()
+                    .add(const Duration(hours: 1))
+                    .millisecondsSinceEpoch ~/
+                1000,
+          }),
+        );
+        // ...and this one is refused for spending the same token again.
+        return http.Response(jsonEncode({'error': 'invalid_grant'}), 400,
+            request: request,
+            headers: {'content-type': 'application/json'});
+      });
+      final authorizer = _Obliging();
+      final api = OidcApi(_config(host), store,
+          client: client, authorizer: authorizer);
+
+      expect(await api.getActiveAccessToken(), 'the-other-tabs');
+      expect(authorizer.sentTo, isNull,
+          reason: 'a tab that lost a race was sent to sign in');
+      final kept =
+          jsonDecode((await store.readSetting('auth_token_response'))!) as Map;
+      expect(kept['refresh_token'], 'the-other-tabs-refresh-token');
+    });
+
+    test("waits a moment for the other tab's token to reach this one",
+        () async {
+      // On the web the other tab's write reaches this tab's store a moment
+      // after it was made — often after the refusal of the race it won.
+      final host = _nextHost();
+      final store = await LocalStore.inMemory();
+      final expired =
+          DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
+              1000;
+      await store.writeSetting(
+        'auth_token_response',
+        jsonEncode({
+          'access_token': 'stale',
+          'token_type': 'Bearer',
+          'refresh_token': 'spent-by-the-other-tab',
+          'expires_at': expired,
+        }),
+      );
+
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/.well-known/openid-configuration')) {
+          return http.Response(jsonEncode(_metadata(host)), 200,
+              request: request,
+              headers: {'content-type': 'application/json'});
+        }
+        // Refused at once; the other tab's token arrives a little later.
+        Future<void>.delayed(const Duration(milliseconds: 300), () {
+          return store.writeSetting(
+            'auth_token_response',
+            jsonEncode({
+              'access_token': 'the-other-tabs',
+              'token_type': 'Bearer',
+              'refresh_token': 'the-other-tabs-refresh-token',
+              'expires_at': DateTime.now()
+                      .add(const Duration(hours: 1))
+                      .millisecondsSinceEpoch ~/
+                  1000,
+            }),
+          );
+        });
+        return http.Response(jsonEncode({'error': 'invalid_grant'}), 400,
+            request: request,
+            headers: {'content-type': 'application/json'});
+      });
+      final authorizer = _Obliging();
+      final api = OidcApi(_config(host), store,
+          client: client,
+          authorizer: authorizer,
+          otherTabsGrace: const Duration(seconds: 2));
+
+      expect(await api.getActiveAccessToken(), 'the-other-tabs');
+      expect(authorizer.sentTo, isNull,
+          reason: 'a tab that lost a race was sent to sign in');
+      final kept =
+          jsonDecode((await store.readSetting('auth_token_response'))!) as Map;
+      expect(kept['refresh_token'], 'the-other-tabs-refresh-token',
+          reason: 'the token the other tab won was thrown away');
     });
 
     test('keeps its refresh token when the provider sends no new one', () async {

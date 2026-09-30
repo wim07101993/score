@@ -15,6 +15,12 @@ Future<Database> openDatabase(String name) {
 }
 
 /// The channel `sembast_web` tells other tabs about writes on.
+///
+/// Its own name for it, from `lib/src/web_interop.dart`, and not part of what
+/// it promises to keep: which is why pubspec.yaml pins `sembast_web` to the
+/// exact version this was read from. Should a later version name it something
+/// else, nothing breaks — this simply stops catching it, and the console error
+/// described below comes back in debug builds.
 const _revisionChannel = 'sembast_web_storage_revision';
 
 /// Where the one channel is kept, somewhere a hot restart cannot reach.
@@ -52,16 +58,38 @@ const _nativeConstructor = '__scoreNativeBroadcastChannel';
 /// affected; and only in debug, because the whole problem is hot restart, which
 /// is a thing that only happens while somebody is working on the app. A page
 /// that has been loaded once has one program and one channel anyway.
+///
+/// Two things keep the replacement from being noticed by anything else:
+///
+/// - It is put in place again on every start, including after a hot restart,
+///   with the browser's own constructor taken from where the first start kept
+///   it. Otherwise what `BroadcastChannel` pointed at after a restart would be
+///   the closure of the program that was thrown away.
+/// - It shares the browser's `prototype`, so that `instanceof BroadcastChannel`
+///   still holds for every channel, the kept one included. Where the browser
+///   will not allow that, the global is left alone and the error is only
+///   printed, which is all it ever did.
 void _keepOneRevisionChannel() {
-  if (!kDebugMode || globalContext.has(_nativeConstructor)) {
+  if (!kDebugMode) {
     return;
   }
 
-  final native = globalContext['BroadcastChannel']! as JSFunction;
-  globalContext[_nativeConstructor] = native;
+  // After a hot restart the global is the previous program's replacement, so
+  // the browser's own constructor is looked for where the first start put it.
+  var found = globalContext[_nativeConstructor];
+  if (!found.isA<JSFunction>()) {
+    found = globalContext['BroadcastChannel'];
+    if (!found.isA<JSFunction>()) {
+      // A browser without BroadcastChannel; sembast_web copes on its own.
+      return;
+    }
+    globalContext[_nativeConstructor] = found;
+  }
+  final native = found! as JSFunction;
 
-  JSObject channelFor(JSString name) {
-    if (name.toDart != _revisionChannel) {
+  JSObject channelFor(JSAny? name) {
+    if (!name.isA<JSString>() ||
+        (name! as JSString).toDart != _revisionChannel) {
       return native.callAsConstructor<JSObject>(name);
     }
     // `globalThis` outlives the program that put it there, which is the whole
@@ -75,5 +103,16 @@ void _keepOneRevisionChannel() {
     return channel;
   }
 
-  globalContext['BroadcastChannel'] = channelFor.toJS;
+  final replacement = channelFor.toJS;
+  final prototype = native['prototype'];
+  try {
+    replacement['prototype'] = prototype;
+  } on Object {
+    // Not writable here; checked below.
+  }
+  if (!replacement['prototype'].strictEquals(prototype).toDart) {
+    globalContext['BroadcastChannel'] = native;
+    return;
+  }
+  globalContext['BroadcastChannel'] = replacement;
 }

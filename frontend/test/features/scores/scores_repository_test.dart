@@ -31,7 +31,7 @@ class _SignedIn extends OidcApi {
   ) : super(_oidcConfig, store);
 
   @override
-  Future<String?> getActiveAccessToken() async => 'a-token';
+  Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
 }
 
 /// An API that lists what it is told to, and hands out documents until it is
@@ -98,4 +98,59 @@ void main() {
     await scores.syncWithApi();
     expect(api.since.last, isNot(asked));
   });
+
+  test('refreshing a document keeps when the score was last opened', () async {
+    // The download is on its way when the player opens the score, and the
+    // copy the refresh started from knows nothing about that.
+    final store = await LocalStore.inMemory();
+    final fetched = DateTime.utc(2026);
+    await store.writeScores([
+      Score(id: 'abc', lastChangedAt: fetched, lastFetchedFileAt: fetched)
+          .toJson(),
+    ]);
+    await store.writeMusicXml('abc', '<old/>');
+    late ScoresRepository scores;
+    final api = _OpensWhileFetching(() => scores.markViewed('abc'))
+      ..answers = [
+        {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
+      ];
+    scores = ScoresRepository(store, api, _SignedIn(store));
+    await scores.init();
+
+    await scores.syncWithApi();
+
+    expect(scores.getScore('abc')!.lastViewedAt, isNotNull);
+  });
+
+  test('a sync that finds nothing new writes nothing', () async {
+    final store = await LocalStore.inMemory();
+    final api = _Api()
+      ..answers = [
+        {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
+      ];
+    final scores = ScoresRepository(store, api, _SignedIn(store));
+    await scores.init();
+    await scores.syncWithApi();
+
+    var told = 0;
+    scores.addListener(() => told++);
+    // The window starts before the newest score, so it is read back again.
+    await scores.syncWithApi();
+
+    expect(told, 0, reason: 'every page was redrawn for nothing');
+  });
+}
+
+/// An API whose document download lets the player open the score while it is
+/// on its way.
+class _OpensWhileFetching extends _Api {
+  _OpensWhileFetching(this.meanwhile);
+
+  final Future<void> Function() meanwhile;
+
+  @override
+  Future<String> getScoreMusicXml(String scoreId, String authToken) async {
+    await meanwhile();
+    return super.getScoreMusicXml(scoreId, authToken);
+  }
 }

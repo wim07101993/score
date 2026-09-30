@@ -78,8 +78,9 @@ class _ScoresPageState extends State<ScoresPage> {
               listenable: app.scores,
               builder: (context, _) {
                 final needle = _filter.trim();
+                final words = searchWords(needle);
                 final scores = app.scores.scores
-                    .where((score) => score.matches(needle))
+                    .where((score) => score.matchesWords(words))
                     .toList();
 
                 return RefreshIndicator(
@@ -117,11 +118,9 @@ class ScoreCard extends StatelessWidget {
   const ScoreCard({
     super.key,
     required this.score,
-    this.onTap,
   });
 
   final Score score;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +133,7 @@ class ScoreCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: onTap ??
-            () => Navigator.of(context).pushNamed(AppRoute.score(score.id)),
+        onTap: () => Navigator.of(context).pushNamed(AppRoute.score(score.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

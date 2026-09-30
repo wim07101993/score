@@ -1,12 +1,12 @@
 {
-    "name": "score",
-    "short_name": "score",
+    "name": "Score",
+    "short_name": "Score",
+    "description": "Sheet music, drawn and played from — on a stage, with or without a network.",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#121318",
+    "theme_color": "#485d92",
     "prefer_related_applications": false,
     "icons": [
         {

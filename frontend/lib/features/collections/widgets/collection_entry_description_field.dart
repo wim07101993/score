@@ -35,32 +35,58 @@ class _CollectionEntryDescriptionFieldState
     extends State<CollectionEntryDescriptionField> {
   late final _controller = TextEditingController(text: widget.initialValue);
 
+  /// What is written next to the piece as this field last took it from the
+  /// collection, which is what the text is compared with to tell whether the
+  /// player changed it.
+  late String _taken = widget.initialValue;
+
+  /// Leaving the field is done with it as much as pressing enter is: what was
+  /// typed and then left for the next control, or for the page before, is
+  /// meant to be kept. There is no save button for it.
+  late final FocusNode _focus = FocusNode()..addListener(_submitWhenLeft);
+
+  void _submitWhenLeft() {
+    if (!_focus.hasFocus) {
+      _submit(_controller.text);
+    }
+  }
+
   @override
   void didUpdateWidget(CollectionEntryDescriptionField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // A sync can bring in what somebody else wrote next to the piece. It is
-    // taken only when it is different from what was there, so that what is
-    // being typed is not thrown away by a redraw that changes nothing.
-    if (oldWidget.initialValue != widget.initialValue) {
+    // A sync can bring in what somebody else wrote next to the piece. What
+    // the player has not touched takes that on; what they are typing is
+    // theirs until they are done with it.
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text == _taken) {
       _controller.text = widget.initialValue;
+      _taken = widget.initialValue;
     }
   }
 
   @override
   void dispose() {
+    _focus.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   void _submit(String value) {
     if (widget.isTheOnlyName && value.trim().isEmpty) {
-      _controller.text = widget.initialValue;
+      _controller.text = _taken;
       _controller.selection = TextSelection(
         baseOffset: 0,
         extentOffset: _controller.text.length,
       );
       return;
     }
+    // Pressing enter on — or leaving — text nobody changed is not a write: it
+    // would only send back what this field last read, over whatever came in
+    // since.
+    if (value == _taken) {
+      return;
+    }
+    _taken = value;
     widget.onSubmitted(value);
   }
 
@@ -68,6 +94,7 @@ class _CollectionEntryDescriptionFieldState
   Widget build(BuildContext context) {
     return TextField(
       controller: _controller,
+      focusNode: _focus,
       enabled: widget.enabled,
       decoration: InputDecoration(
         isDense: true,

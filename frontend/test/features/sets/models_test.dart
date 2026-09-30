@@ -34,4 +34,30 @@ void main() {
 
     expect(entry.scoreId, 'score-1');
   });
+
+  test('a moment is written down as one, whatever zone reads it back', () {
+    // Written as this device's local time it would carry no offset, and be
+    // read back in whatever zone the device is in by then.
+    final at = DateTime(2026, 6, 1, 20);
+    final set = ScoreSet(id: 's', lastChangedAt: at, lastSyncedAt: at);
+
+    final json = set.toJson();
+    final back = ScoreSet.fromJson(json);
+
+    expect(json['last_synced_at'], endsWith('Z'));
+    expect(json['last_changed_at'], endsWith('Z'));
+    expect(back.lastSyncedAt!.isAtSameMomentAs(at), isTrue);
+    expect(back.lastChangedAt.isAtSameMomentAs(at), isTrue);
+  });
+
+  test('how big a player draws a song is part of how they read it', () {
+    final view = EntryView.fromJson(
+      {'transposition': 2, 'hidden_parts': ['P2'], 'zoom': 2.5},
+    );
+
+    expect(view.zoom, 2.5);
+    expect(view.toJson(), containsPair('zoom', 2.5));
+    expect(EntryView.fromJson({'transposition': 0}).zoom, 1,
+        reason: 'a view that says nothing about its size is the written size');
+  });
 }

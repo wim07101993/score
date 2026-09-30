@@ -17,22 +17,38 @@ library;
 // takes them as they are rather than keeping a second copy that could drift.
 import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/sets/models.dart'
-    show PendingChange, PendingEntry, transpositionOf;
+    show
+        EntryView,
+        PendingChange,
+        PendingEntry,
+        SyncedEntry,
+        SyncedRecord,
+        scoreIdOf,
+        transpositionOf;
+import 'package:score/json.dart';
 
 export 'package:score/features/sets/models.dart'
-    show PendingChange, PendingEntry, addressesOf, pullOverlap, transpositionOf;
-
-/// The smallest a player may draw a score, where 1 is the size it is written
-/// at. It is the API's bound, and a view outside it is one the API refuses.
-const double minZoom = 0.5;
-
-/// The biggest a player may draw a score, for the same reason.
-const double maxZoom = 4;
+    show
+        EntryView,
+        PendingChange,
+        PendingEntry,
+        addressesIn,
+        addressesOf,
+        keptOf,
+        maxZoom,
+        mergedEntries,
+        minZoom,
+        owing,
+        pullOverlap,
+        scoreIdOf,
+        transpositionOf,
+        withoutOwed,
+        zoomOf;
 
 /// A collection as this app keeps it: what the API says a collection is, plus
 /// what only this device knows — when it last heard from the server about it,
 /// and what it still owes the server.
-class Collection {
+class Collection implements SyncedRecord<Collection, CollectionEntry> {
   const Collection({
     required this.id,
     this.title = '',
@@ -68,8 +84,8 @@ class Collection {
         ],
         isOwner: json['is_owner'] == true,
         lastChangedAt:
-            _date(json['last_changed_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: _date(json['deleted_at']),
+            dateOf(json['last_changed_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+        deletedAt: dateOf(json['deleted_at']),
         lastSyncedAt: syncedAt,
       );
 
@@ -91,10 +107,10 @@ class Collection {
           for (final address in (json['shared_with'] as List? ?? [])) '$address',
         ],
         isOwner: json['is_owner'] != false,
-        lastChangedAt: _date(json['last_changed_at']) ??
+        lastChangedAt: dateOf(json['last_changed_at']) ??
             DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: _date(json['deleted_at']),
-        lastSyncedAt: _date(json['last_synced_at']),
+        deletedAt: dateOf(json['deleted_at']),
+        lastSyncedAt: dateOf(json['last_synced_at']),
         pendingChange: json['pending_change'] as String?,
         pendingViews: [
           for (final id in (json['pending_views'] as List? ?? [])) '$id',
@@ -105,8 +121,11 @@ class Collection {
         ],
       );
 
+  @override
   final String id;
+  @override
   final String title;
+  @override
   final String description;
 
   /// The pieces in it.
@@ -116,24 +135,31 @@ class Collection {
   /// the collection has, because it has none. What a piece is called is in its
   /// score rather than in the entry, so a list is sorted where the titles are,
   /// which is [entriesByTitle].
+  @override
   final List<CollectionEntry> entries;
 
   /// The addresses it is readable by; only ever filled in for the owner.
+  @override
   final List<String> sharedWith;
 
   /// Whether it is this user's to change.
+  @override
   final bool isOwner;
 
   /// When it was last written, here or there.
+  @override
   final DateTime lastChangedAt;
 
   /// When it was deleted, or null while it exists.
+  @override
   final DateTime? deletedAt;
 
   /// When the server last said what is above.
+  @override
   final DateTime? lastSyncedAt;
 
   /// One of [PendingChange], or null when there is nothing owed.
+  @override
   final String? pendingChange;
 
   /// The entries whose view this user has written here and the server has not
@@ -142,6 +168,7 @@ class Collection {
   /// A view is written by whoever it belongs to rather than by the owner, so it
   /// is owed separately: a player who cannot add a piece to the book still has
   /// their own reading of one that is in it to send.
+  @override
   final List<String> pendingViews;
 
   /// What has been done to the collection here and not sent yet, in the order
@@ -149,8 +176,10 @@ class Collection {
   ///
   /// Entries are written one at a time, so what is owed is one piece at a time
   /// rather than the whole book.
+  @override
   final List<PendingEntry> pendingEntries;
 
+  @override
   bool get owesAnything =>
       pendingChange != null ||
       pendingEntries.isNotEmpty ||
@@ -163,6 +192,7 @@ class Collection {
   bool holds(String scoreId) =>
       entries.any((entry) => entry.scoreId == scoreId);
 
+  @override
   Collection copyWith({
     String? title,
     String? description,
@@ -194,6 +224,7 @@ class Collection {
         pendingEntries: pendingEntries ?? this.pendingEntries,
       );
 
+  @override
   Map<String, Object?> toJson() => {
         'id': id,
         'title': title,
@@ -201,9 +232,11 @@ class Collection {
         'entries': [for (final entry in entries) entry.toJson()],
         'shared_with': sharedWith,
         'is_owner': isOwner,
-        'last_changed_at': lastChangedAt.toIso8601String(),
-        'deleted_at': deletedAt?.toIso8601String(),
-        'last_synced_at': lastSyncedAt?.toIso8601String(),
+        // In UTC, for the reason a set's are (see ScoreSet.toJson): a local
+        // moment is read back in whatever zone the device is in by then.
+        'last_changed_at': lastChangedAt.toUtc().toIso8601String(),
+        'deleted_at': deletedAt?.toUtc().toIso8601String(),
+        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
         'pending_change': pendingChange,
         'pending_views': pendingViews,
         'pending_entries': [for (final owed in pendingEntries) owed.toJson()],
@@ -217,7 +250,7 @@ class Collection {
 ///
 /// There is no position. Where a piece comes in a collection is not a thing a
 /// collection has an answer to.
-class CollectionEntry {
+class CollectionEntry implements SyncedEntry<CollectionEntry> {
   const CollectionEntry({
     required this.id,
     this.scoreId,
@@ -232,7 +265,7 @@ class CollectionEntry {
   ) =>
       CollectionEntry(
         id: '${json['id']}',
-        scoreId: entryScoreIdOf(json['score_id']),
+        scoreId: scoreIdOf(json['score_id']),
         description: '${json['description'] ?? ''}',
         transposition: transpositionOf(json['transposition']),
         view: CollectionEntryView.fromJson(json['view']),
@@ -245,7 +278,7 @@ class CollectionEntry {
   ) =>
       CollectionEntry(
         id: '${json['id']}',
-        scoreId: entryScoreIdOf(json['score_id']),
+        scoreId: scoreIdOf(json['score_id']),
         description: '${json['description'] ?? ''}',
         transposition: transpositionOf(json['transposition']),
         view: CollectionEntryView.fromJson(json['view']),
@@ -257,6 +290,7 @@ class CollectionEntry {
   /// An entry added here is named here, and the server keeps the name, which is
   /// what lets a player put a piece in and say how they read it before either
   /// has been sent anywhere.
+  @override
   final String id;
 
   /// The piece, and null for one that is in the collection but not in here — a
@@ -276,11 +310,13 @@ class CollectionEntry {
   final int transposition;
 
   /// How this user looks at it, which is theirs alone.
+  @override
   final CollectionEntryView view;
 
   /// Whether the server has this entry. An entry that was added here and never
   /// sent is nothing to tell the server about when it is taken out again: there
   /// is no row there to remove.
+  @override
   final bool synced;
 
   /// Whether this is a piece that has yet to be scanned: in the book, and not
@@ -318,6 +354,7 @@ class CollectionEntry {
   /// in: `null` is a piece that is in the collection but not in here, and
   /// reading that as nothing said would put the score back on an entry somebody
   /// has just said has none. So taking the score away is [clearScoreId].
+  @override
   CollectionEntry copyWith({
     String? scoreId,
     String? description,
@@ -348,75 +385,11 @@ class CollectionEntry {
       };
 }
 
-/// How one player looks at one entry: on top of the key the group plays it in,
-/// which parts they have on screen, and how big they draw it.
-///
-/// An entry nobody has looked at differently has the view every entry starts
-/// with: as written, every part on screen, at the size it is written at.
-class CollectionEntryView {
-  const CollectionEntryView({
-    this.transposition = 0,
-    this.hiddenParts = const [],
-    this.zoom = 1,
-  });
+/// How one player looks at one entry of a collection: the same thing, read the
+/// same way, as how they look at one entry of a set — the key on top of the
+/// group's, the parts on screen, and how big they draw it.
+typedef CollectionEntryView = EntryView;
 
-  factory CollectionEntryView.fromJson(
-    Object? json,
-  ) {
-    if (json is! Map) return const CollectionEntryView();
-    return CollectionEntryView(
-      transposition: transpositionOf(json['transposition']),
-      hiddenParts: [
-        for (final part in (json['hidden_parts'] as List? ?? [])) '$part',
-      ],
-      // A view that came from a server that has not been updated yet is a
-      // score drawn the size it is written at.
-      zoom: zoomOf(json['zoom']),
-    );
-  }
-
-  /// Semitones on top of the entry's own.
-  final int transposition;
-
-  /// By MusicXML part id.
-  final List<String> hiddenParts;
-
-  /// How big this player draws it, where 1 is the size it is written at.
-  ///
-  /// It belongs with the key and the parts for the same reason they do: it is
-  /// about the player and the screen they read from rather than about the
-  /// music.
-  final double zoom;
-
-  Map<String, Object?> toJson() => {
-        'transposition': transposition,
-        'hidden_parts': hiddenParts,
-        'zoom': zoom,
-      };
-}
-
-/// The score an entry is of, and null for a piece that has none.
-///
-/// A blank is nothing rather than a score with no name: a form hands over what
-/// was typed into it, and what nobody typed a score into is a piece that is in
-/// the collection but not in here. The text `null` is nothing too — it is what
-/// a null turns into when it is written out as text, and read back as an id it
-/// would be sent to the server as a score that does not exist.
-String? entryScoreIdOf(Object? value) {
-  if (value == null) return null;
-  final id = '$value'.trim();
-  return id.isEmpty || id == 'null' ? null : id;
-}
-
-/// A size the API will take, and the size a score is written at for anything
-/// that is not a size at all.
-double zoomOf(Object? value) {
-  final asNumber = value is num ? value : num.tryParse('${value ?? ''}');
-  if (asNumber == null || !asNumber.isFinite) {
-    return 1;
-  }
-  return asNumber.toDouble().clamp(minZoom, maxZoom);
-}
 
 /// The entries of a collection by title, which is how a collection is read: it
 /// has no order of its own, and what a piece is called is in its score rather
@@ -439,9 +412,4 @@ List<CollectionEntry> entriesByTitle(
       // them comes first must not change every time the list is drawn.
       return byName != 0 ? byName : a.id.compareTo(b.id);
     });
-}
-
-DateTime? _date(Object? value) {
-  if (value is! String || value.isEmpty) return null;
-  return DateTime.tryParse(value);
 }

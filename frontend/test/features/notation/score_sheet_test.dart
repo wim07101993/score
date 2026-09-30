@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/notation/parts.dart';
 import 'package:score/features/notation/view/score_view.dart';
@@ -330,5 +332,38 @@ void _smoke() {
     await tester.pump();
 
     expect(controller.transposition.chromaticSemitones, -2);
+  });
+
+  testWidgets('says how far it was pinched, and not what the page set',
+      (tester) async {
+    // A pinch — or ctrl and the scroll wheel — zooms the engraving itself. A
+    // page that saves how big the score is read has to hear about that, and
+    // only that: the size it set itself is already its own.
+    final pinches = <double>[];
+    Widget sheet(double space) => MaterialApp(
+          home: Scaffold(
+            body: ScoreSheet(
+              musicXml: _read('BeetAnGeSample.musicxml'),
+              space: space,
+              onPinched: pinches.add,
+            ),
+          ),
+        );
+    await tester.pumpWidget(sheet(7.5));
+    await tester.pump();
+
+    await tester.pumpWidget(sheet(10));
+    await tester.pump();
+    expect(pinches, isEmpty, reason: 'a size the page set is not a pinch');
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    tester.binding.handlePointerEvent(PointerScrollEvent(
+      position: tester.getCenter(find.byType(MusicScoreView)),
+      scrollDelta: const Offset(0, -20),
+    ));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(pinches, [closeTo(1.1, 0.0001)]);
   });
 }

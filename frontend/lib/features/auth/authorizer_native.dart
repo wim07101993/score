@@ -29,9 +29,7 @@ import 'package:window_to_front/window_to_front.dart';
 /// [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252#section-8.12) says not to
 /// and why providers increasingly refuse it.
 class PlatformAuthorizer implements Authorizer {
-  PlatformAuthorizer(
-    this._config,
-  );
+  PlatformAuthorizer(this._config);
 
   /// Whether this is a machine where the answer has to come back to a port.
   ///
@@ -80,13 +78,23 @@ class PlatformAuthorizer implements Authorizer {
   /// So the port is listened on here, where nothing is watching the window: it
   /// waits for the answer, for as long as signing in reasonably takes.
   Future<Callback?> _answerOnAPort(Uri authorizationUrl) async {
-    final server =
-        await HttpServer.bind(InternetAddress.loopbackIPv4, redirectUri.port);
+    final server = await HttpServer.bind(
+      InternetAddress.loopbackIPv4,
+      redirectUri.port,
+    );
     try {
       await launchUrl(authorizationUrl, mode: LaunchMode.externalApplication);
       return await _firstAnswer(server).timeout(_patience);
     } on TimeoutException {
-      return null;
+      // Not finished in time is a sign-in that failed, not an app about to be
+      // navigated away from — which is what a null says. Thrown, it is kept as
+      // the reason signing in stopped (see OidcApi.signInFailure), and nothing
+      // opens another browser for it until the player asks to try again.
+      throw TimeoutException(
+        'the sign-in in the browser was not finished within'
+        ' ${_patience.inMinutes} minutes',
+        _patience,
+      );
     } finally {
       await server.close(force: true);
     }
@@ -124,15 +132,26 @@ class PlatformAuthorizer implements Authorizer {
 
   Callback? _read(Map<String, String> query) => readCallback(query);
 
-  /// What to listen on for the answer.
+  /// The scheme `flutter_web_auth_2` is told to wait for the answer on.
   ///
-  /// A phone is called back on a scheme of its own; a desktop is called back on
-  /// a port on this machine, and there the whole address is what has to be
-  /// said.
+  /// Only a phone (and macOS) gets here: Linux and Windows are called back on a
+  /// port and never go through `flutter_web_auth_2` (see [_answerOnAPort]). So
+  /// the address is always [OidcConfig.nativeRedirectUri], and it has to be a
+  /// scheme the app owns, like `app.wvl.score://callback`. The package wants
+  /// the bare scheme and nothing more.
+  ///
+  /// An http or https address would mean an App Link or a Universal Link, which
+  /// the package takes as a separate set of options this app does not pass, and
+  /// the scheme alone would then be refused by it. Said here, before a browser
+  /// is opened, rather than as whatever the package makes of it afterwards.
   String get _callbackScheme {
     final uri = redirectUri;
-    if (uri.scheme == 'http' || uri.scheme == 'https') {
-      return '${uri.scheme}://${uri.host}:${uri.port}';
+    if (uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme.isEmpty) {
+      throw StateError(
+        'nativeRedirectUri in the config must use a scheme the app owns'
+        ' (such as app.wvl.score://callback), not "$uri": signing in on this'
+        ' platform is called back on that scheme.',
+      );
     }
     return uri.scheme;
   }

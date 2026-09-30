@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:openid_client/openid_client.dart' as openid;
 import 'package:score/config.dart';
 import 'package:score/features/auth/authorizer.dart';
+import 'package:score/features/auth/tab_lock.dart';
 import 'package:score/features/sembast/local_store.dart';
 
 /// Proving who the user is, and finding out what they may do.
@@ -30,8 +32,18 @@ import 'package:score/features/sembast/local_store.dart';
 const List<String> _scopes = ['openid', 'email', 'profile', 'offline_access'];
 
 const _tokenKey = 'auth_token_response';
-const _flowStateKey = 'auth_flow_state';
 const _userInfoKey = 'app_user_info';
+
+/// Where what a sign-in has to remember while the user is away is kept: one
+/// record per sign-in, by its state.
+///
+/// Per sign-in, because on the web every tab of the app shares the one store
+/// but not the one program. Two tabs that each send the user to sign in would
+/// otherwise each write down their own flow over the other's, and whichever
+/// came back first would be refused for a state that is not its own — and
+/// throw the other's away on its way out.
+const _flowStatePrefix = 'auth_flow_state';
+String _flowStateKey(String state) => '$_flowStatePrefix:$state';
 
 /// How much of a token's life to leave unspent.
 ///
@@ -47,13 +59,21 @@ class OidcApi {
     this._store, {
     http.Client? client,
     Authorizer? authorizer,
+    Duration? otherTabsGrace,
   })  : _http = client ?? http.Client(),
-        _authorizer = authorizer ?? Authorizer(_config);
+        _authorizer = authorizer ?? Authorizer(_config),
+        _otherTabsGrace = otherTabsGrace ??
+            (kIsWeb ? const Duration(seconds: 2) : Duration.zero);
 
   final OidcConfig _config;
   final LocalStore _store;
   final http.Client _http;
   final Authorizer _authorizer;
+
+  /// How long a refused refresh token is watched for another tab's
+  /// replacement before it is given up on (see [_refreshNow]). Only the web
+  /// has tabs.
+  final Duration _otherTabsGrace;
 
   Future<openid.Client>? _clientFuture;
 
@@ -63,7 +83,7 @@ class OidcApi {
   /// wants a token would otherwise make it again.
   Future<openid.Client> _client() =>
       _clientFuture ??= _describeProvider().then(
-        (issuer) => openid.Client(issuer, _config.clientId, httpClient: _http),
+        (issuer) => openid.Client(issuer, _config.clientIdHere, httpClient: _http),
       );
 
   /// What the provider says about itself, or what the config says when it
@@ -131,12 +151,21 @@ class OidcApi {
   /// Throws when a refresh could not be done for a reason that says nothing
   /// about the refresh token, like a network that went away halfway through:
   /// the token is kept for the next try, and the caller hears about it.
-  Future<String?> getActiveAccessToken() async {
+  ///
+  /// [signIn] false is for everything that runs behind the user's back — a
+  /// sync, a queued write going out. Those answer `null` rather than send the
+  /// user to the provider: on the web a sign-in is the page leaving, taking
+  /// whatever was being typed with it, and on a desktop it is a browser opening
+  /// out of nowhere and a write waiting minutes on it. Worse, a token the API
+  /// keeps refusing would be signed in for, refused, and signed in for again,
+  /// with nobody asking for any of it. Signing in is for the app starting and
+  /// the user asking — see [App.updateAuth].
+  Future<String?> getActiveAccessToken({bool signIn = true}) async {
     final held = await _heldToken();
     if (held != null) {
       return held;
     }
-    return await getFreshAccessToken();
+    return await getFreshAccessToken(signIn: signIn);
   }
 
   /// The token this device is holding, refreshed on the spot if it has run out
@@ -153,8 +182,9 @@ class OidcApi {
   }
 
   /// Gets a token by whatever means are left: the code the user just came back
-  /// with, the refresh token this device is holding, or by asking them.
-  Future<String?> getFreshAccessToken() async {
+  /// with, the refresh token this device is holding, or — when [signIn] — by
+  /// asking them.
+  Future<String?> getFreshAccessToken({bool signIn = true}) async {
     final finished = await (_finishing ??=
         _finishPendingSignIn().whenComplete(() => _finishing = null));
     if (finished != null) {
@@ -166,7 +196,7 @@ class OidcApi {
       return refreshed;
     }
 
-    if (_signInFailure != null) {
+    if (!signIn || _signInFailure != null) {
       return null;
     }
     return await (_signingIn ??=
@@ -183,7 +213,9 @@ class OidcApi {
     } catch (error) {
       // The provider sent the user back with a refusal rather than a code.
       await _authorizer.clearCallback();
-      await _store.writeSetting(_flowStateKey, null);
+      if (error case AuthorizationRefused(:final state?)) {
+        await _store.writeSetting(_flowStateKey(state), null);
+      }
       _signInFailure = error;
       return null;
     }
@@ -192,7 +224,7 @@ class OidcApi {
     }
 
     // Read before the exchange, which throws the flow away once it is done.
-    final started = await _readFlowState();
+    final started = await _readFlowState(callback.state);
     final String token;
     try {
       token = await _exchangeCallback(callback);
@@ -220,8 +252,13 @@ class OidcApi {
   /// Refreshes the token this device is holding, joining a refresh already on
   /// its way rather than starting a second. `null` when there is no refresh
   /// token, or the provider refused the one there was.
-  Future<String?> _refresh() =>
-      _refreshing ??= _refreshNow().whenComplete(() => _refreshing = null);
+  ///
+  /// Other tabs of the web app are waited for too (see [underTabLock]): a tab
+  /// that refreshes after another has finished reads back the token that one
+  /// wrote down, rather than spending the same refresh token a second time.
+  Future<String?> _refresh() => _refreshing ??=
+      underTabLock('score-token-refresh', _refreshNow)
+          .whenComplete(() => _refreshing = null);
 
   /// Keeps whatever came back: a provider that rotates refresh tokens hands a
   /// new one out with every refresh, and a device that did not write it down
@@ -231,7 +268,22 @@ class OidcApi {
   /// A refresh that failed because the network did is the same refresh token
   /// working fine the next time there is one, and throwing it away would make
   /// a player sign in again over a dropped connection.
-  Future<String?> _refreshNow() async {
+  ///
+  /// Nor is it forgotten when it was refused for having just been spent by
+  /// another tab of the app. On the web every tab refreshes on its own, out of
+  /// the one store: two tabs opened again the next morning both find the token
+  /// run out and both spend the same refresh token, and a provider that
+  /// rotates them takes it only once. The tab that lost reads back what the
+  /// other wrote down and goes on with that — rather than throwing it away and
+  /// sending both tabs to sign in.
+  ///
+  /// What the other tab wrote down reaches this one's store a moment after it
+  /// was written — the store hears of it from the other tab — and the refusal
+  /// of the race it lost is often back before that. So the store is watched
+  /// for it for a while ([_otherTabsGrace]) before the token is given up on;
+  /// and what is forgotten then is only the refresh token that was refused,
+  /// never one another tab has written over it since.
+  Future<String?> _refreshNow({bool readBackIfRefused = true}) async {
     // Read again rather than handed in: a refresh that finished a moment ago
     // may have written down a newer one, and the old one is already spent.
     final credential = await _heldCredential();
@@ -253,8 +305,51 @@ class OidcApi {
       if (!_refused(error)) {
         rethrow;
       }
-      await _forgetTokens();
+      if (readBackIfRefused && await _replacedByAnotherTab(credential)) {
+        return _refreshNow(readBackIfRefused: false);
+      }
+      await _forgetRefreshToken(credential.refreshToken!);
       return null;
+    }
+  }
+
+  /// Whether another tab wrote down a different refresh token than the one in
+  /// [spent], within [_otherTabsGrace].
+  Future<bool> _replacedByAnotherTab(openid.Credential spent) async {
+    final until = DateTime.now().add(_otherTabsGrace);
+    while (true) {
+      final now = await _heldRefreshToken();
+      if (now != null && now != spent.refreshToken) {
+        return true;
+      }
+      if (!DateTime.now().isBefore(until)) {
+        return false;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+
+  /// The refresh token in the store, read as it is rather than as a credential:
+  /// no provider has to be reached to read it.
+  Future<String?> _heldRefreshToken() async {
+    final json = await _store.readSetting(_tokenKey);
+    if (json == null) {
+      return null;
+    }
+    try {
+      return (jsonDecode(json) as Map<String, dynamic>)['refresh_token']
+          as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Forgets what this device holds, if it is still [refused]: a refresh
+  /// token another tab has written over it since is that tab's, and good.
+  Future<void> _forgetRefreshToken(String refused) async {
+    final held = await _heldRefreshToken();
+    if (held == null || held == refused) {
+      await _forgetTokens();
     }
   }
 
@@ -271,7 +366,7 @@ class OidcApi {
   /// no sign-in started here for it to belong to, or when the provider refused
   /// it.
   Future<String> _exchangeCallback(Callback callback) async {
-    final held = await _readFlowState();
+    final held = await _readFlowState(callback.state);
     if (held == null) {
       // Nothing was sent from this device, so nothing can have come back to it.
       throw OidcException(
@@ -297,7 +392,7 @@ class OidcApi {
       _signInFailure = null;
       return token;
     } finally {
-      await _store.writeSetting(_flowStateKey, null);
+      await _forgetFlowState(callback.state);
     }
   }
 
@@ -316,7 +411,7 @@ class OidcApi {
     // to stop existing, and what comes back is worthless without these — and
     // the user is lost without the last one.
     await _store.writeSetting(
-      _flowStateKey,
+      _flowStateKey(started.state),
       jsonEncode({
         'state': started.state,
         'verifier': started.verifier,
@@ -333,6 +428,10 @@ class OidcApi {
     } catch (error) {
       // Kept, so that the next sync does not open another browser to fail in.
       _signInFailure = error;
+      // Nothing will come back for this sign-in any more: it was cancelled,
+      // timed out, or refused, and on a device there is no later start of the
+      // app for an answer to arrive in.
+      await _store.writeSetting(_flowStateKey(started.state), null);
       return null;
     }
   }
@@ -413,13 +512,32 @@ class OidcApi {
     return null;
   }
 
+  /// Whether the app was started with the provider's answer to a sign-in in
+  /// its address, which has to be dealt with before anything else is shown.
+  Future<bool> isFinishingASignIn() async {
+    try {
+      return await _authorizer.pendingCallback() != null;
+    } catch (_) {
+      // A refusal is an answer too.
+      return true;
+    }
+  }
+
+  /// Whether this device holds a token, or a refresh token to get one with.
+  Future<bool> holdsAToken() async =>
+      await _store.readSetting(_tokenKey) != null;
+
   Future<void> _forgetTokens() async {
     await _store.writeSetting(_tokenKey, null);
   }
 
   /// Throws away the access token and keeps the refresh token, so that the next
   /// token asked for is a refreshed one.
-  Future<void> _forgetAccessToken() async {
+  ///
+  /// For a token the API refused however long this device thinks it has left:
+  /// revoked, or the session behind it ended somewhere else. Kept, it would be
+  /// sent again with every request until it ran out on its own.
+  Future<void> forgetAccessToken() async {
     final json = await _store.readSetting(_tokenKey);
     if (json == null) {
       return;
@@ -438,13 +556,22 @@ class OidcApi {
     }
   }
 
-  Future<_FlowState?> _readFlowState() async {
-    final json = await _store.readSetting(_flowStateKey);
+  /// What was written down when the sign-in with this [state] was started.
+  ///
+  /// Also where the build before this one wrote it down — one record for every
+  /// sign-in — so that a sign-in that was out while the app was updated still
+  /// finishes.
+  Future<_FlowState?> _readFlowState(String state) async {
+    final json = await _store.readSetting(_flowStateKey(state)) ??
+        await _store.readSetting(_flowStatePrefix);
     if (json == null) {
       return null;
     }
     try {
       final map = jsonDecode(json) as Map<String, dynamic>;
+      if (map['state'] != state) {
+        return null;
+      }
       final returnTo = map['return_to'];
       return _FlowState(
         '${map['state']}',
@@ -454,6 +581,11 @@ class OidcApi {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<void> _forgetFlowState(String state) async {
+    await _store.writeSetting(_flowStateKey(state), null);
+    await _store.writeSetting(_flowStatePrefix, null);
   }
 
   /// What the provider says about the user right now.
@@ -474,7 +606,7 @@ class OidcApi {
       // would be handed over again at every start until it ran out on its own,
       // so it is spent now — refreshed if there is a refresh token to do it
       // with, and signed in for again if not.
-      await _forgetAccessToken();
+      await forgetAccessToken();
       final fresh = await getFreshAccessToken();
       if (fresh == null) {
         return null;
@@ -524,29 +656,13 @@ class OidcApi {
     }
   }
 
-  /// Where to send the browser to end the session at the provider as well.
-  ///
-  /// `null` when the provider does not say it has anywhere for that, which is
-  /// its right — in which case [forgetUser] is the whole of what can be done.
-  ///
-  /// Not called by anything yet. It is here because it is the missing half of
-  /// signing out: this app can forget a user, and until somebody sends the
-  /// browser here, the provider has not.
-  Future<Uri?> endSessionUrl({Uri? returnTo}) async {
-    final credential = await _heldCredential();
-    if (credential == null) {
-      return null;
-    }
-    return credential.generateLogoutUrl(redirectUri: returnTo);
-  }
-
   /// Forgets who is signed in on this device.
   ///
   /// It signs nobody out at the provider — that is the provider's own business,
   /// and this app is in no position to speak for it. What it does is make the
   /// next visit ask again from the beginning, which is the way out of a token
-  /// or a set of roles that has gone stale. See [endSessionUrl] for the other
-  /// half.
+  /// or a set of roles that has gone stale. Ending the session at the provider
+  /// as well is the missing other half, and nothing here does it yet.
   ///
   /// The scores and sets on this device are left alone: they are what makes the
   /// app work without a network, and they are no use to anyone who cannot get a
@@ -554,7 +670,7 @@ class OidcApi {
   Future<void> forgetUser() async {
     _signInFailure = null;
     await _forgetTokens();
-    await _store.writeSetting(_flowStateKey, null);
+    await _store.forgetSettingsStartingWith(_flowStatePrefix);
     await _store.writeSetting(_userInfoKey, null);
   }
 }

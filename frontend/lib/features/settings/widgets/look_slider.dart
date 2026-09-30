@@ -13,6 +13,7 @@ class LookSlider extends StatelessWidget {
     required this.max,
     required this.readout,
     required this.onChanged,
+    this.onChangeEnd,
   });
 
   final String label;
@@ -21,6 +22,9 @@ class LookSlider extends StatelessWidget {
   final double max;
   final String readout;
   final ValueChanged<double> onChanged;
+
+  /// Called once the thumb is let go of, with where it was left.
+  final ValueChanged<double>? onChangeEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +39,7 @@ class LookSlider extends StatelessWidget {
         max: max,
         label: readout,
         onChanged: onChanged,
+        onChangeEnd: onChangeEnd,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:score/api.dart';
 import 'package:score/config.dart';
 
 /// The sets endpoints of the API.
@@ -11,55 +12,18 @@ import 'package:score/config.dart';
 /// is worth trying again decides between keeping the edit queued and giving it
 /// up, and that is what [SetsApiException] carries.
 
-/// A call that did not come back with what was asked for.
-///
-/// The status is the one http gave, and [errorCode] the one this API gives —
-/// which is the one to branch on, the way the API says. Both are absent when
-/// the call never reached a server at all.
-class SetsApiException implements Exception {
+/// A call to the sets endpoints that did not come back with what was asked
+/// for; see [ApiException].
+class SetsApiException extends ApiException {
   SetsApiException(
-    this.message,
-    this.status, [
-    this.problem,
+    super.message,
+    super.status, [
+    super.problem,
   ]);
 
-  final String message;
-  final int? status;
-
-  /// The RFC 9457 body, when there was one.
-  final Map<String, dynamic>? problem;
-
-  String? get errorCode => problem?['errorCode'] as String?;
-
-  String get detail => (problem?['detail'] as String?) ?? message;
-
-  /// Whether the same call is worth making again later.
-  ///
-  /// A request the server refused to read is refused just as firmly the next
-  /// time: a set naming a score that does not exist, or an address that is not
-  /// an address, is not going to start being accepted because time passed. What
-  /// is worth trying again is everything that says nothing about the request —
-  /// the network being down, the server being unwell, a token that has run out.
-  bool get isWorthRetrying {
-    if (status == null) {
-      // Nothing answered, so nothing has been said about the request.
-      return true;
-    }
-    if (errorCode == 'not_set_owner') {
-      // The set belongs to someone else, and waiting does not change whose it
-      // is.
-      return false;
-    }
-    if (status == 401 || status == 403) {
-      // A token that expired mid-sync, or a role that has yet to be granted:
-      // both are about the caller rather than about what was written.
-      return true;
-    }
-    return status! < 400 || status! >= 500;
-  }
-
+  /// The set belongs to someone else, and waiting does not change whose it is.
   @override
-  String toString() => message;
+  String get notTheOwnersCode => 'not_set_owner';
 }
 
 class SetsApi {
@@ -80,30 +44,30 @@ class SetsApi {
     DateTime? changesUntil,
     String authToken,
   ) async {
-    final response = await _call(
+    const what = 'list the sets';
+    final response = await callTheApi(
       () => _client.get(
         _config.path('sets', {
-          'Changes-Since': _formatDate(changesSince ?? DateTime.utc(1970)),
-          'Changes-Until': _formatDate(changesUntil ?? DateTime.now()),
+          'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
+          'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
         }),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Accept': 'application/json',
         },
       ),
-      'list the sets',
+      what,
+      SetsApiException.new,
     );
-    _throwUnlessOk(response, 'list the sets');
-    return [
-      for (final set in jsonDecode(response.body) as List)
-        (set as Map).cast<String, dynamic>(),
-    ];
+    throwUnlessOk(response, what, SetsApiException.new);
+    return objectsIn(response, what, SetsApiException.new);
   }
 
   /// One set, asked for by id. `null` when there is no such set, or when it is
   /// neither the caller's nor shared with them.
   Future<Map<String, dynamic>?> getSet(String setId, String authToken) async {
-    final response = await _call(
+    const what = 'fetch the set';
+    final response = await callTheApi(
       () => _client.get(
         _config.path('sets/$setId'),
         headers: {
@@ -111,13 +75,19 @@ class SetsApi {
           'Accept': 'application/json',
         },
       ),
-      'fetch the set',
+      what,
+      SetsApiException.new,
     );
-    if (response.statusCode == 404) {
+    if (isNotThere(
+      response,
+      const {'set_not_found'},
+      what,
+      SetsApiException.new,
+    )) {
       return null;
     }
-    _throwUnlessOk(response, 'fetch the set');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    throwUnlessOk(response, what, SetsApiException.new);
+    return objectIn(response, what, SetsApiException.new);
   }
 
   /// Stores what the set is — the gig, and who may read it — and hands back the
@@ -131,22 +101,8 @@ class SetsApi {
     String setId,
     String authToken,
     Map<String, Object?> writeSet,
-  ) async {
-    final response = await _call(
-      () => _client.put(
-        _config.path('sets/$setId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(writeSet),
-      ),
-      'save the set',
-    );
-    _throwUnlessOk(response, 'save the set');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
-  }
+  ) =>
+      _write('sets/$setId', authToken, writeSet, 'save the set');
 
   /// Puts one score into a set, or changes how it is played, and hands the
   /// entry back as it now reads — including where in the running order it
@@ -156,39 +112,14 @@ class SetsApi {
     String entryId,
     String authToken,
     Map<String, Object?> writeEntry,
-  ) async {
-    final response = await _call(
-      () => _client.put(
-        _config.path('sets/$setId/entries/$entryId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(writeEntry),
-      ),
-      'save the entry',
-    );
-    _throwUnlessOk(response, 'save the entry');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
-  }
+  ) =>
+      _write('sets/$setId/entries/$entryId', authToken, writeEntry,
+          'save the entry');
 
   /// Takes one score out of a set. An entry that is already gone is not an
   /// error: what was asked for is the state it is now in.
-  Future<void> deleteEntry(
-      String setId, String entryId, String authToken) async {
-    final response = await _call(
-      () => _client.delete(
-        _config.path('sets/$setId/entries/$entryId'),
-        headers: {'Authorization': 'Bearer $authToken'},
-      ),
-      'delete the entry',
-    );
-    if (response.statusCode == 404) {
-      return;
-    }
-    _throwUnlessOk(response, 'delete the entry');
-  }
+  Future<void> deleteEntry(String setId, String entryId, String authToken) =>
+      _delete('sets/$setId/entries/$entryId', authToken, 'delete the entry');
 
   /// Stores how the caller looks at one entry of a set.
   ///
@@ -201,82 +132,56 @@ class SetsApi {
     String entryId,
     String authToken,
     Map<String, Object?> writeView,
+  ) =>
+      _write('sets/$setId/entries/$entryId/view', authToken, writeView,
+          'save the view');
+
+  /// Marks the set as deleted. A set that was already gone is not an error.
+  Future<void> deleteSet(String setId, String authToken) =>
+      _delete('sets/$setId', authToken, 'delete the set');
+
+  Future<bool> canBeReached() => apiCanBeReached(_client, _config);
+
+  Future<Map<String, dynamic>> _write(
+    String path,
+    String authToken,
+    Map<String, Object?> body,
+    String what,
   ) async {
-    final response = await _call(
+    final response = await callTheApi(
       () => _client.put(
-        _config.path('sets/$setId/entries/$entryId/view'),
+        _config.path(path),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode(writeView),
+        body: jsonEncode(body),
       ),
-      'save the view',
+      what,
+      SetsApiException.new,
     );
-    _throwUnlessOk(response, 'save the view');
-    return (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    throwUnlessOk(response, what, SetsApiException.new);
+    return objectIn(response, what, SetsApiException.new);
   }
 
-  /// Marks the set as deleted. A set that was already gone is not an error.
-  Future<void> deleteSet(String setId, String authToken) async {
-    final response = await _call(
+  Future<void> _delete(String path, String authToken, String what) async {
+    final response = await callTheApi(
       () => _client.delete(
-        _config.path('sets/$setId'),
+        _config.path(path),
         headers: {'Authorization': 'Bearer $authToken'},
       ),
-      'delete the set',
+      what,
+      SetsApiException.new,
     );
-    if (response.statusCode == 404) {
+    if (isNotThere(
+      response,
+      const {'set_not_found', 'set_entry_not_found'},
+      what,
+      SetsApiException.new,
+    )) {
       return;
     }
-    _throwUnlessOk(response, 'delete the set');
-  }
-
-  Future<bool> canBeReached() async {
-    try {
-      final response = await _client
-          .get(_config.path('healthz'))
-          .timeout(const Duration(seconds: 5));
-      return response.statusCode < 400;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /// Makes the call, turning a network that is not there into the same kind of
-  /// failure as a server that said no — one with no status, since nothing
-  /// answered.
-  Future<http.Response> _call(
-      Future<http.Response> Function() send, String what) async {
-    try {
-      return await send();
-    } catch (error) {
-      throw SetsApiException('failed to $what: $error', null);
-    }
+    throwUnlessOk(response, what, SetsApiException.new);
   }
 }
-
-void _throwUnlessOk(http.Response response, String what) {
-  if (response.statusCode < 400) {
-    return;
-  }
-
-  Map<String, dynamic>? problem;
-  try {
-    final parsed = jsonDecode(response.body);
-    // Every failure this API answers with is an RFC 9457 object; anything else
-    // came from something in between that does not know about it.
-    problem = parsed is Map ? parsed.cast<String, dynamic>() : null;
-  } catch (error) {
-    problem = null;
-  }
-
-  throw SetsApiException(
-    'failed to $what: ${response.statusCode} ${response.body}',
-    response.statusCode,
-    problem,
-  );
-}
-
-String _formatDate(DateTime date) => date.toUtc().toIso8601String();

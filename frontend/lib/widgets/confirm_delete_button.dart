@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Says yes to deleting the collection, from the dialog that asks.
-class ConfirmDeleteCollectionButton extends StatelessWidget {
-  const ConfirmDeleteCollectionButton({
+/// Says yes to deleting a set or a collection, from the dialog that asks.
+class ConfirmDeleteButton extends StatelessWidget {
+  const ConfirmDeleteButton({
     super.key,
     required this.onPressed,
   });

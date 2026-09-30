@@ -72,6 +72,19 @@ endif()
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
+# The Visual C++ runtime (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll
+# and their siblings) next to the executable. The runner, the Flutter engine
+# and the plugins are all built against the DLL runtime (/MD), and a clean
+# Windows install does not have it: without these the app does not start
+# unless the user happens to have installed the VC++ redistributable for some
+# other program. `flutter build windows` runs this install step into
+# build/windows/x64/runner/Release, which is the folder the release zips, so
+# the DLLs travel with the app. The UCRT is left out (the default): it is part
+# of Windows 10 and later.
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "${INSTALL_BUNDLE_LIB_DIR}")
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_COMPONENT Runtime)
+include(InstallRequiredSystemLibraries)
+
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 

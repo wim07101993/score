@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:score/app.dart';
-import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/scores/models.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/repository.dart';
 import 'package:score/features/sets/widgets/add_score_chip.dart';
-import 'package:score/features/sets/widgets/confirm_delete_set_button.dart';
 import 'package:score/features/sets/widgets/delete_set_button.dart';
 import 'package:score/features/sets/widgets/entry_description_field.dart';
-import 'package:score/features/sets/widgets/keep_set_button.dart';
 import 'package:score/features/sets/widgets/move_entry_down_button.dart';
 import 'package:score/features/sets/widgets/move_entry_up_button.dart';
 import 'package:score/features/sets/widgets/open_score_button.dart';
 import 'package:score/features/sets/widgets/remove_entry_button.dart';
-import 'package:score/features/sets/widgets/save_set_button.dart';
-import 'package:score/features/sets/widgets/semitone_down_button.dart';
-import 'package:score/features/sets/widgets/semitone_up_button.dart';
 import 'package:score/features/sets/widgets/set_description_field.dart';
 import 'package:score/features/sets/widgets/set_title_field.dart';
-import 'package:score/features/sets/widgets/shared_with_field.dart';
-import 'package:score/features/sets/widgets/show_all_parts_button.dart';
 import 'package:score/routes.dart';
+import 'package:score/widgets/add_paper_entry_button.dart';
+import 'package:score/widgets/confirm_delete_button.dart';
+import 'package:score/widgets/keep_button.dart';
+import 'package:score/widgets/paper_entry_field.dart';
+import 'package:score/widgets/save_button.dart';
+import 'package:score/widgets/semitones.dart';
+import 'package:score/widgets/shared_with_field.dart';
+import 'package:score/widgets/show_all_parts_button.dart';
+import 'package:score/widgets/unsaved_changes_guard.dart';
 import 'package:uuid/uuid.dart';
 
 /// One set, written.
@@ -50,6 +51,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
   final _description = TextEditingController();
   final _sharedWith = TextEditingController();
   final _filter = TextEditingController();
+  final _paperEntry = TextEditingController();
+  final _paperEntryFocus = FocusNode();
 
   late String _setId;
 
@@ -58,6 +61,10 @@ class _SetDetailPageState extends State<SetDetailPage> {
   bool _loading = true;
 
   void Function(SyncProblem)? _problemListener;
+
+  /// The sets this page listens to, kept for [dispose]: by then the page is
+  /// out of the tree, and [context] can no longer be used to look anything up.
+  SetsRepository? _repository;
 
   @override
   void initState() {
@@ -68,14 +75,20 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   @override
   void dispose() {
-    final listener = _problemListener;
-    if (listener != null) {
-      AppScope.read(context).sets.removeSyncProblemListener(listener);
+    final repository = _repository;
+    if (repository != null) {
+      final listener = _problemListener;
+      if (listener != null) {
+        repository.removeSyncProblemListener(listener);
+      }
+      repository.removeListener(_takeStoredChanges);
     }
     _title.dispose();
     _description.dispose();
     _sharedWith.dispose();
     _filter.dispose();
+    _paperEntry.dispose();
+    _paperEntryFocus.dispose();
     super.dispose();
   }
 
@@ -111,7 +124,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
         setState(() {});
       }
     };
-    app.sets.addSyncProblemListener(_problemListener!);
+    _repository = app.sets
+      ..addSyncProblemListener(_problemListener!)
+      ..addListener(_takeStoredChanges);
 
     await app.updateScores();
     if (widget.setId != 'new') {
@@ -123,11 +138,24 @@ class _SetDetailPageState extends State<SetDetailPage> {
     }
   }
 
+  /// What a sync or another page stored for this set is what the fields show,
+  /// for as long as nothing is being typed into them: fields that went on
+  /// showing what the set was would be sent back by the next save, over it.
+  void _takeStoredChanges() {
+    if (!mounted || _dirty) return;
+    setState(_readFromStored);
+  }
+
   void _readFromStored() {
     final set = AppScope.read(context).sets.getSet(_setId);
-    _title.text = set?.title ?? '';
-    _description.text = set?.description ?? '';
-    _sharedWith.text = (set?.sharedWith ?? const []).join('\n');
+    // Only what differs is written: writing a field puts its cursor at the end.
+    void show(TextEditingController field, String text) {
+      if (field.text != text) field.text = text;
+    }
+
+    show(_title, set?.title ?? '');
+    show(_description, set?.description ?? '');
+    show(_sharedWith, (set?.sharedWith ?? const []).join('\n'));
     _dirty = false;
   }
 
@@ -139,20 +167,28 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   Future<void> _save() async {
     final app = AppScope.read(context);
+    final title = _title.text;
+    final description = _description.text;
+    final sharedWith = _sharedWith.text;
     try {
       await app.sets.saveSet(
         id: _setId,
-        title: _title.text,
-        description: _description.text,
-        sharedWith: _sharedWith.text
-            .split(RegExp(r'[\n,;]'))
-            .map((address) => address.trim())
-            .where((address) => address.isNotEmpty)
-            .toList(),
+        title: title,
+        description: description,
+        sharedWith: addressesIn(sharedWith),
       );
       if (!mounted) return;
-      setState(() => _dirty = false);
-      if (widget.setId == 'new') {
+      // Only what was sent is saved. Whatever was typed while the write was
+      // out is still to be saved; and when nothing was, the fields show what
+      // is stored now, which after a refused write is what the server has.
+      if (_title.text == title &&
+          _description.text == description &&
+          _sharedWith.text == sharedWith) {
+        setState(_readFromStored);
+      }
+      // Only once nothing typed is left unsaved: the page at the new address
+      // reads what is stored, and would drop it.
+      if (widget.setId == 'new' && !_dirty && app.sets.getSet(_setId) != null) {
         // Saved, it is a set like any other and is at its own address, so that
         // reloading it or keeping it opens this set rather than a new empty
         // one.
@@ -173,8 +209,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
         title: const Text('Delete this set?'),
         content: const Text('The scores in it stay where they are.'),
         actions: [
-          KeepSetButton(onPressed: () => Navigator.of(context).pop(false)),
-          ConfirmDeleteSetButton(
+          KeepButton(onPressed: () => Navigator.of(context).pop(false)),
+          ConfirmDeleteButton(
             onPressed: () => Navigator.of(context).pop(true),
           ),
         ],
@@ -331,8 +367,40 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 ),
             ],
           ),
+        const SizedBox(height: 16),
+        // Not everything a band plays has been scanned, and a set that could
+        // only hold what has is not the gig.
+        const Text(
+          'Or a song played from paper. What you write is what the band sees'
+          ' in the running order; it may be left empty.',
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: PaperEntryField(
+                controller: _paperEntry,
+                focusNode: _paperEntryFocus,
+                hintText: 'Encore — from the folder',
+                onChanged: (_) {},
+                onSubmitted: (_) => _addPaperEntry(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            AddPaperEntryButton(onPressed: _addPaperEntry),
+          ],
+        ),
       ],
     );
+  }
+
+  /// Puts a song played from paper at the end of the set, the way the old app
+  /// did: named by what was typed, or not named at all.
+  Future<void> _addPaperEntry() async {
+    final description = _paperEntry.text.trim();
+    _paperEntry.clear();
+    await _writeEntry(description: description);
+    if (mounted) _paperEntryFocus.requestFocus();
   }
 
   Widget _sharing() {
@@ -366,7 +434,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
       );
     }
 
-    return ListenableBuilder(
+    return UnsavedChangesGuard(
+      unsaved: _dirty,
+      child: ListenableBuilder(
       listenable: app.sets,
       builder: (context, _) {
         final set = _stored;
@@ -380,7 +450,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Center(child: Text(_stateOf(set))),
               ),
-              if (owner) SaveSetButton(onPressed: _dirty ? _save : null),
+              if (owner) SaveButton(onPressed: _dirty ? _save : null),
             ],
           ),
           body: _loading
@@ -403,6 +473,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 ),
         );
       },
+      ),
     );
   }
 }
@@ -497,8 +568,11 @@ class _EntryCard extends StatelessWidget {
                           AppRoute.score(scoreId,
                               setId: setId, entryId: entry.id),
                         ),
-                    // There is nothing to open for a song with no score.
-                    null => null,
+                    // A song with no score opens all the same, as the song it
+                    // is in the running order, with the way on to the next.
+                    null => () => Navigator.of(context).pushNamed(
+                          AppRoute.paper(setId: setId, entryId: entry.id),
+                        ),
                   },
                 ),
                 if (owner) ...[
@@ -525,7 +599,7 @@ class _EntryCard extends StatelessWidget {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _Semitones(
+                Semitones(
                   label: 'band',
                   tooltip: 'The key the band plays this one in, counted in'
                       ' semitones from where it is written. Everyone sees this.',
@@ -534,7 +608,7 @@ class _EntryCard extends StatelessWidget {
                   onChanged: onBandTransposition,
                 ),
                 const Text('+'),
-                _Semitones(
+                Semitones(
                   label: 'me',
                   tooltip: 'How far you read it on top of the band, again in'
                       ' semitones. Only you see this.',
@@ -582,51 +656,6 @@ class _EntryCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Semitones extends StatelessWidget {
-  const _Semitones({
-    required this.label,
-    required this.tooltip,
-    required this.value,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String tooltip;
-  final int value;
-  final bool enabled;
-  final void Function(int) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label),
-          const SizedBox(width: 6),
-          SemitoneDownButton(
-            onPressed: enabled && value > minTransposition
-                ? () => onChanged(value - 1)
-                : null,
-          ),
-          SizedBox(
-            width: 28,
-            child: Text('${value > 0 ? '+' : ''}$value',
-                textAlign: TextAlign.center),
-          ),
-          SemitoneUpButton(
-            onPressed: enabled && value < maxTransposition
-                ? () => onChanged(value + 1)
-                : null,
-          ),
-        ],
       ),
     );
   }

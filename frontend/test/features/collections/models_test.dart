@@ -56,9 +56,9 @@ void main() {
     test('that was typed as nothing is a piece with no score', () {
       // A form hands over what was typed into it, and what nobody typed a score
       // into is a piece that is in the collection but not in here.
-      expect(entryScoreIdOf('   '), isNull);
-      expect(entryScoreIdOf(''), isNull);
-      expect(entryScoreIdOf(' abc '), 'abc');
+      expect(scoreIdOf('   '), isNull);
+      expect(scoreIdOf(''), isNull);
+      expect(scoreIdOf(' abc '), 'abc');
     });
 
     test('is called by what is written next to it', () {

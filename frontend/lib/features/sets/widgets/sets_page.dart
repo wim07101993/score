@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:score/app.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/routes.dart';
+import 'package:score/widgets/offline_notice.dart';
 
 /// The sets there are.
 ///
@@ -66,9 +67,13 @@ class _SetsPageState extends State<SetsPage> {
                   onRefresh: _sync,
                   child: sets.isEmpty
                       ? ListView(
-                          children: const [
-                            SizedBox(height: 80),
-                            Padding(
+                          children: [
+                            // A device that has never reached the server has
+                            // no sets because it has not been told of any, not
+                            // because there are none.
+                            if (_offline) const OfflineNotice(),
+                            const SizedBox(height: 80),
+                            const Padding(
                               padding: EdgeInsets.all(32),
                               child: Text(
                                 'No sets yet. A set is a playlist for a gig:'
@@ -84,7 +89,7 @@ class _SetsPageState extends State<SetsPage> {
                           itemCount: sets.length + (_offline ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (_offline && index == 0) {
-                              return const _OfflineNotice();
+                              return const OfflineNotice();
                             }
                             final set = sets[index - (_offline ? 1 : 0)];
                             return _SetCard(set: set);
@@ -93,24 +98,6 @@ class _SetsPageState extends State<SetsPage> {
                 );
               },
             ),
-    );
-  }
-}
-
-class _OfflineNotice extends StatelessWidget {
-  const _OfflineNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text(
-          'The server cannot be reached. What is here is what this device'
-          ' knows; edits are kept and sent as soon as it can be reached again.',
-        ),
-      ),
     );
   }
 }

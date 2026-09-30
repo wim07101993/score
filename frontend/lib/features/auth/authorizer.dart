@@ -14,7 +14,11 @@ typedef Callback = ({String code, String state});
 Callback? readCallback(Map<String, String> query) {
   final error = query['error'];
   if (error != null) {
-    throw AuthorizationRefused(error, query['error_description']);
+    throw AuthorizationRefused(
+      error,
+      query['error_description'],
+      query['state'],
+    );
   }
   final code = query['code'];
   final state = query['state'];
@@ -29,11 +33,15 @@ class AuthorizationRefused implements Exception {
   const AuthorizationRefused(
     this.error, [
     this.description,
+    this.state,
   ]);
 
   /// The OAuth error code, `access_denied` most often.
   final String error;
   final String? description;
+
+  /// Which sign-in was refused, when the provider said.
+  final String? state;
 
   @override
   String toString() => description == null || description!.isEmpty

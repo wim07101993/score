@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:score/background.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/scores/api.dart';
 import 'package:score/features/scores/models.dart';
@@ -23,16 +26,30 @@ class ScoresRepository extends ChangeNotifier {
 
   final Map<String, Score> _scores = {};
 
+  /// [scores] as it was last sorted, or null when [_scores] has changed since.
+  /// Every page that lists scores asks for them on every rebuild, and a filter
+  /// rebuilds on every key typed; sorting the whole library each time is
+  /// work that only a change to it makes necessary. Anything that writes to
+  /// [_scores] sets this back to null.
+  List<Score>? _sorted;
+
   /// Every score this device knows, most recently opened first: what was played
   /// last is what is likely to be played next.
+  ///
+  /// It cannot be changed: it is the same list for every caller until the
+  /// scores change.
   List<Score> get scores {
+    final cached = _sorted;
+    if (cached != null) {
+      return cached;
+    }
     final all = _scores.values.toList();
     all.sort((a, b) {
       final byViewed = (b.lastViewedAt ?? DateTime.utc(1970))
           .compareTo(a.lastViewedAt ?? DateTime.utc(1970));
       return byViewed != 0 ? byViewed : a.title.compareTo(b.title);
     });
-    return all;
+    return _sorted = List.unmodifiable(all);
   }
 
   Score? getScore(String scoreId) => _scores[scoreId];
@@ -42,6 +59,7 @@ class ScoresRepository extends ChangeNotifier {
       final score = Score.fromJson(record);
       _scores[score.id] = score;
     }
+    _sorted = null;
     notifyListeners();
   }
 
@@ -53,7 +71,7 @@ class ScoresRepository extends ChangeNotifier {
   /// anything, and fetches the documents of any score whose document this
   /// device is holding an old copy of.
   Future<void> syncWithApi() async {
-    final token = await _oidc.getActiveAccessToken();
+    final token = await _oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return;
     }
@@ -89,13 +107,18 @@ class ScoresRepository extends ChangeNotifier {
     var refreshedAll = true;
     for (final score in incoming) {
       final fetched = score.lastFetchedFileAt;
-      if (fetched == null) continue;
-      if (!(score.lastChangedAt ?? DateTime.utc(1970)).isAfter(fetched)) {
+      if (fetched == null) {
+        // No version recorded is not the same as no document held: one that
+        // was stored before its details could be read back has none, and is
+        // exactly the one that can be out of date.
+        if (!await _store.hasMusicXml(score.id)) continue;
+      } else if (!(score.lastChangedAt ?? DateTime.utc(1970))
+          .isAfter(fetched)) {
         continue;
       }
 
       try {
-        final accessToken = await _oidc.getActiveAccessToken();
+        final accessToken = await _oidc.getActiveAccessToken(signIn: false);
         if (accessToken == null) {
           refreshedAll = false;
           break;
@@ -103,7 +126,13 @@ class ScoresRepository extends ChangeNotifier {
 
         final musicXml = await _api.getScoreMusicXml(score.id, accessToken);
         await _store.writeMusicXml(score.id, musicXml);
-        await _keep([score.copyWith(lastFetchedFileAt: _fetchedAt(score))]);
+        // Onto the score as it is now rather than as it was before the
+        // download: it may have been opened meanwhile, and a copy from before
+        // would put back when it was last looked at.
+        await _keep([
+          (_scores[score.id] ?? score)
+              .copyWith(lastFetchedFileAt: _fetchedAt(score)),
+        ]);
       } catch (error) {
         // The others are still worth fetching, but this window is not done.
         debugPrint('the document of ${score.id} could not be refreshed: '
@@ -163,6 +192,10 @@ class ScoresRepository extends ChangeNotifier {
   /// Stores scores, keeping whichever of the two is newer. A score the server
   /// describes as older than the one here is an answer that arrived out of
   /// order.
+  ///
+  /// One that is exactly what is here already is not written again: every
+  /// sync reads the newest score back (its window starts before it), and
+  /// writing it would redraw every page for nothing.
   Future<void> _keep(List<Score> scores) async {
     final toStore = <Score>[];
     for (final score in scores) {
@@ -172,8 +205,13 @@ class ScoresRepository extends ChangeNotifier {
               .isAfter(score.lastChangedAt ?? DateTime.utc(1970))) {
         continue;
       }
+      if (existing != null &&
+          jsonEncode(existing.toJson()) == jsonEncode(score.toJson())) {
+        continue;
+      }
       toStore.add(score);
       _scores[score.id] = score;
+      _sorted = null;
     }
 
     if (toStore.isEmpty) {
@@ -200,7 +238,7 @@ class ScoresRepository extends ChangeNotifier {
     if (!await _api.canBeReached()) {
       return null;
     }
-    final token = await _oidc.getActiveAccessToken();
+    final token = await _oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return null;
     }
@@ -209,7 +247,10 @@ class ScoresRepository extends ChangeNotifier {
     if (fromApi == null) {
       return null;
     }
-    await _keep([Score.fromApi(fromApi)]);
+    // What this device knows about the score and the server does not — when it
+    // was last opened, when its document was fetched — is kept: it may have
+    // been written while this was being asked.
+    await _keep([Score.fromApi(fromApi, existing: _scores[scoreId])]);
     return _scores[scoreId];
   }
 
@@ -225,7 +266,7 @@ class ScoresRepository extends ChangeNotifier {
       if (held != null) {
         // Asked for in the background rather than waited on: the score is
         // already on screen by then, and what this adds is its title.
-        unawaited(ensureScore(scoreId));
+        inTheBackground(ensureScore(scoreId));
         return held;
       }
     }
@@ -233,7 +274,7 @@ class ScoresRepository extends ChangeNotifier {
     if (!await _api.canBeReached()) {
       return null;
     }
-    final token = await _oidc.getActiveAccessToken();
+    final token = await _oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return null;
     }
@@ -241,16 +282,26 @@ class ScoresRepository extends ChangeNotifier {
     final musicXml = await _api.getScoreMusicXml(scoreId, token);
     await _store.writeMusicXml(scoreId, musicXml);
 
-    final score = await ensureScore(scoreId);
-    if (score != null) {
-      await _keep([score.copyWith(lastFetchedFileAt: _fetchedAt(score))]);
+    // The document is in hand by now, and what follows is only which version
+    // of it this is: failing to find that out does not make the document any
+    // less there to be played. Left unrecorded, the next sync fetches it again.
+    try {
+      final score = await ensureScore(scoreId);
+      if (score != null) {
+        await _keep([
+          (_scores[scoreId] ?? score)
+              .copyWith(lastFetchedFileAt: _fetchedAt(score)),
+        ]);
+      }
+    } catch (error) {
+      debugPrint('the score $scoreId could not be read back: $error');
     }
     return musicXml;
   }
 
   /// Uploads a score, which is what makes it a score the band has.
   Future<void> putMusicXml(String scoreId, String musicXml) async {
-    final token = await _oidc.getActiveAccessToken();
+    final token = await _oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       throw ScoresApiException('you are not signed in', null);
     }
@@ -286,15 +337,8 @@ class ScoresRepository extends ChangeNotifier {
     }
     final viewed = score.copyWith(lastViewedAt: DateTime.now());
     _scores[scoreId] = viewed;
+    _sorted = null;
     await _store.writeScores([viewed.toJson()]);
     notifyListeners();
   }
-}
-
-/// Starting something and not waiting for it, said out loud so that a reader
-/// knows it was meant.
-void unawaited(Future<void> future) {
-  future.catchError((Object error) {
-    debugPrint('a background task failed: $error');
-  });
 }
