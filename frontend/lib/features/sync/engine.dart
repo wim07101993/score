@@ -38,6 +38,7 @@ abstract class SyncAdapter<R extends SyncedRecord<R, E>,
 
   Future<List<Map<String, Object?>>> readStored();
   Future<void> writeStored(List<Map<String, Object?>> records);
+  Future<void> forgetStored();
 
   R fromJson(Map<String, Object?> json);
   R fromApi(Map<String, dynamic> json, DateTime syncedAt);
@@ -163,19 +164,42 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     final keptBefore = {..._kept};
     final stored = await _adapter.readStored();
     var changed = false;
+
+    // One that is here and no longer in the store was forgotten by another tab
+    // — the device was handed to somebody else (see [forgetAll]) — since every
+    // one this tab keeps is stored before anything is done with it.
+    final storedIds = {for (final record in stored) '${record['id']}'};
+    for (final id in [..._records.keys]) {
+      if (storedIds.contains(id) ||
+          _kept[id] != keptBefore[id] ||
+          (_writing[id] ?? 0) > 0) {
+        continue;
+      }
+      _records.remove(id);
+      _seen.remove(id);
+      changed = true;
+    }
+
     for (final record in stored) {
       final id = '${record['id']}';
       // What this tab changed since the read began, or is still writing, is
       // newer than what was read: an edit made a moment ago must not be put
-      // back to what the store held before it. A push that is out squares
-      // what it sent with what is here by which object it is, and would find
-      // nothing it sent.
-      if (_kept[id] != keptBefore[id] ||
-          (_writing[id] ?? 0) > 0 ||
-          _pushing.containsKey(id)) {
+      // back to what the store held before it.
+      if (_kept[id] != keptBefore[id] || (_writing[id] ?? 0) > 0) {
         continue;
       }
       final taken = _adapter.fromJson(record);
+      // A push that is out squares what it sent with what is here by which
+      // object it is, so what this tab stored itself is left as it is: taken
+      // in again, the push would find nothing it sent and send it once more.
+      // What another tab stored is taken in all the same. An edit made here
+      // while the push is out is put together from what is held here, and
+      // written whole over the store — so one built on this tab's own copy
+      // would drop what the other tab stored and has not sent. The push only
+      // sends again what it can no longer find.
+      if (_pushing.containsKey(id) && _asStored(taken) == _seen[id]) {
+        continue;
+      }
       _seen[id] = _asStored(taken);
       final held = _records[id];
       if (held != null && jsonEncode(held.toJson()) == jsonEncode(record)) {
@@ -211,7 +235,35 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
 
   /// The token to send, without asking anybody to sign in for it: a push or a
   /// pull happens behind the player's back.
-  Future<String?> token() => _oidc.getActiveAccessToken(signIn: false);
+  ///
+  /// None while what is here belongs to somebody other than the user signed
+  /// in (see [OidcApi.dataOwner]): pushed with their token, it would become
+  /// theirs.
+  Future<String?> token() async {
+    if (!await _oidc.holdsTheDataOfTheSignedInUser()) {
+      return null;
+    }
+    return _oidc.getActiveAccessToken(signIn: false);
+  }
+
+  /// Forgets every one that is kept here, owed or not, for a device that is
+  /// handed to somebody else.
+  ///
+  /// A push that is out is waited for first: whatever it keeps of its answer
+  /// would otherwise be written back after the store was emptied.
+  Future<void> forgetAll() async {
+    await Future.wait([
+      for (final pushing in _pushing.values) pushing.catchError((Object _) {}),
+    ]);
+    for (final id in _records.keys) {
+      // So that an answer still being read for one of them is not kept.
+      _kept[id] = (_kept[id] ?? 0) + 1;
+    }
+    _records.clear();
+    _seen.clear();
+    await _adapter.forgetStored();
+    _changed();
+  }
 
   /// The ones there are, most recently changed first. The deleted ones are kept
   /// but are no longer anything anyone has.
@@ -298,10 +350,13 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       return existing;
     }
 
-    // An entry the server never heard of is nothing to tell it about: there is
-    // no row there to remove, and whatever was queued about it is about an
-    // entry that was never anywhere but here.
-    final stillOwed = entry.synced
+    // An entry of one the server has never had is nothing to tell it about:
+    // the entries wait for what they are in (see _pushNow), so none of them
+    // can have reached it. Any other entry is told about, whether or not an
+    // answer ever said the server has it: a write the server took may have
+    // had its answer lost on the way back, and the entry would come back with
+    // the next pull. Removing one it never had is answered as done.
+    final stillOwed = entry.synced || existing.lastSyncedAt != null
         ? owing(existing.pendingEntries, entryId, PendingChange.delete)
         : withoutOwed(existing.pendingEntries, entryId);
 
@@ -387,11 +442,11 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       existing.copyWith(
         lastChangedAt: now,
         deletedAt: now,
-        // One the server never heard of is nothing to tell it about: there is
-        // no row there to mark as gone, and the headstone here is enough.
-        pendingChange:
-            existing.lastSyncedAt == null ? null : PendingChange.delete,
-        clearPendingChange: existing.lastSyncedAt == null,
+        // Told to the server even when no answer ever said it has it: a first
+        // write it took may have had its answer lost on the way back, and the
+        // next pull would bring it back. Deleting one it never had is answered
+        // as done, so what that costs is one request.
+        pendingChange: PendingChange.delete,
         // How anybody read one that is gone is not worth a request, and
         // neither is what was put into it or taken out of it.
         pendingViews: const [],
@@ -611,7 +666,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
         // It was taken out again before this ever went; there is nothing left
         // to write. Only this write is settled: taking it out may have queued a
         // delete of its own, which still has to go.
-        await keep([_settled(record, owed)]);
+        if (!await keepAnswer(_settled(record, owed))) return;
         continue;
       }
 
@@ -652,9 +707,11 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
           continue;
         }
 
+        // Kept as an answer, like any other: the refusal was a round trip,
+        // and another tab may have stored something about this one since.
         final current = _records[id];
         if (current != null) {
-          await keep([_settled(current, owed)]);
+          await keepAnswer(_settled(current, owed));
         }
         _report(id, current?.title ?? '', 'entry ${owed.action}', error);
       } catch (error) {
@@ -681,7 +738,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       if (entry == null) {
         // The entry is no longer there, so how it was read is not about
         // anything any more.
-        await keep([_withoutPendingView(record, entryId)]);
+        if (!await keepAnswer(_withoutPendingView(record, entryId))) return;
         continue;
       }
 
@@ -733,7 +790,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
 
         final current = _records[id];
         if (current != null) {
-          await keep([_withoutPendingView(current, entryId)]);
+          await keepAnswer(_withoutPendingView(current, entryId));
         }
         _report(id, current?.title ?? '', 'view', error);
       } catch (error) {
@@ -771,7 +828,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     } catch (readError) {
       final current = _records[record.id] ?? record;
       if (!changedSince(record)) {
-        await keep([current.copyWith(clearPendingChange: true)]);
+        await keepAnswer(current.copyWith(clearPendingChange: true));
       }
       _report(record.id, record.title, action, error);
       return;
@@ -784,27 +841,27 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       // what the player made here is kept, with the entries put into it, and
       // those wait (see _pushNow) for a write of it the server will take.
       if (!changedSince(record)) {
-        await keep([current.copyWith(clearPendingChange: true)]);
+        await keepAnswer(current.copyWith(clearPendingChange: true));
       }
     } else if (fromApi == null) {
       // There is no such thing for this user: whatever was written here is one
       // that does not exist, and a headstone is what that looks like. Nothing
       // that was to go into it can go anywhere.
-      await keep([
+      await keepAnswer(
         current.copyWith(
           deletedAt: current.deletedAt ?? DateTime.now(),
           clearPendingChange: true,
           pendingViews: const [],
           pendingEntries: const [],
-        )
-      ]);
+        ),
+      );
     } else if (!changedSince(record)) {
-      await keep([
+      await keepAnswer(
         carryPending(
           _adapter.fromApi(fromApi, syncedOutsideAPull(record)),
           current,
         ),
-      ]);
+      );
     }
 
     _report(record.id, record.title, action, error);

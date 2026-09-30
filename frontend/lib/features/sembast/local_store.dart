@@ -274,6 +274,12 @@ class LocalStore {
   Future<void> writeCollections(List<Map<String, Object?>> records) =>
       _writeAll(_collections, records);
 
+  /// Forgets every set, for a device that is handed to somebody else.
+  Future<void> forgetSets() => _sets.delete(_data);
+
+  /// Forgets every collection, for a device that is handed to somebody else.
+  Future<void> forgetCollections() => _collections.delete(_data);
+
   Future<List<Map<String, Object?>>> _readAll(
       StoreRef<String, Map<String, Object?>> store) async {
     final records = await store.find(_data);

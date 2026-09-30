@@ -12,22 +12,35 @@ const isADevelopmentBuild = _flutter.buildConfig.builds.some(
   (build) => build.compileTarget === 'dartdevc',
 );
 if ('serviceWorker' in navigator && !isADevelopmentBuild) {
-  navigator.serviceWorker
-    .register(new URL('service-worker.js', document.baseURI))
-    .then((registration) => {
-      // A browser checks for a new version only when a page of the app is
-      // opened, and an app on a tablet on a music stand is opened once and left
-      // open. So it is asked again every hour, and whenever the app comes back
-      // into view.
-      const check = () => registration.update().catch(() => {});
-      setInterval(check, 60 * 60 * 1000);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') check();
-      });
-    })
-    .catch((error) => {
-      console.warn('the app could not be kept for use without a network:', error);
-    });
+  const worker = new URL('service-worker.js', document.baseURI);
+  const register = () => navigator.serviceWorker.register(worker);
+  register().catch((error) => {
+    console.warn('the app could not be kept for use without a network:', error);
+  });
+
+  // A browser checks for a new version only when a page of the app is opened,
+  // and an app on a tablet on a music stand is opened once and left open. So
+  // it is asked again every hour, whenever the app comes back into view, and
+  // whenever the network does.
+  //
+  // A first version that could not be kept whole takes its registration with
+  // it, and a registration that is gone has no update to ask for. So where
+  // there is none any more, or asking fails, the worker is registered again,
+  // and it picks up from what the attempt before it did fetch. A worker that
+  // is still there is not fetched twice for it: registering the one that is
+  // already registered is a no-op.
+  const check = () =>
+    navigator.serviceWorker
+      .getRegistration()
+      .then((registration) =>
+        registration != null ? registration.update() : register())
+      .catch(() => register())
+      .catch(() => {});
+  setInterval(check, 60 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') check();
+  });
+  window.addEventListener('online', check);
 
   // A new version took over this page. What is on screen is the old version,
   // and what it has yet to load now comes from the new one, so the app offers

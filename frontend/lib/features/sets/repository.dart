@@ -190,6 +190,10 @@ class SetsRepository extends ChangeNotifier {
   /// as it was before the push, and what the server has changed since the last
   /// sync comes in after.
   Future<void> syncWithApi() => _sync.syncWithApi();
+
+  /// Forgets every set on this device, what is owed about them included,
+  /// for a device that is handed to somebody else.
+  Future<void> forgetAll() => _sync.forgetAll();
 }
 
 /// An edit the server refused, which this app has taken back.
@@ -231,6 +235,9 @@ class _Sets
   @override
   Future<void> writeStored(List<Map<String, Object?>> records) =>
       _store.writeSets(records);
+
+  @override
+  Future<void> forgetStored() => _store.forgetSets();
 
   @override
   ScoreSet fromJson(Map<String, Object?> json) => ScoreSet.fromJson(json);
@@ -312,12 +319,12 @@ class _Sets
 
   /// The running order the server has for the set, as the ids of its songs.
   ///
-  /// Asked for when more than one song is owed: their writes land one after
-  /// another and move each other's places, and a song whose removal is owed is
-  /// in the server's order until it is sent. With one song owed, the songs here
-  /// that the server has are in the order it has them, which saves asking.
-  /// Null when the set could not be read, which leaves its songs queued for the
-  /// next sync.
+  /// Asked for whenever a song is written, however few are owed: every write
+  /// says where the song goes, a note or a key included, and a place counted
+  /// in the order this device last heard of puts it wherever another device
+  /// has moved the songs around it since. Only removals, which say nothing
+  /// about a place, are sent without asking. Null when the set could not be
+  /// read, which leaves its songs queued for the next sync.
   Future<List<String>?> _orderOnTheServer(
     _Engine engine,
     ScoreSet set,
@@ -327,7 +334,9 @@ class _Sets
       for (final entry in set.entries)
         if (entry.synced) entry.id,
     ];
-    if (queued.length < 2) return here;
+    if (queued.every((owed) => owed.action == PendingChange.delete)) {
+      return here;
+    }
 
     try {
       final token = await engine.token();

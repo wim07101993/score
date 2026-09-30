@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:score/app.dart';
 import 'package:score/features/auth/widgets/ask_provider_again_button.dart';
 import 'package:score/features/auth/widgets/sign_in_again_button.dart';
+import 'package:score/features/auth/widgets/sign_out_button.dart';
 
 /// What this app has been told about the user, and by whom.
 ///
@@ -73,6 +74,42 @@ class _ProfilePageState extends State<ProfilePage> {
     await app.forgetUser();
     navigator.pushNamedAndRemoveUntil('/', (route) => false);
     await app.updateAuthAndCatchUp(retry: true);
+  }
+
+  /// Signs the user out of this device and forgets their sets and
+  /// collections, which is what a shared or a borrowed device needs before it
+  /// is left to the next person: the tokens outlive the app being closed.
+  ///
+  /// What has not been sent yet goes with them, so that is asked about first.
+  Future<void> _signOut() async {
+    final app = AppScope.read(context);
+    final navigator = Navigator.of(context);
+    final unsent =
+        app.sets.hasPendingChanges || app.collections.hasPendingChanges;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign out of this device?'),
+        content: Text(
+          'Your sets and collections are taken off this device; the scores'
+          ' stay.${unsent ? ' Some of your changes have not reached the'
+              ' server yet, and they will be lost.' : ''}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Stay signed in'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await app.signOut();
+    navigator.pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   String? _rolesExplanation(
@@ -191,14 +228,17 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               AskProviderAgainButton(onPressed: _asking ? null : _refresh),
               SignInAgainButton(onPressed: _signInAgain),
+              if (user != null) SignOutButton(onPressed: _signOut),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             'Signing in again forgets the tokens and the roles this device is'
-            ' holding. It signs nobody out at the provider — that is the'
-            " provider's own business. The scores and sets on this device are"
-            ' left alone.',
+            ' holding. The sets and collections on this device are left alone'
+            ' for you to come back to; if somebody else signs in, they are'
+            ' taken off it. Signing out takes them off straight away, and has'
+            ' the provider ask who you are the next time — which is what to do'
+            " on a device that isn't yours.",
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

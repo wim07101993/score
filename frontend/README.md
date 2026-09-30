@@ -160,7 +160,9 @@ keeps what depends on it queued behind it.
   [assets/config.json](assets/config.json) have to be registered with the
   provider. Zitadel wants a native application for them rather than the web
   one: put its client id in `nativeClientId`, which the phone and desktop
-  builds sign in as. Left out, they sign in as `clientId`.
+  builds sign in as. Left out, they sign in as `clientId` (and say so in the
+  debug log). [assets/config.prod.json](assets/config.prod.json) must carry
+  `nativeClientId`: the release workflow refuses to build without it.
 - **The score can be written out as MusicXML, but not yet as a picture.** The
   old app exported the drawn SVG out of OSMD; the equivalent here would be
   writing what the engraver paints out as SVG, which has not been done.

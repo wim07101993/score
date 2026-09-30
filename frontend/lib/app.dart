@@ -85,6 +85,12 @@ class App extends ChangeNotifier {
     await app.collections.init();
 
     final kept = await oidc.keptUserInfo();
+    // What a build from before the data had an owner kept here is the user's
+    // it kept along with it.
+    if (kept?.subject case final subject?
+        when await oidc.dataOwner() == null) {
+      await oidc.keepDataOwner(subject);
+    }
     if (kIsWeb && (kept == null || await oidc.isFinishingASignIn())) {
       // On the web signing in is a redirect, which does not keep anything
       // waiting — and the code a redirect came back with is best dealt with
@@ -149,6 +155,7 @@ class App extends ChangeNotifier {
     try {
       final asked = await oidc.getUserInfo();
       if (asked != null) {
+        await _takeTheDataHereFor(asked);
         user = asked;
         userIsFromThisDevice = false;
       } else {
@@ -178,28 +185,48 @@ class App extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The sync of each kind that is running, and the one to run after it.
-  final Map<String, Future<void>> _syncing = {};
-  final Map<String, Future<void>> _syncingNext = {};
-
-  /// Runs one [sync] of a kind at a time.
+  /// Signs the user out of this device, and forgets the sets and collections
+  /// they kept here — what they had not sent yet included, which the page
+  /// asks about first.
   ///
-  /// Every page that opens asks for the syncs it shows, and a link into a song
-  /// of a set opens four of them at once — each of which would otherwise list
-  /// the same changes and fetch the same documents side by side. One asked for
-  /// while one is running goes once after it, however many ask: what it reads
-  /// may have changed after the running one read it.
-  Future<void> _oneAtATime(String kind, Future<void> Function() sync) {
-    final running = _syncing[kind];
-    if (running == null) {
-      return _syncing[kind] =
-          sync().whenComplete(() => _syncing.remove(kind));
-    }
-    return _syncingNext[kind] ??= running.then((_) {
-      _syncingNext.remove(kind);
-      return _oneAtATime(kind, sync);
-    });
+  /// Their sets are theirs, and some of them nobody else may read; a device
+  /// that is left to the next person with them on it has handed them over.
+  /// The scores stay: every score viewer may read them, and they are what the
+  /// next one to sign in will want on a stage with no network.
+  Future<void> signOut() async {
+    await oidc.signOut();
+    await sets.forgetAll();
+    await collections.forgetAll();
+    await oidc.keepDataOwner(null);
+    user = null;
+    userIsFromThisDevice = false;
+    authProblem = null;
+    notifyListeners();
   }
+
+  /// Makes the sets and collections on this device [asked]'s, forgetting what
+  /// somebody else left here first.
+  ///
+  /// "Sign in again" forgets the tokens and keeps the data, which is right for
+  /// the same user coming back and wrong for the next one: pushed with their
+  /// token, the last user's sets would be created as theirs, and their pull
+  /// would start where the last user's left off. Nothing is synced in between
+  /// — see [OidcApi.holdsTheDataOfTheSignedInUser].
+  Future<void> _takeTheDataHereFor(UserInfo asked) async {
+    final subject = asked.subject;
+    if (subject == null) return;
+    final owner = await oidc.dataOwner();
+    if (owner == subject) return;
+    if (owner != null) {
+      debugPrint('another user signed in; forgetting the sets and collections'
+          ' the last one left on this device');
+      await sets.forgetAll();
+      await collections.forgetAll();
+    }
+    await oidc.keepDataOwner(subject);
+  }
+
+  final _oneAtATime = OneAtATime();
 
   /// Squares the scores with the API. Never throws: this is called from pages
   /// that are already drawn, and a sync that cannot happen is not a page that
@@ -291,6 +318,35 @@ class App extends ChangeNotifier {
       debugPrint('failed to sync the collections: $error');
       await _forgetTokenIfRefused(error);
     }
+  }
+}
+
+/// Runs one sync of a kind at a time.
+///
+/// Every page that opens asks for the syncs it shows, and a link into a song
+/// of a set opens four of them at once — each of which would otherwise list
+/// the same changes and fetch the same documents side by side. One asked for
+/// while one is running goes once after it, however many ask: what it reads
+/// may have changed after the running one read it.
+@visibleForTesting
+class OneAtATime {
+  /// The sync of each kind that is running, and the one to run after it.
+  final Map<String, Future<void>> _running = {};
+  final Map<String, Future<void>> _next = {};
+
+  Future<void> call(String kind, Future<void> Function() sync) {
+    final running = _running[kind];
+    if (running == null) {
+      // A block body, not an arrow: `remove` hands back the future it removes,
+      // which is this one, and a whenComplete that returns it waits on itself.
+      return _running[kind] = sync().whenComplete(() {
+        _running.remove(kind);
+      });
+    }
+    return _next[kind] ??= running.then((_) {
+      _next.remove(kind);
+      return call(kind, sync);
+    });
   }
 }
 

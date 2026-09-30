@@ -158,6 +158,19 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     }
   }
 
+  /// Asks the server for the collection again, for a page that found it was
+  /// not here.
+  Future<void> _retry() async {
+    final app = AppScope.read(context);
+    setState(() => _loading = true);
+    await app.updateCollections();
+    if (!mounted) return;
+    setState(() {
+      _readFromStored();
+      _loading = false;
+    });
+  }
+
   /// What a sync or another page stored for this collection is what the
   /// fields show, for as long as nothing is being typed into them: fields that
   /// went on showing what the collection was would be sent back by the next
@@ -282,6 +295,13 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
             transposition: transposition,
           );
     } on ScoreAlreadyInCollectionException catch (already) {
+      // Adding a piece that is here is being shown where it is. Changing one
+      // that is here twice is not something scrolling answers: what was typed
+      // was not kept, and the player has to be told.
+      if (id != null && mounted) {
+        _say('That piece is in the collection twice; take one of the two'
+            ' out before changing it.');
+      }
       _pointAt(already.entryId);
     } catch (error) {
       if (mounted) {
@@ -535,6 +555,17 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         final collection = _stored;
         final owner = _isOwner;
 
+        // A collection asked for by its id that the sync could not bring in —
+        // the device is offline, or it is not shared with this user — is not a
+        // new one to be written under that id. Saved, it would be sent over the
+        // one the server has, with none of its description or its shares.
+        if (!_loading && widget.collectionId != 'new' && collection == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Collection')),
+            body: _NotOnThisDevice(onRetry: _retry),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
             title: Text(collection?.displayTitle ?? 'New collection'),
@@ -575,6 +606,35 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                 ),
         );
       },
+      ),
+    );
+  }
+}
+
+/// What is shown for a collection this device does not have and could not
+/// fetch.
+class _NotOnThisDevice extends StatelessWidget {
+  const _NotOnThisDevice({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This collection is not on this device, and the server could not'
+              ' be asked for it — or it has not been shared with you.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ),
       ),
     );
   }

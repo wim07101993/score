@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/config.dart';
 
@@ -13,20 +14,49 @@ void main() {
         ...more,
       };
 
+  // What debugPrint was told while [body] ran.
+  List<String> printed(void Function() body) {
+    final lines = <String>[];
+    final original = debugPrint;
+    debugPrint = (message, {wrapWidth}) => lines.add('$message');
+    try {
+      body();
+    } finally {
+      debugPrint = original;
+    }
+    return lines;
+  }
+
   test('a phone or a desktop signs in as the native client when there is one',
       () {
-    final config = OidcConfig.fromJson(oidc({'nativeClientId': 'native'}));
+    late OidcConfig config;
+    final lines = printed(
+      () => config = OidcConfig.fromJson(oidc({'nativeClientId': 'native'})),
+    );
 
     expect(config.clientId, 'web-client');
     expect(config.nativeClientId, 'native');
     // Tests run as a device, not in a browser.
     expect(config.clientIdHere, 'native');
+    expect(lines, isEmpty);
   });
 
-  test('and as the web client when there is not', () {
-    final config = OidcConfig.fromJson(oidc());
+  test('and as the web client when there is not, saying so', () {
+    late OidcConfig config;
+    final lines = printed(() => config = OidcConfig.fromJson(oidc()));
 
     expect(config.nativeClientId, 'web-client');
     expect(config.clientIdHere, 'web-client');
+    expect(lines, [contains('nativeClientId')]);
+  });
+
+  test('an empty native client counts as none', () {
+    late OidcConfig config;
+    final lines = printed(
+      () => config = OidcConfig.fromJson(oidc({'nativeClientId': ''})),
+    );
+
+    expect(config.nativeClientId, 'web-client');
+    expect(lines, [contains('nativeClientId')]);
   });
 }

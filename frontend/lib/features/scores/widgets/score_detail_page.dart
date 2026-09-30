@@ -174,6 +174,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// and where it comes in the gig, are the owner's to change while the page is
   /// open — and the reading kept against it is counted from the key the band
   /// plays it in, so a stale one would be kept wrong.
+  ///
+  /// So what the entry says about how the score is read is taken onto the
+  /// screen as well, not only into the context: a band moved up a tone while
+  /// the song is open is a band the player is now a tone below, and the next
+  /// zoom would keep that as their own reading — down a tone from the band,
+  /// from then on. See [_takeReading].
   void _takeSetChanges() {
     final context = _set;
     if (!mounted || context == null) return;
@@ -181,9 +187,24 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final index =
         now?.entries.indexWhere((entry) => entry.id == context.entry.id) ?? -1;
     if (now == null || index < 0 || identical(now, context.set)) return;
-    setState(() => _set = _SetContext(set: now, index: index));
+    final entry = now.entries[index];
+    // The same check as when the page was opened: an entry written to play a
+    // different score while this one is open is not this score's any more,
+    // and neither are its key and its parts.
+    if (entry.scoreId != _entryScoreId) {
+      _letGoOfTheEntry();
+      return;
+    }
+    setState(() {
+      _set = _SetContext(set: now, index: index);
+      _takeReading(
+        was: _Reading.ofSong(context.entry),
+        now: _Reading.ofSong(entry),
+      );
+    });
   }
 
+  /// The same as [_takeSetChanges], for a collection.
   void _takeCollectionChanges() {
     final context = _collection;
     if (!mounted || context == null) return;
@@ -191,7 +212,87 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       _collections.getCollection(context.collection.id),
     );
     if (identical(now.collection, context.collection)) return;
-    setState(() => _collection = now);
+    final before = context.entry;
+    final piece = now.entry;
+    if (piece != null && piece.scoreId != _entryScoreId) {
+      _letGoOfTheEntry();
+      return;
+    }
+    setState(() {
+      _collection = now;
+      if (before != null && piece != null) {
+        _takeReading(
+          was: _Reading.ofPiece(before),
+          now: _Reading.ofPiece(piece),
+        );
+      }
+    });
+  }
+
+  /// Whether this player has changed how they read the score and that has not
+  /// been kept yet: [_keepReading] is still waiting for them to stop, or the
+  /// write is on its way.
+  bool get _readingIsPending => _keeping != null || _savingReading > 0;
+
+  /// How many writes of this player's reading have been started and have not
+  /// come back yet.
+  int _savingReading = 0;
+
+  /// Puts on screen what an entry now says about how the score is read — the
+  /// key the band plays it in, and this player's own reading of it — when that
+  /// is not what it said a moment ago ([was]).
+  ///
+  /// It is worked out the way opening the page works it out. What the player
+  /// has changed and not yet kept is the exception: that is theirs, and a sync
+  /// arriving in the 400 ms before it is written is no reason to take it off
+  /// them. So while something is pending, only what they have not touched —
+  /// what is still on screen the way [was] put it — follows the entry; the
+  /// rest stays, and is kept against the entry as it now stands.
+  ///
+  /// Called inside a `setState`.
+  void _takeReading({required _Reading was, required _Reading now}) {
+    final view = _view;
+    if (view == null || was == now) return;
+    final keepTouched = _readingIsPending;
+
+    var next = view;
+    if (!keepTouched || view.transposition == was.readAt) {
+      next = next.withTransposition(now.readAt);
+    }
+    final hidden = view.hiddenPartIds;
+    if (!keepTouched ||
+        (hidden.length == was.hiddenParts.length &&
+            was.hiddenParts.every(view.isHidden))) {
+      next = next.withHiddenParts(now.hiddenParts);
+    }
+    _view = next;
+
+    // The size is what the buttons set times what a pinch has added, and the
+    // pinch is the sheet's to hold: it is the buttons' share that is moved, so
+    // that the two together come out at the size the entry says.
+    if (!keepTouched || _drawnAt(was.zoom)) {
+      _space = _spaceFor(now.zoom) / _pinched;
+    }
+  }
+
+  /// Plays the score for itself from here on, the way it opens when the entry
+  /// it was opened from no longer plays it: as written, at the size it is
+  /// written at, with nothing to keep a reading against.
+  ///
+  /// Whatever was waiting to be kept is dropped rather than written: it would
+  /// be written into an entry that is now some other song.
+  void _letGoOfTheEntry() {
+    _keeping?.cancel();
+    _keeping = null;
+    setState(() {
+      _set = null;
+      _collection = null;
+      final view = _view;
+      if (view != null) {
+        _view = view.reset();
+        _space = _writtenSpace / _pinched;
+      }
+    });
   }
 
   /// The score's details as a sync brings them in — its title, among others —
@@ -474,6 +575,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final view = _view;
     if (context == null || view == null) return;
 
+    _savingReading++;
     try {
       final saved = await _app.sets.saveEntryView(
         context.set.id,
@@ -493,6 +595,14 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       final moved =
           saved.entries.indexWhere((entry) => entry.id == context.entry.id);
       if (!mounted) return;
+      // Nor is the entry taken back once it has been let go of: a sync that
+      // wrote it to play another score while this was on its way has already
+      // said this page is not that entry's any more.
+      if (_set == null ||
+          (moved >= 0 && saved.entries[moved].scoreId != _entryScoreId)) {
+        _letGoOfTheEntry();
+        return;
+      }
       setState(() {
         _set = moved < 0 ? null : _SetContext(set: saved, index: moved);
       });
@@ -500,6 +610,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     } catch (error) {
       if (!mounted) return;
       _say('How you read this could not be saved: $error');
+    } finally {
+      _savingReading--;
     }
   }
 
@@ -546,6 +658,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final entry = context?.entry;
     if (context == null || view == null || entry == null) return;
 
+    _savingReading++;
     try {
       final saved = await _app.collections.saveEntryView(
         context.collection.id,
@@ -560,8 +673,16 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         zoom: _zoom,
       );
       if (!mounted) return;
+      final piece =
+          saved.entries.where((piece) => piece.id == entry.id).firstOrNull;
+      // See the same in [_saveViewToSet].
+      if (_collection == null ||
+          (piece != null && piece.scoreId != _entryScoreId)) {
+        _letGoOfTheEntry();
+        return;
+      }
       setState(() {
-        _collection = saved.entries.any((piece) => piece.id == entry.id)
+        _collection = piece != null
             ? _CollectionContext(collection: saved, entryId: entry.id)
             : null;
       });
@@ -569,6 +690,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     } catch (error) {
       if (!mounted) return;
       _say('How you read this could not be saved: $error');
+    } finally {
+      _savingReading--;
     }
   }
 
@@ -576,9 +699,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   // TAKING A SCORE AWAY, AND PUTTING ONE THERE
   // -------------------------------------------------------------------------
 
-  /// The score as it is being looked at: the parts that are off screen are not
-  /// in it, and it is in the key it is being read in. A score nobody has
-  /// touched comes out as the file the editor uploaded, byte for byte.
+  /// Writes the score out as it was uploaded: the file an editor corrects and
+  /// puts back with "Replace this score", which is why it is the one the
+  /// download button gives without asking. How it is being looked at is never
+  /// in it.
   Future<void> _download() async {
     final musicXml = _musicXml;
     final scoreId = _scoreId;
@@ -587,11 +711,44 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
+    await _writeOut(musicXml, filename: '$scoreId.musicxml');
+  }
+
+  /// Writes the score out the way it is being looked at: the parts that are
+  /// off screen are not in it, and it is in the key it is being read in.
+  ///
+  /// It is not the score, and it is named so it cannot be taken for it: a copy
+  /// a tone up with the piano taken out, corrected and uploaded over the real
+  /// one, is the real one lost for the whole band.
+  Future<void> _downloadAsOnScreen() async {
+    final musicXml = _musicXml;
+    final scoreId = _scoreId;
+    if (musicXml == null || scoreId == null) {
+      _say('This score cannot be downloaded because it has not been saved yet.');
+      return;
+    }
+
+    final String asOnScreen;
     try {
-      final written = musicXmlForView(musicXml, _view);
+      asOnScreen = musicXmlForView(musicXml, _view);
+    } catch (error) {
+      _say('This score could not be written out: $error');
+      return;
+    }
+    final title = _scores.getScore(scoreId)?.title.trim() ?? '';
+    // A title is somebody's words, and some of what they may be is not
+    // allowed in a file name on one system or another.
+    final name = title.isEmpty
+        ? scoreId
+        : title.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_');
+    await _writeOut(asOnScreen, filename: '$name (as on screen).musicxml');
+  }
+
+  Future<void> _writeOut(String musicXml, {required String filename}) async {
+    try {
       await saveFile(
-        filename: '$scoreId.musicxml',
-        bytes: utf8.encode(written),
+        filename: filename,
+        bytes: utf8.encode(musicXml),
         mimeType: 'application/vnd.recordare.musicxml',
       );
     } catch (error) {
@@ -755,7 +912,15 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           if (_musicXml != null) ...[
             ZoomOutButton(onPressed: () => _zoomBy(-0.8)),
             ZoomInButton(onPressed: () => _zoomBy(0.8)),
-            DownloadScoreButton(onPressed: _download),
+            DownloadScoreButton(
+              onDownloadAsWritten: _download,
+              // Only offered once there is a difference to offer: a score
+              // nobody has changed the look of is the file it was uploaded
+              // as, and two ways of downloading the same bytes is one too
+              // many.
+              onDownloadAsOnScreen:
+                  _view == null || _view!.isPristine ? null : _downloadAsOnScreen,
+            ),
           ],
           if (mayEdit && !_isPaper)
             UploadScoreButton(
@@ -1130,6 +1295,47 @@ class _ViewControls extends StatelessWidget {
       ],
     );
   }
+}
+
+/// What an entry of a set or a collection says about how its score is read:
+/// the key it is on screen in, the parts that are not, and how big it is
+/// drawn.
+///
+/// Two of them are the same when the band's key and the player's own offset
+/// are both the same, not only what they add up to: the one saved offset is
+/// what [_readingOffset] counts from, and a change to it with the sum held at
+/// the octave is still a change to how the player's next save is worked out.
+class _Reading {
+  _Reading.ofSong(SetEntry entry)
+      : this._(entry.transposition, entry.view, entry.readAt);
+
+  _Reading.ofPiece(CollectionEntry entry)
+      : this._(entry.transposition, entry.view, entry.readAt);
+
+  _Reading._(this.band, EntryView view, this.readAt)
+      : saved = view.transposition,
+        hiddenParts = view.hiddenParts,
+        zoom = view.zoom;
+
+  final int band;
+  final int saved;
+  final int readAt;
+  final List<String> hiddenParts;
+  final double zoom;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _Reading &&
+      other.band == band &&
+      other.saved == saved &&
+      other.readAt == readAt &&
+      other.zoom == zoom &&
+      other.hiddenParts.length == hiddenParts.length &&
+      other.hiddenParts.every(hiddenParts.contains);
+
+  @override
+  int get hashCode => Object.hash(band, saved, readAt, zoom,
+      Object.hashAllUnordered(hiddenParts));
 }
 
 /// How far from the key the band plays it in ([band]) a player reads a score,

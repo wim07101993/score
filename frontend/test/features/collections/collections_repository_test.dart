@@ -927,15 +927,26 @@ void main() {
           reason: 'the server has to be told');
     });
 
-    test('and was never sent is nothing to tell the server about', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+    test('and was never heard back about is still told to the server',
+        () async {
+      // A first write the server took may have had its answer lost on the way
+      // back; left untold, the collection would come back with the next pull.
+      final (collections, store) = await _repository(_OfflineApi());
       final collection =
           await collections.saveCollection(title: 'Typed and thrown away');
       await collections.saveEntry(collection.id, scoreId: 'score-1');
 
       await collections.deleteCollection(collection.id);
+      expect(collections.hasPendingChanges, isTrue);
 
-      expect(collections.hasPendingChanges, isFalse);
+      final api = _WorkingApi();
+      final online = CollectionsRepository(store, api, _SignedIn(store));
+      await online.init();
+      await online.syncWithApi();
+
+      expect(api.calls, contains('deleteCollection'));
+      expect(api.calls, isNot(contains('putEntry')));
+      expect(online.hasPendingChanges, isFalse);
     });
 
     test('comes back when it is written again', () async {
@@ -957,6 +968,161 @@ void main() {
       expect(back.deletedAt, isNull);
       expect(collections.getCollection('gone'), isNotNull);
     });
+  });
+
+  group('a piece that is in the collection twice', () {
+    Future<CollectionsRepository> holdingItTwice() async {
+      // Two devices put the same piece in offline, and both copies reached the
+      // server before it held a collection to a piece once.
+      final (collections, store) = await _repository(_OfflineApi());
+      await store.writeCollections([
+        Collection(
+          id: 'book',
+          title: 'Book',
+          lastChangedAt: DateTime.now(),
+          lastSyncedAt: DateTime.now(),
+          entries: const [
+            CollectionEntry(id: 'e1', scoreId: 'score-1', synced: true),
+            CollectionEntry(id: 'e2', scoreId: 'score-1', synced: true),
+          ],
+        ).toJson(),
+      ]);
+      await collections.init();
+      return collections;
+    }
+
+    test('can have a note written on either copy', () async {
+      final collections = await holdingItTwice();
+
+      final written = await collections.saveEntry('book',
+          id: 'e2', description: 'page 62');
+
+      expect(written.entries.map((entry) => entry.description),
+          ['', 'page 62']);
+    });
+
+    test('is still refused a third time', () async {
+      final collections = await holdingItTwice();
+
+      await expectLater(
+        collections.saveEntry('book', scoreId: 'score-1'),
+        throwsA(isA<ScoreAlreadyInCollectionException>()),
+      );
+      expect(collections.getCollection('book')!.entries, hasLength(2));
+    });
+  });
+
+  test('a piece put back in waits for the removal of the copy it replaces',
+      () async {
+    // Taken out and put back in offline. The removal of the old copy fails for
+    // a reason that may pass, so the server still holds it when the new copy
+    // arrives — which is no reason to drop the new copy: the old one is going.
+    final api = _RemovalFailsApi()
+      ..stored['book'] = {
+        'id': 'book',
+        'title': 'Book',
+        'is_owner': true,
+        'entries': <Map<String, dynamic>>[
+          {'id': 'e1', 'score_id': 'score-1'},
+        ],
+      };
+    final store = await LocalStore.inMemory();
+    await store.writeCollections([
+      Collection(
+        id: 'book',
+        title: 'Book',
+        lastChangedAt: DateTime.now(),
+        lastSyncedAt: DateTime.now(),
+        entries: const [CollectionEntry(id: 'e2', scoreId: 'score-1')],
+        pendingEntries: const [
+          PendingEntry('e1', PendingChange.delete),
+          PendingEntry('e2', PendingChange.write),
+        ],
+      ).toJson(),
+    ]);
+    final collections = CollectionsRepository(store, api, _SignedIn(store));
+    await collections.init();
+
+    await collections.syncWithApi();
+
+    var now = collections.getCollection('book')!;
+    expect(api.calls, containsAllInOrder(['deleteEntry', 'putEntry']));
+    expect(now.entries.map((entry) => entry.id), ['e2']);
+    expect(now.pendingEntries.map((owed) => owed.id), ['e1', 'e2'],
+        reason: 'both are still owed');
+
+    // The next sync gets the removal through, and the new copy after it.
+    await collections.syncWithApi();
+
+    now = collections.getCollection('book')!;
+    expect(now.entries.map((entry) => entry.id), ['e2']);
+    expect(now.pendingEntries, isEmpty);
+    expect(
+      (api.stored['book']!['entries'] as List)
+          .map((entry) => (entry as Map)['id']),
+      ['e2'],
+    );
+  });
+
+  test('a rename made while the pieces are out is not undone by the read back',
+      () async {
+    // A piece is dropped for being in the collection already, which has the
+    // collection read back. The answer knows nothing of the rename made
+    // meanwhile, and would put the old title back with nothing left owed to
+    // send the new one with.
+    final api = _HeldEntryApi()
+      ..stored['book'] = {
+        'id': 'book',
+        'title': 'Book',
+        'is_owner': true,
+        'entries': <Map<String, dynamic>>[
+          {'id': 'somebody-elses-entry', 'score_id': 'score-1'},
+        ],
+      };
+    final store = await LocalStore.inMemory();
+    await store.writeCollections([
+      Collection(
+        id: 'book',
+        title: 'Book',
+        lastChangedAt: DateTime.now(),
+        lastSyncedAt: DateTime.now(),
+        entries: const [CollectionEntry(id: 'mine', scoreId: 'score-1')],
+        pendingEntries: const [PendingEntry('mine', PendingChange.write)],
+      ).toJson(),
+    ]);
+    final collections = CollectionsRepository(store, api, _SignedIn(store));
+    await collections.init();
+
+    final syncing = collections.syncWithApi();
+    await api.reached.future;
+    final renaming =
+        collections.saveCollection(id: 'book', title: 'The Real Book');
+    await pumpEventQueue();
+    api.held.complete();
+    await syncing;
+    await renaming;
+
+    final now = collections.getCollection('book')!;
+    expect(now.title, 'The Real Book');
+    expect(api.stored['book']!['title'], 'The Real Book',
+        reason: 'the rename was still sent');
+    expect(collections.hasPendingChanges, isFalse);
+  });
+
+  test('forgetting every collection empties the store as well', () async {
+    // For a device that is handed to somebody else.
+    final (collections, store) = await _repository(_OfflineApi());
+    final made = await collections.saveCollection(title: 'Book');
+    await collections.saveEntry(made.id, scoreId: 'score-1');
+
+    await collections.forgetAll();
+
+    expect(collections.collections, isEmpty);
+    expect(collections.hasPendingChanges, isFalse);
+    final reopened =
+        CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+    await reopened.init();
+    expect(reopened.collections, isEmpty);
   });
 
   test('an address it is shared with is written the way the API reads one',
@@ -1254,5 +1420,40 @@ class _HeldApi extends _WorkingApi {
       _held = null;
     }
     return answer;
+  }
+}
+
+/// An API whose removals of a piece take it out of the collection, as the
+/// server does, and whose first [failingRemovals] of them nothing answers.
+class _RemovalFailsApi extends _WorkingApi {
+  int failingRemovals = 1;
+
+  @override
+  Future<void> deleteEntry(
+      String collectionId, String entryId, String token) async {
+    calls.add('deleteEntry');
+    if (failingRemovals > 0) {
+      failingRemovals--;
+      throw CollectionsApiException('nothing answered', null);
+    }
+    (stored[collectionId]!['entries'] as List)
+        .removeWhere((entry) => (entry as Map)['id'] == entryId);
+  }
+}
+
+/// An API that holds on to the first piece written until it is let go, the
+/// way a slow network does.
+class _HeldEntryApi extends _WorkingApi {
+  final Completer<void> reached = Completer<void>();
+  final Completer<void> held = Completer<void>();
+
+  @override
+  Future<Map<String, dynamic>> putEntry(String collectionId, String entryId,
+      String token, Map<String, Object?> write) async {
+    if (!reached.isCompleted) {
+      reached.complete();
+      await held.future;
+    }
+    return super.putEntry(collectionId, entryId, token, write);
   }
 }

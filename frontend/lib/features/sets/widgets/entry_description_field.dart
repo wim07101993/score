@@ -23,7 +23,13 @@ class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
 
   /// The note as it read when this field last took it from the set, which is
   /// what the text is compared with to tell whether the player changed it.
-  late String _taken = widget.initialValue;
+  ///
+  /// Taken in [initState] rather than left `late` with an initialiser: that
+  /// would be read for the first time in [didUpdateWidget], when the widget
+  /// already holds the note a sync brought in, and the field would take the
+  /// new note for the one it started with — keep showing the old one, and
+  /// write it back over the new one the moment somebody left the field.
+  late String _taken;
 
   /// Leaving the field is done with it as much as pressing enter is: a note
   /// typed and then left for the next control, or for the page before, is a
@@ -34,6 +40,12 @@ class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
     if (!_focus.hasFocus) {
       _submit(_controller.text);
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _taken = widget.initialValue;
   }
 
   @override

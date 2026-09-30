@@ -38,7 +38,12 @@ class _CollectionEntryDescriptionFieldState
   /// What is written next to the piece as this field last took it from the
   /// collection, which is what the text is compared with to tell whether the
   /// player changed it.
-  late String _taken = widget.initialValue;
+  ///
+  /// Taken in [initState], not left to a `late` initialiser: that would first
+  /// be read in [didUpdateWidget], once the widget already holds what a sync
+  /// brought in, and the field would keep showing what was there before and
+  /// write it back over the new text as soon as somebody left the field.
+  late String _taken;
 
   /// Leaving the field is done with it as much as pressing enter is: what was
   /// typed and then left for the next control, or for the page before, is
@@ -49,6 +54,12 @@ class _CollectionEntryDescriptionFieldState
     if (!_focus.hasFocus) {
       _submit(_controller.text);
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _taken = widget.initialValue;
   }
 
   @override

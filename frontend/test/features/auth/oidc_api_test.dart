@@ -753,6 +753,32 @@ void main() {
       expect(await api.keptUserInfo(), isNull);
     });
 
+    test('signing out has the next sign-in ask who it is', () async {
+      // The provider keeps a session of its own, and would otherwise sign the
+      // next person on this device in as the last one without asking.
+      final provider = _Provider(_nextHost(), claims: const {'sub': 'user-1'});
+      final authorizer = _Obliging();
+      final (api, store) = await _api(provider, authorizer: authorizer);
+      await api.getUserInfo();
+      expect(authorizer.sentTo!.queryParameters.containsKey('prompt'), isFalse);
+
+      await api.signOut();
+
+      expect(await store.readSetting('auth_token_response'), isNull);
+      expect(await api.keptUserInfo(), isNull);
+      expect(await store.readSetting('auth_signed_out'), isNotNull);
+
+      expect(await api.getActiveAccessToken(), isNotNull);
+      expect(authorizer.sentTo!.queryParameters['prompt'], 'login');
+      expect(await store.readSetting('auth_signed_out'), isNull,
+          reason: 'once somebody has signed in, it has been asked');
+
+      // So the sign-in after that is waved through as usual.
+      await api.forgetUser();
+      await api.getActiveAccessToken();
+      expect(authorizer.sentTo!.queryParameters.containsKey('prompt'), isFalse);
+    });
+
     test('is nobody when the provider will not talk and nothing is kept', () async {
       final provider = _Provider(_nextHost(), discoverable: false);
       final (api, _) = await _api(provider, authorizer: _GoesAway());

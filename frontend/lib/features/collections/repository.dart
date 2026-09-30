@@ -141,7 +141,12 @@ class CollectionsRepository extends ChangeNotifier {
         onPaper ? null : scoreIdOf(scoreId) ?? known?.scoreId;
     final written = description ?? known?.description ?? '';
 
-    if (score != null) {
+    // Only a piece being put in, or an entry being changed to another score,
+    // is asked about. An entry that keeps its score is a note or a key being
+    // changed on a piece that is in here — and the collection can hold it twice
+    // for a while, when two devices put it in offline, which is no reason to
+    // refuse a note on either copy.
+    if (score != null && score != known?.scoreId) {
       final alreadyIn = existing.entries
           .where((candidate) =>
               candidate.id != entryId && candidate.scoreId == score)
@@ -240,6 +245,10 @@ class CollectionsRepository extends ChangeNotifier {
   /// read back as it was before the push, and what the server has changed
   /// since the last sync comes in after.
   Future<void> syncWithApi() => _sync.syncWithApi();
+
+  /// Forgets every collection on this device, what is owed about them included,
+  /// for a device that is handed to somebody else.
+  Future<void> forgetAll() => _sync.forgetAll();
 }
 
 /// The piece is already in the collection.
@@ -303,6 +312,9 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
   @override
   Future<void> writeStored(List<Map<String, Object?>> records) =>
       _store.writeCollections(records);
+
+  @override
+  Future<void> forgetStored() => _store.forgetCollections();
 
   @override
   Collection fromJson(Map<String, Object?> json) => Collection.fromJson(json);
@@ -380,8 +392,13 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
 
   @override
   Future<EntryRun<Collection, CollectionEntry, CollectionsApiException>?>
-      startEntries(_Engine engine, Collection collection) async =>
-          _Pieces(engine, _api, collection.id, [...collection.pendingEntries]);
+      startEntries(_Engine engine, Collection collection) async => _Pieces(
+            engine,
+            _api,
+            collection.id,
+            [...collection.pendingEntries],
+            collection.lastChangedAt,
+          );
 }
 
 /// Sends what has been put into the collection here and what has been taken
@@ -391,11 +408,21 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
 /// [take].
 class _Pieces
     extends EntryRun<Collection, CollectionEntry, CollectionsApiException> {
-  _Pieces(this._engine, this._api, this._collectionId, this.queue);
+  _Pieces(
+    this._engine,
+    this._api,
+    this._collectionId,
+    this.queue,
+    this._lastChangedAtTheStart,
+  );
 
   final _Engine _engine;
   final CollectionsApi _api;
   final String _collectionId;
+
+  /// When the collection itself was last changed as this run started: see
+  /// [_takeInTheCopiesKept].
+  final DateTime _lastChangedAtTheStart;
 
   @override
   final List<PendingEntry> queue;
@@ -431,17 +458,35 @@ class _Pieces
       // next.
       return;
     }
+    // The copy the server holds may be one this device has taken out, and
+    // whose removal has not reached it yet — a piece taken out and put back
+    // in offline, with the removal failing for a reason that may pass. That
+    // copy is going, so this one is the one that stays: it waits behind the
+    // removal rather than being dropped, and nothing of the piece is lost.
+    // With no word of which copy the server holds, any removal still owed is
+    // taken to be that one.
+    final heldAs = error.problem?['entryId'];
+    final removalOwed = current.pendingEntries.any((candidate) =>
+        candidate.action == PendingChange.delete &&
+        (heldAs is! String || candidate.id == heldAs));
+    if (removalOwed) {
+      debugPrint('the copy of entry ${owed.id} the collection holds is still to'
+          ' be taken out; this one waits for that');
+      return;
+    }
     final copy = current.entries
         .where((candidate) => candidate.id == owed.id)
         .firstOrNull;
-    if (copy != null) _dropped.add((copy, error));
-    await _engine.keep([
+    // Kept as an answer: the refusal was a round trip, and another tab may
+    // have stored something about this collection since.
+    final kept = await _engine.keepAnswer(
       _engine.withEntries(
         current,
         current.entries.where((candidate) => candidate.id != owed.id).toList(),
         withoutOwed(current.pendingEntries, owed.id),
-      )
-    ]);
+      ),
+    );
+    if (kept && copy != null) _dropped.add((copy, error));
   }
 
   @override
@@ -455,11 +500,20 @@ class _Pieces
   ///
   /// A dropped copy that carried a note or a key of its own is said out loud:
   /// what was written on it is not on the copy that stays.
+  ///
+  /// Only when the collection itself has not been changed since the run
+  /// started. A rename, a share or a delete made while the entries were out
+  /// is owed, and the answer knows nothing of it: kept, it would put the old
+  /// title back and leave nothing owed to send the new one with. The pull that
+  /// follows brings the copies in instead.
   Future<void> _takeInTheCopiesKept() async {
     try {
       final token = await _engine.token();
       final before = _engine.held(_collectionId);
-      if (token != null && before != null) {
+      if (token != null &&
+          before != null &&
+          before.pendingChange == null &&
+          before.lastChangedAt == _lastChangedAtTheStart) {
         final fromApi = await _api.getCollection(_collectionId, token);
         final current = _engine.held(_collectionId);
         if (fromApi != null &&

@@ -20,9 +20,10 @@ export 'package:score/features/notation/sheet_palette.dart';
 ///
 /// Transposing and hiding a part are asked of the score itself rather than
 /// applied to the document on the way in, so the file the app holds stays the
-/// one that was uploaded. The download takes the same two steps on a score of
-/// its own (`musicXmlForView`), which is why what is on screen and what comes
-/// out of the download button agree.
+/// one that was uploaded. The download "as on screen" takes the same two steps
+/// on a score of its own (`musicXmlForView`), which is why what is on screen
+/// and what that download holds agree; the download as written is the file as
+/// it was uploaded.
 class ScoreSheet extends StatefulWidget {
   const ScoreSheet({
     super.key,

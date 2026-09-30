@@ -138,6 +138,18 @@ class _SetDetailPageState extends State<SetDetailPage> {
     }
   }
 
+  /// Asks the server for the set again, for a page that found it was not here.
+  Future<void> _retry() async {
+    final app = AppScope.read(context);
+    setState(() => _loading = true);
+    await app.updateSets();
+    if (!mounted) return;
+    setState(() {
+      _readFromStored();
+      _loading = false;
+    });
+  }
+
   /// What a sync or another page stored for this set is what the fields show,
   /// for as long as nothing is being typed into them: fields that went on
   /// showing what the set was would be sent back by the next save, over it.
@@ -442,6 +454,17 @@ class _SetDetailPageState extends State<SetDetailPage> {
         final set = _stored;
         final owner = _isOwner;
 
+        // A set asked for by its id that the sync could not bring in — the
+        // device is offline, or the set is not shared with this user — is not
+        // a new set to be written under that id. Saved, it would be sent over
+        // the one the server has, with none of its description or its shares.
+        if (!_loading && widget.setId != 'new' && set == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Set')),
+            body: _NotOnThisDevice(onRetry: _retry),
+          );
+        }
+
         return Scaffold(
           appBar: AppBar(
             title: Text(set?.displayTitle ?? 'New set'),
@@ -473,6 +496,34 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 ),
         );
       },
+      ),
+    );
+  }
+}
+
+/// What is shown for a set this device does not have and could not fetch.
+class _NotOnThisDevice extends StatelessWidget {
+  const _NotOnThisDevice({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This set is not on this device, and the server could not be'
+              ' asked for it — or it has not been shared with you.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ),
       ),
     );
   }

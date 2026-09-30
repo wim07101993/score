@@ -28,11 +28,20 @@ import 'package:score/features/sembast/local_store.dart';
 /// long as a tab is open. A device that is closed and opened again at the next
 /// rehearsal should not ask the player to sign in again, and a refresh token
 /// that lives no longer than a tab is a refresh token that never gets used.
-/// Signing out throws them away, which is what the profile page is for.
+/// Signing out throws them away, which is what the profile page is for — and
+/// since they outlive the tab, a device somebody else will use next is only
+/// safe to walk away from once that has been done. See [signOut].
 const List<String> _scopes = ['openid', 'email', 'profile', 'offline_access'];
 
 const _tokenKey = 'auth_token_response';
 const _userInfoKey = 'app_user_info';
+
+/// Set when the user signed out, until the next sign-in finishes: see
+/// [OidcApi.signOut].
+const _signedOutKey = 'auth_signed_out';
+
+/// Whose sets and collections this device holds: see [OidcApi.dataOwner].
+const _dataOwnerKey = 'data_owner';
 
 /// Where what a sign-in has to remember while the user is away is kept: one
 /// record per sign-in, by its state.
@@ -390,6 +399,7 @@ class OidcApi {
         throw OidcException('the provider sent no access token');
       }
       _signInFailure = null;
+      await _store.writeSetting(_signedOutKey, null);
       return token;
     } finally {
       await _forgetFlowState(callback.state);
@@ -405,7 +415,10 @@ class OidcApi {
       _randomString(56),
       returnTo: _authorizer.whereTheUserIs(),
     );
-    final flow = await _flow(started);
+    // After signing out, the provider is asked to ask who it is rather than
+    // wave the next person through on the session it still has for the last.
+    final signedOut = await _store.readSetting(_signedOutKey) != null;
+    final flow = await _flow(started, prompt: signedOut ? 'login' : null);
 
     // Written down before the user goes anywhere. On the web this app is about
     // to stop existing, and what comes back is worthless without these — and
@@ -441,13 +454,17 @@ class OidcApi {
   /// The same two values build the flow that goes out and the flow that reads
   /// the answer — which on the web are in two different lives of this app, and
   /// is the whole reason they are written down rather than kept in memory.
-  Future<openid.Flow> _flow(_FlowState started) async {
+  ///
+  /// [prompt] is sent to the provider as it is: `login` after the user signed
+  /// out, see [signOut].
+  Future<openid.Flow> _flow(_FlowState started, {String? prompt}) async {
     final client = await _client();
     final flow = openid.Flow.authorizationCodeWithPKCE(
       client,
       scopes: _scopes,
       state: started.state,
       codeVerifier: started.verifier,
+      prompt: prompt,
     )..redirectUri = _authorizer.redirectUri;
 
     // A flow keeps only the scopes the provider says it supports, and drops the
@@ -665,13 +682,55 @@ class OidcApi {
   /// as well is the missing other half, and nothing here does it yet.
   ///
   /// The scores and sets on this device are left alone: they are what makes the
-  /// app work without a network, and they are no use to anyone who cannot get a
-  /// token to read them with anyway.
+  /// app work without a network, and a user who signs in again as themselves
+  /// still has what they had not sent. Somebody else signing in is not handed
+  /// them — see [dataOwner].
   Future<void> forgetUser() async {
     _signInFailure = null;
     await _forgetTokens();
     await _store.forgetSettingsStartingWith(_flowStatePrefix);
     await _store.writeSetting(_userInfoKey, null);
+  }
+
+  /// Forgets who is signed in, as [forgetUser] does, and has the next sign-in
+  /// ask who it is.
+  ///
+  /// The tokens outlive the app being closed, so a shared or a borrowed device
+  /// is only left to the next person once this has been done. The provider
+  /// keeps a session of its own, which would sign the next person in as this
+  /// one without asking; so the next sign-in asks it to ask again.
+  Future<void> signOut() async {
+    await forgetUser();
+    await _store.writeSetting(_signedOutKey, 'true');
+  }
+
+  /// The subject of the user the sets and collections on this device belong
+  /// to, or null when nobody has been recorded.
+  ///
+  /// What is kept here is somebody's: their private sets, the edits they have
+  /// not sent, and how far their last pull read. Sent with another user's
+  /// token, those would become that user's — so a sync only goes out while
+  /// the user who is signed in is the one they belong to (see
+  /// [holdsTheDataOfTheSignedInUser]), and a different user signing in has
+  /// them forgotten first (see [App.updateAuth]).
+  Future<String?> dataOwner() => _store.readSetting(_dataOwnerKey);
+
+  Future<void> keepDataOwner(String? subject) =>
+      _store.writeSetting(_dataOwnerKey, subject);
+
+  /// Whether the sets and collections on this device may be synced with the
+  /// token of the user who is signed in: whether they are that user's, or
+  /// nobody's yet.
+  ///
+  /// Between another user signing in and the app having forgotten what the
+  /// last one left, the user this device knows is not the one the data is
+  /// recorded for, and nothing is sent.
+  Future<bool> holdsTheDataOfTheSignedInUser() async {
+    final owner = await dataOwner();
+    if (owner == null) {
+      return true;
+    }
+    return (await keptUserInfo())?.subject == owner;
   }
 }
 

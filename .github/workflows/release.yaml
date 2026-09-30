@@ -71,8 +71,27 @@ jobs:
             echo "args=" >> "$GITHUB_OUTPUT"
           fi
 
+  # The phone and desktop builds sign in as oidc.nativeClientId, and fall back
+  # to the web client when it is missing — which Zitadel refuses for their
+  # redirect addresses, so every sign-in from the released APK and zips would
+  # fail. Checked first and on its own, so a tag without one fails in seconds
+  # rather than after four platforms have been built. Only here: a web-only
+  # build (release-dev.yml) never reads the field.
+  native-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: config.prod.json names a native client
+        run: |
+          if ! jq -e '.oidc.nativeClientId | strings | length > 0' \
+              frontend/assets/config.prod.json > /dev/null; then
+            echo "::error file=frontend/assets/config.prod.json::oidc.nativeClientId is missing or empty. The Android, Linux and Windows builds would sign in as the web client (oidc.clientId), which Zitadel refuses for app.wvl.score://callback and http://localhost:7005/. Create a native application in Zitadel with those redirect URIs and put its client id in oidc.nativeClientId."
+            exit 1
+          fi
+
   build:
-    needs: version
+    needs: [version, native-config]
     uses: ./.github/workflows/flutter-build.yml
     with:
       build-args: ${{ needs.version.outputs.args }}

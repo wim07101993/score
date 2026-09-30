@@ -72,37 +72,52 @@ class OidcConfig {
 
   factory OidcConfig.fromJson(
     Map<String, dynamic> json,
-  ) => OidcConfig(
-        clientId: '${json['clientId']}',
-        nativeClientId: json['nativeClientId'] == null
-            ? null
-            : '${json['nativeClientId']}',
-        issuer: json['issuer'] == null
-            // Not stated, so taken to be wherever the endpoints are. Every
-            // provider worth the name serves its metadata at the root of the
-            // same host, and a wrong guess here costs nothing: discovery that
-            // fails falls back to the endpoints written out below.
-            ? Uri.parse(_uri(json['authorizationEndpoint']).origin)
-            : _uri(json['issuer']),
-        redirectUri: _uri(json['redirectUri']),
-        nativeRedirectUri: json['nativeRedirectUri'] == null
-            ? Uri.parse('app.wvl.score://callback')
-            : _uri(json['nativeRedirectUri']),
-        desktopRedirectUri: json['desktopRedirectUri'] == null
-            ? Uri.parse('http://localhost:7005/')
-            : _uri(json['desktopRedirectUri']),
-        authorizationEndpoint: _uri(json['authorizationEndpoint']),
-        tokenEndpoint: _uri(json['tokenEndpoint']),
-        userInfoEndpoint: _uri(json['userInfoEndpoint']),
-        healthzEndpoint: _uri(json['healthzEndpoint']),
-        rolesKey: '${json['rolesKey']}',
-      );
+  ) {
+    final nativeClientId = json['nativeClientId'] == null
+        ? null
+        : '${json['nativeClientId']}';
+    final hasNativeClient = nativeClientId != null && nativeClientId.isNotEmpty;
+    if (!kIsWeb && !hasNativeClient) {
+      // Kept as a fallback, because one client can be enough: a provider other
+      // than Zitadel, or a web client that was given the device's redirect
+      // addresses as well. When it is not, the sign-in fails at the provider
+      // with a redirect_uri mismatch and nothing on the device says why, so it
+      // is said here. A release does not even build without one (see
+      // .github/workflows/release.yaml).
+      debugPrint('the config has no nativeClientId, so this device signs in as '
+          'the web client ${json['clientId']}; the provider will refuse that '
+          'unless the redirect addresses of a device are registered on it too');
+    }
+    return OidcConfig(
+      clientId: '${json['clientId']}',
+      nativeClientId: hasNativeClient ? nativeClientId : null,
+      issuer: json['issuer'] == null
+          // Not stated, so taken to be wherever the endpoints are. Every
+          // provider worth the name serves its metadata at the root of the
+          // same host, and a wrong guess here costs nothing: discovery that
+          // fails falls back to the endpoints written out below.
+          ? Uri.parse(_uri(json['authorizationEndpoint']).origin)
+          : _uri(json['issuer']),
+      redirectUri: _uri(json['redirectUri']),
+      nativeRedirectUri: json['nativeRedirectUri'] == null
+          ? Uri.parse('app.wvl.score://callback')
+          : _uri(json['nativeRedirectUri']),
+      desktopRedirectUri: json['desktopRedirectUri'] == null
+          ? Uri.parse('http://localhost:7005/')
+          : _uri(json['desktopRedirectUri']),
+      authorizationEndpoint: _uri(json['authorizationEndpoint']),
+      tokenEndpoint: _uri(json['tokenEndpoint']),
+      userInfoEndpoint: _uri(json['userInfoEndpoint']),
+      healthzEndpoint: _uri(json['healthzEndpoint']),
+      rolesKey: '${json['rolesKey']}',
+    );
+  }
 
   /// The client the web app signs in as.
   final String clientId;
 
   /// The client a phone or a desktop signs in as, and the same as [clientId]
-  /// when none is given.
+  /// when none is given — which [OidcConfig.fromJson] warns about on a device.
   ///
   /// A provider may well refuse the web's client for them: it is a client
   /// whose redirect addresses are web pages, where a phone comes back to a

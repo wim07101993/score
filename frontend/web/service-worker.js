@@ -82,7 +82,16 @@ self.addEventListener('fetch', (event) => {
 /// Fetches and keeps this version of the app. All of it or none of it: an app
 /// put together from two versions is an app that does not start, so a version
 /// that could not be kept whole is not taken on, and the one before it goes on
-/// being answered with. The browser tries again at its next update check.
+/// being answered with. The page tries again at its next update check (see
+/// web/flutter_bootstrap.js).
+///
+/// What an attempt did fetch is not thrown away with it, though. A file is put
+/// in this version's cache only once it is known to be this version's, so what
+/// is there is this version's whether or not the attempt that put it there got
+/// to the end; the next attempt fetches only the rest. A venue's wifi that
+/// drops one file costs that file, not the whole app again. Whole is still
+/// what it takes to be taken on: the manifest is written last, and only a
+/// worker that got to it is installed.
 async function install() {
   if (!VERSION) {
     await self.skipWaiting();
@@ -109,10 +118,14 @@ async function install() {
   await self.skipWaiting();
 }
 
-/// One file of this version: out of the version before when it has not
-/// changed, and from the server otherwise.
+/// One file of this version: left as it is when an earlier attempt at this
+/// version already kept it, out of the version before when it has not changed,
+/// and from the server otherwise.
 async function keep(cache, before, path) {
   const url = urlOf(path);
+  if ((await cache.match(url)) != null) {
+    return;
+  }
   if (before != null && before.resources[path] === RESOURCES[path]) {
     const held = await before.cache.match(url);
     if (held != null) {
