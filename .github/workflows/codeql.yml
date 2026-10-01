@@ -1,0 +1,52 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 22 * * 2'
+  workflow_dispatch:
+
+jobs:
+  # The languages are listed rather than detected. The frontend carries the
+  # runners Flutter generates for Android (Kotlin) and for Linux and Windows
+  # (C++), which CodeQL picks up as languages of their own and cannot build on
+  # its own — and which are boilerplate this repository does not write. The app
+  # itself is Dart, which CodeQL does not read at all. What is worth scanning is
+  # the backend, the web worker and its bootstrap, and the workflows.
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: autobuild
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v6
+
+      - if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
