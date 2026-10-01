@@ -103,125 +103,31 @@ CI runs exactly that. Which rules it holds the document to, and why, is in
 
 ## The frontend
 
-The frontend is plain ES modules served as files — no build step, no
-dependencies, one page per thing there is to look at:
+The frontend is a Flutter app in [frontend/](frontend), and it is one app: the
+same code runs in a browser, on a Linux or Windows desktop and on Android, so
+what a player reads off a phone at a gig is the same drawing they read off a
+browser at home. How it is built — how a score is drawn, what the lamp on the
+page is, and what has to be registered with the provider per platform — is in
+[its own README](frontend/README.md).
 
-```
-frontend/src/
-├── index.html                   the scores there are
-├── scores/detail.html           one score, drawn and played from
-├── sets/index.html              the sets there are
-├── sets/detail.html             one set, written
-├── collections/index.html       the collections there are
-├── collections/detail.html      one collection, written
-├── settings.html                what this device prefers
-├── profile.html                 what the app was told about the user
-├── domains/                     what the app knows, a directory per subject
-│   ├── auth/                    proving who the user is
-│   ├── scores/                  the scores and the way one is looked at
-│   ├── sets/                    the playlists a gig is played from
-│   ├── collections/             the groups of scores that belong together
-│   ├── settings/                what this device prefers, and the page it lights
-│   └── updates/                 keeping the app itself up to date
-├── components/                  the custom elements a list is drawn with
-├── theme-boot.js                which way round this device reads, before a paint
-└── service-worker.js            what is served when there is no network
-```
+Two things about it decide how the rest of this document reads:
 
-A domain is three files that stack: an `api.js` that speaks to the server, a
-`database.js` that keeps what came back, and a `repository.js` that is the only
-thing a page talks to. A page reads what is stored and asks for a sync; it never
-waits on the network to draw.
+- **A page reads what is stored and asks for a sync; it never waits on the
+  network to draw.** A score is read on a stage and a set is written at a gig,
+  and both of those are exactly where there is no network. That goes for the
+  web app too: it can be installed from the browser, and once it has been opened
+  with a network it opens without one, the app itself kept by a service worker
+  and what it knows kept in the browser's storage.
+- **What this device prefers is the device's and not the account's.** Which way
+  round the app is, and how much light the page a score is drawn on throws, are
+  kept on the device and never sent to the server: a player reads off a bright
+  laptop at home and a dimmed tablet on a stand as the same person, and neither
+  should decide the other.
 
-### Finding out why the app shows nothing
-
-Every page decides what to show from the roles the provider sent: a page that
-shows nothing is a page that was told nothing. What it was told is on
-[profile.html](frontend/src/profile.html), which is linked from the scores page
-and is never hidden, whatever roles the user turns out to have — a user who is
-shown nothing at all is exactly the user who needs to see why.
-
-It shows the user-info answer as it came back, which claim the roles were looked
-for under and which claims actually arrived, whether the answer came from the
-provider just now or from the copy this device kept, what the app is talking to
-and whether it can be reached, what is stored on the device, and which cached
-versions of the app are on it. It carries the way out, too: forgetting the
-tokens to sign in again. The app's own version is next door, in the settings.
-
-### The page a score is read off is the reader's
-
-[settings.html](frontend/src/settings.html) is what this device prefers, and it
-is a device's rather than an account's: a player may read off a bright laptop at
-home and a dimmed tablet on a stand, signed in as the same person, and neither
-should decide the other. So it is kept in the browser and never sent to the
-server. Which way round the app is — light, dark, or whatever the machine says —
-is put on the document by [theme-boot.js](frontend/src/theme-boot.js) before the
-first paint, because a page that starts light and corrects itself a moment later
-is a white screen in somebody's face on a dark stage.
-
-Underneath it is the page the music actually lands on, which is the part worth
-explaining. **A score in the dark is still ink on paper.** What changes at night
-is how much light the paper throws at the reader, so the dark page is this page
-with the lamp turned down and not this page inverted — a screen makes its own
-light and pushes it at you, the eye opens up in a dark room, and anything bright
-on that screen blooms. A white notehead is exactly that, and it is also the
-thing being looked at. Dark marks have no light to give and cannot bloom.
-
-The dial is therefore a share of *light* rather than of the numbers a colour is
-written with: half way down is the page that throws half the light, which is
-`#bcbcbc` and nowhere near the halfway `#808080`. That arithmetic is
-[sheet-palette.js](frontend/src/domains/settings/sheet-palette.js), which is
-also where the second dial lives — how far from grey the page is, which costs
-almost no light because it is the blue that is taken away. The two are kept
-apart for the light room and the dark one, because the lamp a reader wants at a
-lit desk is not the one they want at a gig.
-
-### The app keeps itself up to date
-
-A page is served from the cache before it is served from the network, which is
-what makes the app work with no network at all — and also what would keep a
-version that has been replaced on screen. So the newest version is gone looking
-for rather than waited for:
-[app-update.js](frontend/src/domains/updates/app-update.js) asks the server for
-a newer worker whenever it might be reachable — when a page opens, when the
-network comes back, when a tab is looked at again — and the worker fills a new
-cache and takes over the moment it has one, deleting the caches of every earlier
-version as it does. Nobody is asked to agree to anything; a player standing on a
-stage is not going to read a banner about versions.
-
-What that update is compared against is the bytes of `service-worker.js`, so a
-release that changes a page and leaves its `cacheName` alone is a release no
-device already carrying the app will ever see.
-
-The whole app — every page, every module, every stylesheet — is fetched when the
-worker installs, so a device that has opened one page has all of them and can
-open any of them with no network. It used to be fetched with `cache.addAll`,
-which is all or nothing: one url that answered 404, or one fetch that gave out
-on a phone halfway up a stairwell, and not a single file was cached, while the
-worker went on to activate, delete the previous version's cache and take over
-anyway — an app served by a worker with an empty cache behind it, which only
-works online. Each file is now its own question, what fails is named rather than
-swallowed, and every page load asks the worker to fetch whatever it has not got,
-which on a device that has the whole app is a look in a cache and nothing else.
-
-Which files those are is one hand-written list, and a list goes out of date
-quietly: a page added and not listed works all the way through development and
-is missing at the one moment it was needed. `service-worker.test.js` checks it
-against what is actually served, in both directions. Detail pages are on the
-list and belong there — what is cached is the page, and what makes it a page
-about one score is read from the device, so leaving it off would not save a
-fetch, it would mean opening a score at a gig and being handed the scores list
-instead.
-
-Taking the new version is a separate question from fetching it. A listing, the
-profile and the settings reload themselves the moment a newer app takes over,
-because nothing on them is half-written. The score being played from, the score
-being edited and the set being written do not: a reload there costs a place in
-the music or an edit nobody typed twice, and those pages get the new version the
-next time they are opened, which is soon enough. The button on the settings page
-is for neither case — it throws away every cached copy and unregisters the
-workers, which is the way out when a worker failed half way through installing
-and asking for a newer one has not helped.
+It replaced a frontend of plain ES modules that drew sheet music with
+[OpenSheetMusicDisplay](https://opensheetmusicdisplay.org) and therefore only
+ever ran in a browser. That one is gone; the git history has it if something it
+decided needs looking up.
 
 ### Sets are written offline
 
@@ -460,6 +366,11 @@ the two is worse than being told.
 - Docker
   - Tool for running software containers
   - `$ go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest`
+- Flutter, for the frontend
+  - CI is pinned to 3.47.1 (see `.github/workflows/flutter-*.yml`); the SDK
+    decides what the analyzer complains about and what the engraving code
+    renders, so it is worth matching
+  - https://docs.flutter.dev/get-started/install
 
 ### Running
 
@@ -494,11 +405,18 @@ it uses. Every other setting is required and the server refuses to start
 without it. The server runs the migrations itself on start-up, so
 `db/migrations` has to be reachable from the working directory.
 
-The frontend is served by a static file server of its own:
+The frontend is a Flutter app of its own, and on the web the port is not a
+detail — the provider compares a redirect address exactly, and port 3000 is the
+one [frontend/assets/config.json](frontend/assets/config.json) registers:
 
 ```bash
-$ cd frontend && go run frontend.go
+$ cd frontend
+$ flutter run -d chrome --web-port=3000
+$ flutter run -d linux
 ```
+
+A desktop build needs no port lined up by hand; what each platform asks for is
+in [frontend/README.md](frontend/README.md).
 
 ### Testing
 
@@ -534,10 +452,13 @@ The API's own log is silenced during a test run. To see it:
 $ SCORE_TEST_LOG=1 go test -tags integration ./test/...
 ```
 
-The frontend tests run on node without a build step or any dependency:
+The frontend has tests and an analyzer, and CI holds both to the same bar —
+`--fatal-infos`, so an advisory lint is a failure too:
 
 ```bash
-$ cd frontend && node --test
+$ cd frontend
+$ flutter analyze --fatal-infos
+$ flutter test
 ```
 
 ### Database
@@ -562,9 +483,21 @@ $ scripts/run_migrations.sh
 
 ### Frontend
 
-Ensure [config.json](frontend/src/config.json) is modified to contain the correct
-client-id and uri's.
+Ensure [assets/config.json](frontend/assets/config.json) is modified to contain
+the correct client-id and uri's. It is read at start-up rather than compiled in,
+so the same build can be pointed at a development server and at a real one.
 
 Client must be configured to use an Authorization code grant with PKCE with 
-refresh tokens enabled. The redirect uri of the web-application is the root.
-(see example configs).
+refresh tokens enabled. The redirect uri of the web-application is the root. A
+device and a desktop each need one of their own — `nativeRedirectUri` and
+`desktopRedirectUri` — because an app cannot be sent back to a web page.
+
+The web build is published as a docker image by
+[.github/workflows/release.yaml](.github/workflows/release.yaml),
+which packages the build the release already produced behind nginx
+([frontend/web.nginx.conf](frontend/web.nginx.conf)); the desktop and Android
+builds are attached to the release as files. A web build made by hand has to be
+made the same way for it to work offline —
+`flutter build web --release --no-web-resources-cdn`, then
+`dart run tool/precache.dart` — see
+[frontend/README.md](frontend/README.md#the-web-app-works-without-a-network).

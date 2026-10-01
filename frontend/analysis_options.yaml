@@ -1,0 +1,17 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+include: package:lint/strict.yaml # For production apps
+
+linter:
+  rules:
+    # The dependencies are grouped by what they are for, with a note above each
+    # group saying so. Alphabetical order would scatter the groups and take the
+    # notes with them.
+    sort_pub_dependencies: false

@@ -1,0 +1,56 @@
+name: Flutter Test
+
+on:
+  workflow_call:
+    outputs:
+      flutter-version:
+        description: >-
+          The Flutter version the tests ran on. flutter-build.yml builds with
+          it, so that the version is pinned here and nowhere else.
+        value: ${{ jobs.test.outputs.flutter-version }}
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/flutter-*.yml'
+
+# Nothing here writes anything back: it reads the checkout and runs the
+# analyzer and the tests. Said out loud so the token cannot do more than that.
+permissions:
+  contents: read
+
+# Pinned: the SDK decides what the analyzer complains about and what the
+# engraving code renders, and neither should change on a day nobody chose it.
+# The one place the version is written down; flutter-build.yml takes it from
+# this workflow's output rather than repeating it.
+env:
+  FLUTTER_VERSION: '3.47.1'
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      flutter-version: ${{ env.FLUTTER_VERSION }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      # --fatal-infos: the analyzer is kept clean, advisory lints included, so
+      # anything it has to say is worth stopping for.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Unit and widget tests
+        run: flutter test

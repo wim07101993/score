@@ -1,0 +1,81 @@
+name: score
+description: Sheet music, drawn and played from.
+publish_to: 'none'
+version: 2.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Only for the path url strategy, which keeps the web app's addresses the
+  # ones the app it replaces used.
+  flutter_web_plugins:
+    sdk: flutter
+
+  # The score engine. Reading a MusicXML file, engraving what it says, and
+  # writing it back out — the model, the layout and the painter all come from
+  # here, so nothing in this app knows what a beam or a ledger line is.
+  songbird_music_notation: ^0.1.1
+  songbird_musicxml: ^0.1.1
+  songbird_score: ^0.1.0
+
+  # Talking to the API and to the identity provider.
+  http: ^1.2.2
+  crypto: ^3.0.5
+
+  # What is kept between visits. One store that works the same on a browser
+  # (IndexedDB) and on a device (a file), so the repositories never ask which
+  # one they are on.
+  sembast: ^3.7.4
+  # Exact, not a range: in debug builds lib/features/sembast/database_factory_web.dart
+  # recognises sembast_web's cross-tab channel by a name that is private to
+  # the package, read from this version. Moving to another one is a choice to
+  # check that name again, not something `pub upgrade` should do on its own.
+  sembast_web: 2.4.5+1
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Signing in. On a phone this opens the provider and catches the callback;
+  # on the web the page itself is the callback, so it is not used there. On a
+  # desktop the callback comes back to a port this app listens on itself
+  # (lib/features/auth/authorizer_native.dart), which is what these two are for.
+  flutter_web_auth_2: ^5.0.3
+  url_launcher: ^6.3.1
+  window_to_front: ^0.0.3
+
+  # Reading a score off the device and writing one back to it.
+  file_picker: ^11.0.3
+
+  uuid: ^4.5.1
+  web: ^1.1.0
+  openid_client: ^0.4.10+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lint: ^2.8.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/config.json
+    - assets/fonts/roboto/LICENSE.txt
+
+  # The text of the app, shipped with it rather than fetched. On the web a font
+  # nobody bundled is downloaded from Google's servers at every start, which is
+  # a page with no letters on it where there is no network — and the web app
+  # has to work there. Everywhere else it is the font Material asks for anyway.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/roboto/Roboto-Regular.ttf
+        - asset: assets/fonts/roboto/Roboto-Italic.ttf
+          style: italic
+        - asset: assets/fonts/roboto/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto/Roboto-Bold.ttf
+          weight: 700
+

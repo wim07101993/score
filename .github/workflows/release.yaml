@@ -3,17 +3,35 @@ name: Release
 on:
   workflow_dispatch:
   push:
-    tags: 
+    tags:
     - 'v*'
 
+# Read-only unless a job says otherwise, which only `release` does — it is the
+# one that puts something back on the repository.
+permissions:
+  contents: read
+
+# One workflow for everything a tag ships. The backend and the apps used to be
+# released by two workflows off the same tag, and both created the GitHub
+# release: whichever lost the race either failed or overwrote the other. Here
+# exactly one job creates it, and it waits for everything that goes into it.
 jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  build:
-    needs: test
+  # Both images wait for both test runs, the Go one (test) and the Flutter one
+  # (inside build): a tag whose tests fail pushes no image at all, rather than
+  # the half that happened not to be tested by the job it waited for.
+  #
+  # Only on a tag, like web-image. A manual run of this workflow is not on a
+  # tag, and would otherwise push score:latest from whatever branch it was
+  # started on. A manually pushed development image is what release-dev.yml is
+  # for (it has its own workflow_dispatch and pushes score:dev-latest), so
+  # nothing that used to be done by hand goes missing here.
+  backend-image:
+    needs: [test, build]
+    if: ${{ github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -32,25 +50,131 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/score:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score:latest
 
-      - name: Set config
-        run: mv frontend/src/config.prod.json frontend/src/config.json
-
-      - name: Remove dev config
-        run: rm frontend/src/config.dev.json
-
-      - name: See config
+  # The tag is the version. Split out because `with:` below cannot strip the
+  # leading v on its own, and because a manual run is not on a tag at all — in
+  # that case nothing is stamped and pubspec.yaml's version stands.
+  version:
+    runs-on: ubuntu-latest
+    # It reads an environment variable and writes an output. It never even
+    # checks the code out.
+    permissions: {}
+    outputs:
+      args: ${{ steps.v.outputs.args }}
+    steps:
+      - id: v
         run: |
-          ls frontend/src/
-          cat frontend/src/config.json
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            # The build number has to climb for Android to accept an upgrade,
+            # and the run number is the one counter here that only goes up.
+            echo "args=--build-name=${GITHUB_REF_NAME#v} --build-number=$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Build and Push frondend
+  # The phone and desktop builds sign in as oidc.nativeClientId, and fall back
+  # to the web client when it is missing — which Zitadel refuses for their
+  # redirect addresses, so every sign-in from the released APK and zips would
+  # fail. Checked first and on its own, so a tag without one fails in seconds
+  # rather than after four platforms have been built. Only here: a web-only
+  # build (release-dev.yml) never reads the field.
+  native-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: config.prod.json names a native client
+        run: |
+          if ! jq -e '.oidc.nativeClientId | strings | length > 0' \
+              frontend/assets/config.prod.json > /dev/null; then
+            echo "::error file=frontend/assets/config.prod.json::oidc.nativeClientId is missing or empty. The Android, Linux and Windows builds would sign in as the web client (oidc.clientId), which Zitadel refuses for app.wvl.score://callback and http://localhost:7005/. Create a native application in Zitadel with those redirect URIs and put its client id in oidc.nativeClientId."
+            exit 1
+          fi
+
+  build:
+    needs: [version, native-config]
+    uses: ./.github/workflows/flutter-build.yml
+    with:
+      build-args: ${{ needs.version.outputs.args }}
+      # Otherwise every released artifact would ship the development config,
+      # which points at localhost: a published web app whose origin is not
+      # localhost cannot sign in, and a phone would look for the API on itself.
+      config: assets/config.prod.json
+    # Without this the keystore secrets do not reach the called workflow and
+    # the release would quietly ship an APK signed with the debug key.
+    secrets: inherit
+
+  # Packages the web build the four-platform build already produced rather than
+  # building it a second time. assets/config.prod.json was put in place there,
+  # before the build, because everything but the web reads that file out of the
+  # bundle the build wrote.
+  web-image:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_type == 'tag' }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          # Where web.Dockerfile expects to find it.
+          path: frontend/build/web
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Build and push the web image
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: frontend/frontend.Dockerfile
+          file: frontend/web.Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/score-frontend:${{ github.ref_name }} , ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
-      
+          # score-frontend, the name the JS app used to be pushed under: this
+          # is the frontend now, and a deployment pulling that name should get
+          # it rather than something that is no longer in the repository.
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/score-frontend:${{ github.ref_name }}
+            ${{ secrets.DOCKER_USERNAME }}/score-frontend:latest
 
-      - name: Create release
-        uses: ncipollo/release-action@v1
+  # Only on a tag: a manual run has no tag to make a release of, and would
+  # otherwise build everything only to fail here. It waits for both images
+  # too, which run on exactly the same condition, so that a release is not
+  # published for a tag whose images failed to go out.
+  release:
+    needs: [backend-image, build, web-image]
+    if: ${{ github.ref_type == 'tag' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v4
+        with:
+          # Only the packaged ones; web-build is the unpacked tree, which is
+          # for the image above rather than for anyone to download.
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - name: What is being released
+        run: ls -lh dist
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/*"
+          generateReleaseNotes: true
+          # Put in front of the generated notes, which only list what changed.
+          # The Linux bundle links WebKitGTK through a plugin the sign-in never
+          # uses on Linux, but the loader still wants the library there before
+          # the app can start at all.
+          body: |
+            **Linux:** the Linux build needs WebKitGTK 4.1 installed to start
+            (`libwebkit2gtk-4.1-0` on Debian and Ubuntu; the WebKitGTK 4.1
+            package on other distributions), in addition to GTK 3.
+          # A re-run of a failed release finds the release the first attempt
+          # made, and should finish it rather than fail on it.
+          allowUpdates: true

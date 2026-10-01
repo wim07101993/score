@@ -1,0 +1,202 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:score/routes.dart';
+
+/// Addresses, and what is behind them.
+///
+/// The addresses are the ones the app this replaces used, so a link a player
+/// has in their browser still opens what it always opened. What is new is the
+/// second question: a browser hands over a whole address at once, and this app
+/// has to say what a player finds when they leave the page it opened.
+
+void main() {
+  group('reading an address', () {
+    test('a score inside a set carries both, and which entry', () {
+      final route = AppRoute.parse('/scores/abc?set=def&entry=ghi');
+
+      expect(
+        route,
+        isA<ScoreDetailRoute>()
+            .having((r) => r.scoreId, 'scoreId', 'abc')
+            .having((r) => r.setId, 'setId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+    });
+
+    test('anything unrecognised is the list of scores', () {
+      expect(AppRoute.parse('/nowhere'), isA<ScoresRoute>());
+      expect(AppRoute.parse(null), isA<ScoresRoute>());
+      expect(AppRoute.parse('/'), isA<ScoresRoute>());
+    });
+
+    test('an address that cannot be read at all is the list of scores', () {
+      // A link mangled on its way here is still the address the app was
+      // opened at, and throwing would leave nothing on screen.
+      expect(AppRoute.parse('/scores/%E9t%E9'), isA<ScoresRoute>());
+      expect(AppRoute.parse('/scores/abc?set=%FF'), isA<ScoresRoute>());
+      expect(AppRoute.stackFor('//a:b/'), [isA<ScoresRoute>()]);
+    });
+
+    test("the old app's pages open what they always opened", () {
+      expect(
+        AppRoute.parse('/scores/detail.html?id=abc'),
+        isA<ScoreDetailRoute>().having((r) => r.scoreId, 'scoreId', 'abc'),
+      );
+      expect(
+        AppRoute.parse('/scores/perform.html?id=abc&set=def&entry=ghi'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.scoreId, 'scoreId', 'abc')
+            .having((r) => r.setId, 'setId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+      expect(
+        AppRoute.parse('/scores/perform.html?id=abc&collection=def&entry=ghi'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.collectionId, 'collectionId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+      expect(
+        AppRoute.parse('/sets/detail.html?id=def'),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
+      );
+      expect(
+        AppRoute.parse('/collections/detail.html?id=def'),
+        isA<CollectionDetailRoute>()
+            .having((r) => r.collectionId, 'collectionId', 'def'),
+      );
+      expect(AppRoute.parse('/index.html'), isA<ScoresRoute>());
+      expect(AppRoute.parse('/sets/'), isA<SetsRoute>());
+      expect(AppRoute.parse('/sets/index.html'), isA<SetsRoute>());
+      expect(AppRoute.parse('/collections/'), isA<CollectionsRoute>());
+      expect(AppRoute.parse('/profile.html'), isA<ProfileRoute>());
+      expect(AppRoute.parse('/settings.html'), isA<SettingsRoute>());
+    });
+
+    test("the old app's pages with no id are the new thing they made", () {
+      expect(
+        AppRoute.parse('/scores/detail.html'),
+        isA<ScoreDetailRoute>().having((r) => r.scoreId, 'scoreId', 'new'),
+      );
+      expect(
+        AppRoute.parse('/sets/detail.html'),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'new'),
+      );
+    });
+
+    test('a song with no score, opened from a set, is that song on paper', () {
+      expect(
+        AppRoute.parse('/scores/perform.html?set=def&entry=ghi'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.scoreId, 'scoreId', ScoreDetailRoute.paper)
+            .having((r) => r.setId, 'setId', 'def')
+            .having((r) => r.entryId, 'entryId', 'ghi'),
+      );
+      expect(
+        AppRoute.stackFor('/scores/perform.html?set=def&entry=ghi')
+            .map((route) => route.path),
+        ['/', '/sets', '/sets/def', '/scores/paper?set=def&entry=ghi'],
+      );
+    });
+
+    test('a link to a set with no song in it is still the set', () {
+      expect(
+        AppRoute.parse('/scores/perform.html?set=def'),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
+      );
+    });
+
+    test('an address read and written again is the address it was', () {
+      const addresses = [
+        '/',
+        '/sets',
+        '/collections',
+        '/collections/abc',
+        '/scores/abc?collection=def&entry=ghi',
+        '/scores/paper?set=def&entry=ghi',
+        '/profile',
+        '/settings',
+        '/sets/abc',
+        '/scores/abc',
+        '/scores/abc?set=def&entry=ghi',
+      ];
+
+      for (final address in addresses) {
+        expect(AppRoute.parse(address).path, address);
+      }
+    });
+  });
+
+  group('what a link opens onto', () {
+    test('a score has the list of scores behind it, once', () {
+      final stack = AppRoute.stackFor('/scores/abc');
+
+      expect(stack, [isA<ScoresRoute>(), isA<ScoreDetailRoute>()]);
+    });
+
+    test("a set's score can be left through the set it is played from", () {
+      final stack = AppRoute.stackFor('/sets/def');
+
+      expect(stack, [isA<ScoresRoute>(), isA<SetsRoute>(), isA<SetDetailRoute>()]);
+    });
+
+    test('a score played from a set is left through that set', () {
+      final stack = AppRoute.stackFor('/scores/abc?set=def&entry=ghi');
+
+      expect(stack, [
+        isA<ScoresRoute>(),
+        isA<SetsRoute>(),
+        isA<SetDetailRoute>().having((r) => r.setId, 'setId', 'def'),
+        isA<ScoreDetailRoute>(),
+      ]);
+    });
+
+    test('a score played from a collection is left through it', () {
+      expect(AppRoute.stackFor('/scores/abc?collection=def&entry=ghi'), [
+        isA<ScoresRoute>(),
+        isA<CollectionsRoute>(),
+        isA<CollectionDetailRoute>()
+            .having((r) => r.collectionId, 'collectionId', 'def'),
+        isA<ScoreDetailRoute>(),
+      ]);
+    });
+
+    test('a score opened on its own has no set behind it', () {
+      expect(AppRoute.stackFor('/scores/abc'), [
+        isA<ScoresRoute>(),
+        isA<ScoreDetailRoute>(),
+      ]);
+    });
+
+    test('the list of scores is not put behind itself', () {
+      expect(AppRoute.stackFor('/'), [isA<ScoresRoute>()]);
+      expect(AppRoute.stackFor('/nowhere'), [isA<ScoresRoute>()]);
+    });
+
+    test('every address leads somewhere, and ends where it was pointed', () {
+      const addresses = [
+        '/',
+        '/sets',
+        '/sets/abc',
+        '/scores/abc',
+        '/scores/abc?set=def&entry=ghi',
+        '/collections',
+        '/collections/abc',
+        '/scores/abc?collection=def&entry=ghi',
+        '/profile',
+        '/settings',
+      ];
+
+      for (final address in addresses) {
+        final stack = AppRoute.stackFor(address);
+        expect(stack, isNotEmpty, reason: address);
+        expect(stack.last.path, address, reason: address);
+        // Nothing is opened twice: a way back that arrives where it started is
+        // the thing this exists to prevent.
+        expect(
+          stack.map((route) => route.path).toSet().length,
+          stack.length,
+          reason: address,
+        );
+      }
+    });
+  });
+}

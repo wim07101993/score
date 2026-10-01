@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    Replaced by the value of `--base-href` when the app is built, `/` unless it
+    is given one. It has to start and end with a slash.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Sheet music, drawn and played from.">
+
+  <!-- Installed from the browser, the app opens in a window of its own and
+       works without a network: see service-worker.js. -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Score">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <meta name="theme-color" content="#faf8ff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121318" media="(prefers-color-scheme: dark)">
+
+  <!-- The page is the colour the app will be until the app is there to draw
+       itself: a white page while it loads is a white screen in somebody's face
+       on a dark stage. -->
+  <meta name="color-scheme" content="light dark">
+  <style>
+    html, body { margin: 0; background: #faf8ff; }
+    @media (prefers-color-scheme: dark) {
+      html, body { background: #121318; }
+    }
+    html[data-theme="light"], html[data-theme="light"] body {
+      background: #faf8ff; color-scheme: light;
+    }
+    html[data-theme="dark"], html[data-theme="dark"] body {
+      background: #121318; color-scheme: dark;
+    }
+  </style>
+  <!-- And the colour the player chose over the system's, which the app keeps
+       where this can read it (lib/features/settings/theme_hint.dart). -->
+  <script>
+    try {
+      const mode = localStorage.getItem('score-theme-mode');
+      if (mode === 'light' || mode === 'dark') {
+        document.documentElement.dataset.theme = mode;
+      }
+    } catch (_) {}
+  </script>
+
+  <title>Score</title>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
