@@ -69,8 +69,8 @@ class ScoresApi {
     return objectIn(response, what, ScoresApiException.new);
   }
 
-  /// The document itself.
-  Future<String> getScoreMusicXml(String scoreId, String authToken) async {
+  /// The document itself. `null` when there is nothing stored under it.
+  Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
     const what = 'fetch the score';
     final response = await callTheApi(
       () => _client.get(
@@ -83,6 +83,14 @@ class ScoresApi {
       what,
       ScoresApiException.new,
     );
+    if (isNotThere(
+      response,
+      const {'score_not_found'},
+      what,
+      ScoresApiException.new,
+    )) {
+      return null;
+    }
     throwUnlessOk(response, what, ScoresApiException.new);
     // Read as utf-8 rather than as whatever the header happens to say: a
     // MusicXML document says its own encoding, and a score with an umlaut in

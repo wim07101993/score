@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/collections/api.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/features/sembast/local_store.dart';
 import 'package:score/features/sync/engine.dart';
 import 'package:uuid/uuid.dart';
+
+final _log = Logger('Collections');
 
 /// The collections, as this device has them.
 ///
@@ -46,6 +49,10 @@ class CollectionsRepository extends ChangeNotifier {
         for (final collection in collections)
           if (collection.holds(scoreId)) collection,
       ];
+
+  /// Why what is owed about one collection was not synced the last time it was
+  /// tried: see [SyncEngine.whyNotSynced].
+  Object? whyNotSynced(String id) => _sync.whyNotSynced(id);
 
   /// Whether anything here is still owed to the server.
   bool get hasPendingChanges => _sync.hasPendingChanges;
@@ -450,7 +457,7 @@ class _Pieces
   /// there stays.
   @override
   Future<void> take(PendingEntry owed, CollectionsApiException error) async {
-    debugPrint('the collection already holds the score of entry'
+    _log.fine('the collection already holds the score of entry'
         ' ${owed.id}; dropping this copy of it');
     final current = _engine.held(_collectionId)!;
     if (!_engine.isStillOwed(current, owed)) {
@@ -470,7 +477,7 @@ class _Pieces
         candidate.action == PendingChange.delete &&
         (heldAs is! String || candidate.id == heldAs));
     if (removalOwed) {
-      debugPrint('the copy of entry ${owed.id} the collection holds is still to'
+      _log.fine('the copy of entry ${owed.id} the collection holds is still to'
           ' be taken out; this one waits for that');
       return;
     }
@@ -525,9 +532,10 @@ class _Pieces
           ));
         }
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
       // The next sync brings it in instead.
-      debugPrint('collection $_collectionId could not be read back: $error');
+      _log.warning('collection $_collectionId could not be read back', error,
+          stackTrace);
     }
 
     for (final (entry, error) in _dropped) {

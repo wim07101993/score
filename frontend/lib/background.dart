@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('Background');
 
 /// Starts [work] and does not wait for it, saying so when it fails.
 ///
@@ -7,7 +9,7 @@ import 'package:flutter/foundation.dart';
 /// bookkeeping write — is work nothing else is listening to, so this is where
 /// its failure is heard.
 void inTheBackground(Future<void> work) {
-  work.catchError((Object error) {
-    debugPrint('work left to run in the background failed: $error');
+  work.catchError((Object error, StackTrace stackTrace) {
+    _log.severe('work left to run in the background failed', error, stackTrace);
   });
 }

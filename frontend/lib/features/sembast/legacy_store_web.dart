@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:logging/logging.dart';
 import 'package:score/features/sembast/legacy_store.dart';
 import 'package:web/web.dart';
+
+final _log = Logger('Store');
 
 /// Reads what the app that was there before this one kept in this browser.
 ///
@@ -58,8 +60,9 @@ Future<LegacyData?> readLegacyData() async {
 String? _readPreference(String key) {
   try {
     return window.localStorage.getItem(key);
-  } catch (error) {
-    debugPrint('could not read $key as it was kept before: $error');
+  } catch (error, stackTrace) {
+    _log.warning('could not read $key as it was kept before', error,
+        stackTrace);
     return null;
   }
 }
@@ -128,8 +131,9 @@ Map<String, Object?>? _asJson(JSAny? record) {
         .callMethod<JSString>('stringify'.toJS, record)
         .toDart;
     return (jsonDecode(json) as Map).cast<String, Object?>();
-  } catch (error) {
-    debugPrint('could not bring over a record from before: $error');
+  } catch (error, stackTrace) {
+    _log.warning('could not bring over a record from before', error,
+        stackTrace);
     return null;
   }
 }
@@ -137,8 +141,9 @@ Map<String, Object?>? _asJson(JSAny? record) {
 Future<FileSystemDirectoryHandle?> _privateDirectory() async {
   try {
     return await window.navigator.storage.getDirectory().toDart;
-  } catch (error) {
-    debugPrint('could not open the files kept from before: $error');
+  } catch (error, stackTrace) {
+    _log.warning('could not open the files kept from before', error,
+        stackTrace);
     return null;
   }
 }

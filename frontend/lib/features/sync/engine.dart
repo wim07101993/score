@@ -24,9 +24,28 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:score/api.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/sets/models.dart';
+
+final _log = Logger('Sync');
+
+/// Why what is owed about a set or a collection was not sent, when it was not
+/// the server saying so: see [SyncEngine.whyNotSynced].
+enum SyncHold {
+  /// The server, or the provider that hands out its tokens, could not be
+  /// reached.
+  unreachable,
+
+  /// There was no token to send it with, and nothing to get one with: the
+  /// user has to sign in again.
+  noToken,
+
+  /// What is on this device belongs to another account than the one signed
+  /// in, and is not sent with that one's token.
+  notTheirs,
+}
 
 /// What a set or a collection is to the engine that keeps it: how it is
 /// stored, how it is read, which endpoints it is written to, and what is its
@@ -150,6 +169,29 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   final Map<String, int> _taken = {};
 
   void _tookAWrite(String id) => _taken[id] = (_taken[id] ?? 0) + 1;
+
+  /// Why the last push of each one left something owed, for as long as it
+  /// still does: a [SyncHold], or what was thrown.
+  final Map<String, Object> _whyNotSynced = {};
+
+  /// Why what is owed about the one with the given id was not sent the last
+  /// time it was tried — a [SyncHold], an [ApiException] the server answered
+  /// with, or whatever else got in the way — or null when it has not been
+  /// tried since the app started, or nothing is owed.
+  Object? whyNotSynced(String id) =>
+      _records[id]?.owesAnything == true ? _whyNotSynced[id] : null;
+
+  /// The token to send what is owed about [id] with, remembering why there is
+  /// none when there is not.
+  Future<String?> _tokenFor(String id) async {
+    if (!await _oidc.holdsTheDataOfTheSignedInUser()) {
+      _whyNotSynced[id] = SyncHold.notTheirs;
+      return null;
+    }
+    final token = await _oidc.getActiveAccessToken(signIn: false);
+    if (token == null) _whyNotSynced[id] = SyncHold.noToken;
+    return token;
+  }
 
   /// Takes in what other tabs of the app stored since this one read the store.
   ///
@@ -513,7 +555,8 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       _oidc.canBeReached(),
     ]);
     if (reachable.contains(false)) {
-      debugPrint('the api cannot be reached; what was written stays queued');
+      _log.info('the api cannot be reached; what was written stays queued');
+      _whyNotSynced[id] = SyncHold.unreachable;
       return;
     }
     await _push(id);
@@ -549,6 +592,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     if (record == null) {
       return;
     }
+    _whyNotSynced.remove(id);
 
     if (record.pendingChange != null) {
       await _pushRecord(id);
@@ -575,7 +619,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     final action = record.pendingChange!;
 
     try {
-      final token = await this.token();
+      final token = await _tokenFor(id);
       if (token == null) return;
 
       if (action == PendingChange.delete) {
@@ -623,8 +667,9 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     } on X catch (error) {
       await forgetTokenIfRefused(error);
       if (error.isWorthRetrying) {
-        debugPrint('failed to $action $_kind ${record.id}; it stays queued:'
-            ' $error');
+        _log.warning('failed to $action $_kind ${record.id}; it stays queued',
+            error);
+        _whyNotSynced[id] = error;
         return;
       }
       await _giveUpOn(record, action, error);
@@ -634,8 +679,9 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       // API's — says nothing about what was written. It stays queued, the way
       // it does when the network is down, rather than failing an edit that is
       // stored.
-      debugPrint('failed to $action $_kind ${record.id}; it stays queued:'
-          ' $error');
+      _log.warning('failed to $action $_kind ${record.id}; it stays queued',
+          error);
+      _whyNotSynced[id] = error;
     }
   }
 
@@ -671,7 +717,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       }
 
       try {
-        final token = await this.token();
+        final token = await _tokenFor(id);
         if (token == null) return;
 
         if (owed.action == PendingChange.delete) {
@@ -702,8 +748,10 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
           continue;
         }
         if (error.isWorthRetrying) {
-          debugPrint('failed to ${owed.action} entry ${owed.id}; it stays'
-              ' queued: $error');
+          _log.warning(
+              'failed to ${owed.action} entry ${owed.id}; it stays queued',
+              error);
+          _whyNotSynced[id] = error;
           continue;
         }
 
@@ -717,8 +765,10 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       } catch (error) {
         // Not the API answering (see _pushRecord): this and whatever comes
         // after it stay queued for the next sync.
-        debugPrint('failed to ${owed.action} entry ${owed.id}; it stays'
-            ' queued: $error');
+        _log.warning(
+            'failed to ${owed.action} entry ${owed.id}; it stays queued',
+            error);
+        _whyNotSynced[id] = error;
         return;
       }
     }
@@ -750,7 +800,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       }
 
       try {
-        final token = await this.token();
+        final token = await _tokenFor(id);
         if (token == null) return;
 
         // Whole, the size included: a view is replaced by what is written, and
@@ -783,8 +833,10 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       } on X catch (error) {
         await forgetTokenIfRefused(error);
         if (error.isWorthRetrying) {
-          debugPrint('failed to save the view of entry $entryId; it stays'
-              ' queued: $error');
+          _log.warning(
+              'failed to save the view of entry $entryId; it stays queued',
+              error);
+          _whyNotSynced[id] = error;
           continue;
         }
 
@@ -795,8 +847,10 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
         _report(id, current?.title ?? '', 'view', error);
       } catch (error) {
         // Not the API answering (see _pushRecord): it stays queued.
-        debugPrint('failed to save the view of entry $entryId; it stays'
-            ' queued: $error');
+        _log.warning(
+            'failed to save the view of entry $entryId; it stays queued',
+            error);
+        _whyNotSynced[id] = error;
         return;
       }
     }

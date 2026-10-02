@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:score/app.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
 import 'package:score/features/settings/settings.dart';
+import 'package:score/features/settings/widgets/logs_button.dart';
 import 'package:score/features/settings/widgets/look_slider.dart';
 import 'package:score/features/settings/widgets/reset_look_button.dart';
 
@@ -21,7 +22,10 @@ class SettingsPage extends StatelessWidget {
     final app = AppScope.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        actions: const [LogsButton()],
+      ),
       // Listening to the settings rather than to the app: these are the things
       // that change without anything else about the app having changed, and a
       // control that did not move until something else happened to redraw the

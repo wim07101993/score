@@ -12,16 +12,20 @@ import 'package:score/features/collections/widgets/delete_collection_button.dart
 import 'package:score/features/collections/widgets/open_collection_entry_button.dart';
 import 'package:score/features/collections/widgets/remove_collection_entry_button.dart';
 import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
+import 'package:score/features/scores/widgets/scores_page.dart';
 import 'package:score/routes.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
+import 'package:score/widgets/error_snack_bar.dart';
 import 'package:score/widgets/keep_button.dart';
 import 'package:score/widgets/paper_entry_field.dart';
 import 'package:score/widgets/save_button.dart';
 import 'package:score/widgets/semitones.dart';
 import 'package:score/widgets/shared_with_field.dart';
 import 'package:score/widgets/show_all_parts_button.dart';
+import 'package:score/widgets/sync_status.dart';
 import 'package:score/widgets/unsaved_changes_guard.dart';
 import 'package:uuid/uuid.dart';
 
@@ -68,6 +72,15 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   /// not.
   bool _dirty = false;
   bool _loading = true;
+
+  /// Whether the collection is open to be changed, rather than to be read and
+  /// played from. Only ever for its owner.
+  ///
+  /// Read is what a collection is opened as, the way a set is: it is a book to
+  /// find a piece in and play it, and a page of fields and buttons to take a
+  /// piece out with is not that. A new one and an empty one open to be changed
+  /// instead — there is nothing to read in either.
+  bool _editing = false;
 
   /// The piece that was just asked for and is already here, lit for a moment.
   String? _pointedAt;
@@ -123,18 +136,21 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
     if (!mounted) return;
     _readFromStored();
-    setState(() => _loading = false);
+    final stored = app.collections.getCollection(_collectionId);
+    setState(() {
+      _loading = false;
+      _editing = widget.collectionId == 'new' ||
+          (stored != null && stored.isOwner && stored.entries.isEmpty);
+    });
 
     // Giving up on an edit is the one thing this app does behind the player's
     // back, so it says so when it happens.
     _problemListener = (problem) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          '"${problem.title.isEmpty ? 'A collection' : problem.title}" could'
-          ' not be saved on the server (${problem.action}), and the change has'
-          ' been taken back: ${problem.error.detail}',
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(
+        '"${problem.title.isEmpty ? 'A collection' : problem.title}" could'
+        ' not be saved on the server (${problem.action}), and the change has'
+        ' been taken back: ${problem.error.detail}',
       ));
       if (problem.collectionId == _collectionId && !_dirty) {
         _readFromStored();
@@ -246,6 +262,31 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     }
   }
 
+  /// Back to reading the collection, as for a set: what has been typed is
+  /// saved first, and a save that did not go through leaves it open.
+  Future<void> _stopEditing() async {
+    if (_dirty) await _save();
+    if (!mounted || _dirty) return;
+    setState(() => _editing = false);
+  }
+
+  /// Opens one piece of the collection the way a score opens from the list of
+  /// scores — its details, with the score beside them — read the way the
+  /// collection says. A piece that has not been scanned has no details, and
+  /// opens as the piece it is.
+  void _open(CollectionEntry entry) {
+    final scoreId = entry.scoreId;
+    Navigator.of(context).pushNamed(
+      scoreId == null
+          ? AppRoute.paper(collectionId: _collectionId, entryId: entry.id)
+          : AppRoute.score(
+              scoreId,
+              collectionId: _collectionId,
+              entryId: entry.id,
+            ),
+    );
+  }
+
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -350,20 +391,19 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   }
 
   void _say(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(message));
   }
 
   String _stateOf(Collection? collection) {
     if (!_isOwner) {
       // Not read-only: what is in it is theirs, but how you read it is yours.
       return collection?.owesAnything == true
-          ? 'shared with you — your reading is not sent yet'
+          ? 'shared with you — your reading is not synced yet'
           : 'shared with you';
     }
     if (_dirty) return 'not saved';
     if (collection == null) return 'new collection';
-    if (collection.owesAnything) return 'saved here, not sent yet';
+    if (collection.owesAnything) return 'saved here, not synced yet';
     return 'saved';
   }
 
@@ -554,6 +594,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       builder: (context, _) {
         final collection = _stored;
         final owner = _isOwner;
+        final editing = owner && _editing;
 
         // A collection asked for by its id that the sync could not bring in —
         // the device is offline, or it is not shared with this user — is not a
@@ -572,14 +613,38 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
             actions: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(child: Text(_stateOf(collection))),
+                child: SyncStatus(
+                  label: _stateOf(collection),
+                  unsynced: collection?.owesAnything == true && !_dirty,
+                  whyNotSynced: () => app.collections.whyNotSynced(_collectionId),
+                  apiCanBeReached: app.collectionsApi.canBeReached,
+                  sync: app.updateCollections,
+                ),
               ),
-              if (owner)
-                SaveButton(onPressed: _dirty ? _save : null),
+              if (editing) SaveButton(onPressed: _dirty ? _save : null),
+              if (editing && _isStored)
+                IconButton(
+                  tooltip: 'Done changing it',
+                  icon: const Icon(Icons.check),
+                  onPressed: _stopEditing,
+                ),
+              if (owner && !editing)
+                IconButton(
+                  tooltip: 'Change the collection',
+                  icon: const Icon(Icons.edit),
+                  onPressed: () => setState(() => _editing = true),
+                ),
             ],
           ),
           body: _loading
               ? const Center(child: CircularProgressIndicator())
+              : !editing && collection != null
+              ? _CollectionOverview(
+                  collection: collection,
+                  owner: owner,
+                  scoreOf: app.scores.getScore,
+                  onOpen: _open,
+                )
               // Laid out whole rather than as the list scrolls: the piece a
               // player is pointed at (see _pointAt) has to be on the page to
               // be scrolled to, and with a long list of scores to pick from
@@ -606,6 +671,151 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                 ),
         );
       },
+      ),
+    );
+  }
+}
+
+/// A collection to read and play from: what it is, and the pieces in it by
+/// title, each a tap away from the stand.
+class _CollectionOverview extends StatelessWidget {
+  const _CollectionOverview({
+    required this.collection,
+    required this.owner,
+    required this.scoreOf,
+    required this.onOpen,
+  });
+
+  final Collection collection;
+  final bool owner;
+  final Score? Function(String scoreId) scoreOf;
+  final void Function(CollectionEntry entry) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // By title, the way the stand goes through it: a collection has no order
+    // of its own, and a book is looked through by what the pieces are called.
+    final entries = entriesByTitle(
+      collection.entries,
+      (scoreId) => scoreOf(scoreId)?.title,
+    );
+    final description = collection.description.trim();
+
+    // Looked through the way the list of every score is — the same search,
+    // the same filters — so that finding a piece in the book goes the way
+    // finding it on the shelf does.
+    return ScoreLibrary<CollectionEntry>(
+      items: entries,
+      scoreOf: (entry) => switch (entry.scoreId) {
+        final scoreId? => scoreOf(scoreId),
+        null => null,
+      },
+      // A piece that was never scanned is called by what is written next to
+      // it, and one that was is found by that too.
+      textOf: (entry) => entry.description,
+      // A piece that is a score is drawn the way the list of scores draws it;
+      // one with nothing to draw it from says what it is.
+      itemBuilder: (context, entry) => switch (entry.scoreId) {
+        final scoreId? when scoreOf(scoreId) != null => ScoreCard(
+            score: scoreOf(scoreId)!,
+            note: _noteOf(entry),
+            onTap: () => onOpen(entry),
+          ),
+        _ => _OverviewRow(
+            entry: entry,
+            score: null,
+            onTap: () => onOpen(entry),
+          ),
+      },
+      empty: owner
+          ? 'Nothing in this collection yet. Change the collection to add'
+              ' pieces, or add them from the list of scores.'
+          : 'Nothing in this collection yet.',
+      header: [
+        if (description.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+            child: Text(description),
+          ),
+      ],
+      footer: [
+        if (owner && collection.sharedWith.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Shared with', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(collection.sharedWith.join(', ')),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// What the collection says next to a piece, and the key the group plays it
+/// in.
+String _noteOf(CollectionEntry entry) {
+  final group = entry.transposition;
+  return [
+    if (entry.description.trim().isNotEmpty) entry.description.trim(),
+    if (group != 0) 'group ${group > 0 ? '+' : ''}$group',
+  ].join(' · ');
+}
+
+/// One piece of the collection, as it is read: which piece, what the
+/// collection says next to it, and the key the group plays it in.
+class _OverviewRow extends StatelessWidget {
+  const _OverviewRow({
+    required this.entry,
+    required this.score,
+    required this.onTap,
+  });
+
+  final CollectionEntry entry;
+  final Score? score;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = TextStyle(
+      color: theme.colorScheme.outline,
+      fontStyle: FontStyle.italic,
+    );
+    final note = entry.description.trim();
+    final group = entry.transposition;
+
+    // A piece with no score is called by what is written next to it, so that
+    // is its title rather than a line under one.
+    final title = switch ((entry.scoreId, score)) {
+      (_, final score?) => Text(score.title),
+      (null, _) when note.isNotEmpty => Text(note),
+      (null, _) => Text('Not scanned yet', style: muted),
+      (final scoreId?, _) => Tooltip(
+          message: scoreId,
+          child: Text('Not on this device yet', style: muted),
+        ),
+    };
+    final details = [
+      if (entry.scoreId == null && note.isNotEmpty) 'not scanned yet',
+      if (entry.scoreId != null && note.isNotEmpty) note,
+      if (group != 0) 'group ${group > 0 ? '+' : ''}$group',
+    ].join(' · ');
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        title: title,
+        subtitle: details.isEmpty ? null : Text(details),
+        trailing: const Icon(Icons.play_arrow),
+        onTap: onTap,
       ),
     );
   }
@@ -684,9 +894,7 @@ class _EntryCard extends StatelessWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('How you read this one could not be saved:'
-                  ' $error')),
+          errorSnackBar('How you read this one could not be saved: $error'),
         );
       }
     }

@@ -42,6 +42,12 @@ class _Api extends ScoresApi {
   List<Map<String, dynamic>> answers = [];
   bool documentsFail = false;
 
+  /// The scores the server no longer has.
+  Set<String> gone = {};
+
+  @override
+  Future<bool> canBeReached() async => true;
+
   /// The change windows that were asked about, in order.
   final List<DateTime?> since = [];
 
@@ -53,7 +59,10 @@ class _Api extends ScoresApi {
   }
 
   @override
-  Future<String> getScoreMusicXml(String scoreId, String authToken) async {
+  Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
+    if (gone.contains(scoreId)) {
+      return null;
+    }
     if (documentsFail) {
       throw ScoresApiException('not now', null);
     }
@@ -122,6 +131,44 @@ void main() {
     expect(scores.getScore('abc')!.lastViewedAt, isNotNull);
   });
 
+  test('a score the server no longer has is forgotten when opened', () async {
+    final store = await LocalStore.inMemory();
+    await store.writeScores([const Score(id: 'abc').toJson()]);
+    final api = _Api()..gone = {'abc'};
+    final scores = ScoresRepository(store, api, _SignedIn(store));
+    await scores.init();
+
+    await expectLater(
+      scores.getMusicXml('abc'),
+      throwsA(isA<ScoresApiException>()
+          .having((error) => error.status, 'status', 404)),
+    );
+
+    expect(scores.getScore('abc'), isNull);
+    expect(await store.readScores(), isEmpty);
+  });
+
+  test('the scores the server does not list are forgotten', () async {
+    final store = await LocalStore.inMemory();
+    await store.writeScores([
+      const Score(id: 'kept').toJson(),
+      const Score(id: 'gone').toJson(),
+    ]);
+    await store.writeMusicXml('gone', '<old/>');
+    final api = _Api()
+      ..answers = [
+        {'id': 'kept', 'last_changed_at': '2026-02-01T00:00:00Z'},
+      ];
+    final scores = ScoresRepository(store, api, _SignedIn(store));
+    await scores.init();
+
+    await scores.forgetWhatTheServerNoLongerHas();
+
+    expect(api.since, [null], reason: 'not every score was asked for');
+    expect(scores.scores.map((score) => score.id), ['kept']);
+    expect(await store.hasMusicXml('gone'), isFalse);
+  });
+
   test('a sync that finds nothing new writes nothing', () async {
     final store = await LocalStore.inMemory();
     final api = _Api()
@@ -149,7 +196,7 @@ class _OpensWhileFetching extends _Api {
   final Future<void> Function() meanwhile;
 
   @override
-  Future<String> getScoreMusicXml(String scoreId, String authToken) async {
+  Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
     await meanwhile();
     return super.getScoreMusicXml(scoreId, authToken);
   }

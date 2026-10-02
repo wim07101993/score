@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:score/app.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/widgets/score_search_field.dart';
+import 'package:score/features/scores/widgets/add_to_list_button.dart';
+import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/upload_score_fab.dart';
 import 'package:score/routes.dart';
 import 'package:score/widgets/collections_button.dart';
 import 'package:score/widgets/profile_button.dart';
 import 'package:score/widgets/sets_button.dart';
 import 'package:score/widgets/settings_button.dart';
+import 'package:score/widgets/sync_button.dart';
 
 /// The scores there are.
 ///
@@ -25,7 +27,6 @@ class ScoresPage extends StatefulWidget {
 }
 
 class _ScoresPageState extends State<ScoresPage> {
-  String _filter = '';
   bool _syncing = false;
 
   @override
@@ -67,6 +68,7 @@ class _ScoresPageState extends State<ScoresPage> {
           // A collection names scores but changes nothing about them, so
           // keeping one asks no more of a player than reading the scores in it.
           if (mayView) const CollectionsButton(),
+          if (mayView) const SyncButton(),
           const SettingsButton(),
           const ProfileButton(),
         ],
@@ -74,53 +76,49 @@ class _ScoresPageState extends State<ScoresPage> {
       floatingActionButton: mayEdit ? const UploadScoreFab() : null,
       body: !mayView
           ? _NotAViewer(problem: app.authProblem)
-          : ListenableBuilder(
-              listenable: app.scores,
-              builder: (context, _) {
-                final needle = _filter.trim();
-                final words = searchWords(needle);
-                final scores = app.scores.scores
-                    .where((score) => score.matchesWords(words))
-                    .toList();
-
-                return RefreshIndicator(
-                  onRefresh: _sync,
-                  child: Column(
-                    children: [
-                      if (_syncing) const LinearProgressIndicator(),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                        child: ScoreSearchField(
-                          onChanged: (value) => setState(() => _filter = value),
-                        ),
-                      ),
-                      Expanded(
-                        child: scores.isEmpty
-                            ? _Empty(filtered: needle.isNotEmpty)
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(12),
-                                itemCount: scores.length,
-                                itemBuilder: (context, index) =>
-                                    ScoreCard(score: scores[index]),
-                              ),
-                      ),
-                    ],
+          : Column(
+              children: [
+                if (_syncing) const LinearProgressIndicator(),
+                Expanded(
+                  child: ListenableBuilder(
+                    listenable: app.scores,
+                    builder: (context, _) => ScoreLibrary<Score>(
+                      items: app.scores.scores,
+                      scoreOf: (score) => score,
+                      itemBuilder: (context, score) => ScoreCard(score: score),
+                      empty: 'No scores on this device yet.\nThey arrive with'
+                          ' the next sync.',
+                      onRefresh: _sync,
+                    ),
                   ),
-                );
-              },
+                ),
+              ],
             ),
     );
   }
 }
 
 /// One score in the list: what it is called, who wrote it, what plays it.
+///
+/// The same card wherever a list of scores is shown — the list of every score,
+/// and the pieces of a collection — so that a piece looks the same in the book
+/// as it does on the shelf.
 class ScoreCard extends StatelessWidget {
   const ScoreCard({
     super.key,
     required this.score,
+    this.onTap,
+    this.note,
   });
 
   final Score score;
+
+  /// What a tap does, when it is not opening the score on its own: a piece of
+  /// a collection opens as that piece, read the way the collection says.
+  final VoidCallback? onTap;
+
+  /// What the list it is in says next to it, if anything.
+  final String? note;
 
   @override
   Widget build(BuildContext context) {
@@ -133,37 +131,51 @@ class ScoreCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).pushNamed(AppRoute.score(score.id)),
+        onTap: onTap ??
+            () => Navigator.of(context).pushNamed(AppRoute.score(score.id)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+          // The buttons that put the score into a set or a collection are
+          // beside all of it, in the middle, rather than beside the title.
+          child: Row(
             children: [
-              Text(score.title, style: theme.textTheme.titleMedium),
-              if (creators.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                _Line(icon: Icons.person_outline, text: creators),
-              ],
-              if (playedBy.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                _Line(icon: Icons.piano_outlined, text: playedBy),
-              ],
-              if (score.tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final tag in score.tags)
-                      Chip(
-                        label: Text(tag),
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
+                    Text(score.title, style: theme.textTheme.titleMedium),
+                    if (creators.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      _Line(icon: Icons.person_outline, text: creators),
+                    ],
+                    if (playedBy.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      _Line(icon: Icons.piano_outlined, text: playedBy),
+                    ],
+                    if ((note ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      _Line(icon: Icons.sticky_note_2_outlined, text: note!),
+                    ],
+                    if (score.tags.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final tag in score.tags)
+                            Chip(
+                              label: Text(tag),
+                              visualDensity: VisualDensity.compact,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                        ],
                       ),
+                    ],
                   ],
                 ),
-              ],
+              ),
+              AddToListButtons(scoreId: score.id),
             ],
           ),
         ),
@@ -194,32 +206,6 @@ class _Line extends StatelessWidget {
             text,
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.outline),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Empty extends StatelessWidget {
-  const _Empty({
-    required this.filtered,
-  });
-
-  final bool filtered;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        const SizedBox(height: 80),
-        Center(
-          child: Text(
-            filtered
-                ? 'No score here matches that.'
-                : 'No scores on this device yet.\nThey arrive with the next sync.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
       ],

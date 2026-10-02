@@ -48,6 +48,13 @@ sealed class AppRoute {
           CollectionDetailRoute(collectionId: collectionId),
           target,
         ],
+      // A score played on its own is left for its details, which is where it
+      // was played from.
+      ScoreDetailRoute(:final scoreId, performing: true) => [
+          const ScoresRoute(),
+          ScoreDetailRoute(scoreId: scoreId),
+          target,
+        ],
       _ => [const ScoresRoute(), target],
     };
   }
@@ -99,6 +106,7 @@ sealed class AppRoute {
             setId: setId,
             collectionId: setId == null ? collectionId : null,
             entryId: query['entry'],
+            performing: true,
           );
         }
         // An entry that has no score yet — a piece still on paper — was
@@ -111,6 +119,7 @@ sealed class AppRoute {
             setId: setId,
             collectionId: setId == null ? collectionId : null,
             entryId: entryId,
+            performing: true,
           );
         }
         if (setId != null) return SetDetailRoute(setId: setId);
@@ -119,13 +128,14 @@ sealed class AppRoute {
         }
         return const ScoresRoute();
 
-      case ['scores', final scoreId, ...]:
+      case ['scores', final scoreId, ...final rest]:
         final setId = query['set'];
         return ScoreDetailRoute(
           scoreId: scoreId,
           setId: setId,
           collectionId: setId == null ? query['collection'] : null,
           entryId: query['entry'],
+          performing: rest.firstOrNull == 'perform',
         );
 
       case ['sets', 'detail.html']:
@@ -173,30 +183,49 @@ sealed class AppRoute {
   /// score to open. It is opened all the same, in its place in the running
   /// order: skipping it would have the player looking at the next song while
   /// the band plays this one.
+  ///
+  /// It is opened to be played, as every entry of a set or a collection is.
   static String paper({
     String? setId,
     String? collectionId,
     required String entryId,
   }) =>
-      score(
+      perform(
         ScoreDetailRoute.paper,
         setId: setId,
         collectionId: collectionId,
         entryId: entryId,
       );
 
+  /// What is known about a score, how it is read, and a look at it.
   static String score(
     String scoreId, {
     String? setId,
     String? collectionId,
     String? entryId,
-  }) {
+  }) =>
+      _score('/scores/$scoreId', setId, collectionId, entryId);
+
+  /// A score on the whole screen, to be played from.
+  static String perform(
+    String scoreId, {
+    String? setId,
+    String? collectionId,
+    String? entryId,
+  }) =>
+      _score('/scores/$scoreId/perform', setId, collectionId, entryId);
+
+  static String _score(
+    String path,
+    String? setId,
+    String? collectionId,
+    String? entryId,
+  ) {
     final query = <String, String>{
       'set': ?setId,
       'collection': ?collectionId,
       'entry': ?entryId,
     };
-    final path = '/scores/$scoreId';
     return query.isEmpty
         ? path
         : Uri(path: path, queryParameters: query).toString();
@@ -227,7 +256,12 @@ class ScoreDetailRoute extends AppRoute {
     this.setId,
     this.collectionId,
     this.entryId,
+    this.performing = false,
   });
+
+  /// Whether the score is on the whole screen to be played from, rather than
+  /// shown with what is known about it.
+  final bool performing;
 
   /// `new` for a score that is about to be uploaded and has no id yet, and
   /// [paper] for an entry that is played from paper.
@@ -255,7 +289,7 @@ class ScoreDetailRoute extends AppRoute {
   final String? entryId;
 
   @override
-  String get path => AppRoute.score(
+  String get path => (performing ? AppRoute.perform : AppRoute.score)(
         scoreId,
         setId: setId,
         collectionId: collectionId,

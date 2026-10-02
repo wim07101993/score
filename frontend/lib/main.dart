@@ -13,6 +13,7 @@ import 'package:score/features/sets/widgets/set_detail_page.dart';
 import 'package:score/features/sets/widgets/sets_page.dart';
 import 'package:score/features/settings/theme_hint.dart';
 import 'package:score/features/settings/widgets/settings_page.dart';
+import 'package:score/logging.dart';
 import 'package:score/routes.dart';
 import 'package:score/theme.dart';
 import 'package:score/widgets/starting.dart';
@@ -31,6 +32,10 @@ void main() {
   final initialRoute = WidgetsFlutterBinding.ensureInitialized()
       .platformDispatcher
       .defaultRouteName;
+  // Before anything can log, and before anything can fail without being
+  // caught: the first thing worth reading back is often why the app did not
+  // start.
+  startLogging();
   // The text font is shipped with the app (see pubspec.yaml), and its licence
   // goes with it.
   LicenseRegistry.addLicense(() async* {
@@ -85,12 +90,20 @@ class _ScoreAppState extends State<ScoreApp> {
             :final setId,
             :final collectionId,
             :final entryId,
+            :final performing,
           ) =>
             ScoreDetailPage(
               scoreId: scoreId,
               setId: setId,
               collectionId: collectionId,
               entryId: entryId,
+              performing: performing,
+              // How the details page had it, when that is where the score is
+              // being played from; an address opened on its own has none.
+              handover: switch (settings.arguments) {
+                final ScoreReadingHandover handover => handover,
+                _ => null,
+              },
             ),
           SetsRoute() => const SetsPage(),
           SetDetailRoute(:final setId) => SetDetailPage(setId: setId),

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:score/app.dart';
 import 'package:score/background.dart';
 import 'package:score/features/collections/models.dart'
@@ -13,6 +14,8 @@ import 'package:score/features/notation/parts.dart';
 import 'package:score/features/notation/view/musicxml_view.dart';
 import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
+import 'package:score/features/scores/instruments.dart';
+import 'package:score/features/scores/models.dart';
 import 'package:score/features/scores/repository.dart';
 import 'package:score/features/scores/widgets/download_score_button.dart';
 import 'package:score/features/scores/widgets/next_score_button.dart';
@@ -31,7 +34,15 @@ import 'package:score/features/sets/repository.dart';
 import 'package:score/routes.dart';
 import 'package:uuid/uuid.dart';
 
-/// One score, drawn and played from.
+/// One score: what is known about it with a look at it, or — [performing] —
+/// the whole screen given over to playing from it.
+///
+/// The two are one page in two ways rather than two pages, because everything
+/// about how the score is read — and keeping that against the set or the
+/// collection it is played from — is the same in both. What the details have
+/// and the stand does not is the reason to look anything up: who wrote it,
+/// what plays it, the download and the upload. What the stand has is the
+/// score, as big as it will go, and only what is changed while playing.
 ///
 /// How it is being looked at — the key it is read in, which parts are on screen,
 /// how big it is drawn — never changes the document, which is what the editor
@@ -45,10 +56,19 @@ class ScoreDetailPage extends StatefulWidget {
     this.setId,
     this.collectionId,
     this.entryId,
+    this.performing = false,
+    this.handover,
   });
 
   /// `new` for a score that is about to be uploaded.
   final String scoreId;
+
+  /// Whether the score is on the whole screen, to be played from.
+  final bool performing;
+
+  /// How the details page it was opened from had the score, when it was
+  /// opened from one: see [ScoreReadingHandover].
+  final ScoreReadingHandover? handover;
 
   final String? setId;
 
@@ -69,7 +89,35 @@ class ScoreDetailPage extends StatefulWidget {
   State<ScoreDetailPage> createState() => _ScoreDetailPageState();
 }
 
+/// How a score is being read on its details page, handed to the stand it is
+/// played from there — and back, once the playing is done.
+///
+/// A key moved on a score played for itself is kept nowhere but on the page
+/// it was moved on: there is no entry of a set to write it into. Without this
+/// the stand would open as written, and the details would not know what was
+/// changed while playing.
+class ScoreReadingHandover {
+  const ScoreReadingHandover({
+    required this.view,
+    required this.zoom,
+    required this.onReturn,
+  });
+
+  final ScoreView view;
+
+  /// How big it is drawn, as a view says it: 1 is the size it is written at.
+  final double zoom;
+
+  /// Called with how the stand had it, as the stand is closed.
+  final void Function(ScoreView view, double zoom) onReturn;
+}
+
 class _ScoreDetailPageState extends State<ScoreDetailPage> {
+  /// How many stands are open. Going on to the next song puts up its stand
+  /// before the last one is taken down, and the screen stays the stand's
+  /// until the last of them is.
+  static int _stands = 0;
+
   static const _uuid = Uuid();
   List<ScorePartRef> _parts = const [];
 
@@ -157,12 +205,25 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       onHide: _keepWhatIsWaiting,
       onPause: _keepWhatIsWaiting,
     );
+    // On the stand the score is all there is: the bars a device draws over the
+    // top and the bottom of the screen are lines of music not shown. They come
+    // back with a swipe from the edge, and for good once the stand is closed.
+    if (widget.performing && _stands++ == 0) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
   void dispose() {
     _keepWhatIsWaiting();
+    if (widget.performing) {
+      if (--_stands == 0) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
+      final view = _view;
+      if (view != null) widget.handover?.onReturn(view, _zoom);
+    }
     _lifecycle.dispose();
     _sets.removeListener(_takeSetChanges);
     _collections.removeListener(_takeCollectionChanges);
@@ -409,6 +470,18 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           .withTransposition(piece.readAt)
           .withHiddenParts(piece.view.hiddenParts);
       _space = _spaceFor(piece.view.zoom);
+    }
+
+    // Played from its details, it goes on being read the way it was being read
+    // there — which is the entry's reading too when there is an entry, give or
+    // take what was changed there in the moment before the stand was opened.
+    final handover = widget.handover;
+    if (handover != null) {
+      view = view.withTransposition(handover.view.transposition).withHiddenParts([
+        for (final part in parts)
+          if (handover.view.isHidden(part.id)) part.id,
+      ]);
+      _space = _spaceFor(handover.zoom);
     }
 
     setState(() {
@@ -807,6 +880,86 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // PLAYING FROM IT
+  // -------------------------------------------------------------------------
+
+  /// Puts the score on the whole screen, read the way it is being read here.
+  ///
+  /// What was waiting to be kept is kept first: the stand keeps its own
+  /// reading against the same entry, and the two must not cross.
+  void _perform() {
+    _keepWhatIsWaiting();
+    final view = _view;
+    Navigator.of(context).pushNamed(
+      AppRoute.perform(
+        widget.scoreId,
+        setId: _set?.set.id,
+        collectionId: _set == null ? _collection?.collection.id : null,
+        entryId: _set?.entry.id ?? _collection?.entryId,
+      ),
+      arguments: view == null
+          ? null
+          : ScoreReadingHandover(
+              view: view,
+              zoom: _zoom,
+              onReturn: _takeBackFromTheStand,
+            ),
+    );
+  }
+
+  /// Takes on how the score was being read when the stand was closed. Not kept
+  /// again: the stand kept it already, against whatever it is played from.
+  ///
+  /// The stand calls this while it is being taken down, which is no moment to
+  /// rebuild anything in; so it waits for that to be over.
+  void _takeBackFromTheStand(ScoreView view, double zoom) {
+    scheduleMicrotask(() {
+      final now = _view;
+      if (!mounted || now == null) return;
+      setState(() {
+        _view = now.withTransposition(view.transposition).withHiddenParts([
+          for (final part in _parts)
+            if (view.isHidden(part.id)) part.id,
+        ]);
+        _space = _spaceFor(zoom) / _pinched;
+      });
+    });
+  }
+
+  /// The key and the parts, over the stand: the score stays where it is under
+  /// it, and changes as they are changed.
+  Future<void> _openReadingDialog() => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final view = _view;
+            return AlertDialog(
+              title: const Text('How you read it'),
+              content: view == null
+                  ? const SizedBox.shrink()
+                  : SingleChildScrollView(
+                      child: _ViewSettings(
+                        view: view,
+                        parts: _parts,
+                        keptAsYourReading: _set != null || _collection != null,
+                        onChange: (change) {
+                          _changeView(change);
+                          setDialogState(() {});
+                        },
+                      ),
+                    ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Done'),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
   void _say(String message, {bool briefly = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -895,74 +1048,290 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final mayView = app.user?.isScoreViewer == true;
-    final mayEdit = app.user?.isScoreEditor == true;
     final score = _scoreId == null ? null : app.scores.getScore(_scoreId!);
     final paperName =
         (_set?.entry.description ?? _collection?.entry?.description ?? '')
             .trim();
+    final title = _isPaper
+        ? (paperName.isEmpty ? 'Played from paper' : paperName)
+        : score?.title ?? (_isNew ? 'New score' : 'Score');
 
+    if (!mayView) {
+      return Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: const Center(child: Text('Scores are for score viewers.')),
+      );
+    }
+    return widget.performing
+        ? _stand(app, title)
+        : _details(app, title, score);
+  }
+
+  /// The way through the set or the collection this is played from, if it is.
+  ///
+  /// The collection is read as it is now rather than as it was when the page
+  /// opened: the titles the way through it is sorted by arrive with the
+  /// scores, after the page has opened, and a sync can bring in pieces
+  /// somebody else put into the book. Which is why whatever draws this
+  /// listens to both.
+  _WayThrough? _wayThrough(App app) {
+    final set = _set;
+    if (set != null) {
+      return _WayThrough.ofSet(set, performing: widget.performing);
+    }
+    final collection = _collection;
+    // A collection is a book and not a running order, so its details have
+    // no way through it: the piece is looked up, not played after the last.
+    // On the stand the pieces either side are still a tap away.
+    if (collection != null && widget.performing) {
+      return _WayThrough.ofCollection(
+        collection.refreshedFrom(
+          app.collections.getCollection(collection.collection.id),
+        ),
+        titleOf: (scoreId) => app.scores.getScore(scoreId)?.title,
+        performing: widget.performing,
+      );
+    }
+    return null;
+  }
+
+  /// Opens the one before or after this one, in place of this one.
+  void _go(String route) {
+    _keepWhatIsWaiting();
+    Navigator.of(context).pushReplacementNamed(route);
+  }
+
+  /// What a bar of the way through is drawn from changing.
+  Listenable _wayChanges(App app) =>
+      Listenable.merge([app.collections, app.scores]);
+
+  /// The score on the whole screen, with nothing over it but the way back,
+  /// its size, and how it is read.
+  ///
+  /// The size is right there, since it is what is changed most while playing
+  /// — and a pinch does it as well. The key and the parts are a tap further
+  /// away, in a dialog over the music. Downloading and uploading are not here
+  /// at all: nobody does either from a music stand, and a button that does
+  /// is a button that gets pressed by accident between two songs.
+  ///
+  /// Played from a set or a collection, the way through it is in the same bar
+  /// rather than a second one under it: a bar is a staff's worth of height,
+  /// and on a stand that is a staff of music not shown. The title says which
+  /// set it is and where this song comes in it, and opens the set.
+  Widget _stand(App app, String title) {
+    return ListenableBuilder(
+      listenable: _wayChanges(app),
+      builder: (context, _) => _standFor(_wayThrough(app), title),
+    );
+  }
+
+  Widget _standFor(_WayThrough? way, String title) {
+    final hasMusic = _musicXml != null;
+    final theme = Theme.of(context);
+    final previous = way?.previous;
+    final next = way?.next;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _isPaper
-              ? (paperName.isEmpty ? 'Played from paper' : paperName)
-              : score?.title ?? (_isNew ? 'New score' : 'Score'),
-        ),
-        actions: [
-          if (_musicXml != null) ...[
-            ZoomOutButton(onPressed: () => _zoomBy(-0.8)),
-            ZoomInButton(onPressed: () => _zoomBy(0.8)),
-            DownloadScoreButton(
-              onDownloadAsWritten: _download,
-              // Only offered once there is a difference to offer: a score
-              // nobody has changed the look of is the file it was uploaded
-              // as, and two ways of downloading the same bytes is one too
-              // many.
-              onDownloadAsOnScreen:
-                  _view == null || _view!.isPristine ? null : _downloadAsOnScreen,
-            ),
-          ],
-          if (mayEdit && !_isPaper)
-            UploadScoreButton(
-              replacing: _scoreId != null,
-              onPressed: _pickAndUpload,
-            ),
-        ],
-      ),
-      body: !mayView
-          ? const Center(child: Text('Scores are for score viewers.'))
-          : Column(
-              children: [
-                if (_set != null)
-                  _SetBar(context: _set!, beforeLeaving: _keepWhatIsWaiting),
-                if (_collection != null)
-                  // Drawn from the collection as it is now rather than as it
-                  // was when the page opened: the titles the way through it is
-                  // sorted by arrive with the scores, after the page has
-                  // opened, and a sync can bring in pieces somebody else put
-                  // into the book.
-                  ListenableBuilder(
-                    listenable:
-                        Listenable.merge([app.collections, app.scores]),
-                    builder: (context, _) => _CollectionBar(
-                      context: _collection!.refreshedFrom(
-                        app.collections.getCollection(
-                            _collection!.collection.id),
+        toolbarHeight: way == null ? 48 : 56,
+        titleSpacing: 0,
+        // The way through the set is in the middle, the way it was in a bar of
+        // its own: the song before, which song this is, and the song after.
+        // Back stays where back is, and the size and the key on the other side.
+        centerTitle: way != null,
+        title: way == null
+            ? Text(title, overflow: TextOverflow.ellipsis)
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PreviousScoreButton(
+                    onPressed: previous == null ? null : () => _go(previous),
+                  ),
+                  Flexible(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () => Navigator.of(context).pushNamed(way.route),
+                      child: Tooltip(
+                        message:
+                            way.isSet ? 'Open the set' : 'Open the collection',
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(title, overflow: TextOverflow.ellipsis),
+                              Text(
+                                [
+                                  '${way.position} of ${way.count}',
+                                  way.title,
+                                  if (way.note.isNotEmpty) way.note,
+                                ].join(' · '),
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      titleOf: (scoreId) => app.scores.getScore(scoreId)?.title,
-                      beforeLeaving: _keepWhatIsWaiting,
                     ),
                   ),
-                if (_view != null)
-                  _ViewControls(
-                    view: _view!,
-                    parts: _parts,
-                    onChange: _changeView,
-                    keptAsYourReading: _set != null || _collection != null,
+                  NextScoreButton(
+                    onPressed: next == null ? null : () => _go(next),
                   ),
-                Expanded(child: _sheet()),
+                ],
+              ),
+        actions: [
+          if (hasMusic) ...[
+            ZoomOutButton(onPressed: () => _zoomBy(-0.8)),
+            ZoomInButton(onPressed: () => _zoomBy(0.8)),
+            if (_view != null)
+              IconButton(
+                tooltip: 'How you read it',
+                icon: const Icon(Icons.tune),
+                onPressed: _openReadingDialog,
+              ),
+          ],
+        ],
+      ),
+      body: _sheet(),
+    );
+  }
+
+  /// What is known about the score and how it is read, beside a look at it —
+  /// or above one, on a screen that is taller than it is wide.
+  Widget _details(App app, String title, Score? score) {
+    final mayEdit = app.user?.isScoreEditor == true;
+    final hasMusic = _musicXml != null;
+
+    final appBar = AppBar(title: Text(title));
+
+    // A score that is about to be uploaded has nothing to say about itself
+    // yet, and nothing to play: there is only the file to choose.
+    if (_isNew) {
+      return Scaffold(
+        appBar: appBar,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Choose a MusicXML file to upload.'),
+              if (mayEdit) ...[
+                const SizedBox(height: 16),
+                UploadScoreButton(replacing: false, onPressed: _pickAndUpload),
               ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    // What is done with the file itself, beside what is known about it.
+    final files = [
+      if (hasMusic)
+        DownloadScoreButton(
+          onDownloadAsWritten: _download,
+          // Only offered once there is a difference to offer: a score nobody
+          // has changed the look of is the file it was uploaded as, and two
+          // ways of downloading the same bytes is one too many.
+          onDownloadAsOnScreen:
+              _view == null || _view!.isPristine ? null : _downloadAsOnScreen,
+        ),
+      if (mayEdit && !_isPaper)
+        UploadScoreButton(
+          replacing: _scoreId != null,
+          onPressed: _pickAndUpload,
+        ),
+    ];
+
+    final about = <Widget>[
+      FilledButton.icon(
+        onPressed: _loading || _failure != null ? null : _perform,
+        icon: const Icon(Icons.play_arrow),
+        label: const Text('Perform'),
+      ),
+      if (score != null) ...[
+        const SizedBox(height: 16),
+        _ScoreFacts(score: score),
+      ],
+      if (_view != null) ...[
+        const SizedBox(height: 16),
+        Text('How you read it',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        _ViewSettings(
+          view: _view!,
+          parts: _parts,
+          onChange: _changeView,
+          keptAsYourReading: _set != null || _collection != null,
+        ),
+      ],
+      if (files.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        Text('The score file', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: files),
+      ],
+    ];
+
+    return Scaffold(
+      appBar: appBar,
+      body: Column(
+        children: [
+          ListenableBuilder(
+            listenable: _wayChanges(app),
+            builder: (context, _) => switch (_wayThrough(app)) {
+              final way? => _WayBar(way: way, go: _go),
+              null => const SizedBox.shrink(),
+            },
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Side by side when the screen is wider than it is tall: a
+                // landscape tablet has room for the facts and a page of the
+                // score both, and a phone held upright has room for neither
+                // beside the other.
+                if (constraints.maxWidth > constraints.maxHeight) {
+                  final panel =
+                      (constraints.maxWidth * 0.38).clamp(280.0, 440.0);
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: panel,
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: about,
+                        ),
+                      ),
+                      const VerticalDivider(width: 1),
+                      Expanded(child: _sheet()),
+                    ],
+                  );
+                }
+                // Upright, the score is at the bottom, and the facts above it
+                // give way to it rather than pushing it off the screen: they
+                // scroll, in at most a little over half of it.
+                return Column(
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: constraints.maxHeight * 0.55,
+                      ),
+                      child: ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.all(16),
+                        children: about,
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(child: _sheet()),
+                  ],
+                );
+              },
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -980,27 +1349,27 @@ class _SetContext {
   SetEntry get entry => set.entries[index];
 }
 
-/// The way through the set: what came before this song and what comes after.
-class _SetBar extends StatelessWidget {
-  const _SetBar({
-    required this.context,
-    required this.beforeLeaving,
+/// The way through the set or the collection a score is played from: where
+/// this one comes in it, and what comes either side.
+class _WayThrough {
+  const _WayThrough({
+    required this.isSet,
+    required this.title,
+    required this.route,
+    required this.position,
+    required this.count,
+    required this.previous,
+    required this.next,
+    required this.note,
   });
 
-  final _SetContext context;
-
-  /// Called before the page is swapped for another song's.
-  final VoidCallback beforeLeaving;
-
-  @override
-  Widget build(BuildContext buildContext) {
-    final theme = Theme.of(buildContext);
+  /// The way through a set, in its running order.
+  ///
+  /// The next song either way, one played from paper included. That is not
+  /// stepped over: it is what the band is playing, and a player looking at the
+  /// song after it is lost when the band starts that one.
+  factory _WayThrough.ofSet(_SetContext context, {required bool performing}) {
     final set = context.set;
-    final entry = context.entry;
-
-    /// The next song that way. One played from paper is not stepped over: it
-    /// is what the band is playing, and a player looking at the song after it
-    /// is lost when the band starts that one.
     String? nearest(int step) {
       final index = context.index + step;
       if (index < 0 || index >= set.entries.length) return null;
@@ -1008,17 +1377,100 @@ class _SetBar extends StatelessWidget {
       final scoreId = entry.scoreId;
       return scoreId == null
           ? AppRoute.paper(setId: set.id, entryId: entry.id)
-          : AppRoute.score(scoreId, setId: set.id, entryId: entry.id);
+          : (performing ? AppRoute.perform : AppRoute.score)(
+              scoreId,
+              setId: set.id,
+              entryId: entry.id,
+            );
     }
 
-    void go(String? route) {
-      if (route == null) return;
-      beforeLeaving();
-      Navigator.of(buildContext).pushReplacementNamed(route);
+    return _WayThrough(
+      isSet: true,
+      title: set.displayTitle,
+      route: AppRoute.set(set.id),
+      position: context.index + 1,
+      count: set.entries.length,
+      previous: nearest(-1),
+      next: nearest(1),
+      note: context.entry.description.trim(),
+    );
+  }
+
+  /// The way through a collection, by title — one that has yet to be scanned
+  /// included, as in a set. Null when the piece is no longer in it.
+  static _WayThrough? ofCollection(
+    _CollectionContext context, {
+    required String? Function(String scoreId) titleOf,
+    required bool performing,
+  }) {
+    final collection = context.collection;
+    final entries = entriesByTitle(collection.entries, titleOf);
+    final index = entries.indexWhere((entry) => entry.id == context.entryId);
+    if (index < 0) return null;
+
+    String? nearest(int step) {
+      final at = index + step;
+      if (at < 0 || at >= entries.length) return null;
+      final candidate = entries[at];
+      final scoreId = candidate.scoreId;
+      return scoreId == null
+          ? AppRoute.paper(collectionId: collection.id, entryId: candidate.id)
+          : (performing ? AppRoute.perform : AppRoute.score)(
+              scoreId,
+              collectionId: collection.id,
+              entryId: candidate.id,
+            );
     }
 
-    final previous = nearest(-1);
-    final next = nearest(1);
+    return _WayThrough(
+      isSet: false,
+      title: collection.displayTitle,
+      route: AppRoute.collection(collection.id),
+      position: index + 1,
+      count: entries.length,
+      previous: nearest(-1),
+      next: nearest(1),
+      note: entries[index].description.trim(),
+    );
+  }
+
+  final bool isSet;
+
+  /// What the set or the collection is called, and where it is.
+  final String title;
+  final String route;
+
+  /// Where this one comes in it, counted from one, and how many there are.
+  final int position;
+  final int count;
+
+  /// Where the ones either side are, or null at either end.
+  final String? previous;
+  final String? next;
+
+  /// What the set or the collection says next to this one.
+  final String note;
+}
+
+/// The way through the set or the collection, as a bar of its own under the
+/// details of a score.
+class _WayBar extends StatelessWidget {
+  const _WayBar({
+    required this.way,
+    required this.go,
+  });
+
+  final _WayThrough way;
+
+  /// Opens the page at a route in place of this one.
+  final void Function(String route) go;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final previous = way.previous;
+    final next = way.next;
+    void open() => Navigator.of(context).pushNamed(way.route);
 
     return Material(
       color: theme.colorScheme.secondaryContainer,
@@ -1030,25 +1482,23 @@ class _SetBar extends StatelessWidget {
               onPressed: previous == null ? null : () => go(previous),
             ),
             // Flexible, so that a long title gives way rather than pushing the
-            // way to the next song off the edge of a phone.
+            // way to the next one off the edge of a phone.
             Flexible(
-              child: OpenSetButton(
-                title: set.displayTitle,
-                onPressed: () => Navigator.of(buildContext)
-                    .pushNamed(AppRoute.set(set.id)),
-              ),
+              child: way.isSet
+                  ? OpenSetButton(title: way.title, onPressed: open)
+                  : OpenCollectionButton(title: way.title, onPressed: open),
             ),
             Text(
-              '${context.index + 1} of ${set.entries.length}',
+              '${way.position} of ${way.count}',
               style: theme.textTheme.labelMedium,
             ),
             NextScoreButton(
               onPressed: next == null ? null : () => go(next),
             ),
-            if (entry.description.trim().isNotEmpty)
+            if (way.note.isNotEmpty)
               Expanded(
                 child: Text(
-                  entry.description,
+                  way.note,
                   style: theme.textTheme.bodySmall,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1091,98 +1541,77 @@ class _CollectionContext {
   }
 }
 
-/// The way through the collection: the pieces either side of this one, by
-/// title.
-class _CollectionBar extends StatelessWidget {
-  const _CollectionBar({
-    required this.context,
-    required this.titleOf,
-    required this.beforeLeaving,
+/// What is known about a score: who wrote it, what plays it, and what it is
+/// filed under.
+class _ScoreFacts extends StatelessWidget {
+  const _ScoreFacts({
+    required this.score,
   });
 
-  final _CollectionContext context;
-  final String? Function(String scoreId) titleOf;
-
-  /// Called before the page is swapped for another piece's.
-  final VoidCallback beforeLeaving;
+  final Score score;
 
   @override
-  Widget build(BuildContext buildContext) {
-    final theme = Theme.of(buildContext);
-    final collection = context.collection;
-    final entries = entriesByTitle(collection.entries, titleOf);
-    final index = entries.indexWhere((entry) => entry.id == context.entryId);
-    if (index < 0) return const SizedBox.shrink();
-    final entry = entries[index];
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final work = score.work;
+    final movement = score.movement;
+    final rows = <(String, String)>[
+      if (score.creators.composers.isNotEmpty)
+        ('Composed by', score.creators.composers.join(', ')),
+      if (score.creators.lyricists.isNotEmpty)
+        ('Words by', score.creators.lyricists.join(', ')),
+      if ((work?.number ?? '').trim().isNotEmpty) ('Number', work!.number!),
+      // A movement is only worth saying when it is not already the title.
+      if ((movement?.title ?? '').trim().isNotEmpty &&
+          movement!.title!.trim() != score.title)
+        ('Movement', movement.title!.trim()),
+      if (score.instruments.isNotEmpty)
+        ('Played by', score.instruments.map(instrumentName).join(', ')),
+      if (score.languages.isNotEmpty)
+        ('Sung in', score.languages.join(', ')),
+    ];
 
-    /// The next piece that way, one that has yet to be scanned included: see
-    /// the same in _SetBar.
-    String? nearest(int step) {
-      final at = index + step;
-      if (at < 0 || at >= entries.length) return null;
-      final candidate = entries[at];
-      final scoreId = candidate.scoreId;
-      return scoreId == null
-          ? AppRoute.paper(collectionId: collection.id, entryId: candidate.id)
-          : AppRoute.score(
-              scoreId,
-              collectionId: collection.id,
-              entryId: candidate.id,
-            );
-    }
-
-    void go(String? route) {
-      if (route == null) return;
-      beforeLeaving();
-      Navigator.of(buildContext).pushReplacementNamed(route);
-    }
-
-    final previous = nearest(-1);
-    final next = nearest(1);
-
-    return Material(
-      color: theme.colorScheme.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          children: [
-            PreviousScoreButton(
-              onPressed: previous == null ? null : () => go(previous),
-            ),
-            // Flexible, so that a long title gives way rather than pushing the
-            // way to the next piece off the edge of a phone.
-            Flexible(
-              child: OpenCollectionButton(
-                title: collection.displayTitle,
-                onPressed: () => Navigator.of(buildContext)
-                    .pushNamed(AppRoute.collection(collection.id)),
-              ),
-            ),
-            Text(
-              '${index + 1} of ${entries.length}',
-              style: theme.textTheme.labelMedium,
-            ),
-            NextScoreButton(
-              onPressed: next == null ? null : () => go(next),
-            ),
-            if (entry.description.trim().isNotEmpty)
-              Expanded(
-                child: Text(
-                  entry.description,
-                  style: theme.textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (label, value) in rows)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 110,
+                  child: Text(label,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.outline)),
                 ),
-              ),
-          ],
-        ),
-      ),
+                Expanded(child: Text(value)),
+              ],
+            ),
+          ),
+        if (score.tags.isNotEmpty)
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final tag in score.tags)
+                Chip(
+                  label: Text(tag),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+      ],
     );
   }
 }
 
-/// How the score is read: the key, and which parts are on screen.
-class _ViewControls extends StatelessWidget {
-  const _ViewControls({
+/// How the score is read: the key, and which parts are on screen. On the
+/// details page, and in the dialog over the stand.
+class _ViewSettings extends StatelessWidget {
+  const _ViewSettings({
     required this.view,
     required this.parts,
     required this.onChange,
@@ -1201,96 +1630,70 @@ class _ViewControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final semitones = view.transposition;
 
-    return ExpansionTile(
-      // A wrap rather than a row: on a phone the two chips do not fit beside
-      // the word, and go on the next line rather than off the edge.
-      title: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(right: 6),
-            child: Text('View'),
-          ),
-          if (semitones != 0)
-            Chip(
-              label: Text(
-                  '${semitones > 0 ? '+' : ''}$semitones semitones'),
-              visualDensity: VisualDensity.compact,
-            ),
-          if (view.hiddenPartIds.isNotEmpty)
-            Chip(
-              label: Text('${view.hiddenPartIds.length} part'
-                  '${view.hiddenPartIds.length == 1 ? '' : 's'} hidden'),
-              visualDensity: VisualDensity.compact,
-            ),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              const Text('Transpose'),
-              const Spacer(),
-              TransposeDownButton(
-                onPressed: semitones > minTransposition
-                    ? () => onChange(
-                        (view) => view.withTransposition(semitones - 1))
-                    : null,
-              ),
-              SizedBox(
-                width: 36,
-                child: Text('${semitones > 0 ? '+' : ''}$semitones',
-                    textAlign: TextAlign.center),
-              ),
-              TransposeUpButton(
-                onPressed: semitones < maxTransposition
-                    ? () => onChange(
-                        (view) => view.withTransposition(semitones + 1))
-                    : null,
-              ),
-            ],
-          ),
-        ),
-        if (parts.length > 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 8,
-              children: [
-                for (final part in parts)
-                  PartVisibilityChip(
-                    name: part.name,
-                    visible: !view.isHidden(part.id),
-                    onSelected: (visible) => onChange(
-                        (view) => view.withPartVisible(part.id, visible)),
-                  ),
-              ],
+        Row(
+          children: [
+            const Text('Transpose'),
+            const Spacer(),
+            TransposeDownButton(
+              onPressed: semitones > minTransposition
+                  ? () =>
+                      onChange((view) => view.withTransposition(semitones - 1))
+                  : null,
             ),
-          ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 12,
+            SizedBox(
+              width: 36,
+              child: Text('${semitones > 0 ? '+' : ''}$semitones',
+                  textAlign: TextAlign.center),
+            ),
+            TransposeUpButton(
+              onPressed: semitones < maxTransposition
+                  ? () =>
+                      onChange((view) => view.withTransposition(semitones + 1))
+                  : null,
+            ),
+          ],
+        ),
+        if (parts.length > 1) ...[
+          const SizedBox(height: 8),
+          const Text('Instruments on screen'),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              ShowAsWrittenButton(
-                onPressed: view.isPristine
-                    ? null
-                    : () => onChange((view) => view.reset()),
-              ),
-              if (keptAsYourReading)
-                Tooltip(
-                  message: "Only you see this. What the band plays is the"
-                      " owner's to say.",
-                  child: Text(
-                    'Kept as how you read it',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+              for (final part in parts)
+                PartVisibilityChip(
+                  name: part.name,
+                  visible: !view.isHidden(part.id),
+                  onSelected: (visible) => onChange(
+                      (view) => view.withPartVisible(part.id, visible)),
                 ),
             ],
           ),
+        ],
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ShowAsWrittenButton(
+              onPressed:
+                  view.isPristine ? null : () => onChange((view) => view.reset()),
+            ),
+            if (keptAsYourReading)
+              Tooltip(
+                message: "Only you see this. What the band plays is the"
+                    " owner's to say.",
+                child: Text(
+                  'Kept as how you read it',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+          ],
         ),
       ],
     );

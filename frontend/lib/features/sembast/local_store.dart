@@ -1,6 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:logging/logging.dart';
 import 'package:score/features/auth/oidc_api.dart' show UserInfo;
 import 'package:score/features/sembast/database_factory_io.dart'
     if (dart.library.js_interop) 'package:score/features/sembast/database_factory_web.dart';
@@ -8,6 +9,8 @@ import 'package:score/features/sembast/legacy_store.dart';
 import 'package:score/features/sembast/legacy_store_io.dart'
     if (dart.library.js_interop) 'package:score/features/sembast/legacy_store_web.dart';
 import 'package:sembast/sembast_memory.dart';
+
+final _log = Logger('Store');
 
 /// Where everything this device knows is kept between visits.
 ///
@@ -162,8 +165,9 @@ class LocalStore {
           });
         }
       }
-    } catch (error) {
-      debugPrint('could not bring over what was kept before: $error');
+    } catch (error, stackTrace) {
+      _log.warning('could not bring over what was kept before', error,
+          stackTrace);
       return;
     }
 
@@ -238,8 +242,9 @@ class LocalStore {
       }
       UserInfo.fromJson(json);
       return stored;
-    } catch (error) {
-      debugPrint('could not bring over who was signed in before: $error');
+    } catch (error, stackTrace) {
+      _log.warning('could not bring over who was signed in before', error,
+          stackTrace);
       return null;
     }
   }
@@ -314,6 +319,13 @@ class LocalStore {
 
   Future<bool> hasMusicXml(String scoreId) async =>
       _files.record(scoreId).exists(await _documents);
+
+  /// Forgets one score and its document, for a score the server no longer
+  /// has.
+  Future<void> forgetScore(String scoreId) async {
+    await _scores.record(scoreId).delete(_data);
+    await _files.record(scoreId).delete(await _documents);
+  }
 
   // -------------------------------------------------------------------------
   // WHAT THE APP REMEMBERS ABOUT THIS DEVICE

@@ -1,6 +1,6 @@
 {
   "oidc": {
-    "clientId": "385771488877215747",
+    "clientId": "393202642634997762",
     "issuer": "https://auth.wvl.app",
     "redirectUri": "http://localhost:3000/",
     "nativeRedirectUri": "app.wvl.score://callback",
