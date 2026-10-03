@@ -44,5 +44,14 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
+      # The integration tests download postgres from maven central on every run,
+      # and maven being briefly unreachable is reported as "no version found".
+      # Keyed on what decides which binary is fetched: the library and the
+      # version the helper asks for.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.embedded-postgres-go
+          key: embedded-postgres-${{ runner.os }}-${{ hashFiles('go.sum', 'test/integration_test/helpers/postgres.go') }}
+
       - name: Integration tests
         run: go test -tags integration ./test/...
