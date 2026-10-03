@@ -24,12 +24,12 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:logging/logging.dart';
 import 'package:score/api.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/sets/models.dart';
+import 'package:score/logging.dart';
 
-final _log = Logger('Sync');
+final _log = appLogger('Sync');
 
 /// Why what is owed about a set or a collection was not sent, when it was not
 /// the server saying so: see [SyncEngine.whyNotSynced].
@@ -288,12 +288,22 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     return _oidc.getActiveAccessToken(signIn: false);
   }
 
+  /// How many times everything here was forgotten: see [forgetAll].
+  ///
+  /// A pull that is out when the device is handed over was asked for with the
+  /// last user's token, and its answer is theirs. It does not stop for being
+  /// forgotten, so it looks at this when the answer is in, and drops it if the
+  /// count moved — or the last user's sets would be written back after they
+  /// were forgotten, and handed to whoever signs in next as their own.
+  var _forgotten = 0;
+
   /// Forgets every one that is kept here, owed or not, for a device that is
   /// handed to somebody else.
   ///
   /// A push that is out is waited for first: whatever it keeps of its answer
   /// would otherwise be written back after the store was emptied.
   Future<void> forgetAll() async {
+    _forgotten++;
     await Future.wait([
       for (final pushing in _pushing.values) pushing.catchError((Object _) {}),
     ]);
@@ -924,16 +934,17 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   /// Reads in everything that changed on the server since the last time it said
   /// anything, what was deleted there included.
   Future<void> _pull() async {
+    final forgottenBefore = _forgotten;
     final token = await this.token();
     if (token == null) return;
 
-    // The end of the window is what is recorded as synced, and not the moment
-    // the answer arrives: one that changed while the request was on its way is
-    // not in this answer, and has to be in the next one.
+    // The window runs to the end of time (see [endOfTime]); what is recorded
+    // as synced is the newest change in the answer, and only an answer with no
+    // moments in it at all falls back on when it was asked for.
     final takenBefore = {..._taken};
     final asked = DateTime.now();
     final fromApi = await _adapter.list(
-        _lastSyncedAt()?.subtract(pullOverlap), asked, token);
+        _lastSyncedAt()?.subtract(pullOverlap), endOfTime, token);
     if (fromApi.isEmpty) {
       return;
     }
@@ -950,6 +961,8 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     // together from what is held here, and written whole over what the store
     // has, so an entry another tab put in and has not sent would be dropped.
     await takeInWhatOthersStored();
+    // Asked for on behalf of whoever was here before everything was forgotten.
+    if (_forgotten != forgottenBefore) return;
 
     final toStore = <R>[];
     for (final json in fromApi) {

@@ -61,12 +61,13 @@ func Save(
 			-- has it and edits it is saying it should exist.
 			deletedAt = NULL`
 
+	now := time.Now().UTC()
 	_, err = tx.Exec(ctx, upsertQuery, pgx.NamedArgs{
 		"id":            collectionId,
 		"owner_subject": owner,
 		"title":         write.Title,
 		"description":   write.Description,
-		"lastChangedAt": time.Now().UTC(),
+		"lastChangedAt": now,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to save the collection: %w", err)
@@ -78,13 +79,18 @@ func Save(
 	// correcting a title, and a client that has not looked at the collection in
 	// a while cannot empty it by saying nothing about it.
 
+	shares := normalizedShares(write.SharedWith, user.Email)
+	if err := rememberUnshares(ctx, tx, collectionId, shares, now); err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(ctx,
 		`DELETE FROM collection_shares WHERE collection_id = @collection_id`,
 		pgx.NamedArgs{"collection_id": collectionId})
 	if err != nil {
 		return fmt.Errorf("failed to clear the shares of the collection: %w", err)
 	}
-	for _, email := range normalizedShares(write.SharedWith, user.Email) {
+	for _, email := range shares {
 		_, err = tx.Exec(ctx,
 			`INSERT INTO collection_shares (collection_id, email)
 				VALUES (@collection_id, @email) ON CONFLICT DO NOTHING`,
@@ -96,6 +102,37 @@ func Save(
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit the collection: %w", err)
+	}
+	return nil
+}
+
+// rememberUnshares writes down who is being taken off the collection, so that the
+// listing can tell them it is gone, and forgets that about whoever is being put
+// back on. It has to run before the shares are replaced: who is being taken off
+// is whoever is on it now and not in what it is being replaced with.
+//
+// Putting somebody back on forgets the note, so there is never an old one left
+// when they are taken off again; should one be there all the same, the later
+// moment is the one kept, since that is the one their devices have not heard
+// about yet.
+func rememberUnshares(ctx context.Context, tx pgx.Tx, collectionId string, shares []string, now time.Time) error {
+	const unsharedQuery = `
+		INSERT INTO collection_unshares (collection_id, email, unshared_at)
+		SELECT collection_id, email, @now
+		FROM collection_shares
+		WHERE collection_id = @collection_id AND NOT (email = ANY(@shares))
+		ON CONFLICT (collection_id, email) DO UPDATE SET unshared_at = EXCLUDED.unshared_at`
+
+	_, err := tx.Exec(ctx, unsharedQuery, pgx.NamedArgs{"collection_id": collectionId, "shares": shares, "now": now})
+	if err != nil {
+		return fmt.Errorf("failed to remember who the collection is no longer shared with: %w", err)
+	}
+
+	_, err = tx.Exec(ctx,
+		`DELETE FROM collection_unshares WHERE collection_id = @collection_id AND email = ANY(@shares)`,
+		pgx.NamedArgs{"collection_id": collectionId, "shares": shares})
+	if err != nil {
+		return fmt.Errorf("failed to forget that the collection was no longer shared: %w", err)
 	}
 	return nil
 }

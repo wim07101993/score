@@ -399,6 +399,88 @@ func TestACollectionSomebodyElseHasIsNotThere(t *testing.T) {
 	assert.IsTypef(t, &api.GetCollectionNotFound{}, res, "got %#v", res)
 }
 
+// Taking somebody off a collection has to reach their devices, the way a
+// deleted collection does: they are told it is gone, and nothing about what
+// becomes of it afterwards.
+func TestUnsharingACollectionTakesItAway(t *testing.T) {
+	t.Parallel()
+
+	owner, reader := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	collectionId := uuid.New()
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("Shared for now", []string{reader.Email}))
+	helpers.MustFillCollection(t, owner.ApiClient, collectionId, scoreId)
+	require.Equal(t, "Shared for now",
+		helpers.MustGetCollection(t, reader.ApiClient, collectionId).Title)
+
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("Renamed since", nil))
+
+	res, err := reader.GetCollection(t.Context(),
+		api.GetCollectionParams{CollectionId: collectionId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetCollectionNotFound{}, res,
+		"a collection that is no longer shared should no longer be readable, got %#v", res)
+
+	listed := helpers.MustListCollections(t, reader.ApiClient, api.ListCollectionsParams{
+		ChangesSince: aWhileAgo(),
+		ChangesUntil: soon(),
+	})
+	gone, found := helpers.FindCollection(listed, collectionId)
+	require.True(t, found, "a collection somebody was taken off should be listed to them, so their devices drop it")
+	assert.False(t, gone.DeletedAt.Null, "a collection somebody was taken off should be listed to them as deleted")
+	assert.Equal(t, gone.DeletedAt.Value, gone.LastChangedAt)
+	assert.False(t, gone.IsOwner)
+	assert.Empty(t, gone.Title, "what the collection is called since is none of their business")
+	assert.Empty(t, gone.Description)
+	assert.Empty(t, gone.Entries, "what is in the collection is none of their business any more")
+	assert.Empty(t, gone.SharedWith)
+
+	asOwner := helpers.MustListCollections(t, owner.ApiClient, api.ListCollectionsParams{
+		ChangesSince: aWhileAgo(),
+		ChangesUntil: soon(),
+	})
+	kept, found := helpers.FindCollection(asOwner, collectionId)
+	require.True(t, found)
+	assert.True(t, kept.DeletedAt.Null, "taking somebody off a collection does not delete it for the owner")
+	assert.Equal(t, "Renamed since", kept.Title)
+	assert.Len(t, kept.Entries, 1)
+}
+
+// Sharing with somebody again makes the collection theirs to read once more,
+// and the headstone has to go with it.
+func TestSharingACollectionAgainBringsItBack(t *testing.T) {
+	t.Parallel()
+
+	owner, reader := aPlayer(t), aPlayer(t)
+
+	collectionId := uuid.New()
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("On and off", []string{reader.Email}))
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("On and off", nil))
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("On again", []string{reader.Email}))
+
+	assert.Equal(t, "On again", helpers.MustGetCollection(t, reader.ApiClient, collectionId).Title)
+
+	listed := helpers.MustListCollections(t, reader.ApiClient, api.ListCollectionsParams{
+		ChangesSince: aWhileAgo(),
+		ChangesUntil: soon(),
+	})
+	count := 0
+	for _, c := range listed {
+		if c.ID == collectionId {
+			count++
+			assert.True(t, c.DeletedAt.Null, "a collection shared again should not be listed as gone")
+			assert.Equal(t, "On again", c.Title)
+		}
+	}
+	assert.Equal(t, 1, count, "a collection shared again should be listed once")
+}
+
 // Who else somebody shares with is not the business of the people they share
 // with.
 func TestSharedWithIsOnlyFilledInForTheOwner(t *testing.T) {
@@ -417,6 +499,44 @@ func TestSharedWithIsOnlyFilledInForTheOwner(t *testing.T) {
 	assert.True(t, asOwner.IsOwner)
 	assert.Empty(t, asReader.SharedWith)
 	assert.False(t, asReader.IsOwner)
+}
+
+// A collection is shared by address the way a set is, and an address is only
+// good for that when the provider vouches it is the caller's.
+func TestACollectionIsNotSharedWithAnAddressNobodyVerified(t *testing.T) {
+	t.Parallel()
+
+	owner, reader := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	collectionId := uuid.New()
+	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
+		helpers.WriteCollectionOf("The band's book", []string{reader.Email}))
+	entry := helpers.MustFillCollection(t, owner.ApiClient, collectionId, scoreId)[0]
+
+	impostor := anImpostor(t, reader.Email)
+
+	res, err := impostor.GetCollection(t.Context(),
+		api.GetCollectionParams{CollectionId: collectionId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetCollectionNotFound{}, res,
+		"an unverified address should not open a collection shared with it, got %#v", res)
+
+	listed := helpers.MustListCollections(t, impostor.ApiClient, api.ListCollectionsParams{
+		ChangesSince: aWhileAgo(),
+		ChangesUntil: soon(),
+	})
+	_, found := helpers.FindCollection(listed, collectionId)
+	assert.False(t, found, "an unverified address should not list a collection shared with it")
+
+	view, err := impostor.PutCollectionEntryView(t.Context(), helpers.AView(1),
+		api.PutCollectionEntryViewParams{CollectionId: collectionId, EntryId: entry.ID})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutCollectionEntryViewNotFound{}, view,
+		"an unverified address should not write a view on a collection shared with it, got %#v", view)
+
+	assert.Equal(t, "The band's book",
+		helpers.MustGetCollection(t, reader.ApiClient, collectionId).Title)
 }
 
 // ---------------------------------------------------------------------------

@@ -12,9 +12,8 @@ type Identification struct {
 func readIdentification(r xml.TokenReader, element xml.StartElement) (id *Identification, err error) {
 	id = &Identification{}
 	err = ReadObject(r, element,
-		func(attr xml.Attr) error {
-			return &UnknownAttribute{element, attr}
-		},
+		// None of its attributes are needed; see ReadObject.
+		nil,
 		func(el xml.StartElement) error {
 			switch el.Name.Local {
 			case "creator":
@@ -45,7 +44,8 @@ func readIdentification(r xml.TokenReader, element xml.StartElement) (id *Identi
 			case "source":
 				err = ReadUntilClose(r, el)
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

@@ -74,9 +74,13 @@ jobs:
   # The phone and desktop builds sign in as oidc.nativeClientId, and fall back
   # to the web client when it is missing — which Zitadel refuses for their
   # redirect addresses, so every sign-in from the released APK and zips would
-  # fail. Checked first and on its own, so a tag without one fails in seconds
-  # rather than after four platforms have been built. Only here: a web-only
-  # build (release-dev.yml) never reads the field.
+  # fail. Checked on its own, so a tag without one says so in seconds.
+  #
+  # It holds back only what it is about: the GitHub release, which is where the
+  # APK and the zips are published. The backend and the web app never read the
+  # field, and a missing native client is no reason for their images not to
+  # go out — gating the build on it stopped every tag from shipping anything.
+  # Only here: a web-only build (release-dev.yml) never reads the field.
   native-config:
     runs-on: ubuntu-latest
     steps:
@@ -91,7 +95,7 @@ jobs:
           fi
 
   build:
-    needs: [version, native-config]
+    needs: [version]
     uses: ./.github/workflows/flutter-build.yml
     with:
       build-args: ${{ needs.version.outputs.args }}
@@ -142,9 +146,10 @@ jobs:
   # Only on a tag: a manual run has no tag to make a release of, and would
   # otherwise build everything only to fail here. It waits for both images
   # too, which run on exactly the same condition, so that a release is not
-  # published for a tag whose images failed to go out.
+  # published for a tag whose images failed to go out; and for native-config,
+  # so that it never publishes an APK or a zip that cannot sign in.
   release:
-    needs: [backend-image, build, web-image]
+    needs: [backend-image, build, web-image, native-config]
     if: ${{ github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
     permissions:

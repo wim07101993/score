@@ -27,7 +27,7 @@ func readPartGroup(r xml.TokenReader, element xml.StartElement) (group *PartGrou
 			case "number":
 				group.Number, err = strconv.Atoi(attr.Value)
 			default:
-				err = &UnknownAttribute{element, attr}
+				// Not needed here; see ReadObject.
 			}
 			return err
 		},
@@ -40,7 +40,8 @@ func readPartGroup(r xml.TokenReader, element xml.StartElement) (group *PartGrou
 				groupBarline, err = ReadString(r, el)
 				group.GroupBarline = groupBarline == "yes"
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

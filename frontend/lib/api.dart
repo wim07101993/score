@@ -101,13 +101,10 @@ void throwUnlessOk(http.Response response, String what, ApiFailure failure) {
   }
 
   final problem = _problemIn(response);
-  if (response.statusCode == 404 && problem?['errorCode'] is! String) {
-    // Every 404 this API answers with says what was not found. One that does
-    // not is a proxy, or a server halfway through a deploy, and says nothing
-    // about what was asked for — taken for a refusal, an edit would be given
-    // up on over it.
+  if (_saysNothingAboutTheRequest(response.statusCode, problem)) {
     throw failure(
-      'failed to $what: 404 from something that is not the API',
+      'failed to $what: ${response.statusCode} from something that does not'
+      ' know this request',
       null,
     );
   }
@@ -120,6 +117,25 @@ void throwUnlessOk(http.Response response, String what, ApiFailure failure) {
     response.statusCode,
     problem,
   );
+}
+
+/// Whether a failure says nothing about what was asked for, only about what
+/// answered: worth trying again, however it is dressed.
+///
+/// Every 404 this API answers with says what was not found. One that does not
+/// is a proxy, or a server halfway through a deploy. One that says there is no
+/// such endpoint, or no such method on it, is a server that does not have this
+/// part of the API yet — a backend older than the app during a deploy, or
+/// after one is rolled back. None of them is a refusal: taken for one, an edit
+/// made offline would be given up on over a server that is about to be the
+/// right one again.
+bool _saysNothingAboutTheRequest(int status, Map<String, dynamic>? problem) {
+  final errorCode = problem?['errorCode'];
+  return switch (status) {
+    404 => errorCode is! String || errorCode == 'endpoint_not_found',
+    405 => true,
+    _ => false,
+  };
 }
 
 /// The RFC 9457 body of [response], when it has one. Every failure this API
@@ -150,11 +166,13 @@ bool isNotThere(
   if (response.statusCode != 404) {
     return false;
   }
-  if (notFound.contains(_problemIn(response)?['errorCode'])) {
+  final problem = _problemIn(response);
+  if (!_saysNothingAboutTheRequest(404, problem) &&
+      notFound.contains(problem?['errorCode'])) {
     return true;
   }
   throw failure(
-    'failed to $what: 404 from something that is not the API',
+    'failed to $what: 404 from something that does not know this request',
     null,
   );
 }
@@ -258,3 +276,14 @@ Future<bool> apiCanBeReached(http.Client client, ApiConfig config) async {
 /// milliseconds, so that a window ends exactly where it was asked to and
 /// nothing that changed inside the second it was asked about falls outside it.
 String apiDate(DateTime date) => date.toUtc().toIso8601String();
+
+/// Later than anything the server will ever have changed: where a listing's
+/// window ends.
+///
+/// Not this device's now. The server stamps a change with its own clock and
+/// filters on that, so a device whose clock runs behind and asked up to its
+/// own now would not be told about what changed since — an edit to the set on
+/// the stand, an upload — until its clock caught up, hours later on a tablet
+/// set wrong, and with nothing on screen to say so. Where a sync is recorded
+/// to have got to is read off what the server answered, not off this.
+final endOfTime = DateTime.utc(9999);

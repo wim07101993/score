@@ -42,6 +42,22 @@ func aPlayer(t *testing.T) player {
 	return player{ApiClient: client, Email: user.Email}
 }
 
+// anImpostor is a user whose account carries the given address without the
+// provider vouching for it: somebody who typed a band member's address onto
+// their own account and never confirmed it, because they cannot.
+func anImpostor(t *testing.T, email string) player {
+	t.Helper()
+
+	h := harness.NewScope()
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	client := helpers.Ensure(t, h.ApiClient, "ApiClient")
+
+	user := helpers.User{Email: email, Unverified: true}
+	client.Security.Token = idp.IssueTokenFor(t, user, auth.RoleScoreViewer)
+
+	return player{ApiClient: client, Email: user.Email}
+}
+
 // aScore uploads a score for a set to point at and answers its id. Uploading
 // takes the editor role, which a player deliberately does not have.
 func aScore(t *testing.T) uuid.UUID {
@@ -586,7 +602,106 @@ func TestThePeopleASetIsSharedWithAreOnlyShownToTheOwner(t *testing.T) {
 	}
 }
 
+// A set is shared by address, so an address is only good for reading one when
+// the provider says it belongs to whoever is calling. Anybody can type any
+// address onto their own account; only the person who reads mail sent to it
+// can verify it.
+func TestASetIsNotSharedWithAnAddressNobodyVerified(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId, entryId := uuid.New(), uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Friday night", []string{bandMember.Email}))
+	helpers.MustPutEntry(t, owner.ApiClient, setId, entryId, helpers.AnEntry(scoreId, 0))
+
+	impostor := anImpostor(t, bandMember.Email)
+
+	res, err := impostor.GetSet(t.Context(), api.GetSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetSetNotFound{}, res,
+		"an unverified address should not open a set shared with it, got %#v", res)
+
+	listed := helpers.MustListSets(t, impostor.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
+	_, found := helpers.FindSet(listed, setId)
+	assert.False(t, found, "an unverified address should not list a set shared with it")
+
+	view, err := impostor.PutSetEntryView(t.Context(), helpers.AView(3),
+		api.PutSetEntryViewParams{SetId: setId, EntryId: entryId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.PutSetEntryViewNotFound{}, view,
+		"an unverified address should not write a view on a set shared with it, got %#v", view)
+
+	// And the person whose address it is still has it.
+	assert.Equal(t, "Friday night", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
+}
+
+// Not having verified an address takes away what is shared with it, and
+// nothing else: what somebody owns is theirs by subject.
+func TestAnUnverifiedAddressStillHasItsOwnSets(t *testing.T) {
+	t.Parallel()
+
+	impostor := anImpostor(t, uuid.NewString()+"@test.localhost")
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, impostor.ApiClient, setId, helpers.WriteSetOf("Mine", nil))
+
+	assert.Equal(t, "Mine", helpers.MustGetSet(t, impostor.ApiClient, setId).Title)
+}
+
+// Taking somebody off a set has to reach their devices. A set that simply
+// stopped turning up would stay on every device that had it, frozen as it was,
+// with nothing ever saying otherwise; so to them it is answered the way a
+// deleted set is — and only that, since what becomes of it afterwards is no
+// longer theirs to see.
 func TestUnsharingASetTakesItAway(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+	scoreId := aScore(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Shared for now", []string{bandMember.Email}))
+	helpers.MustFillSet(t, owner.ApiClient, setId, scoreId)
+	require.Equal(t, "Shared for now", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
+
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("Renamed since", nil))
+
+	res, err := bandMember.GetSet(t.Context(), api.GetSetParams{SetId: setId})
+	require.NoError(t, err)
+	assert.IsTypef(t, &api.GetSetNotFound{}, res,
+		"a set that is no longer shared should no longer be readable, got %#v", res)
+
+	listed := helpers.MustListSets(t, bandMember.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
+	gone, found := helpers.FindSet(listed, setId)
+	require.True(t, found, "a set somebody was taken off should be listed to them, so their devices drop it")
+	assert.False(t, gone.DeletedAt.Null, "a set somebody was taken off should be listed to them as deleted")
+	assert.Equal(t, gone.DeletedAt.Value, gone.LastChangedAt,
+		"it is gone from the moment it was unshared, which is when it last changed for them")
+	assert.False(t, gone.IsOwner)
+	assert.Empty(t, gone.Title, "what the set is called since is none of their business")
+	assert.Empty(t, gone.Description)
+	assert.Empty(t, gone.Entries, "what is in the set is none of their business any more")
+	assert.Empty(t, gone.SharedWith)
+
+	asOwner := helpers.MustListSets(t, owner.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
+	kept, found := helpers.FindSet(asOwner, setId)
+	require.True(t, found)
+	assert.True(t, kept.DeletedAt.Null, "taking somebody off a set does not delete it for the owner")
+	assert.Equal(t, "Renamed since", kept.Title)
+	assert.Len(t, kept.Entries, 1)
+}
+
+// The headstone is a change like any other, and turns up only in the window it
+// happened in; a device that has synced past it has already been told.
+func TestUnsharingASetIsOnlyReportedInTheWindowItHappenedIn(t *testing.T) {
 	t.Parallel()
 
 	owner, bandMember := aPlayer(t), aPlayer(t)
@@ -594,15 +709,64 @@ func TestUnsharingASetTakesItAway(t *testing.T) {
 	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
 		helpers.WriteSetOf("Shared for now", []string{bandMember.Email}))
-	require.Equal(t, "Shared for now", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("Shared for now", nil))
 
+	listed := helpers.MustListSets(t, bandMember.ApiClient, api.ListSetsParams{
+		ChangesSince: time.Now().Add(-48 * time.Hour),
+		ChangesUntil: time.Now().Add(-24 * time.Hour),
+	})
+	_, found := helpers.FindSet(listed, setId)
+	assert.False(t, found, "a set unshared today is not in a window that ended yesterday")
+}
+
+// Sharing with somebody again makes the set theirs to read once more, and the
+// headstone has to go: it would otherwise tell their devices to drop the set
+// they are being given back.
+func TestSharingASetAgainBringsItBack(t *testing.T) {
+	t.Parallel()
+
+	owner, bandMember := aPlayer(t), aPlayer(t)
+
+	setId := uuid.New()
 	helpers.MustPutSet(t, owner.ApiClient, setId,
-		helpers.WriteSetOf("Shared for now", nil))
+		helpers.WriteSetOf("On and off", []string{bandMember.Email}))
+	helpers.MustPutSet(t, owner.ApiClient, setId, helpers.WriteSetOf("On and off", nil))
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("On again", []string{bandMember.Email}))
 
-	res, err := bandMember.GetSet(t.Context(), api.GetSetParams{SetId: setId})
-	require.NoError(t, err)
-	assert.IsTypef(t, &api.GetSetNotFound{}, res,
-		"a set that is no longer shared should no longer be readable, got %#v", res)
+	assert.Equal(t, "On again", helpers.MustGetSet(t, bandMember.ApiClient, setId).Title)
+
+	listed := helpers.MustListSets(t, bandMember.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
+	count := 0
+	for _, s := range listed {
+		if s.ID == setId {
+			count++
+			assert.True(t, s.DeletedAt.Null, "a set shared again should not be listed as gone")
+			assert.Equal(t, "On again", s.Title)
+		}
+	}
+	assert.Equal(t, 1, count, "a set shared again should be listed once")
+}
+
+// Taking one person off says nothing to anybody who is still on it.
+func TestUnsharingSomebodyLeavesTheOthersAlone(t *testing.T) {
+	t.Parallel()
+
+	owner, leaving, staying := aPlayer(t), aPlayer(t), aPlayer(t)
+
+	setId := uuid.New()
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("The band", []string{leaving.Email, staying.Email}))
+	helpers.MustPutSet(t, owner.ApiClient, setId,
+		helpers.WriteSetOf("The band", []string{staying.Email}))
+
+	listed := helpers.MustListSets(t, staying.ApiClient,
+		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
+	kept, found := helpers.FindSet(listed, setId)
+	require.True(t, found)
+	assert.True(t, kept.DeletedAt.Null, "somebody still on the set should not be told it is gone")
+	assert.Equal(t, "The band", kept.Title)
 }
 
 // ---------------------------------------------------------------------------

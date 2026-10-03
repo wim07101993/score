@@ -46,6 +46,12 @@ func AddOrUpdate(ctx context.Context, db *pgxpool.Conn, id string, mxml string) 
 	var lyricists []string
 	if score.Identification != nil && score.Identification.Creators != nil {
 		for _, creator := range score.Identification.Creators {
+			// An exporter that knows there is a composer but not who writes
+			// down an empty one. That says nothing anybody could look a score
+			// up by, and stored it would be a blank name in the list.
+			if strings.TrimSpace(creator.Value) == "" {
+				continue
+			}
 			switch creator.Type {
 			case "composer":
 				composers = append(composers, creator.Value)

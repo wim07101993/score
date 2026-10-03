@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/config.dart';
 import 'package:score/features/auth/oidc_api.dart';
@@ -50,11 +52,13 @@ class _Api extends ScoresApi {
 
   /// The change windows that were asked about, in order.
   final List<DateTime?> since = [];
+  final List<DateTime?> until = [];
 
   @override
   Future<List<Map<String, dynamic>>> listScores(
       DateTime? changesSince, DateTime? changesUntil, String authToken) async {
     since.add(changesSince);
+    until.add(changesUntil);
     return answers;
   }
 
@@ -165,8 +169,40 @@ void main() {
     await scores.forgetWhatTheServerNoLongerHas();
 
     expect(api.since, [null], reason: 'not every score was asked for');
+    // Not up to this device's now, which may be behind the server's.
+    expect(
+      api.until.single!.isAfter(DateTime.now().add(const Duration(days: 365))),
+      isTrue,
+    );
     expect(scores.scores.map((score) => score.id), ['kept']);
     expect(await store.hasMusicXml('gone'), isFalse);
+  });
+
+  test('a score forgotten is not brought back by a sync asked for before',
+      () async {
+    // The sync is asked for first and its listing answers last: run side by
+    // side, it would write back the score the search for what is gone has
+    // just forgotten.
+    final store = await LocalStore.inMemory();
+    await store.writeScores([const Score(id: 'gone').toJson()]);
+    final api = _SlowFirstListing()
+      ..answers = [
+        {'id': 'gone', 'last_changed_at': '2026-02-01T00:00:00Z'},
+      ];
+    final scores = ScoresRepository(store, api, _SignedIn(store));
+    await scores.init();
+
+    final sync = scores.syncWithApi();
+    final search = scores.forgetWhatTheServerNoLongerHas();
+    // The sync has its answer; by the time the search asks, the server has
+    // lost the score.
+    await api.asked.future;
+    api.answers = [];
+    api.release.complete();
+    await Future.wait([sync, search]);
+
+    expect(scores.getScore('gone'), isNull);
+    expect(api.since, [null, null]);
   });
 
   test('a sync that finds nothing new writes nothing', () async {
@@ -186,6 +222,27 @@ void main() {
 
     expect(told, 0, reason: 'every page was redrawn for nothing');
   });
+}
+
+/// An API whose first listing says it was [asked] and then waits for
+/// [release], answering with what it was told when it was asked.
+class _SlowFirstListing extends _Api {
+  final asked = Completer<void>();
+  final release = Completer<void>();
+  var _first = true;
+
+  @override
+  Future<List<Map<String, dynamic>>> listScores(
+      DateTime? changesSince, DateTime? changesUntil, String authToken) async {
+    final answer =
+        await super.listScores(changesSince, changesUntil, authToken);
+    if (_first) {
+      _first = false;
+      asked.complete();
+      await release.future;
+    }
+    return answer;
+  }
 }
 
 /// An API whose document download lets the player open the score while it is

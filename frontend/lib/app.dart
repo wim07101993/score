@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:logging/logging.dart';
 import 'package:score/api.dart';
 import 'package:score/background.dart';
 import 'package:score/config.dart';
@@ -14,8 +13,9 @@ import 'package:score/features/sembast/local_store.dart';
 import 'package:score/features/sets/api.dart';
 import 'package:score/features/sets/repository.dart';
 import 'package:score/features/settings/settings.dart';
+import 'package:score/logging.dart';
 
-final _log = Logger('App');
+final _log = appLogger('App');
 
 /// Everything the app is made of, wired together once.
 ///
@@ -58,6 +58,49 @@ class App extends ChangeNotifier {
   /// given access, when what actually happened is that the app was pointed at
   /// the wrong port, is the least helpful thing it could say.
   Object? authProblem;
+
+  /// An app over a store that lives in memory, signed in as [user], with an
+  /// API and a provider at addresses that go nowhere: for a test that draws
+  /// the pages over what is on the device, without starting the app.
+  @visibleForTesting
+  static Future<App> forTesting({UserInfo? user}) async {
+    final config = Config(
+      oidc: OidcConfig.fromJson({
+        'clientId': 'test',
+        'nativeClientId': 'test',
+        'issuer': 'https://auth.invalid',
+        'redirectUri': 'http://localhost:3000/',
+        'authorizationEndpoint': 'https://auth.invalid/authorize',
+        'tokenEndpoint': 'https://auth.invalid/token',
+        'userInfoEndpoint': 'https://auth.invalid/userinfo',
+        'healthzEndpoint': 'https://auth.invalid/healthz',
+        'rolesKey': 'roles',
+      }),
+      api: ApiConfig(baseUrl: Uri.parse('https://api.invalid/')),
+    );
+    final store = await LocalStore.inMemory();
+    final client = http.Client();
+    final oidc = OidcApi(config.oidc, store, client: client);
+    final scoresApi = ScoresApi(config.api, client: client);
+    final setsApi = SetsApi(config.api, client: client);
+    final collectionsApi = CollectionsApi(config.api, client: client);
+    final app = App._(
+      config,
+      await Settings.load(store),
+      oidc,
+      scoresApi,
+      setsApi,
+      collectionsApi,
+      ScoresRepository(store, scoresApi, oidc),
+      SetsRepository(store, setsApi, oidc),
+      CollectionsRepository(store, collectionsApi, oidc),
+    );
+    await app.scores.init();
+    await app.sets.init();
+    await app.collections.init();
+    app.user = user;
+    return app;
+  }
 
   static Future<App> start() async {
     final config = await Config.load();
@@ -133,6 +176,10 @@ class App extends ChangeNotifier {
     await updateCollections();
   }
 
+  /// How many times the user signed out: see [signOut]. A sign-in check that
+  /// was out when it happened drops its answer rather than taking it.
+  var _signOuts = 0;
+
   /// Asks the provider who the user is, falling back on what this device was
   /// last told.
   ///
@@ -144,6 +191,7 @@ class App extends ChangeNotifier {
   /// A sign-in that failed is not started again on its own — see
   /// [OidcApi.signInFailure]. [retry] is the user asking for it anyway.
   Future<UserInfo?> updateAuth({bool retry = false}) async {
+    final signOutsBefore = _signOuts;
     if (retry) {
       oidc.forgetSignInFailure();
     }
@@ -159,6 +207,11 @@ class App extends ChangeNotifier {
 
     try {
       final asked = await oidc.getUserInfo();
+      // The user signed out while the provider was being asked; what it said
+      // is about them, and the device is nobody's now.
+      if (_signOuts != signOutsBefore) {
+        return null;
+      }
       if (asked != null) {
         await _takeTheDataHereFor(asked);
         _log.info('signed in as ${asked.subject}');
@@ -176,6 +229,9 @@ class App extends ChangeNotifier {
       }
       authProblem = oidc.signInFailure;
     } catch (error, stackTrace) {
+      if (_signOuts != signOutsBefore) {
+        return null;
+      }
       _log.warning('failed to ask the provider who this is', error, stackTrace);
       user = await oidc.keptUserInfo();
       userIsFromThisDevice = true;
@@ -202,6 +258,7 @@ class App extends ChangeNotifier {
   /// The scores stay: every score viewer may read them, and they are what the
   /// next one to sign in will want on a stage with no network.
   Future<void> signOut() async {
+    _signOuts++;
     await oidc.signOut();
     await sets.forgetAll();
     await collections.forgetAll();
@@ -258,8 +315,11 @@ class App extends ChangeNotifier {
     }
   }
 
-  Future<void> _syncEveryScore() async {
-    await _updateScores();
+  /// Not through [_oneAtATime]: one asked for while a page's sync of the
+  /// scores is waiting would be folded into that sync, which does not look for
+  /// what is gone. The repository runs it after whatever sync is running
+  /// instead.
+  Future<void> _forgetTheScoresThatAreGone() async {
     if (!await scoresApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
@@ -339,10 +399,8 @@ class App extends ChangeNotifier {
   /// Unlike the sync a page asks for, this also forgets the scores the server
   /// no longer has: see [ScoresRepository.forgetWhatTheServerNoLongerHas].
   Future<void> syncEverything() async {
-    // A kind of its own: one asked for while a page's sync of the scores is
-    // running would otherwise be folded into the next one of those, and that
-    // one does not look for what is gone.
-    await _oneAtATime('every score', _syncEveryScore);
+    await updateScores();
+    await _forgetTheScoresThatAreGone();
     await updateSets();
     await updateCollections();
   }

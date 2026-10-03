@@ -1,16 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:logging/logging.dart';
 import 'package:score/features/auth/oidc_api.dart' show UserInfo;
 import 'package:score/features/sembast/database_factory_io.dart'
     if (dart.library.js_interop) 'package:score/features/sembast/database_factory_web.dart';
 import 'package:score/features/sembast/legacy_store.dart';
 import 'package:score/features/sembast/legacy_store_io.dart'
     if (dart.library.js_interop) 'package:score/features/sembast/legacy_store_web.dart';
+import 'package:score/logging.dart';
 import 'package:sembast/sembast_memory.dart';
 
-final _log = Logger('Store');
+final _log = appLogger('Store');
 
 /// Where everything this device knows is kept between visits.
 ///
@@ -322,9 +322,16 @@ class LocalStore {
 
   /// Forgets one score and its document, for a score the server no longer
   /// has.
+  ///
+  /// The document first: the two are in different databases and cannot be
+  /// forgotten in one go. A device put away in between is left with a score
+  /// and no document, which is still listed, and forgotten again the next
+  /// time it is looked for — rather than with a document nothing lists any
+  /// more, which nothing would ever look for again, and which would be shown
+  /// as the score if it were ever opened by a link.
   Future<void> forgetScore(String scoreId) async {
-    await _scores.record(scoreId).delete(_data);
     await _files.record(scoreId).delete(await _documents);
+    await _scores.record(scoreId).delete(_data);
   }
 
   // -------------------------------------------------------------------------

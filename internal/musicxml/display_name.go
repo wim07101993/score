@@ -32,9 +32,8 @@ func (name DisplayName) String() string {
 func readDisplayName(r xml.TokenReader, element xml.StartElement) (name *DisplayName, err error) {
 	name = &DisplayName{}
 	err = ReadObject(r, element,
-		func(attr xml.Attr) error {
-			return &UnknownAttribute{element, attr}
-		},
+		// None of its attributes are needed; see ReadObject.
+		nil,
 		func(el xml.StartElement) error {
 			switch el.Name.Local {
 			case "display-text":
@@ -50,7 +49,8 @@ func readDisplayName(r xml.TokenReader, element xml.StartElement) (name *Display
 				}
 				name.Items = append(name.Items, DisplayNameItem{AccidentalText: text})
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

@@ -1311,6 +1311,35 @@ void main() {
       expect(reopened.sets, isEmpty);
     });
 
+    test('a pull answered after everything was forgotten is not kept',
+        () async {
+      // The last user signs out while a pull made with their token is on its
+      // way; what it answers is theirs, and not for whoever signs in next.
+      final api = _SlowListingApi()
+        ..answers = [
+          {
+            ...ScoreSet(
+              id: 'theirs',
+              title: 'Private',
+              lastChangedAt: DateTime.now(),
+            ).toJson(),
+            'is_owner': true,
+            'entries': <Object?>[],
+          },
+        ];
+      final (sets, store) = await _repository(api);
+      await sets.init();
+
+      final syncing = sets.syncWithApi();
+      await api.asked.future;
+      await sets.forgetAll();
+      api.answer.complete();
+      await syncing;
+
+      expect(sets.sets, isEmpty);
+      expect(await store.readSets(), isEmpty);
+    });
+
     test('has what another tab forgot dropped by this one too', () async {
       // Two tabs of the web app over the one store. What the other tab forgot
       // is not to live on here, or to be written back by the next edit.

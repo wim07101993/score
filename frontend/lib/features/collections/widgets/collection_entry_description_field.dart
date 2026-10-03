@@ -77,6 +77,17 @@ class _CollectionEntryDescriptionFieldState
 
   @override
   void dispose() {
+    // Thrown away while still being typed in, which says nothing about being
+    // done with it: on a phone, tapping "done" or going back does not take the
+    // focus off the field first, and the field is gone before it would hear.
+    // What was typed is kept rather than lost with it — unless it is a name
+    // emptied out, which [_submit] would only have put back.
+    _focus.removeListener(_submitWhenLeft);
+    final value = _controller.text;
+    if (value != _taken && !(widget.isTheOnlyName && value.trim().isEmpty)) {
+      _taken = value;
+      widget.onSubmitted(value);
+    }
     _focus.dispose();
     _controller.dispose();
     super.dispose();

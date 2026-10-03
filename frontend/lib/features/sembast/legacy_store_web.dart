@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
-import 'package:logging/logging.dart';
 import 'package:score/features/sembast/legacy_store.dart';
+import 'package:score/logging.dart';
 import 'package:web/web.dart';
 
-final _log = Logger('Store');
+final _log = appLogger('Store');
 
 /// Reads what the app that was there before this one kept in this browser.
 ///

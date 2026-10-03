@@ -197,11 +197,191 @@ func TestDeserializeAcceptsAnyIndentation(t *testing.T) {
 	}
 }
 
-func TestDeserializeRejectsUnknownElements(t *testing.T) {
-	doc := `<score-partwise version="4.0"><not-a-musicxml-element/></score-partwise>`
+// exportedScore is a small score the way an exporter writes one, with the
+// given markup put in at each of the places the tests below need something
+// that is not in the baseline. It is a function rather than a template so that
+// each case says only what is different about it.
+type exportedScore struct {
+	rootAttributes string
+	work           string
+	identification string
+	defaults       string
+	partList       string
+	scorePart      string
+	instrument     string
+}
 
-	if _, err := parseString(t, doc); err == nil {
-		t.Error("parsing a document with an unknown element succeeded, want an error")
+func (e exportedScore) String() string {
+	work := e.work
+	if work == "" {
+		work = `<work-title>Sonata</work-title>`
+	}
+	identification := e.identification
+	if identification == "" {
+		identification = `<creator type="composer">Ludwig van Beethoven</creator>`
+	}
+	return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0"` + e.rootAttributes + `>
+  <work>` + work + `</work>
+  <identification>` + identification + `</identification>
+  ` + e.defaults + `
+  <part-list>
+    ` + e.partList + `
+    <score-part id="P1">
+      <part-name>Violin</part-name>
+      ` + e.scorePart + `
+      <score-instrument id="P1-I1">
+        <instrument-name>Violin</instrument-name>
+        ` + e.instrument + `
+        <instrument-sound>strings.violin</instrument-sound>
+      </score-instrument>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>1</divisions></attributes>
+      <note><rest measure="yes"/><duration>4</duration></note>
+    </measure>
+  </part>
+</score-partwise>`
+}
+
+// TestDeserializeSkipsWhatItDoesNotKnow is about documents that are valid
+// MusicXML and carry something this parser has no use for. Every one of them
+// is what a real exporter writes — MuseScore, Finale, Sibelius — and every one
+// of them used to be refused as invalid. What is read out of them has to be the
+// same as if the extra had not been there at all.
+func TestDeserializeSkipsWhatItDoesNotKnow(t *testing.T) {
+	tests := map[string]exportedScore{
+		"concert pitch in the defaults": {defaults: `<defaults><concert-score/></defaults>`},
+		"a named staff group": {partList: `<part-group type="start" number="1">
+			<group-name>Strings</group-name>
+			<group-name-display><display-text>Strings</display-text></group-name-display>
+			<group-abbreviation>Str.</group-abbreviation>
+			<group-symbol>bracket</group-symbol>
+			<group-time/>
+		</part-group>`},
+		"a part in a group of parts":    {scorePart: `<group>score</group>`},
+		"a player of a part":            {scorePart: `<player id="P1-M1"><player-name>Player 1</player-name></player>`},
+		"an instrument abbreviation":    {instrument: `<instrument-abbreviation>Vln.</instrument-abbreviation>`},
+		"a link to the part's own file": {rootAttributes: ` xmlns:xlink="http://www.w3.org/1999/xlink"`, scorePart: `<part-link xlink:href="parts/violin.musicxml"/>`},
+		"a namespace on the root":       {rootAttributes: ` xmlns:xlink="http://www.w3.org/1999/xlink"`},
+		"a schema location on the root": {rootAttributes: ` xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.musicxml.org/xsd/musicxml.xsd"`},
+		"an opus":                       {work: `<work-title>Sonata</work-title><opus xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="opus.musicxml"/>`},
+		"an empty rights statement":     {identification: `<creator type="composer">Ludwig van Beethoven</creator><rights></rights>`},
+		"a numbered lyric language":     {defaults: `<defaults><lyric-language number="1" xml:lang="de"/></defaults>`},
+		"a named lyric language":        {defaults: `<defaults><lyric-language name="verse" xml:lang="de"/></defaults>`},
+		"an element nobody has heard of, holding one of the same name": {
+			defaults: `<defaults><something-new><something-new/><lyric-language xml:lang="fr"/></something-new></defaults>`},
+	}
+
+	for name, document := range tests {
+		t.Run(name, func(t *testing.T) {
+			score, err := parseString(t, document.String())
+			if err != nil {
+				t.Fatalf("failed to parse a valid document with %s: %v", name, err)
+			}
+			if score.Work == nil || score.Work.Title != "Sonata" {
+				t.Errorf("Work = %+v, want the title Sonata", score.Work)
+			}
+			assertStrings(t, "composers", creatorsOfType(score, "composer"), []string{"Ludwig van Beethoven"})
+			assertStrings(t, "instrument sounds", instrumentSounds(score), []string{"strings.violin"})
+		})
+	}
+
+	t.Run("what is skipped leaves what is read alone", func(t *testing.T) {
+		score, err := parseString(t, exportedScore{
+			defaults: `<defaults><concert-score/><lyric-language number="1" xml:lang="de"/></defaults>`,
+			partList: `<part-group type="start" number="2"><group-name>Strings</group-name><group-barline>yes</group-barline></part-group>`,
+		}.String())
+		if err != nil {
+			t.Fatalf("failed to parse: %v", err)
+		}
+		if score.Defaults == nil || score.Defaults.LyricLanguage != "de" {
+			t.Errorf("Defaults = %+v, want the lyric language de", score.Defaults)
+		}
+		if len(score.PartList) != 2 || score.PartList[0].PartGroup == nil {
+			t.Fatalf("PartList = %+v, want the group and then the part", score.PartList)
+		}
+		if group := score.PartList[0].PartGroup; group.Number != 2 || !group.GroupBarline {
+			t.Errorf("PartGroup = %+v, want number 2 with a group barline", *group)
+		}
+	})
+}
+
+// TestDeserializeReadsAnEmptyCreator covers an exporter that knows there is a
+// composer but not who: the element is there with nothing in it, which the
+// schema allows.
+func TestDeserializeReadsAnEmptyCreator(t *testing.T) {
+	score, err := parseString(t, exportedScore{identification: `<creator type="composer"/>`}.String())
+	if err != nil {
+		t.Fatalf("failed to parse a document with an empty creator: %v", err)
+	}
+	assertStrings(t, "composers", creatorsOfType(score, "composer"), []string{""})
+}
+
+// TestDeserializeReadsTheWholeText is about text that is not written down as
+// one piece. A CDATA section is text like any other, and a comment in the
+// middle of a title is not part of it — but neither of them ends it.
+func TestDeserializeReadsTheWholeText(t *testing.T) {
+	tests := map[string]struct {
+		title string
+		want  string
+	}{
+		"a CDATA section in the middle": {title: `Romeo <![CDATA[&]]> Juliet`, want: "Romeo & Juliet"},
+		"all of it a CDATA section":     {title: `<![CDATA[Romeo & Juliet]]>`, want: "Romeo & Juliet"},
+		"a comment in the middle":       {title: `Romeo<!-- and --> and Juliet`, want: "Romeo and Juliet"},
+		"a comment first":               {title: `<!-- t -->Romeo and Juliet`, want: "Romeo and Juliet"},
+		"a processing instruction":      {title: `Romeo and <?editor note?>Juliet`, want: "Romeo and Juliet"},
+		"an escaped character":          {title: `Romeo &amp; Juliet`, want: "Romeo & Juliet"},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			score, err := parseString(t, exportedScore{work: `<work-title>` + tt.title + `</work-title>`}.String())
+			if err != nil {
+				t.Fatalf("failed to parse: %v", err)
+			}
+			if score.Work == nil || score.Work.Title != tt.want {
+				t.Errorf("Work = %+v, want the title %q", score.Work, tt.want)
+			}
+		})
+	}
+
+	t.Run("in a creator", func(t *testing.T) {
+		score, err := parseString(t, exportedScore{
+			identification: `<creator type="composer"><!-- from catalogue -->Ludwig <![CDATA[van]]> Beethoven</creator>`,
+		}.String())
+		if err != nil {
+			t.Fatalf("failed to parse: %v", err)
+		}
+		assertStrings(t, "composers", creatorsOfType(score, "composer"), []string{"Ludwig van Beethoven"})
+	})
+}
+
+// TestDeserializeRejectsWhatIsNotAScore is the other side of skipping what is
+// not known: a document that is not well-formed, or not a partwise score at all,
+// is still refused.
+func TestDeserializeRejectsWhatIsNotAScore(t *testing.T) {
+	tests := map[string]string{
+		"another kind of document":                                  `<html><body>not a score</body></html>`,
+		"a timewise score":                                          `<score-timewise version="4.0"><work><work-title>T</work-title></work></score-timewise>`,
+		"something next to the score":                               `<score-partwise version="4.0"><work><work-title>T</work-title></work></score-partwise><extra/>`,
+		"an element left open":                                      `<score-partwise version="4.0"><work><work-title>T</work-title></work>`,
+		"elements closed out of order":                              `<score-partwise version="4.0"><work><work-title>T</work></work-title></score-partwise>`,
+		"an element closed out of order inside one that is skipped": `<score-partwise version="4.0"><defaults><concert-score><a></concert-score></a></defaults></score-partwise>`,
+		"text where an element should be":                           `<score-partwise version="4.0"><work>T</work></score-partwise>`,
+		"an element inside a title":                                 `<score-partwise version="4.0"><work><work-title>T<b>old</b></work-title></work></score-partwise>`,
+		"nothing at all":                                            ``,
+	}
+
+	for name, doc := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := parseString(t, doc); err == nil {
+				t.Errorf("parsing %s succeeded, want an error", name)
+			}
+		})
 	}
 }
 

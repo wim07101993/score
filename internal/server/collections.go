@@ -315,12 +315,14 @@ func saveCollectionEntryFailed(err error) error {
 // caller. It is the same person the sets know, asked for in the terms that
 // package uses: neither of them has to hear about how somebody proved who they
 // are.
+// The same goes for the address as for the sets: only one the provider has
+// verified is passed on.
 func collectionCallerOf(ctx context.Context) (collection.User, error) {
 	user, ok := ctx.Value(internal.UserInfoKey).(*oidc.UserInfo)
 	if !ok {
 		return collection.User{}, ErrNoUserInfo
 	}
-	return collection.NewUser(user.Subject, user.Email), nil
+	return collection.NewUser(user.Subject, user.VerifiedEmail()), nil
 }
 
 func mapCollectionToApi(stored *collection.Collection) (*api.Collection, error) {

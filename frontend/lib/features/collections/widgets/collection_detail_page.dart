@@ -326,8 +326,12 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     String? description,
     int? transposition,
   }) async {
+    // Through the repository held since the page loaded rather than looked up
+    // again: a note is also written as its field is thrown away, which can be
+    // as this page is being left, when there is no looking anything up.
+    final collections = _repository ?? AppScope.read(context).collections;
     try {
-      await AppScope.read(context).collections.saveEntry(
+      await collections.saveEntry(
             _collectionId,
             id: id,
             scoreId: scoreId,

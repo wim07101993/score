@@ -245,15 +245,22 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final context = _set;
     if (!mounted || context == null) return;
     final now = _sets.getSet(context.set.id);
+    if (identical(now, context.set)) return;
     final index =
         now?.entries.indexWhere((entry) => entry.id == context.entry.id) ?? -1;
-    if (now == null || index < 0 || identical(now, context.set)) return;
+    // Taken out of the set, or the set deleted, while it is on the stand: the
+    // score is still worth reading, but there is no running order around it
+    // any more to show a place in, or to keep a reading against.
+    if (now == null || index < 0) {
+      _letGoOfTheEntry();
+      return;
+    }
     final entry = now.entries[index];
     // The same check as when the page was opened: an entry written to play a
     // different score while this one is open is not this score's any more,
     // and neither are its key and its parts.
     if (entry.scoreId != _entryScoreId) {
-      _letGoOfTheEntry();
+      _letGoOfTheEntry(scannedAs: entry.scoreId);
       return;
     }
     setState(() {
@@ -269,14 +276,19 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   void _takeCollectionChanges() {
     final context = _collection;
     if (!mounted || context == null) return;
-    final now = context.refreshedFrom(
-      _collections.getCollection(context.collection.id),
-    );
-    if (identical(now.collection, context.collection)) return;
+    final latest = _collections.getCollection(context.collection.id);
+    if (identical(latest, context.collection)) return;
+    final now = context.refreshedFrom(latest);
     final before = context.entry;
     final piece = now.entry;
-    if (piece != null && piece.scoreId != _entryScoreId) {
+    // Taken out of the collection, or the collection deleted: see
+    // [_takeSetChanges].
+    if (identical(now, context)) {
       _letGoOfTheEntry();
+      return;
+    }
+    if (piece != null && piece.scoreId != _entryScoreId) {
+      _letGoOfTheEntry(scannedAs: piece.scoreId);
       return;
     }
     setState(() {
@@ -342,7 +354,28 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   ///
   /// Whatever was waiting to be kept is dropped rather than written: it would
   /// be written into an entry that is now some other song.
-  void _letGoOfTheEntry() {
+  ///
+  /// Except for one played from paper that has just been given its score
+  /// ([scannedAs]): that is still the same song of the same set, and what the
+  /// player wants is the score in its place — not to lose their place in the
+  /// running order over somebody having scanned it.
+  void _letGoOfTheEntry({String? scannedAs}) {
+    final set = _set;
+    final collection = _collection;
+    if (_isPaper && scannedAs != null && (set != null || collection != null)) {
+      final setId = set?.set.id;
+      final collectionId = setId == null ? collection?.collection.id : null;
+      final entryId = set?.entry.id ?? collection!.entryId;
+      Navigator.of(context).pushReplacementNamed(
+        widget.performing
+            ? AppRoute.perform(scannedAs,
+                setId: setId, collectionId: collectionId, entryId: entryId)
+            : AppRoute.score(scannedAs,
+                setId: setId, collectionId: collectionId, entryId: entryId),
+        arguments: AppRoute.renamed,
+      );
+      return;
+    }
     _keeping?.cancel();
     _keeping = null;
     setState(() {
@@ -860,6 +893,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     try {
       await app.scores.putMusicXml(scoreId, musicXml);
       if (!mounted) return;
+      if (_isNew && app.user?.isScoreViewer != true) {
+        // Its own address would only say this account may not read it. The
+        // page stays, for the next file.
+        _say('Uploaded.', briefly: true);
+        return;
+      }
       if (_isNew) {
         // Uploaded, it is a score like any other and is at its own address, so
         // that reloading it or keeping it opens this score rather than another
@@ -1056,7 +1095,11 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         ? (paperName.isEmpty ? 'Played from paper' : paperName)
         : score?.title ?? (_isNew ? 'New score' : 'Score');
 
-    if (!mayView) {
+    // Uploading takes being an editor, not a reader: the server lets a score
+    // be put by somebody who may not read it back, and an account kept for
+    // filling the library is exactly that.
+    final mayUpload = _isNew && app.user?.isScoreEditor == true;
+    if (!mayView && !mayUpload) {
       return Scaffold(
         appBar: AppBar(title: Text(title)),
         body: const Center(child: Text('Scores are for score viewers.')),

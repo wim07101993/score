@@ -276,12 +276,15 @@ func saveSetEntryFailed(err error) error {
 	return ErrSaveSetEntry.WithParent(err)
 }
 
+// callerOf is who is asking, as the sets know a caller. Only an address the
+// provider has verified is passed on: sets are shared by address, and one the
+// caller merely typed onto their account proves nothing about whose it is.
 func callerOf(ctx context.Context) (set.User, error) {
 	user, ok := ctx.Value(internal.UserInfoKey).(*oidc.UserInfo)
 	if !ok {
 		return set.User{}, ErrNoUserInfo
 	}
-	return set.NewUser(user.Subject, user.Email), nil
+	return set.NewUser(user.Subject, user.VerifiedEmail()), nil
 }
 
 func mapSetToApi(stored *set.Set) (*api.Set, error) {

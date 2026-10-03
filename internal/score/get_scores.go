@@ -36,6 +36,17 @@ func List(
 		scores = append(scores, score)
 	}
 
+	// Next answering false means the rows stopped, not that they ran out: a
+	// query that was cancelled, timed out, or lost its connection half way
+	// stops the loop just like the last row does, and only Err tells the two
+	// apart. Answering what came in before the break as if it were all of it
+	// is worse than answering nothing — a client that is told these are all
+	// the scores there are forgets the ones it was not told about, and one
+	// that asked for what changed moves on past the ones that were cut off.
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read the scores from the database: %w", err)
+	}
+
 	return scores, nil
 }
 

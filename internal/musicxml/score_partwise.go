@@ -25,7 +25,10 @@ func scorePartwise(r xml.TokenReader, element xml.StartElement) (score *ScorePar
 				}
 				return nil
 			default:
-				return &UnknownAttribute{element, attr}
+				// Not needed here; see ReadObject. The namespaces an exporter
+				// declares on the root, for one, are of no use to anything
+				// read out of the document.
+				return nil
 			}
 		},
 		func(el xml.StartElement) (err error) {
@@ -63,7 +66,8 @@ func scorePartwise(r xml.TokenReader, element xml.StartElement) (score *ScorePar
 				}
 				score.PartList, err = readPartList(r, el)
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

@@ -63,6 +63,12 @@ class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
 
   @override
   void dispose() {
+    // Thrown away while still being typed in, which says nothing about being
+    // done with it: on a phone, tapping "done" or going back does not take the
+    // focus off the field first, and the field is gone before it would hear.
+    // What was typed is kept rather than lost with it.
+    _focus.removeListener(_submitWhenLeft);
+    _submit(_controller.text);
     _focus.dispose();
     _controller.dispose();
     super.dispose();

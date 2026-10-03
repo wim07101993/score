@@ -10,9 +10,8 @@ type Work struct {
 func readWork(r xml.TokenReader, element xml.StartElement) (work *Work, err error) {
 	work = &Work{}
 	err = ReadObject(r, element,
-		func(attr xml.Attr) error {
-			return &UnknownAttribute{element, attr}
-		},
+		// None of its attributes are needed; see ReadObject.
+		nil,
 		func(el xml.StartElement) error {
 			switch el.Name.Local {
 			case "work-title":
@@ -26,7 +25,8 @@ func readWork(r xml.TokenReader, element xml.StartElement) (work *Work, err erro
 				}
 				work.Number, err = ReadString(r, el)
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

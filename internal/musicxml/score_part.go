@@ -24,7 +24,7 @@ func readScorePart(r xml.TokenReader, element xml.StartElement) (part *ScorePart
 			case "id":
 				part.Id = attr.Value
 			default:
-				return &UnknownAttribute{element, attr}
+				// Not needed here; see ReadObject.
 			}
 			return nil
 		},
@@ -53,7 +53,8 @@ func readScorePart(r xml.TokenReader, element xml.StartElement) (part *ScorePart
 				slog.Log(context.Background(), slog.LevelWarn, "midi instruments are not supported right now, we might in the future")
 				err = ReadUntilClose(r, el)
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

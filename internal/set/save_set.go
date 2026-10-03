@@ -54,12 +54,13 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 			-- and edits it is saying it should exist.
 			deletedAt = NULL`
 
+	now := time.Now().UTC()
 	_, err = tx.Exec(ctx, upsertSetQuery, pgx.NamedArgs{
 		"id":            setId,
 		"owner_subject": owner,
 		"title":         write.Title,
 		"description":   write.Description,
-		"lastChangedAt": time.Now().UTC(),
+		"lastChangedAt": now,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to save the set: %w", err)
@@ -71,11 +72,16 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 	// looked at the running order in a while cannot undo it by saying nothing
 	// about it.
 
+	shares := normalizedShares(write.SharedWith, user.Email)
+	if err := rememberUnshares(ctx, tx, setId, shares, now); err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(ctx, `DELETE FROM set_shares WHERE set_id = @set_id`, pgx.NamedArgs{"set_id": setId})
 	if err != nil {
 		return fmt.Errorf("failed to clear the shares of the set: %w", err)
 	}
-	for _, email := range normalizedShares(write.SharedWith, user.Email) {
+	for _, email := range shares {
 		_, err = tx.Exec(ctx,
 			`INSERT INTO set_shares (set_id, email) VALUES (@set_id, @email) ON CONFLICT DO NOTHING`,
 			pgx.NamedArgs{"set_id": setId, "email": email})
@@ -86,6 +92,37 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit the set: %w", err)
+	}
+	return nil
+}
+
+// rememberUnshares writes down who is being taken off the set, so that the
+// listing can tell them it is gone, and forgets that about whoever is being put
+// back on. It has to run before the shares are replaced: who is being taken off
+// is whoever is on it now and not in what it is being replaced with.
+//
+// Putting somebody back on forgets the note, so there is never an old one left
+// when they are taken off again; should one be there all the same, the later
+// moment is the one kept, since that is the one their devices have not heard
+// about yet.
+func rememberUnshares(ctx context.Context, tx pgx.Tx, setId string, shares []string, now time.Time) error {
+	const unsharedQuery = `
+		INSERT INTO set_unshares (set_id, email, unshared_at)
+		SELECT set_id, email, @now
+		FROM set_shares
+		WHERE set_id = @set_id AND NOT (email = ANY(@shares))
+		ON CONFLICT (set_id, email) DO UPDATE SET unshared_at = EXCLUDED.unshared_at`
+
+	_, err := tx.Exec(ctx, unsharedQuery, pgx.NamedArgs{"set_id": setId, "shares": shares, "now": now})
+	if err != nil {
+		return fmt.Errorf("failed to remember who the set is no longer shared with: %w", err)
+	}
+
+	_, err = tx.Exec(ctx,
+		`DELETE FROM set_unshares WHERE set_id = @set_id AND email = ANY(@shares)`,
+		pgx.NamedArgs{"set_id": setId, "shares": shares})
+	if err != nil {
+		return fmt.Errorf("failed to forget that the set was no longer shared: %w", err)
 	}
 	return nil
 }

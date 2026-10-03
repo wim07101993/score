@@ -43,6 +43,10 @@ type tokenState struct {
 	email   string
 	roles   map[string]any
 
+	// unverified is what the user-info endpoint reports as email_verified,
+	// turned round so that the zero value is the ordinary case.
+	unverified bool
+
 	// active is what the introspection endpoint reports.
 	active bool
 	// introspectionFails makes the introspection endpoint reject the API's own
@@ -91,6 +95,12 @@ type User struct {
 	Subject string
 	Name    string
 	Email   string
+
+	// Unverified puts the address on the account without the provider vouching
+	// for it, which is what an address somebody typed in and never confirmed
+	// looks like. Left false, the address is verified, as it is for nearly
+	// everybody.
+	Unverified bool
 }
 
 // IssueToken mints an active token for a user holding the given roles.
@@ -124,11 +134,12 @@ func (idp *IdentityProvider) IssueTokenFor(t *testing.T, user User, roles ...str
 	}
 
 	return idp.issue(t, &tokenState{
-		subject: user.Subject,
-		name:    user.Name,
-		email:   user.Email,
-		roles:   claimed,
-		active:  true,
+		subject:    user.Subject,
+		name:       user.Name,
+		email:      user.Email,
+		roles:      claimed,
+		active:     true,
+		unverified: user.Unverified,
 	})
 }
 
@@ -222,10 +233,11 @@ func (idp *IdentityProvider) handleUserInfo(res http.ResponseWriter, req *http.R
 	}
 
 	writeJson(res, http.StatusOK, map[string]any{
-		"sub":    state.subject,
-		"name":   state.name,
-		"email":  state.email,
-		RolesKey: state.roles,
+		"sub":            state.subject,
+		"name":           state.name,
+		"email":          state.email,
+		"email_verified": !state.unverified,
+		RolesKey:         state.roles,
 	})
 }
 

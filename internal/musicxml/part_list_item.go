@@ -9,9 +9,8 @@ type PartListItem struct {
 
 func readPartList(r xml.TokenReader, element xml.StartElement) (list []PartListItem, err error) {
 	err = ReadObject(r, element,
-		func(attr xml.Attr) error {
-			return &UnknownAttribute{element, attr}
-		},
+		// None of its attributes are needed; see ReadObject.
+		nil,
 		func(el xml.StartElement) error {
 			var item PartListItem
 			switch el.Name.Local {
@@ -20,9 +19,12 @@ func readPartList(r xml.TokenReader, element xml.StartElement) (list []PartListI
 			case "score-part":
 				item.ScorePart, err = readScorePart(r, el)
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
-			if err == nil {
+			// An element that was skipped is not an item: it would turn up as
+			// one that is neither a group nor a part.
+			if err == nil && (item.PartGroup != nil || item.ScorePart != nil) {
 				list = append(list, item)
 			}
 			return err

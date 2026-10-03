@@ -308,6 +308,12 @@ class OidcApi {
 
     try {
       final response = await credential.getTokenResponse(true);
+      // Signed out while the refresh was on its way — here or in another tab,
+      // since they share the store. Kept, the new tokens would sign the device
+      // back in as the user who just left it.
+      if (await _heldRefreshToken() == null) {
+        return null;
+      }
       await _keep(credential);
       return response.accessToken;
     } catch (error) {
@@ -638,6 +644,11 @@ class OidcApi {
 
     final claims = jsonDecode(response.body) as Map<String, dynamic>;
     final user = UserInfo.fromClaims(claims, _config.rolesKey);
+    // Signed out while the provider was being asked: who it says this is, is
+    // nobody this device should go on as.
+    if (!await holdsAToken()) {
+      return null;
+    }
     await _store.writeSetting(_userInfoKey, jsonEncode(user.toJson()));
     return user;
   }

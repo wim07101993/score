@@ -280,8 +280,12 @@ class _SetDetailPageState extends State<SetDetailPage> {
     int? transposition,
     int? position,
   }) async {
+    // Through the repository held since the page loaded rather than looked up
+    // again: a note is also written as its field is thrown away, which can be
+    // as this page is being left, when there is no looking anything up.
+    final sets = _repository ?? AppScope.read(context).sets;
     try {
-      await AppScope.read(context).sets.saveEntry(
+      await sets.saveEntry(
             _setId,
             id: id,
             scoreId: scoreId,

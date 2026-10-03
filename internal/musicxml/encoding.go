@@ -12,9 +12,8 @@ type Encoding struct {
 func readEncoding(r xml.TokenReader, element xml.StartElement) (encoding *Encoding, err error) {
 	encoding = &Encoding{}
 	err = ReadObject(r, element,
-		func(attr xml.Attr) error {
-			return &UnknownAttribute{element, attr}
-		},
+		// None of its attributes are needed; see ReadObject.
+		nil,
 		func(el xml.StartElement) error {
 			switch el.Name.Local {
 			case "encoding-date":
@@ -25,7 +24,8 @@ func readEncoding(r xml.TokenReader, element xml.StartElement) (encoding *Encodi
 			case "encoder", "software", "encoding-description", "supports":
 				err = ReadUntilClose(r, el) // IGNORE from which software the xml was written
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

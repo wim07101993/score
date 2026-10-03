@@ -21,7 +21,7 @@ func readInstrument(r xml.TokenReader, element xml.StartElement) (instr *Instrum
 			case "id":
 				instr.Id = attr.Value
 			default:
-				return &UnknownAttribute{element, attr}
+				// Not needed here; see ReadObject.
 			}
 			return nil
 		},
@@ -51,7 +51,8 @@ func readInstrument(r xml.TokenReader, element xml.StartElement) (instr *Instrum
 			case "virtual-instrument":
 				err = ReadUntilClose(r, el)
 			default:
-				err = &UnknownElement{element, el}
+				// Not needed here; see ReadObject.
+				err = ReadUntilClose(r, el)
 			}
 			return err
 		})

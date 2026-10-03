@@ -1,6 +1,6 @@
-import 'package:logging/logging.dart';
+import 'package:score/logging.dart';
 
-final _log = Logger('Background');
+final _log = appLogger('Background');
 
 /// Starts [work] and does not wait for it, saying so when it fails.
 ///

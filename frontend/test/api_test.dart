@@ -101,6 +101,32 @@ void main() {
     });
   });
 
+  test('a server without the endpoint has not refused anything', () {
+    // A backend older than the app, during a deploy or after a rollback: its
+    // own router answers, in the API's own words, that there is no such route.
+    for (final response in [
+      http.Response('{"errorCode":"endpoint_not_found"}', 404),
+      http.Response('{"errorCode":"method_not_allowed"}', 405),
+    ]) {
+      expect(
+        () => throwUnlessOk(response, 'save the view', ApiException.new),
+        throwsA(isA<ApiException>()
+            .having((error) => error.status, 'status', isNull)
+            .having((error) => error.isWorthRetrying, 'retried', isTrue)),
+      );
+    }
+    expect(
+      () => isNotThere(
+        http.Response('{"errorCode":"endpoint_not_found"}', 404),
+        const {'set_not_found', 'endpoint_not_found'},
+        'read the set',
+        ApiException.new,
+      ),
+      throwsA(isA<ApiException>()
+          .having((error) => error.isWorthRetrying, 'retried', isTrue)),
+    );
+  });
+
   test('passes an answer that comes through', () async {
     final answers = MockClient((request) async => http.Response('[]', 200));
     final client = TimingOutClient(answers, patience: patience);

@@ -1,14 +1,15 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:logging/logging.dart';
+import 'package:score/api.dart';
 import 'package:score/background.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/scores/api.dart';
 import 'package:score/features/scores/models.dart';
 import 'package:score/features/sembast/local_store.dart';
+import 'package:score/logging.dart';
 
-final _log = Logger('Scores');
+final _log = appLogger('Scores');
 
 /// The scores, as this device has them.
 ///
@@ -73,21 +74,23 @@ class ScoresRepository extends ChangeNotifier {
   /// Reads in everything that changed on the server since it last said
   /// anything, and fetches the documents of any score whose document this
   /// device is holding an old copy of.
-  Future<void> syncWithApi() async {
+  Future<void> syncWithApi() => _inTurn(_syncWithApi);
+
+  Future<void> _syncWithApi() async {
     final token = await _oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return;
     }
 
-    // The window is asked about up to this device's now, but where it is
-    // recorded to have ended is read off what the server answered: the server
-    // filters on its own clock, and a device whose clock runs ahead would
-    // otherwise record a watermark past edits the server has yet to make. The
+    // The window is asked about up to the end of time (see [endOfTime]), and
+    // where it is recorded to have ended is read off what the server answered:
+    // the server filters on its own clock, and a device whose clock runs ahead
+    // would otherwise record a watermark past edits it has yet to make. The
     // overlap takes in a change whose moment was set before the newest one in
     // the answer but that only became visible after it was given.
     final fromApi = await _api.listScores(
       _lastSyncedAt()?.subtract(syncOverlap),
-      DateTime.now(),
+      endOfTime,
       token,
     );
     if (fromApi.isEmpty) {
@@ -184,13 +187,19 @@ class ScoresRepository extends ChangeNotifier {
   ///
   /// Only what was here before asking is forgotten: a score that arrived while
   /// the answer was on its way is not in it, and is not gone.
-  Future<void> forgetWhatTheServerNoLongerHas() async {
+  Future<void> forgetWhatTheServerNoLongerHas() =>
+      _inTurn(_forgetWhatTheServerNoLongerHas);
+
+  Future<void> _forgetWhatTheServerNoLongerHas() async {
     final token = await _oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return;
     }
     final before = _scores.keys.toSet();
-    final fromApi = await _api.listScores(null, DateTime.now(), token);
+    // Up to no moment the server can have reached rather than up to this
+    // device's now: a device whose clock runs behind would otherwise not be
+    // told about the scores changed since its now, and forget them.
+    final fromApi = await _api.listScores(null, endOfTime, token);
     final there = {for (final json in fromApi) json['id']};
     final gone = before.difference(there);
     if (gone.isNotEmpty) {
@@ -200,6 +209,22 @@ class ScoresRepository extends ChangeNotifier {
     for (final scoreId in gone) {
       await _forget(scoreId);
     }
+  }
+
+  /// The sync running now, or the last one to have run.
+  Future<void> _running = Future.value();
+
+  /// Runs [sync] once the one before it is done, whether or not that one
+  /// went through.
+  ///
+  /// A sync and the search for what is gone both read the server and write
+  /// what they read here. Side by side, the one that answered last would write
+  /// over the other with what it read before the other wrote — a score just
+  /// forgotten brought back by a listing that was asked for before it was.
+  Future<void> _inTurn(Future<void> Function() sync) {
+    final turn = _running.then((_) => sync());
+    _running = turn.then((_) {}, onError: (Object _) {});
+    return turn;
   }
 
   /// How far back of the watermark a sync starts asking again. Whatever falls

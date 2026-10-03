@@ -3,6 +3,9 @@
 package integration_test
 
 import (
+	"context"
+	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +15,7 @@ import (
 	"score/test/integration_test/helpers"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -398,6 +402,69 @@ func TestListingScoresReturnsTheScoresInTheWindow(t *testing.T) {
 		assert.Subset(t, listed, []uuid.UUID{first, second},
 			"the window a client wrote in its own zone should hold what the same window holds in UTC")
 	})
+}
+
+// A listing whose query is stopped half way has to say so. Rows that stop
+// coming look the same as rows that ran out until somebody asks why they
+// stopped, and a client told that an empty or a short list is all there is
+// forgets every score it was not told about.
+//
+// The query is held up behind a lock on the table, so that it is still waiting
+// for its first row when it is cancelled. That lock would hold up every other
+// test that reads scores, which is why this one does not run in parallel: Go
+// runs the tests that do only once every test that does not has finished.
+func TestAListingThatIsCutOffIsNotAnsweredAsAShortList(t *testing.T) {
+	ctx := t.Context()
+
+	// Its own server and pool, of one connection under a name of its own: the
+	// listing below is then the only query that can be waiting under that name,
+	// and its statement is prepared on the connection by the listing before it,
+	// so the one that is cancelled is cancelled while it reads rather than
+	// while it is being prepared.
+	const applicationName = "score-test-cut-off-listing"
+	h := helpers.NewHarness(harness.DatabaseUrl +
+		"&pool_max_conns=1&application_name=" + applicationName)
+	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
+	raw := helpers.Ensure(t, h.RawClient, "RawClient")
+	token := idp.IssueToken(t, auth.RoleScoreViewer)
+
+	listing := helpers.Request{
+		Method: http.MethodGet,
+		Path: "/scores?Changes-Since=" + url.QueryEscape(aWhileAgo().Format(time.RFC3339)) +
+			"&Changes-Until=" + url.QueryEscape(soon().Format(time.RFC3339)),
+		Token: token,
+	}
+	require.Equal(t, http.StatusOK, raw.Do(t, listing).StatusCode, "a listing nothing stops should succeed")
+
+	locker, err := pgx.Connect(ctx, harness.DatabaseUrl)
+	require.NoError(t, err)
+	defer func() { _ = locker.Close(context.Background()) }()
+
+	lock, err := locker.Begin(ctx)
+	require.NoError(t, err)
+	defer func() { _ = lock.Rollback(context.Background()) }()
+	_, err = lock.Exec(ctx, "LOCK TABLE scores IN ACCESS EXCLUSIVE MODE")
+	require.NoError(t, err)
+
+	answered := make(chan helpers.Response, 1)
+	go func() { answered <- raw.Do(t, listing) }()
+
+	var pid int
+	require.Eventually(t, func() bool {
+		err := locker.QueryRow(ctx, `
+			SELECT pid FROM pg_stat_activity
+			WHERE application_name = $1 AND wait_event_type = 'Lock'`,
+			applicationName).Scan(&pid)
+		return err == nil
+	}, 10*time.Second, 25*time.Millisecond, "the listing never got as far as waiting on the lock")
+
+	_, err = locker.Exec(ctx, "SELECT pg_cancel_backend($1)", pid)
+	require.NoError(t, err)
+
+	res := <-answered
+	assert.GreaterOrEqualf(t, res.StatusCode, 500,
+		"a listing that was cancelled should fail rather than answer what it had, got %d: %s",
+		res.StatusCode, res.Text())
 }
 
 func mustListScores(t *testing.T, client *helpers.ApiClient, since, until time.Time) api.GetScoresResponse {
