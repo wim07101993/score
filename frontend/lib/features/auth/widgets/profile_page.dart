@@ -198,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ('Scores', '${app.scores.scores.length}'),
                   ('Sets', '${app.sets.sets.length}'),
                   (
-                    'Sets not sent yet',
+                    'Sets not synced yet',
                     owing.isEmpty
                         ? 'none'
                         : '${owing.length}: '

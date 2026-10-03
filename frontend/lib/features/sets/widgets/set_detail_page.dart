@@ -16,12 +16,14 @@ import 'package:score/features/sets/widgets/set_title_field.dart';
 import 'package:score/routes.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
+import 'package:score/widgets/error_snack_bar.dart';
 import 'package:score/widgets/keep_button.dart';
 import 'package:score/widgets/paper_entry_field.dart';
 import 'package:score/widgets/save_button.dart';
 import 'package:score/widgets/semitones.dart';
 import 'package:score/widgets/shared_with_field.dart';
 import 'package:score/widgets/show_all_parts_button.dart';
+import 'package:score/widgets/sync_status.dart';
 import 'package:score/widgets/unsaved_changes_guard.dart';
 import 'package:uuid/uuid.dart';
 
@@ -58,6 +60,16 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   /// Whether what has been typed says something the stored set does not.
   bool _dirty = false;
+
+  /// Whether the set is open to be changed, rather than to be read and played
+  /// from. Only ever for its owner.
+  ///
+  /// Read is what a set is opened as: on the day of the gig it is a running
+  /// order to play from, and a page full of fields and arrows is one a thumb
+  /// moves a song with by accident. A new set and an empty one open to be
+  /// changed instead — there is nothing to read in either, and the first
+  /// thing done with one is putting songs in it.
+  bool _editing = false;
   bool _loading = true;
 
   void Function(SyncProblem)? _problemListener;
@@ -106,18 +118,22 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
     if (!mounted) return;
     _readFromStored();
-    setState(() => _loading = false);
+    final stored = app.sets.getSet(_setId);
+    setState(() {
+      _loading = false;
+      _editing =
+          widget.setId == 'new' ||
+          (stored != null && stored.isOwner && stored.entries.isEmpty);
+    });
 
     // Giving up on an edit is the one thing this app does behind the player's
     // back, so it says so when it happens.
     _problemListener = (problem) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          '"${problem.title.isEmpty ? 'A set' : problem.title}" could not be'
-          ' saved on the server (${problem.action}), and the change has been'
-          ' taken back: ${problem.error.detail}',
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(
+        '"${problem.title.isEmpty ? 'A set' : problem.title}" could not be'
+        ' saved on the server (${problem.action}), and the change has been'
+        ' taken back: ${problem.error.detail}',
       ));
       if (problem.setId == _setId && !_dirty) {
         _readFromStored();
@@ -214,6 +230,25 @@ class _SetDetailPageState extends State<SetDetailPage> {
     }
   }
 
+  /// Back to reading the set. What has been typed into its title, its
+  /// description or who it is shared with is saved first; a save that did not
+  /// go through leaves the set open, with what was typed still there.
+  Future<void> _stopEditing() async {
+    if (_dirty) await _save();
+    if (!mounted || _dirty) return;
+    setState(() => _editing = false);
+  }
+
+  /// Plays the set from its first song.
+  void _playFrom(SetEntry entry) {
+    final scoreId = entry.scoreId;
+    Navigator.of(context).pushNamed(
+      scoreId == null
+          ? AppRoute.paper(setId: _setId, entryId: entry.id)
+          : AppRoute.perform(scoreId, setId: _setId, entryId: entry.id),
+    );
+  }
+
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -262,19 +297,18 @@ class _SetDetailPageState extends State<SetDetailPage> {
   }
 
   void _say(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(message));
   }
 
   String _stateOf(ScoreSet? set) {
     if (!_isOwner) {
       return set?.owesAnything == true
-          ? 'shared with you — your reading is not sent yet'
+          ? 'shared with you — your reading is not synced yet'
           : 'shared with you';
     }
     if (_dirty) return 'not saved';
     if (set == null) return 'new set';
-    if (set.owesAnything) return 'saved here, not sent yet';
+    if (set.owesAnything) return 'saved here, not synced yet';
     return 'saved';
   }
 
@@ -449,53 +483,208 @@ class _SetDetailPageState extends State<SetDetailPage> {
     return UnsavedChangesGuard(
       unsaved: _dirty,
       child: ListenableBuilder(
-      listenable: app.sets,
-      builder: (context, _) {
-        final set = _stored;
-        final owner = _isOwner;
+        listenable: app.sets,
+        builder: (context, _) {
+          final set = _stored;
+          final owner = _isOwner;
+          final editing = owner && _editing;
 
-        // A set asked for by its id that the sync could not bring in — the
-        // device is offline, or the set is not shared with this user — is not
-        // a new set to be written under that id. Saved, it would be sent over
-        // the one the server has, with none of its description or its shares.
-        if (!_loading && widget.setId != 'new' && set == null) {
+          // A set asked for by its id that the sync could not bring in — the
+          // device is offline, or the set is not shared with this user — is not
+          // a new set to be written under that id. Saved, it would be sent over
+          // the one the server has, with none of its description or its shares.
+          if (!_loading && widget.setId != 'new' && set == null) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Set')),
+              body: _NotOnThisDevice(onRetry: _retry),
+            );
+          }
+
           return Scaffold(
-            appBar: AppBar(title: const Text('Set')),
-            body: _NotOnThisDevice(onRetry: _retry),
-          );
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(set?.displayTitle ?? 'New set'),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(child: Text(_stateOf(set))),
-              ),
-              if (owner) SaveButton(onPressed: _dirty ? _save : null),
-            ],
-          ),
-          body: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _about(owner),
-                    const SizedBox(height: 24),
-                    _entries(app, set, owner),
-                    const SizedBox(height: 24),
-                    if (owner && _isStored) _picker(app),
-                    if (owner) ...[
-                      const SizedBox(height: 24),
-                      _sharing(),
-                      const SizedBox(height: 32),
-                      if (_isStored) DeleteSetButton(onPressed: _delete),
-                    ],
-                  ],
+            appBar: AppBar(
+              title: Text(set?.displayTitle ?? 'New set'),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SyncStatus(
+                    label: _stateOf(set),
+                    unsynced: set?.owesAnything == true && !_dirty,
+                    whyNotSynced: () => app.sets.whyNotSynced(_setId),
+                    apiCanBeReached: app.setsApi.canBeReached,
+                    sync: app.updateSets,
+                  ),
                 ),
-        );
-      },
+                if (editing) SaveButton(onPressed: _dirty ? _save : null),
+                if (editing && _isStored)
+                  IconButton(
+                    tooltip: 'Done changing it',
+                    icon: const Icon(Icons.check),
+                    onPressed: _stopEditing,
+                  ),
+                if (owner && !editing)
+                  IconButton(
+                    tooltip: 'Change the set',
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => setState(() => _editing = true),
+                  ),
+              ],
+            ),
+            body: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : !editing && set != null
+                ? _SetOverview(
+                    set: set,
+                    owner: owner,
+                    scoreOf: app.scores.getScore,
+                    onPlay: _playFrom,
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _about(owner),
+                      const SizedBox(height: 24),
+                      _entries(app, set, owner),
+                      const SizedBox(height: 24),
+                      if (owner && _isStored) _picker(app),
+                      if (owner) ...[
+                        const SizedBox(height: 24),
+                        _sharing(),
+                        const SizedBox(height: 32),
+                        if (_isStored) DeleteSetButton(onPressed: _delete),
+                      ],
+                    ],
+                  ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// A set to read and play from: what the gig is, and its running order, each
+/// song a tap away from the stand.
+class _SetOverview extends StatelessWidget {
+  const _SetOverview({
+    required this.set,
+    required this.owner,
+    required this.scoreOf,
+    required this.onPlay,
+  });
+
+  final ScoreSet set;
+  final bool owner;
+  final Score? Function(String scoreId) scoreOf;
+  final void Function(SetEntry entry) onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final entries = set.entries;
+    final description = set.description.trim();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (description.isNotEmpty) ...[
+          Text(description),
+          const SizedBox(height: 16),
+        ],
+        if (entries.isNotEmpty) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              onPressed: () => onPlay(entries.first),
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Play from the start'),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        Text('Played in this order', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        if (entries.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              owner
+                  ? 'Nothing in this set yet. Change the set to add the scores'
+                        ' that are played, or add them from the list of scores.'
+                  : 'Nothing in this set yet.',
+            ),
+          )
+        else
+          for (final (index, entry) in entries.indexed)
+            _OverviewRow(
+              position: index + 1,
+              entry: entry,
+              score: switch (entry.scoreId) {
+                final scoreId? => scoreOf(scoreId),
+                null => null,
+              },
+              onTap: () => onPlay(entry),
+            ),
+        if (owner && set.sharedWith.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text('Shared with', style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(set.sharedWith.join(', ')),
+        ],
+      ],
+    );
+  }
+}
+
+/// One song of the running order, as it is read: which song, what the set
+/// says next to it, and the key the band plays it in.
+class _OverviewRow extends StatelessWidget {
+  const _OverviewRow({
+    required this.position,
+    required this.entry,
+    required this.score,
+    required this.onTap,
+  });
+
+  final int position;
+  final SetEntry entry;
+  final Score? score;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = TextStyle(
+      color: theme.colorScheme.outline,
+      fontStyle: FontStyle.italic,
+    );
+    final band = entry.transposition;
+    final details = [
+      if (entry.description.trim().isNotEmpty) entry.description.trim(),
+      if (band != 0) 'band ${band > 0 ? '+' : ''}$band',
+    ].join(' · ');
+
+    // A card of its own, with room inside it, the way a score is in the list
+    // of scores: a row that runs to the edges of the page has nothing to show
+    // where it can be tapped.
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        leading: SizedBox(
+          width: 28,
+          child: Text('$position.', style: theme.textTheme.labelLarge),
+        ),
+        title: switch ((entry.scoreId, score)) {
+          (_, final score?) => Text(score.title),
+          (null, _) => Text('Played from paper', style: muted),
+          (final scoreId?, _) => Tooltip(
+            message: scoreId,
+            child: Text('Not on this device yet', style: muted),
+          ),
+        },
+        subtitle: details.isEmpty ? null : Text(details),
+        trailing: const Icon(Icons.play_arrow),
+        onTap: onTap,
       ),
     );
   }
@@ -572,8 +761,7 @@ class _EntryCard extends StatelessWidget {
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('How you read this one could not be saved:'
-              ' $error')),
+          errorSnackBar('How you read this one could not be saved: $error'),
         );
       }
     }
@@ -598,32 +786,43 @@ class _EntryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: switch ((entry.scoreId, score)) {
-                    (_, final score?) =>
-                      Text(score.title, style: theme.textTheme.titleSmall),
-                    (null, _) => Text('Played from paper',
-                        style: TextStyle(
-                            color: theme.colorScheme.outline,
-                            fontStyle: FontStyle.italic)),
-                    (final scoreId?, _) => Tooltip(
-                        message: scoreId,
-                        child: Text('Not on this device yet',
-                            style: TextStyle(
-                                color: theme.colorScheme.outline,
-                                fontStyle: FontStyle.italic)),
+                    (_, final score?) => Text(
+                      score.title,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    (null, _) => Text(
+                      'Played from paper',
+                      style: TextStyle(
+                        color: theme.colorScheme.outline,
+                        fontStyle: FontStyle.italic,
                       ),
+                    ),
+                    (final scoreId?, _) => Tooltip(
+                      message: scoreId,
+                      child: Text(
+                        'Not on this device yet',
+                        style: TextStyle(
+                          color: theme.colorScheme.outline,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
                   },
                 ),
                 OpenScoreButton(
                   onPressed: switch (entry.scoreId) {
                     final scoreId? => () => Navigator.of(context).pushNamed(
-                          AppRoute.score(scoreId,
-                              setId: setId, entryId: entry.id),
-                        ),
+                      AppRoute.perform(
+                        scoreId,
+                        setId: setId,
+                        entryId: entry.id,
+                      ),
+                    ),
                     // A song with no score opens all the same, as the song it
                     // is in the running order, with the way on to the next.
                     null => () => Navigator.of(context).pushNamed(
-                          AppRoute.paper(setId: setId, entryId: entry.id),
-                        ),
+                      AppRoute.paper(setId: setId, entryId: entry.id),
+                    ),
                   },
                 ),
                 if (owner) ...[

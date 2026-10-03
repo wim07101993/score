@@ -1,11 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:score/background.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/scores/api.dart';
 import 'package:score/features/scores/models.dart';
 import 'package:score/features/sembast/local_store.dart';
+
+final _log = Logger('Scores');
 
 /// The scores, as this device has them.
 ///
@@ -125,6 +128,12 @@ class ScoresRepository extends ChangeNotifier {
         }
 
         final musicXml = await _api.getScoreMusicXml(score.id, accessToken);
+        if (musicXml == null) {
+          _log.info('the server no longer has score ${score.id}; forgetting it');
+          // Listed a moment ago and gone by now: nothing left to refresh.
+          await _forget(score.id);
+          continue;
+        }
         await _store.writeMusicXml(score.id, musicXml);
         // Onto the score as it is now rather than as it was before the
         // download: it may have been opened meanwhile, and a copy from before
@@ -133,10 +142,10 @@ class ScoresRepository extends ChangeNotifier {
           (_scores[score.id] ?? score)
               .copyWith(lastFetchedFileAt: _fetchedAt(score)),
         ]);
-      } catch (error) {
+      } catch (error, stackTrace) {
         // The others are still worth fetching, but this window is not done.
-        debugPrint('the document of ${score.id} could not be refreshed: '
-            '$error');
+        _log.warning('the document of ${score.id} could not be refreshed',
+            error, stackTrace);
         refreshedAll = false;
       }
     }
@@ -162,6 +171,35 @@ class ScoresRepository extends ChangeNotifier {
         (_scores[score.id] ?? score).copyWith(lastSyncedAt: until),
     ];
     await _keep(incoming);
+  }
+
+  /// Forgets every score this device knows that the server does not.
+  ///
+  /// [syncWithApi] only ever hears what changed, never what is gone, so a score
+  /// the server no longer has — removed from its database, or from another
+  /// server altogether — would stay in the list for good, and every set or
+  /// collection it is put into would be refused for naming it. This asks for
+  /// every score there is instead, which is more than a sync should cost, and
+  /// so is only done when the player asks for everything to be synced.
+  ///
+  /// Only what was here before asking is forgotten: a score that arrived while
+  /// the answer was on its way is not in it, and is not gone.
+  Future<void> forgetWhatTheServerNoLongerHas() async {
+    final token = await _oidc.getActiveAccessToken(signIn: false);
+    if (token == null) {
+      return;
+    }
+    final before = _scores.keys.toSet();
+    final fromApi = await _api.listScores(null, DateTime.now(), token);
+    final there = {for (final json in fromApi) json['id']};
+    final gone = before.difference(there);
+    if (gone.isNotEmpty) {
+      _log.info('the server no longer has ${gone.length} of the scores on this'
+          ' device; forgetting them: ${gone.join(', ')}');
+    }
+    for (final scoreId in gone) {
+      await _forget(scoreId);
+    }
   }
 
   /// How far back of the watermark a sync starts asking again. Whatever falls
@@ -219,6 +257,15 @@ class ScoresRepository extends ChangeNotifier {
     }
     await _store.writeScores([for (final score in toStore) score.toJson()]);
     notifyListeners();
+  }
+
+  /// Forgets a score the server said it does not have, document and all.
+  Future<void> _forget(String scoreId) async {
+    await _store.forgetScore(scoreId);
+    if (_scores.remove(scoreId) != null) {
+      _sorted = null;
+      notifyListeners();
+    }
   }
 
   /// The score with the given id, asking the API for that one score when it is
@@ -280,6 +327,18 @@ class ScoresRepository extends ChangeNotifier {
     }
 
     final musicXml = await _api.getScoreMusicXml(scoreId, token);
+    if (musicXml == null) {
+      _log.info('the server no longer has score $scoreId; forgetting it');
+      // A listing only ever says what changed, never what was removed, so a
+      // score the server no longer has stays in the list until it is asked for
+      // by its id. It has been asked for now, and is forgotten.
+      await _forget(scoreId);
+      throw ScoresApiException(
+        'This score is no longer on the server, and has been removed from this'
+        ' device.',
+        404,
+      );
+    }
     await _store.writeMusicXml(scoreId, musicXml);
 
     // The document is in hand by now, and what follows is only which version
@@ -293,8 +352,9 @@ class ScoresRepository extends ChangeNotifier {
               .copyWith(lastFetchedFileAt: _fetchedAt(score)),
         ]);
       }
-    } catch (error) {
-      debugPrint('the score $scoreId could not be read back: $error');
+    } catch (error, stackTrace) {
+      _log.warning('the score $scoreId could not be read back', error,
+          stackTrace);
     }
     return musicXml;
   }
@@ -321,10 +381,11 @@ class ScoresRepository extends ChangeNotifier {
           score.copyWith(lastFetchedFileAt: before ?? DateTime.utc(1970)),
         ]);
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
       // The upload itself went through; the score is read in on the next sync
       // and its document fetched when it is next opened.
-      debugPrint('the score $scoreId could not be read back: $error');
+      _log.warning('the score $scoreId could not be read back', error,
+          stackTrace);
     }
   }
 

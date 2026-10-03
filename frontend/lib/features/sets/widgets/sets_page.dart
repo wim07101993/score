@@ -3,6 +3,7 @@ import 'package:score/app.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/routes.dart';
 import 'package:score/widgets/offline_notice.dart';
+import 'package:score/widgets/sync_button.dart';
 
 /// The sets there are.
 ///
@@ -47,7 +48,10 @@ class _SetsPageState extends State<SetsPage> {
     final mayView = app.user?.isScoreViewer == true;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sets')),
+      appBar: AppBar(
+        title: const Text('Sets'),
+        actions: [if (mayView) const SyncButton()],
+      ),
       floatingActionButton: mayView
           ? FloatingActionButton.extended(
               onPressed: () =>
@@ -117,7 +121,7 @@ class _SetCard extends StatelessWidget {
   /// see it" apart.
   String get _state {
     if (!set.isOwner) return 'shared with you';
-    if (set.owesAnything) return 'not sent yet';
+    if (set.owesAnything) return 'not synced yet';
     if (set.sharedWith.isNotEmpty) return 'shared with ${set.sharedWith.length}';
     return '';
   }

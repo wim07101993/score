@@ -15,9 +15,9 @@ class UploadScoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: replacing ? 'Replace this score' : 'Upload',
+    return OutlinedButton.icon(
       icon: const Icon(Icons.upload_file),
+      label: Text(replacing ? 'Replace this score' : 'Upload a score'),
       onPressed: onPressed,
     );
   }

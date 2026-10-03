@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:score/config.dart';
 
 void main() {
@@ -14,15 +14,15 @@ void main() {
         ...more,
       };
 
-  // What debugPrint was told while [body] ran.
+  // What was logged while [body] ran.
   List<String> printed(void Function() body) {
     final lines = <String>[];
-    final original = debugPrint;
-    debugPrint = (message, {wrapWidth}) => lines.add('$message');
+    final listening = Logger.root.onRecord
+        .listen((record) => lines.add(record.message));
     try {
       body();
     } finally {
-      debugPrint = original;
+      listening.cancel();
     }
     return lines;
   }

@@ -3,6 +3,7 @@ import 'package:score/app.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/routes.dart';
 import 'package:score/widgets/offline_notice.dart';
+import 'package:score/widgets/sync_button.dart';
 
 /// The collections there are.
 ///
@@ -47,7 +48,10 @@ class _CollectionsPageState extends State<CollectionsPage> {
     final mayView = app.user?.isScoreViewer == true;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Collections')),
+      appBar: AppBar(
+        title: const Text('Collections'),
+        actions: [if (mayView) const SyncButton()],
+      ),
       floatingActionButton: mayView
           ? FloatingActionButton.extended(
               onPressed: () =>
@@ -119,7 +123,7 @@ class _CollectionCard extends StatelessWidget {
   /// can see it" apart.
   String get _state {
     if (!collection.isOwner) return 'shared with you';
-    if (collection.owesAnything) return 'not sent yet';
+    if (collection.owesAnything) return 'not synced yet';
     if (collection.sharedWith.isNotEmpty) {
       return 'shared with ${collection.sharedWith.length}';
     }

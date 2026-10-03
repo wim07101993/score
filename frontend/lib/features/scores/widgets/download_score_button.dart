@@ -29,44 +29,77 @@ class DownloadScoreButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final asOnScreen = onDownloadAsOnScreen;
     if (asOnScreen == null) {
-      return IconButton(
-        tooltip: 'Download the score file',
+      return OutlinedButton.icon(
         icon: const Icon(Icons.download),
+        label: const Text('Download'),
         onPressed: onDownloadAsWritten,
       );
     }
 
-    return PopupMenuButton<VoidCallback>(
-      tooltip: 'Download the score file',
-      icon: const Icon(Icons.download),
-      enabled: onDownloadAsWritten != null,
-      onSelected: (download) => download(),
-      itemBuilder: (context) => [
+    return MenuAnchor(
+      builder: (context, menu, _) => OutlinedButton.icon(
+        icon: const Icon(Icons.download),
+        label: const Text('Download'),
+        onPressed: onDownloadAsWritten == null
+            ? null
+            : () => menu.isOpen ? menu.close() : menu.open(),
+      ),
+      menuChildren: [
         // As written first: it is the one that is the score, and the one an
         // editor who means to correct it and put it back wants.
-        PopupMenuItem(
-          value: onDownloadAsWritten,
-          child: const ListTile(
-            leading: Icon(Icons.description_outlined),
-            title: Text('Score file, as written (.musicxml)'),
-            subtitle: Text(
-              'The score itself, as it was uploaded. It opens in other music'
-              ' software and can be uploaded here again.',
-            ),
-          ),
+        _Choice(
+          onPressed: onDownloadAsWritten,
+          icon: Icons.description_outlined,
+          title: 'Score file, as written (.musicxml)',
+          subtitle: 'The score itself, as it was uploaded. It opens in other'
+              ' music software and can be uploaded here again.',
         ),
-        PopupMenuItem(
-          value: asOnScreen,
-          child: const ListTile(
-            leading: Icon(Icons.visibility_outlined),
-            title: Text('Score file, as on screen (.musicxml)'),
-            subtitle: Text(
-              'In the key you are reading it in, without the parts you have'
-              ' hidden. Not the original: do not upload it over this score.',
-            ),
-          ),
+        _Choice(
+          onPressed: asOnScreen,
+          icon: Icons.visibility_outlined,
+          title: 'Score file, as on screen (.musicxml)',
+          subtitle: 'In the key you are reading it in, without the parts you'
+              ' have hidden. Not the original: do not upload it over this'
+              ' score.',
         ),
       ],
+    );
+  }
+}
+
+/// One of the two files the menu offers.
+class _Choice extends StatelessWidget {
+  const _Choice({
+    required this.onPressed,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return MenuItemButton(
+      onPressed: onPressed,
+      leadingIcon: Icon(icon),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

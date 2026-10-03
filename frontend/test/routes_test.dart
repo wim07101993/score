@@ -93,7 +93,45 @@ void main() {
       expect(
         AppRoute.stackFor('/scores/perform.html?set=def&entry=ghi')
             .map((route) => route.path),
-        ['/', '/sets', '/sets/def', '/scores/paper?set=def&entry=ghi'],
+        ['/', '/sets', '/sets/def', '/scores/paper/perform?set=def&entry=ghi'],
+      );
+    });
+
+    test('a score is played from its own address', () {
+      final route = AppRoute.parse('/scores/abc/perform?set=def&entry=ghi');
+
+      expect(
+        route,
+        isA<ScoreDetailRoute>()
+            .having((r) => r.scoreId, 'scoreId', 'abc')
+            .having((r) => r.setId, 'setId', 'def')
+            .having((r) => r.performing, 'performing', isTrue),
+      );
+      expect(route.path, '/scores/abc/perform?set=def&entry=ghi');
+      expect(
+        AppRoute.parse('/scores/abc'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.performing, 'performing', isFalse),
+      );
+    });
+
+    test('a link the old app made to play a score still plays it', () {
+      expect(
+        AppRoute.parse('/scores/perform.html?id=abc'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.performing, 'performing', isTrue),
+      );
+      expect(
+        AppRoute.parse('/scores/detail.html?id=abc'),
+        isA<ScoreDetailRoute>()
+            .having((r) => r.performing, 'performing', isFalse),
+      );
+    });
+
+    test('a score played on its own is left for its details', () {
+      expect(
+        AppRoute.stackFor('/scores/abc/perform').map((route) => route.path),
+        ['/', '/scores/abc', '/scores/abc/perform'],
       );
     });
 

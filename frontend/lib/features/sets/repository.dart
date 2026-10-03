@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/sembast/local_store.dart';
 import 'package:score/features/sets/api.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sync/engine.dart';
 import 'package:uuid/uuid.dart';
+
+final _log = Logger('Sets');
 
 /// The sets, as this device has them.
 ///
@@ -37,6 +40,10 @@ class SetsRepository extends ChangeNotifier {
   List<ScoreSet> get sets => _sync.all;
 
   ScoreSet? getSet(String setId) => _sync.get(setId);
+
+  /// Why what is owed about one set was not synced the last time it was
+  /// tried: see [SyncEngine.whyNotSynced].
+  Object? whyNotSynced(String id) => _sync.whyNotSynced(id);
 
   /// Whether anything here is still owed to the server.
   bool get hasPendingChanges => _sync.hasPendingChanges;
@@ -350,10 +357,14 @@ class _Sets
         for (final entry in json['entries'] as List? ?? const [])
           '${(entry as Map)['id']}',
       ];
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (error is SetsApiException) await engine.forgetTokenIfRefused(error);
-      debugPrint('the running order of set ${set.id} could not be read; what'
-          ' is owed about its songs stays queued: $error');
+      _log.warning(
+        'the running order of set ${set.id} could not be read; what is owed'
+        ' about its songs stays queued',
+        error,
+        stackTrace,
+      );
       return null;
     }
   }

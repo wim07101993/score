@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 import 'package:score/api.dart';
 import 'package:score/background.dart';
 import 'package:score/config.dart';
@@ -13,6 +14,8 @@ import 'package:score/features/sembast/local_store.dart';
 import 'package:score/features/sets/api.dart';
 import 'package:score/features/sets/repository.dart';
 import 'package:score/features/settings/settings.dart';
+
+final _log = Logger('App');
 
 /// Everything the app is made of, wired together once.
 ///
@@ -145,6 +148,8 @@ class App extends ChangeNotifier {
       oidc.forgetSignInFailure();
     }
     if (!await oidc.canBeReached()) {
+      _log.info('the sign-in provider cannot be reached; going on as who this'
+          ' device last knew');
       user = await oidc.keptUserInfo();
       userIsFromThisDevice = true;
       authProblem = null;
@@ -156,6 +161,7 @@ class App extends ChangeNotifier {
       final asked = await oidc.getUserInfo();
       if (asked != null) {
         await _takeTheDataHereFor(asked);
+        _log.info('signed in as ${asked.subject}');
         user = asked;
         userIsFromThisDevice = false;
       } else {
@@ -163,12 +169,14 @@ class App extends ChangeNotifier {
         // failed — which says nothing about who uses this device. The copy it
         // kept is still who it was, and the scores downloaded for them are no
         // less readable for it; only forgetting the user forgets them.
+        _log.info('no sign-in to ask the provider with; going on as who this'
+            ' device last knew');
         user = await oidc.keptUserInfo();
         userIsFromThisDevice = user != null;
       }
       authProblem = oidc.signInFailure;
-    } catch (error) {
-      debugPrint('failed to ask the provider who this is: $error');
+    } catch (error, stackTrace) {
+      _log.warning('failed to ask the provider who this is', error, stackTrace);
       user = await oidc.keptUserInfo();
       userIsFromThisDevice = true;
       authProblem = error;
@@ -218,7 +226,7 @@ class App extends ChangeNotifier {
     final owner = await oidc.dataOwner();
     if (owner == subject) return;
     if (owner != null) {
-      debugPrint('another user signed in; forgetting the sets and collections'
+      _log.info('another user signed in; forgetting the sets and collections'
           ' the last one left on this device');
       await sets.forgetAll();
       await collections.forgetAll();
@@ -241,10 +249,26 @@ class App extends ChangeNotifier {
       return;
     }
     try {
+      _log.fine('syncing the scores');
       await scores.syncWithApi();
       await _sayIfNoLongerSignedIn();
-    } catch (error) {
-      debugPrint('failed to sync the scores: $error');
+    } catch (error, stackTrace) {
+      _log.warning('failed to sync the scores', error, stackTrace);
+      await _forgetTokenIfRefused(error);
+    }
+  }
+
+  Future<void> _syncEveryScore() async {
+    await _updateScores();
+    if (!await scoresApi.canBeReached() || !await oidc.canBeReached()) {
+      return;
+    }
+    try {
+      await scores.forgetWhatTheServerNoLongerHas();
+      await _sayIfNoLongerSignedIn();
+    } catch (error, stackTrace) {
+      _log.warning(
+          'failed to look for the scores that are gone', error, stackTrace);
       await _forgetTokenIfRefused(error);
     }
   }
@@ -258,10 +282,11 @@ class App extends ChangeNotifier {
       return;
     }
     try {
+      _log.fine('syncing the sets');
       await sets.syncWithApi();
       await _sayIfNoLongerSignedIn();
-    } catch (error) {
-      debugPrint('failed to sync the sets: $error');
+    } catch (error, stackTrace) {
+      _log.warning('failed to sync the sets', error, stackTrace);
       await _forgetTokenIfRefused(error);
     }
   }
@@ -307,15 +332,31 @@ class App extends ChangeNotifier {
   Future<void> updateCollections() =>
       _oneAtATime('collections', _updateCollections);
 
+  /// Squares the scores, the sets and the collections with the API, one after
+  /// the other: what the player asks for with the sync button. Never throws,
+  /// as none of the syncs it is made of do.
+  ///
+  /// Unlike the sync a page asks for, this also forgets the scores the server
+  /// no longer has: see [ScoresRepository.forgetWhatTheServerNoLongerHas].
+  Future<void> syncEverything() async {
+    // A kind of its own: one asked for while a page's sync of the scores is
+    // running would otherwise be folded into the next one of those, and that
+    // one does not look for what is gone.
+    await _oneAtATime('every score', _syncEveryScore);
+    await updateSets();
+    await updateCollections();
+  }
+
   Future<void> _updateCollections() async {
     if (!await collectionsApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
+      _log.fine('syncing the collections');
       await collections.syncWithApi();
       await _sayIfNoLongerSignedIn();
-    } catch (error) {
-      debugPrint('failed to sync the collections: $error');
+    } catch (error, stackTrace) {
+      _log.warning('failed to sync the collections', error, stackTrace);
       await _forgetTokenIfRefused(error);
     }
   }

@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('Config');
 
 /// What the app has to be told before it can do anything: where the API is, and
 /// how a user proves who they are.
@@ -84,7 +87,7 @@ class OidcConfig {
       // with a redirect_uri mismatch and nothing on the device says why, so it
       // is said here. A release does not even build without one (see
       // .github/workflows/release.yaml).
-      debugPrint('the config has no nativeClientId, so this device signs in as '
+      _log.warning('the config has no nativeClientId, so this device signs in as '
           'the web client ${json['clientId']}; the provider will refuse that '
           'unless the redirect addresses of a device are registered on it too');
     }
