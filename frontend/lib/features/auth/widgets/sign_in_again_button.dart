@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Forgets the tokens and the roles this device is holding, and starts over.
-class SignInAgainButton extends StatelessWidget {
-  const SignInAgainButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const SignInAgainButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(

@@ -18,17 +18,11 @@ final _log = GetIt.I<Logger>(param1: 'Scores');
 /// network to draw. That is what makes the app work on a stage, and it is why
 /// this is the only thing a page talks to: the API and the store are both
 /// behind it.
-class ScoresRepository extends ChangeNotifier {
-  ScoresRepository(
-    this._store,
-    this._api,
-    this._oidc,
-  );
-
-  final LocalStore _store;
-  final ScoresApi _api;
-  final OidcApi _oidc;
-
+class ScoresRepository({
+  required final LocalStore store,
+  required final ScoresApi api,
+  required final OidcApi oidc,
+}) extends ChangeNotifier {
   final Map<String, Score> _scores = {};
 
   /// [scores] as it was last sorted, or null when [_scores] has changed since.
@@ -60,8 +54,8 @@ class ScoresRepository extends ChangeNotifier {
   Score? getScore(String scoreId) => _scores[scoreId];
 
   Future<void> init() async {
-    for (final record in await _store.readScores()) {
-      final score = Score.fromJson(record);
+    for (final record in await store.readScores()) {
+      final score = Score.fromJson(json: record);
       _scores[score.id] = score;
     }
     _sorted = null;
@@ -78,7 +72,7 @@ class ScoresRepository extends ChangeNotifier {
   Future<void> syncWithApi() => _inTurn(_syncWithApi);
 
   Future<void> _syncWithApi() async {
-    final token = await _oidc.getActiveAccessToken(signIn: false);
+    final token = await oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return;
     }
@@ -89,7 +83,7 @@ class ScoresRepository extends ChangeNotifier {
     // would otherwise record a watermark past edits it has yet to make. The
     // overlap takes in a change whose moment was set before the newest one in
     // the answer but that only became visible after it was given.
-    final fromApi = await _api.listScores(
+    final fromApi = await api.listScores(
       _lastSyncedAt()?.subtract(syncOverlap),
       endOfTime,
       token,
@@ -103,7 +97,7 @@ class ScoresRepository extends ChangeNotifier {
     // made stale are fetched too.
     var incoming = [
       for (final json in fromApi)
-        Score.fromApi(json, existing: _scores[json['id']]),
+        Score.fromApi(json: json, existing: _scores[json['id']]),
     ];
     await _keep(incoming);
 
@@ -118,27 +112,27 @@ class ScoresRepository extends ChangeNotifier {
         // No version recorded is not the same as no document held: one that
         // was stored before its details could be read back has none, and is
         // exactly the one that can be out of date.
-        if (!await _store.hasMusicXml(score.id)) continue;
+        if (!await store.hasMusicXml(score.id)) continue;
       } else if (!(score.lastChangedAt ?? DateTime.utc(1970))
           .isAfter(fetched)) {
         continue;
       }
 
       try {
-        final accessToken = await _oidc.getActiveAccessToken(signIn: false);
+        final accessToken = await oidc.getActiveAccessToken(signIn: false);
         if (accessToken == null) {
           refreshedAll = false;
           break;
         }
 
-        final musicXml = await _api.getScoreMusicXml(score.id, accessToken);
+        final musicXml = await api.getScoreMusicXml(score.id, accessToken);
         if (musicXml == null) {
           _log.info('the server no longer has score ${score.id}; forgetting it');
           // Listed a moment ago and gone by now: nothing left to refresh.
           await _forget(score.id);
           continue;
         }
-        await _store.writeMusicXml(score.id, musicXml);
+        await store.writeMusicXml(score.id, musicXml);
         // Onto the score as it is now rather than as it was before the
         // download: it may have been opened meanwhile, and a copy from before
         // would put back when it was last looked at.
@@ -192,7 +186,7 @@ class ScoresRepository extends ChangeNotifier {
       _inTurn(_forgetWhatTheServerNoLongerHas);
 
   Future<void> _forgetWhatTheServerNoLongerHas() async {
-    final token = await _oidc.getActiveAccessToken(signIn: false);
+    final token = await oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return;
     }
@@ -200,7 +194,7 @@ class ScoresRepository extends ChangeNotifier {
     // Up to no moment the server can have reached rather than up to this
     // device's now: a device whose clock runs behind would otherwise not be
     // told about the scores changed since its now, and forget them.
-    final fromApi = await _api.listScores(null, endOfTime, token);
+    final fromApi = await api.listScores(null, endOfTime, token);
     final there = {for (final json in fromApi) json['id']};
     final gone = before.difference(there);
     if (gone.isNotEmpty) {
@@ -281,13 +275,13 @@ class ScoresRepository extends ChangeNotifier {
     if (toStore.isEmpty) {
       return;
     }
-    await _store.writeScores([for (final score in toStore) score.toJson()]);
+    await store.writeScores([for (final score in toStore) score.toJson()]);
     notifyListeners();
   }
 
   /// Forgets a score the server said it does not have, document and all.
   Future<void> _forget(String scoreId) async {
-    await _store.forgetScore(scoreId);
+    await store.forgetScore(scoreId);
     if (_scores.remove(scoreId) != null) {
       _sorted = null;
       notifyListeners();
@@ -308,22 +302,22 @@ class ScoresRepository extends ChangeNotifier {
       return known;
     }
 
-    if (!await _api.canBeReached()) {
+    if (!await api.canBeReached()) {
       return null;
     }
-    final token = await _oidc.getActiveAccessToken(signIn: false);
+    final token = await oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return null;
     }
 
-    final fromApi = await _api.getScore(scoreId, token);
+    final fromApi = await api.getScore(scoreId, token);
     if (fromApi == null) {
       return null;
     }
     // What this device knows about the score and the server does not — when it
     // was last opened, when its document was fetched — is kept: it may have
     // been written while this was being asked.
-    await _keep([Score.fromApi(fromApi, existing: _scores[scoreId])]);
+    await _keep([Score.fromApi(json: fromApi, existing: _scores[scoreId])]);
     return _scores[scoreId];
   }
 
@@ -334,8 +328,8 @@ class ScoresRepository extends ChangeNotifier {
   /// The document of one score: from this device if it is here, and from the
   /// API otherwise. `null` when it is neither here nor reachable.
   Future<String?> getMusicXml(String scoreId) async {
-    if (await _store.hasMusicXml(scoreId)) {
-      final held = await _store.readMusicXml(scoreId);
+    if (await store.hasMusicXml(scoreId)) {
+      final held = await store.readMusicXml(scoreId);
       if (held != null) {
         // Asked for in the background rather than waited on: the score is
         // already on screen by then, and what this adds is its title.
@@ -344,15 +338,15 @@ class ScoresRepository extends ChangeNotifier {
       }
     }
 
-    if (!await _api.canBeReached()) {
+    if (!await api.canBeReached()) {
       return null;
     }
-    final token = await _oidc.getActiveAccessToken(signIn: false);
+    final token = await oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
       return null;
     }
 
-    final musicXml = await _api.getScoreMusicXml(scoreId, token);
+    final musicXml = await api.getScoreMusicXml(scoreId, token);
     if (musicXml == null) {
       _log.info('the server no longer has score $scoreId; forgetting it');
       // A listing only ever says what changed, never what was removed, so a
@@ -360,12 +354,12 @@ class ScoresRepository extends ChangeNotifier {
       // by its id. It has been asked for now, and is forgotten.
       await _forget(scoreId);
       throw ScoresApiException(
-        'This score is no longer on the server, and has been removed from this'
+        message: 'This score is no longer on the server, and has been removed from this'
         ' device.',
-        404,
+        status: 404,
       );
     }
-    await _store.writeMusicXml(scoreId, musicXml);
+    await store.writeMusicXml(scoreId, musicXml);
 
     // The document is in hand by now, and what follows is only which version
     // of it this is: failing to find that out does not make the document any
@@ -387,13 +381,13 @@ class ScoresRepository extends ChangeNotifier {
 
   /// Uploads a score, which is what makes it a score the band has.
   Future<void> putMusicXml(String scoreId, String musicXml) async {
-    final token = await _oidc.getActiveAccessToken(signIn: false);
+    final token = await oidc.getActiveAccessToken(signIn: false);
     if (token == null) {
-      throw ScoresApiException('you are not signed in', null);
+      throw ScoresApiException(message: 'you are not signed in', status: null);
     }
     final before = _scores[scoreId]?.lastChangedAt;
-    await _api.putScore(scoreId, token, musicXml);
-    await _store.writeMusicXml(scoreId, musicXml);
+    await api.putScore(scoreId, token, musicXml);
+    await store.writeMusicXml(scoreId, musicXml);
 
     // Recorded as a copy held, or a sync would leave it be and this device
     // would never pick up a corrected upload from someone else. When the
@@ -425,7 +419,7 @@ class ScoresRepository extends ChangeNotifier {
     final viewed = score.copyWith(lastViewedAt: DateTime.now());
     _scores[scoreId] = viewed;
     _sorted = null;
-    await _store.writeScores([viewed.toJson()]);
+    await store.writeScores([viewed.toJson()]);
     notifyListeners();
   }
 }

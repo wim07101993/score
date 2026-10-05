@@ -15,11 +15,9 @@ import 'package:score/widgets/sync_button.dart';
 /// A collection is a group of scores that belong together without being played
 /// in any order: a book they are printed in, or the repertoire of a band.
 @RoutePage()
-class CollectionsPage extends StatefulWidget {
-  const CollectionsPage({
-    super.key,
-  });
-
+class const CollectionsPage({
+  super.key,
+}) extends StatefulWidget {
   @override
   State<CollectionsPage> createState() => _CollectionsPageState();
 }
@@ -124,13 +122,9 @@ class _CollectionsPageState extends State<CollectionsPage> {
 
 /// One collection in the list: what the group of pieces is, what it is about,
 /// how much is in it, and whether anybody else has it yet.
-class _CollectionCard extends StatelessWidget {
-  const _CollectionCard({
-    required this.collection,
-  });
-
-  final Collection collection;
-
+class const _CollectionCard({
+  required final Collection collection,
+}) extends StatelessWidget {
   /// What is worth saying about a collection beyond what it holds: whose it
   /// is, and whether the server has heard about it yet.
   ///

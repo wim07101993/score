@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:score/router.dart';
 
 /// Opens an empty score page, which is where a new score is uploaded from.
-class UploadScoreFab extends StatelessWidget {
-  const UploadScoreFab({
-    super.key,
-  });
-
+class const UploadScoreFab({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(

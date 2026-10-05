@@ -10,12 +10,10 @@ import 'package:score/features/sets/widgets/entry_description_field.dart';
 ///
 /// The page is the shape of the set and collection pages: a "done" button
 /// that swaps the list the field is in for an overview without it.
-class _Page extends StatefulWidget {
-  const _Page({required this.submitted, required this.collection});
-
-  final List<String> submitted;
-  final bool collection;
-
+class const _Page({
+  required final List<String> submitted,
+  required final bool collection,
+}) extends StatefulWidget {
   @override
   State<_Page> createState() => _PageState();
 }

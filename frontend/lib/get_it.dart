@@ -20,7 +20,7 @@ extension GetItExtensions on GetIt {
       ..registerLazySingletonAsync(() => Config.load())
       ..registerLazySingletonAsync(() => LocalStore.open())
       ..registerLazySingleton<http.Client>(
-        () => TimingOutClient(http.Client()),
+        () => TimingOutClient(inner: http.Client()),
         dispose: (client) => client.close(),
       )
       ..registerLazySingleton(() => AppRouter())

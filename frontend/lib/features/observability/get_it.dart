@@ -3,13 +3,9 @@ import 'package:get_it/get_it.dart';
 import 'package:score/features/observability/stored_logs.dart';
 import 'package:score/features/sembast/local_store.dart';
 
-enum LoggerName {
-  root('root'),
-  app('score');
-
-  const LoggerName(this.name);
-
-  final String name;
+enum LoggerName({required final String name}) {
+  root(name: 'root'),
+  app(name: 'score'),
 }
 
 extension ObservabilityGetItExtensions on GetIt {
@@ -35,7 +31,7 @@ extension ObservabilityGetItExtensions on GetIt {
   /// Keeps what is logged in the local store as well: see [StoredLogSink].
   void registerLogStorage() {
     registerLazySingleton(
-      () => StoredLogSink(getAsync<LocalStore>(), get<LogsController>()),
+      () => StoredLogSink(store: getAsync<LocalStore>(), logs: get<LogsController>()),
     );
   }
 

@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Asks to delete the set. What is played in it stays where it is.
-class DeleteSetButton extends StatelessWidget {
-  const DeleteSetButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const DeleteSetButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(

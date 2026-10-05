@@ -5,18 +5,12 @@ import 'package:flutter/material.dart';
 /// A collection holds a piece once, so a score that is already in it says so
 /// rather than being offered again. It stays pressable: what it does then is
 /// take the player to the piece, which is what they were asking for.
-class AddScoreToCollectionChip extends StatelessWidget {
-  const AddScoreToCollectionChip({
-    super.key,
-    required this.title,
-    required this.alreadyIn,
-    required this.onPressed,
-  });
-
-  final String title;
-  final bool alreadyIn;
-  final VoidCallback? onPressed;
-
+class const AddScoreToCollectionChip({
+  super.key,
+  required final String title,
+  required final bool alreadyIn,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(

@@ -5,9 +5,9 @@ import 'package:get_it/get_it.dart';
 
 /// What the app has logged: in this run, and in the ones before it.
 @RoutePage()
-class LogsPage extends StatelessWidget {
-  const LogsPage({super.key});
-
+class const LogsPage({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       LogsScreen(controller: GetIt.I<LogsController>());

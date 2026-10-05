@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// On one song in the set.
-class NextScoreButton extends StatelessWidget {
-  const NextScoreButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const NextScoreButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

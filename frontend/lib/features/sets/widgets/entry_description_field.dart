@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 
 /// The note next to one song of the set.
-class EntryDescriptionField extends StatefulWidget {
-  const EntryDescriptionField({
-    super.key,
-    required this.initialValue,
-    required this.enabled,
-    required this.onSubmitted,
-  });
-
-  final String initialValue;
-  final bool enabled;
-  final ValueChanged<String> onSubmitted;
-
+class const EntryDescriptionField({
+  super.key,
+  required final String initialValue,
+  required final bool enabled,
+  required final ValueChanged<String> onSubmitted,
+}) extends StatefulWidget {
   @override
   State<EntryDescriptionField> createState() => _EntryDescriptionFieldState();
 }

@@ -10,17 +10,17 @@ extension AuthGetItExtensions on GetIt {
   void registerAuth() {
     registerLazySingletonAsync<OidcApi>(
       () async => OidcApi(
-        (await getAsync<Config>()).oidc,
-        await getAsync<LocalStore>(),
+        config: (await getAsync<Config>()).oidc,
+        store: await getAsync<LocalStore>(),
         client: get(),
       ),
     );
 
     registerLazySingletonAsync<Auth>(
       () async => Auth(
-        await getAsync<OidcApi>(),
-        await getAsync<SetsRepository>(),
-        await getAsync<CollectionsRepository>(),
+        oidc: await getAsync<OidcApi>(),
+        sets: await getAsync<SetsRepository>(),
+        collections: await getAsync<CollectionsRepository>(),
       ),
       dispose: (auth) => auth.dispose(),
     );

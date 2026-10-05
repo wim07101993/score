@@ -8,13 +8,17 @@ import 'package:flutter/material.dart';
 /// while the ink did not — or the other way round — is pale grey notes on a
 /// white page, which is the one way this can go wrong and did.
 @immutable
-class SheetPalette {
-  const SheetPalette({
-    required this.paper,
-    required this.ink,
-    required this.fadedInk,
-  });
+class const SheetPalette({
+  /// The page.
+  required final Color paper,
 
+  /// Everything drawn on it: staff lines, noteheads, stems, words.
+  required final Color ink,
+
+  /// A grace note, which leans on the note after it and is drawn lighter to
+  /// say so.
+  required final Color fadedInk,
+}) {
   /// A page with a lamp on it.
   ///
   /// [brightness] is what the page gives off, as a share of a white one: 1 is
@@ -123,16 +127,6 @@ class SheetPalette {
   /// about a room and not about an app.
   static final dark =
       SheetPalette.lamp(brightness: night, warmth: nightWarmth);
-
-  /// The page.
-  final Color paper;
-
-  /// Everything drawn on it: staff lines, noteheads, stems, words.
-  final Color ink;
-
-  /// A grace note, which leans on the note after it and is drawn lighter to
-  /// say so.
-  final Color fadedInk;
 
   /// The sRGB grey that gives off [luminance] of what white gives off.
   static double _greyGiving(double luminance) {

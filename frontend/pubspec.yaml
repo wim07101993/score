@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 2.0.0+1
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.13.0
 
 dependencies:
   flutter:
@@ -68,7 +68,6 @@ flutter:
 
   assets:
     - assets/config.json
-    - assets/fonts/roboto/LICENSE.txt
 
   # The text of the app, shipped with it rather than fetched. On the web a font
   # nobody bundled is downloaded from Google's servers at every start, which is

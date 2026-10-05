@@ -11,14 +11,10 @@ import 'package:sembast/sembast_memory.dart';
 ///
 /// It is one store that works the same on a browser and on a device, so that
 /// nothing above it ever has to ask which one it is on.
-class LocalStore {
-  LocalStore._(
-    this._data,
-    this._openDocuments,
-  );
-
-  final Database _data;
-
+class LocalStore._({
+  required final Database data,
+  required final Future<Database> Function() openDocuments,
+}) {
   /// The score files, kept apart from what is known about the scores.
   ///
   /// A MusicXML document is a few hundred kilobytes and the metadata is a few
@@ -27,8 +23,7 @@ class LocalStore {
   /// than when the app starts: drawing the list of titles does not wait on
   /// reading every score ever downloaded. Once it is open, they are all in
   /// memory all the same.
-  Future<Database> get _documents => _documentsOpened ??= _openDocuments();
-  final Future<Database> Function() _openDocuments;
+  Future<Database> get _documents => _documentsOpened ??= openDocuments();
   Future<Database>? _documentsOpened;
 
   final _scores = stringMapStoreFactory.store('scores');
@@ -40,7 +35,7 @@ class LocalStore {
 
   static Future<LocalStore> open() async {
     final data = await openDatabase('score');
-    return LocalStore._(data, () => openDatabase('score_documents'));
+    return LocalStore._(data: data, openDocuments: () => openDatabase('score_documents'));
   }
 
   /// A store on nothing, which is what the tests keep things in: they have
@@ -50,8 +45,8 @@ class LocalStore {
     final documents =
         newDatabaseFactoryMemory().openDatabase('score_documents');
     return LocalStore._(
-      await newDatabaseFactoryMemory().openDatabase('score'),
-      () => documents,
+      data: await newDatabaseFactoryMemory().openDatabase('score'),
+      openDocuments: () => documents,
     );
   }
 
@@ -74,14 +69,14 @@ class LocalStore {
       _writeAll(_collections, records);
 
   /// Forgets every set, for a device that is handed to somebody else.
-  Future<void> forgetSets() => _sets.delete(_data);
+  Future<void> forgetSets() => _sets.delete(data);
 
   /// Forgets every collection, for a device that is handed to somebody else.
-  Future<void> forgetCollections() => _collections.delete(_data);
+  Future<void> forgetCollections() => _collections.delete(data);
 
   Future<List<Map<String, Object?>>> _readAll(
       StoreRef<String, Map<String, Object?>> store) async {
-    final records = await store.find(_data);
+    final records = await store.find(data);
     return [for (final record in records) record.value];
   }
 
@@ -94,7 +89,7 @@ class LocalStore {
     if (records.isEmpty) {
       return;
     }
-    await _data.transaction((transaction) async {
+    await data.transaction((transaction) async {
       for (final record in records) {
         await store.record('${record['id']}').put(transaction, record);
       }
@@ -125,29 +120,29 @@ class LocalStore {
   /// as the score if it were ever opened by a link.
   Future<void> forgetScore(String scoreId) async {
     await _files.record(scoreId).delete(await _documents);
-    await _scores.record(scoreId).delete(_data);
+    await _scores.record(scoreId).delete(data);
   }
 
   // -------------------------------------------------------------------------
   // WHAT THE APP REMEMBERS ABOUT THIS DEVICE
   // -------------------------------------------------------------------------
 
-  Future<String?> readSetting(String key) => _settings.record(key).get(_data);
+  Future<String?> readSetting(String key) => _settings.record(key).get(data);
 
   /// Storing nothing is not the same as storing null: a key that is written
   /// with no value would be read back as the text "null" by whoever asked next.
   Future<void> writeSetting(String key, String? value) async {
     if (value == null) {
-      await _settings.record(key).delete(_data);
+      await _settings.record(key).delete(data);
       return;
     }
-    await _settings.record(key).put(_data, value);
+    await _settings.record(key).put(data, value);
   }
 
   /// Forgets every setting whose key starts with [prefix]: the settings kept
   /// one per something, of which there is no list.
   Future<void> forgetSettingsStartingWith(String prefix) => _settings.delete(
-        _data,
+        data,
         finder: Finder(
           filter: Filter.custom((record) => '${record.key}'.startsWith(prefix)),
         ),
@@ -158,12 +153,12 @@ class LocalStore {
   // -------------------------------------------------------------------------
 
   /// Adds one log record after the ones written before it.
-  Future<void> writeLog(Map<String, Object?> record) => _logs.add(_data, record);
+  Future<void> writeLog(Map<String, Object?> record) => _logs.add(data, record);
 
   /// Every log record kept, oldest first.
   Future<List<Map<String, Object?>>> readLogs() async {
     final records = await _logs.find(
-      _data,
+      data,
       finder: Finder(sortOrders: [SortOrder(Field.key)]),
     );
     return [for (final record in records) record.value];
@@ -172,9 +167,9 @@ class LocalStore {
   /// Forgets every log record but the last [count].
   Future<void> keepLastLogs(int count) async {
     final keys = await _logs.findKeys(
-      _data,
+      data,
       finder: Finder(sortOrders: [SortOrder(Field.key, false)], offset: count),
     );
-    await _logs.records(keys).delete(_data);
+    await _logs.records(keys).delete(data);
   }
 }

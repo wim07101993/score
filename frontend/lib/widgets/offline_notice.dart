@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 /// Says that the server cannot be reached, above a list drawn from what this
 /// device has — so that a list that is empty, or short, is read as what this
 /// device knows rather than as all there is.
-class OfflineNotice extends StatelessWidget {
-  const OfflineNotice({
-    super.key,
-  });
-
+class const OfflineNotice({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(

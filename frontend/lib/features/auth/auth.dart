@@ -11,13 +11,11 @@ final _log = GetIt.I<Logger>(param1: 'Auth');
 ///
 /// Every page decides what to show from the roles in [user], and listens to
 /// this to hear when that changes.
-class Auth extends ChangeNotifier {
-  Auth(this._oidc, this._sets, this._collections);
-
-  final OidcApi _oidc;
-  final SetsRepository _sets;
-  final CollectionsRepository _collections;
-
+class Auth({
+  required final OidcApi oidc,
+  required final SetsRepository sets,
+  required final CollectionsRepository collections,
+}) extends ChangeNotifier {
   /// Who is signed in, as far as this device knows.
   UserInfo? user;
 
@@ -55,8 +53,8 @@ class Auth extends ChangeNotifier {
   /// asking is two round trips, which on a venue's wifi is a long time to
   /// look at a spinner in front of scores that are already here.
   Future<bool> goOnAsKeptUser() async {
-    final kept = await _oidc.keptUserInfo();
-    if (kIsWeb && (kept == null || await _oidc.isFinishingASignIn())) {
+    final kept = await oidc.keptUserInfo();
+    if (kIsWeb && (kept == null || await oidc.isFinishingASignIn())) {
       return false;
     }
     user = kept;
@@ -78,12 +76,12 @@ class Auth extends ChangeNotifier {
   Future<UserInfo?> updateAuth({bool retry = false}) async {
     final signOutsBefore = _signOuts;
     if (retry) {
-      _oidc.forgetSignInFailure();
+      oidc.forgetSignInFailure();
     }
-    if (!await _oidc.canBeReached()) {
+    if (!await oidc.canBeReached()) {
       _log.info('the sign-in provider cannot be reached; going on as who this'
           ' device last knew');
-      user = await _oidc.keptUserInfo();
+      user = await oidc.keptUserInfo();
       userIsFromThisDevice = true;
       authProblem = null;
       notifyListeners();
@@ -91,7 +89,7 @@ class Auth extends ChangeNotifier {
     }
 
     try {
-      final asked = await _oidc.getUserInfo();
+      final asked = await oidc.getUserInfo();
       // The user signed out while the provider was being asked; what it said
       // is about them, and the device is nobody's now.
       if (_signOuts != signOutsBefore) {
@@ -109,16 +107,16 @@ class Auth extends ChangeNotifier {
         // less readable for it; only forgetting the user forgets them.
         _log.info('no sign-in to ask the provider with; going on as who this'
             ' device last knew');
-        user = await _oidc.keptUserInfo();
+        user = await oidc.keptUserInfo();
         userIsFromThisDevice = user != null;
       }
-      authProblem = _oidc.signInFailure;
+      authProblem = oidc.signInFailure;
     } catch (error, stackTrace) {
       if (_signOuts != signOutsBefore) {
         return null;
       }
       _log.warning('failed to ask the provider who this is', error, stackTrace);
-      user = await _oidc.keptUserInfo();
+      user = await oidc.keptUserInfo();
       userIsFromThisDevice = true;
       authProblem = error;
     }
@@ -127,7 +125,7 @@ class Auth extends ChangeNotifier {
   }
 
   Future<void> forgetUser() async {
-    await _oidc.forgetUser();
+    await oidc.forgetUser();
     user = null;
     userIsFromThisDevice = false;
     authProblem = null;
@@ -144,10 +142,10 @@ class Auth extends ChangeNotifier {
   /// next one to sign in will want on a stage with no network.
   Future<void> signOut() async {
     _signOuts++;
-    await _oidc.signOut();
-    await _sets.forgetAll();
-    await _collections.forgetAll();
-    await _oidc.keepDataOwner(null);
+    await oidc.signOut();
+    await sets.forgetAll();
+    await collections.forgetAll();
+    await oidc.keepDataOwner(null);
     user = null;
     userIsFromThisDevice = false;
     authProblem = null;
@@ -159,11 +157,11 @@ class Auth extends ChangeNotifier {
   /// The repositories forget such a token themselves, so this is asked after
   /// every sync rather than only when one throws.
   Future<void> sayIfNoLongerSignedIn() async {
-    if (user == null || authProblem != null || await _oidc.holdsAToken()) {
+    if (user == null || authProblem != null || await oidc.holdsAToken()) {
       return;
     }
     authProblem = OidcException(
-      'the server no longer takes this sign-in; sign in again to sync',
+      message: 'the server no longer takes this sign-in; sign in again to sync',
     );
     notifyListeners();
   }
@@ -179,14 +177,14 @@ class Auth extends ChangeNotifier {
   Future<void> _takeTheDataHereFor(UserInfo asked) async {
     final subject = asked.subject;
     if (subject == null) return;
-    final owner = await _oidc.dataOwner();
+    final owner = await oidc.dataOwner();
     if (owner == subject) return;
     if (owner != null) {
       _log.info('another user signed in; forgetting the sets and collections'
           ' the last one left on this device');
-      await _sets.forgetAll();
-      await _collections.forgetAll();
+      await sets.forgetAll();
+      await collections.forgetAll();
     }
-    await _oidc.keepDataOwner(subject);
+    await oidc.keepDataOwner(subject);
   }
 }

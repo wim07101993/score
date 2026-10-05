@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 
 /// Who may read a set or a collection: one address per line.
-class SharedWithField extends StatelessWidget {
-  const SharedWithField({
-    super.key,
-    required this.controller,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
+class const SharedWithField({
+  super.key,
+  required final TextEditingController controller,
+  required final ValueChanged<String> onChanged,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(

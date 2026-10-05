@@ -15,18 +15,12 @@ typedef PageLook = ({double brightness, double warmth});
 /// bright laptop at home and a dimmed tablet on a stand, signed in as the same
 /// person, and neither should decide the other. So it is kept here and never
 /// sent to the server.
-class Settings extends ChangeNotifier {
-  Settings._(
-    this._store,
-    this._themeMode,
-    this._looks,
-  );
-
+class Settings._({
+  required final LocalStore store,
+  required var ThemeMode _themeMode,
+  required final Map<Brightness, PageLook> _looks,
+}) extends ChangeNotifier {
   static const _themeKey = 'theme_mode';
-
-  final LocalStore _store;
-  final Map<Brightness, PageLook> _looks;
-  ThemeMode _themeMode;
 
   /// Read before anything is drawn.
   ///
@@ -35,9 +29,9 @@ class Settings extends ChangeNotifier {
   static Future<Settings> load(LocalStore store) async {
     final themeMode = _readThemeMode(await store.readSetting(_themeKey));
     return Settings._(
-      store,
-      themeMode,
-      {
+      store: store,
+      themeMode: themeMode,
+      looks: {
         for (final brightness in Brightness.values)
           brightness: _readLook(
             await store.readSetting(_lookKey(brightness)),
@@ -64,7 +58,7 @@ class Settings extends ChangeNotifier {
     // Following the system is what an app does when it has been told nothing,
     // so it is stored as nothing. A device that has never been asked and one
     // that has been put back to "follow the system" are the same device.
-    await _store.writeSetting(
+    await store.writeSetting(
         _themeKey, mode == ThemeMode.system ? null : mode.name);
   }
 
@@ -100,7 +94,7 @@ class Settings extends ChangeNotifier {
       return;
     }
     final held = pageLook(brightness);
-    await _store.writeSetting(
+    await store.writeSetting(
       _lookKey(brightness),
       held == _defaultLookFor(brightness)
           ? null

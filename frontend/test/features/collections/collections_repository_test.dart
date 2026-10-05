@@ -34,8 +34,8 @@ final _oidcConfig = OidcConfig(
 );
 
 /// An API that is not there, which is the case the whole design is for.
-class _OfflineApi extends CollectionsApi {
-  _OfflineApi() : super(ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
+class _OfflineApi() extends CollectionsApi {
+  this : super(config: ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
 
   @override
   Future<bool> canBeReached() async => false;
@@ -43,8 +43,8 @@ class _OfflineApi extends CollectionsApi {
 
 /// An API that keeps what it is given, the way the server does, and holds a
 /// collection to having a score in it once.
-class _WorkingApi extends CollectionsApi {
-  _WorkingApi() : super(ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
+class _WorkingApi() extends CollectionsApi {
+  this : super(config: ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
 
   final List<String> calls = [];
 
@@ -105,7 +105,7 @@ class _WorkingApi extends CollectionsApi {
             entry['id'] != entryId)
         .firstOrNull;
     if (holder != null) {
-      throw CollectionsApiException('conflict', 409, {
+      throw CollectionsApiException(message: 'conflict', status: 409, problem: {
         'errorCode': 'score_already_in_collection',
         'entryId': holder['id'],
       });
@@ -160,13 +160,13 @@ class _WriteFailsApi extends _WorkingApi {
   @override
   Future<Map<String, dynamic>> putCollection(
       String collectionId, String token, Map<String, Object?> write) {
-    throw CollectionsApiException('nothing answered', null);
+    throw CollectionsApiException(message: 'nothing answered', status: null);
   }
 
   @override
   Future<Map<String, dynamic>> putEntry(String collectionId, String entryId,
       String token, Map<String, Object?> write) {
-    throw CollectionsApiException('nothing answered', null);
+    throw CollectionsApiException(message: 'nothing answered', status: null);
   }
 }
 
@@ -176,7 +176,7 @@ class _RefusingApi extends _WorkingApi {
   Future<Map<String, dynamic>> putCollection(
       String collectionId, String token, Map<String, Object?> write) {
     calls.add('putCollection');
-    throw CollectionsApiException('no', 403, {
+    throw CollectionsApiException(message: 'no', status: 403, problem: {
       'errorCode': 'not_collection_owner',
       'detail': 'that collection belongs to somebody else',
     });
@@ -223,14 +223,14 @@ class _TokenRefusedApi extends _WorkingApi {
   @override
   Future<Map<String, dynamic>> putCollection(
       String collectionId, String token, Map<String, Object?> write) {
-    throw CollectionsApiException('the token is no good', 401);
+    throw CollectionsApiException(message: 'the token is no good', status: 401);
   }
 }
 
 /// A provider that counts the tokens it was told to forget.
-class _Counting extends _SignedIn {
-  _Counting(super.store);
-
+class _Counting({
+  required super.store,
+}) extends _SignedIn {
   int forgotten = 0;
 
   @override
@@ -239,19 +239,19 @@ class _Counting extends _SignedIn {
 
 /// A provider whose token cannot be had right now: a refresh that failed
 /// because the network did.
-class _TokenFails extends _SignedIn {
-  _TokenFails(super.store);
-
+class _TokenFails({
+  required super.store,
+}) extends _SignedIn {
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async =>
       throw Exception('the network went away');
 }
 
 /// A provider that always has a token to hand.
-class _SignedIn extends OidcApi {
-  _SignedIn(
-    LocalStore store,
-  ) : super(_oidcConfig, store);
+class _SignedIn({
+  required super.store,
+}) extends OidcApi {
+  this : super(config: _oidcConfig);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
@@ -263,7 +263,7 @@ class _SignedIn extends OidcApi {
 Future<(CollectionsRepository, LocalStore)> _repository(
     CollectionsApi api) async {
   final store = await LocalStore.inMemory();
-  final repository = CollectionsRepository(store, api, _SignedIn(store));
+  final repository = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
   await repository.init();
   return (repository, store);
 }
@@ -275,7 +275,7 @@ Future<CollectionsRepository> _online(
   await store.writeCollections([
     for (final collection in offline.collections) collection.toJson(),
   ]);
-  final online = CollectionsRepository(store, api, _SignedIn(store));
+  final online = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
   await online.init();
   return online;
 }
@@ -296,7 +296,7 @@ void main() {
     test('a collection survives being read back off the device', () async {
       final store = await LocalStore.inMemory();
       final first =
-          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await first.init();
       final saved = await first.saveCollection(title: 'The Real Book');
       await first.saveEntry(saved.id, scoreId: 'score-1');
@@ -304,7 +304,7 @@ void main() {
 
       // The same device, opened again.
       final second =
-          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await second.init();
 
       final back = second.getCollection(saved.id)!;
@@ -675,7 +675,7 @@ void main() {
         ).toJson(),
       ]);
       final offline =
-          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await offline.init();
       await offline.saveEntry('book', scoreId: 'score-1');
 
@@ -688,7 +688,7 @@ void main() {
             {'id': 'somebody-elses-entry', 'score_id': 'score-1'},
           ],
         };
-      final online = CollectionsRepository(store, api, _SignedIn(store));
+      final online = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -795,7 +795,7 @@ void main() {
           lastChangedAt: DateTime.now(),
           lastSyncedAt: DateTime.now(),
           entries: const [CollectionEntry(id: 'e1', scoreId: 'here-only')],
-          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+          pendingEntries: const [PendingEntry(id: 'e1', action: PendingChange.write)],
         ).toJson(),
       ]);
       await collections.init();
@@ -940,7 +940,7 @@ void main() {
       expect(collections.hasPendingChanges, isTrue);
 
       final api = _WorkingApi();
-      final online = CollectionsRepository(store, api, _SignedIn(store));
+      final online = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -1035,12 +1035,12 @@ void main() {
         lastSyncedAt: DateTime.now(),
         entries: const [CollectionEntry(id: 'e2', scoreId: 'score-1')],
         pendingEntries: const [
-          PendingEntry('e1', PendingChange.delete),
-          PendingEntry('e2', PendingChange.write),
+          PendingEntry(id: 'e1', action: PendingChange.delete),
+          PendingEntry(id: 'e2', action: PendingChange.write),
         ],
       ).toJson(),
     ]);
-    final collections = CollectionsRepository(store, api, _SignedIn(store));
+    final collections = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await collections.init();
 
     await collections.syncWithApi();
@@ -1087,10 +1087,10 @@ void main() {
         lastChangedAt: DateTime.now(),
         lastSyncedAt: DateTime.now(),
         entries: const [CollectionEntry(id: 'mine', scoreId: 'score-1')],
-        pendingEntries: const [PendingEntry('mine', PendingChange.write)],
+        pendingEntries: const [PendingEntry(id: 'mine', action: PendingChange.write)],
       ).toJson(),
     ]);
-    final collections = CollectionsRepository(store, api, _SignedIn(store));
+    final collections = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await collections.init();
 
     final syncing = collections.syncWithApi();
@@ -1120,7 +1120,7 @@ void main() {
     expect(collections.collections, isEmpty);
     expect(collections.hasPendingChanges, isFalse);
     final reopened =
-        CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+        CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
     await reopened.init();
     expect(reopened.collections, isEmpty);
   });
@@ -1182,7 +1182,7 @@ void main() {
       ]);
 
       final reopened =
-          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await reopened.init();
       for (final now in [
         collections.getCollection(made.id)!,
@@ -1205,7 +1205,7 @@ void main() {
         lastSyncedAt: DateTime.now(),
       );
       await store.writeCollections([before.toJson()]);
-      final collections = CollectionsRepository(store, api, _SignedIn(store));
+      final collections = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await collections.init();
 
       api.answers = [
@@ -1234,10 +1234,10 @@ void main() {
         ..answers = [
           {...before.toJson(), 'is_owner': true, 'entries': <Object?>[]},
         ];
-      final otherTab = CollectionsRepository(store, api, _SignedIn(store));
+      final otherTab = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
       final thisTab =
-          CollectionsRepository(store, _OfflineApi(), _SignedIn(store));
+          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
 
       final syncing = otherTab.syncWithApi();
@@ -1265,12 +1265,12 @@ void main() {
         ).toJson(),
       ]);
       final api = _SometimesThereApi();
-      final thisTab = CollectionsRepository(store, api, _SignedIn(store));
+      final thisTab = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await thisTab.init();
       await thisTab.saveCollection(id: 'book', title: 'Offline');
 
       api.there = true;
-      final otherTab = CollectionsRepository(store, api, _SignedIn(store));
+      final otherTab = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
       await otherTab.syncWithApi();
       await otherTab.saveCollection(id: 'book', title: 'Latest');
@@ -1284,7 +1284,7 @@ void main() {
     test('a write whose token could not be had stays queued', () async {
       final store = await LocalStore.inMemory();
       final collections =
-          CollectionsRepository(store, _WorkingApi(), _TokenFails(store));
+          CollectionsRepository(store: store, api: _WorkingApi(), oidc: _TokenFails(store: store));
       await collections.init();
 
       final saved = await collections.saveCollection(title: 'Book');
@@ -1296,9 +1296,9 @@ void main() {
     test('a token the API refuses is forgotten, and the write stays queued',
         () async {
       final store = await LocalStore.inMemory();
-      final oidc = _Counting(store);
+      final oidc = _Counting(store: store);
       final collections =
-          CollectionsRepository(store, _TokenRefusedApi(), oidc);
+          CollectionsRepository(store: store, api: _TokenRefusedApi(), oidc: oidc);
       await collections.init();
 
       final saved = await collections.saveCollection(title: 'Book');
@@ -1354,7 +1354,7 @@ void main() {
           lastSyncedAt: DateTime.now(),
           pendingChange: PendingChange.write,
           entries: const [CollectionEntry(id: 'e1', scoreId: 'score-1')],
-          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+          pendingEntries: const [PendingEntry(id: 'e1', action: PendingChange.write)],
         ).toJson(),
       ]);
       await collections.init();
@@ -1383,7 +1383,7 @@ void main() {
           lastSyncedAt: DateTime.now(),
           pendingChange: PendingChange.write,
           entries: const [CollectionEntry(id: 'e1', scoreId: 'score-1')],
-          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+          pendingEntries: const [PendingEntry(id: 'e1', action: PendingChange.write)],
         ).toJson(),
       ]);
       await collections.init();
@@ -1434,7 +1434,7 @@ class _RemovalFailsApi extends _WorkingApi {
     calls.add('deleteEntry');
     if (failingRemovals > 0) {
       failingRemovals--;
-      throw CollectionsApiException('nothing answered', null);
+      throw CollectionsApiException(message: 'nothing answered', status: null);
     }
     (stored[collectionId]!['entries'] as List)
         .removeWhere((entry) => (entry as Map)['id'] == entryId);

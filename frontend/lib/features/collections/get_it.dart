@@ -8,15 +8,15 @@ import 'package:score/features/sembast/local_store.dart';
 extension CollectionsGetItExtensions on GetIt {
   void registerCollections() {
     registerLazySingletonAsync<CollectionsApi>(
-      () async => CollectionsApi((await getAsync<Config>()).api, client: get()),
+      () async => CollectionsApi(config: (await getAsync<Config>()).api, client: get()),
     );
 
     registerLazySingletonAsync<CollectionsRepository>(
       () async {
         final repository = CollectionsRepository(
-          await getAsync<LocalStore>(),
-          await getAsync<CollectionsApi>(),
-          await getAsync<OidcApi>(),
+          store: await getAsync<LocalStore>(),
+          api: await getAsync<CollectionsApi>(),
+          oidc: await getAsync<OidcApi>(),
         );
         await repository.init();
         return repository;

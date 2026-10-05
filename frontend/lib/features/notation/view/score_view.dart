@@ -18,31 +18,32 @@ const int minTransposition = -12;
 const int maxTransposition = 12;
 
 @immutable
-class ScoreView {
+// Not const: the lists are copied into unmodifiable ones, which takes a call.
+// ignore: prefer_const_constructors_in_immutables
+class ScoreView({
+  required List<String> partIds,
+  required List<String> hiddenPartIds,
+
+  /// Semitones, negative for down.
+  required final int transposition,
+}) {
   /// Prefer [ScoreView.forParts]; this takes its arguments already validated.
-  ScoreView(
-    List<String> partIds,
-    List<String> hiddenPartIds,
-    this.transposition,
-  )
-      : partIds = List.unmodifiable(partIds),
-        hiddenPartIds = List.unmodifiable(hiddenPartIds);
+  this
+    : partIds = List.unmodifiable(partIds),
+      hiddenPartIds = List.unmodifiable(hiddenPartIds);
 
   /// The view a score opens in: every part on screen, written as it was
   /// written.
-  factory ScoreView.forParts(
-    List<String> partIds,
-  ) =>
-      ScoreView(partIds, const [], 0);
+  factory ScoreView.forParts({
+    required List<String> partIds,
+  }) =>
+      ScoreView(partIds: partIds, hiddenPartIds: const [], transposition: 0);
 
   /// Every part of the score, in the order the score lists them.
   final List<String> partIds;
 
   /// The parts that are not on screen.
   final List<String> hiddenPartIds;
-
-  /// Semitones, negative for down.
-  final int transposition;
 
   /// The parts on screen, in the order the score lists them.
   List<String> get visiblePartIds =>
@@ -59,7 +60,7 @@ class ScoreView {
     if (clamped == transposition) {
       return this;
     }
-    return ScoreView(partIds, hiddenPartIds, clamped);
+    return ScoreView(partIds: partIds, hiddenPartIds: hiddenPartIds, transposition: clamped);
   }
 
   /// Takes a part off the screen or puts it back.
@@ -78,16 +79,16 @@ class ScoreView {
 
     if (visible) {
       return ScoreView(
-        partIds,
-        hiddenPartIds.where((id) => id != partId).toList(),
-        transposition,
+        partIds: partIds,
+        hiddenPartIds: hiddenPartIds.where((id) => id != partId).toList(),
+        transposition: transposition,
       );
     }
 
     if (visiblePartIds.length <= 1) {
       return this;
     }
-    return ScoreView(partIds, [...hiddenPartIds, partId], transposition);
+    return ScoreView(partIds: partIds, hiddenPartIds: [...hiddenPartIds, partId], transposition: transposition);
   }
 
   /// The same score with exactly these parts off the screen, whatever was off
@@ -110,11 +111,11 @@ class ScoreView {
         hidden.every(hiddenPartIds.contains)) {
       return this;
     }
-    return ScoreView(this.partIds, hidden, transposition);
+    return ScoreView(partIds: this.partIds, hiddenPartIds: hidden, transposition: transposition);
   }
 
   /// The same score, looked at the way it was written.
-  ScoreView reset() => ScoreView.forParts(partIds);
+  ScoreView reset() => ScoreView.forParts(partIds: partIds);
 
   @override
   bool operator ==(Object other) =>

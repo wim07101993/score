@@ -53,33 +53,13 @@ import 'package:uuid/uuid.dart';
 /// uploaded and stays that way. Played from a set or a collection, it is kept
 /// as this player's reading of that entry (see [_ScoreDetailPageState._keepReading]):
 /// theirs alone, and saved as they change it.
-class ScoreDetailPage extends StatefulWidget {
-  const ScoreDetailPage({
-    super.key,
-    required this.scoreId,
-    this.setId,
-    this.collectionId,
-    this.entryId,
-    this.performing = false,
-    this.handover,
-  });
+class const ScoreDetailPage({
+  super.key,
 
   /// `new` for a score that is about to be uploaded, and [paper] for an entry
   /// that is played from paper.
-  final String scoreId;
-
-  /// What stands in for the id of a score an entry does not have. Ids are
-  /// UUIDs, so no score is ever called this.
-  static const paper = 'paper';
-
-  /// Whether the score is on the whole screen, to be played from.
-  final bool performing;
-
-  /// How the details page it was opened from had the score, when it was
-  /// opened from one: see [ScoreReadingHandover].
-  final ScoreReadingHandover? handover;
-
-  final String? setId;
+  required final String scoreId,
+  final String? setId,
 
   /// The collection this score is being played from, when it is being played
   /// from one rather than from a set.
@@ -89,10 +69,21 @@ class ScoreDetailPage extends StatefulWidget {
   /// read the way this player reads it, with the rest of the list either side
   /// of it. What differs is which repository a view is written to, and what
   /// order the list is in.
-  final String? collectionId;
+  final String? collectionId,
 
   /// Which entry of the set or the collection this is.
-  final String? entryId;
+  final String? entryId,
+
+  /// Whether the score is on the whole screen, to be played from.
+  final bool performing = false,
+
+  /// How the details page it was opened from had the score, when it was
+  /// opened from one: see [ScoreReadingHandover].
+  final ScoreReadingHandover? handover,
+}) extends StatefulWidget {
+  /// What stands in for the id of a score an entry does not have. Ids are
+  /// UUIDs, so no score is ever called this.
+  static const paper = 'paper';
 
   @override
   State<ScoreDetailPage> createState() => _ScoreDetailPageState();
@@ -105,21 +96,15 @@ class ScoreDetailPage extends StatefulWidget {
 /// it was moved on: there is no entry of a set to write it into. Without this
 /// the stand would open as written, and the details would not know what was
 /// changed while playing.
-class ScoreReadingHandover {
-  const ScoreReadingHandover({
-    required this.view,
-    required this.zoom,
-    required this.onReturn,
-  });
-
-  final ScoreView view;
+class const ScoreReadingHandover({
+  required final ScoreView view,
 
   /// How big it is drawn, as a view says it: 1 is the size it is written at.
-  final double zoom;
+  required final double zoom,
 
   /// Called with how the stand had it, as the stand is closed.
-  final void Function(ScoreView view, double zoom) onReturn;
-}
+  required final void Function(ScoreView view, double zoom) onReturn,
+});
 
 class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// How many stands are open. Going on to the next song puts up its stand
@@ -274,8 +259,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     setState(() {
       _set = _SetContext(set: now, index: index);
       _takeReading(
-        was: _Reading.ofSong(context.entry),
-        now: _Reading.ofSong(entry),
+        was: _Reading.ofSong(entry: context.entry),
+        now: _Reading.ofSong(entry: entry),
       );
     });
   }
@@ -303,8 +288,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       _collection = now;
       if (before != null && piece != null) {
         _takeReading(
-          was: _Reading.ofPiece(before),
-          now: _Reading.ofPiece(piece),
+          was: _Reading.ofPiece(entry: before),
+          now: _Reading.ofPiece(entry: piece),
         );
       }
     });
@@ -475,7 +460,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// on the stand: the player goes on reading it the way they were.
   void _show(String musicXml, {bool keepingTheView = false}) {
     final parts = readParts(parseMusicXml(musicXml)).toList();
-    var view = ScoreView.forParts([for (final part in parts) part.id]);
+    var view = ScoreView.forParts(partIds: [for (final part in parts) part.id]);
     final before = _view;
     if (keepingTheView && before != null) {
       view = view.withTransposition(before.transposition).withHiddenParts([
@@ -1127,7 +1112,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   _WayThrough? _wayThrough() {
     final set = _set;
     if (set != null) {
-      return _WayThrough.ofSet(set, performing: widget.performing);
+      return _WayThrough.ofSet(context: set, performing: widget.performing);
     }
     final collection = _collection;
     // A collection is a book and not a running order, so its details have
@@ -1386,38 +1371,42 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 }
 
 /// Which set this score is being played from, and where in it.
-class _SetContext {
-  const _SetContext({
-    required this.set,
-    required this.index,
-  });
-  final int index;
-
-  final ScoreSet set;
-
+class const _SetContext({
+  required final ScoreSet set,
+  required final int index,
+}) {
   SetEntry get entry => set.entries[index];
 }
 
 /// The way through the set or the collection a score is played from: where
 /// this one comes in it, and what comes either side.
-class _WayThrough {
-  const _WayThrough({
-    required this.isSet,
-    required this.title,
-    required this.route,
-    required this.position,
-    required this.count,
-    required this.previous,
-    required this.next,
-    required this.note,
-  });
+class const _WayThrough({
+  required final bool isSet,
 
+  /// What the set or the collection is called, and where it is.
+  required final String title,
+  required final PageRouteInfo route,
+
+  /// Where this one comes in it, counted from one, and how many there are.
+  required final int position,
+  required final int count,
+
+  /// Where the ones either side are, or null at either end.
+  required final PageRouteInfo? previous,
+  required final PageRouteInfo? next,
+
+  /// What the set or the collection says next to this one.
+  required final String note,
+}) {
   /// The way through a set, in its running order.
   ///
   /// The next song either way, one played from paper included. That is not
   /// stepped over: it is what the band is playing, and a player looking at the
   /// song after it is lost when the band starts that one.
-  factory _WayThrough.ofSet(_SetContext context, {required bool performing}) {
+  factory _WayThrough.ofSet({
+    required _SetContext context,
+    required bool performing,
+  }) {
     final set = context.set;
     PageRouteInfo? nearest(int step) {
       final index = context.index + step;
@@ -1485,37 +1474,16 @@ class _WayThrough {
     );
   }
 
-  final bool isSet;
-
-  /// What the set or the collection is called, and where it is.
-  final String title;
-  final PageRouteInfo route;
-
-  /// Where this one comes in it, counted from one, and how many there are.
-  final int position;
-  final int count;
-
-  /// Where the ones either side are, or null at either end.
-  final PageRouteInfo? previous;
-  final PageRouteInfo? next;
-
-  /// What the set or the collection says next to this one.
-  final String note;
 }
 
 /// The way through the set or the collection, as a bar of its own under the
 /// details of a score.
-class _WayBar extends StatelessWidget {
-  const _WayBar({
-    required this.way,
-    required this.go,
-  });
-
-  final _WayThrough way;
+class const _WayBar({
+  required final _WayThrough way,
 
   /// Opens the page at a route in place of this one.
-  final void Function(PageRouteInfo route) go;
-
+  required final void Function(PageRouteInfo route) go,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1569,15 +1537,10 @@ class _WayBar extends StatelessWidget {
 /// can arrive after the page has opened. So it is worked out each time the bar
 /// is drawn, and "3 of 21" means the third one down the page somebody was just
 /// looking at.
-class _CollectionContext {
-  const _CollectionContext({
-    required this.collection,
-    required this.entryId,
-  });
-
-  final Collection collection;
-  final String entryId;
-
+class const _CollectionContext({
+  required final Collection collection,
+  required final String entryId,
+}) {
   CollectionEntry? get entry => collection.entries
       .where((candidate) => candidate.id == entryId)
       .firstOrNull;
@@ -1594,13 +1557,9 @@ class _CollectionContext {
 
 /// What is known about a score: who wrote it, what plays it, and what it is
 /// filed under.
-class _ScoreFacts extends StatelessWidget {
-  const _ScoreFacts({
-    required this.score,
-  });
-
-  final Score score;
-
+class const _ScoreFacts({
+  required final Score score,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1661,22 +1620,15 @@ class _ScoreFacts extends StatelessWidget {
 
 /// How the score is read: the key, and which parts are on screen. On the
 /// details page, and in the dialog over the stand.
-class _ViewSettings extends StatelessWidget {
-  const _ViewSettings({
-    required this.view,
-    required this.parts,
-    required this.onChange,
-    required this.keptAsYourReading,
-  });
-
-  final ScoreView view;
-  final List<ScorePartRef> parts;
-  final void Function(ScoreView Function(ScoreView)) onChange;
+class const _ViewSettings({
+  required final ScoreView view,
+  required final List<ScorePartRef> parts,
+  required final void Function(ScoreView Function(ScoreView)) onChange,
 
   /// Whether what is changed here is kept as this player's reading of the
   /// song, which it is when it is played from a set or a collection.
-  final bool keptAsYourReading;
-
+  required final bool keptAsYourReading,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final semitones = view.transposition;
@@ -1759,21 +1711,27 @@ class _ViewSettings extends StatelessWidget {
 /// are both the same, not only what they add up to: the one saved offset is
 /// what [_readingOffset] counts from, and a change to it with the sum held at
 /// the octave is still a change to how the player's next save is worked out.
-class _Reading {
-  _Reading.ofSong(SetEntry entry)
-      : this._(entry.transposition, entry.view, entry.readAt);
+class _Reading._({
+  required final int band,
+  required EntryView view,
+  required final int readAt,
+}) {
+  _Reading.ofSong({
+    required SetEntry entry,
+  })
+      : this._(band: entry.transposition, view: entry.view, readAt: entry.readAt);
 
-  _Reading.ofPiece(CollectionEntry entry)
-      : this._(entry.transposition, entry.view, entry.readAt);
+  _Reading.ofPiece({
+    required CollectionEntry entry,
+  })
+      : this._(band: entry.transposition, view: entry.view, readAt: entry.readAt);
 
-  _Reading._(this.band, EntryView view, this.readAt)
-      : saved = view.transposition,
-        hiddenParts = view.hiddenParts,
-        zoom = view.zoom;
+  this
+    : saved = view.transposition,
+      hiddenParts = view.hiddenParts,
+      zoom = view.zoom;
 
-  final int band;
   final int saved;
-  final int readAt;
   final List<String> hiddenParts;
   final double zoom;
 

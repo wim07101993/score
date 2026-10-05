@@ -60,35 +60,62 @@ class PendingChange {
 ///
 /// It is called a `ScoreSet` rather than a `Set` because the other one is
 /// taken.
-class ScoreSet implements SyncedRecord<ScoreSet, SetEntry> {
-  const ScoreSet({
-    required this.id,
-    this.title = '',
-    this.description = '',
-    this.entries = const [],
-    this.sharedWith = const [],
-    this.isOwner = true,
-    required this.lastChangedAt,
-    this.deletedAt,
-    this.lastSyncedAt,
-    this.pendingChange,
-    this.pendingViews = const [],
-    this.pendingEntries = const [],
-  });
+class const ScoreSet({
+  @override required final String id,
+  @override final String title = '',
+  @override final String description = '',
 
+  /// In playing order.
+  @override final List<SetEntry> entries = const [],
+
+  /// The addresses it is readable by; only ever filled in for the owner.
+  @override final List<String> sharedWith = const [],
+
+  /// Whether it is this user's to change.
+  @override final bool isOwner = true,
+
+  /// When it was last written, here or there.
+  @override required final DateTime lastChangedAt,
+
+  /// When it was deleted, or null while it exists.
+  @override final DateTime? deletedAt,
+
+  /// When the server last said what is above.
+  @override final DateTime? lastSyncedAt,
+
+  /// One of [PendingChange], or null when there is nothing owed.
+  @override final String? pendingChange,
+
+  /// The entries whose view this user has written here and the server has not
+  /// heard about yet.
+  ///
+  /// A view is written by whoever it belongs to rather than by the owner of the
+  /// set, so it is owed separately from the set: a player who cannot change a
+  /// note of the running order still has their own reading of it to send.
+  @override final List<String> pendingViews = const [],
+
+  /// What has been done to the running order here and not sent yet, in the
+  /// order it was done.
+  ///
+  /// Entries are written one at a time, so what is owed is one song at a time
+  /// rather than the whole list: a client that added a song at a gig sends that
+  /// song, and nothing it says can undo what somebody else did to the rest of
+  /// the set in the meantime.
+  @override final List<PendingEntry> pendingEntries = const [],
+}) implements SyncedRecord<ScoreSet, SetEntry> {
   /// A set the way the API hands it over, as one this app keeps: the moments as
   /// dates rather than as the strings they arrive as, and nothing owed.
-  factory ScoreSet.fromApi(
-    Map<String, dynamic> json,
-    DateTime syncedAt,
-  ) =>
+  factory ScoreSet.fromApi({
+    required Map<String, dynamic> json,
+    required DateTime syncedAt,
+  }) =>
       ScoreSet(
         id: '${json['id']}',
         title: '${json['title'] ?? ''}',
         description: '${json['description'] ?? ''}',
         entries: [
           for (final entry in (json['entries'] as List? ?? []))
-            SetEntry.fromApi((entry as Map).cast<String, dynamic>()),
+            SetEntry.fromApi(json: (entry as Map).cast<String, dynamic>()),
         ],
         sharedWith: [
           for (final address in (json['shared_with'] as List? ?? [])) '$address',
@@ -100,15 +127,15 @@ class ScoreSet implements SyncedRecord<ScoreSet, SetEntry> {
         lastSyncedAt: syncedAt,
       );
 
-  factory ScoreSet.fromJson(
-    Map<String, Object?> json,
-  ) => ScoreSet(
+  factory ScoreSet.fromJson({
+    required Map<String, Object?> json,
+  }) => ScoreSet(
         id: '${json['id']}',
         title: '${json['title'] ?? ''}',
         description: '${json['description'] ?? ''}',
         entries: [
           for (final entry in (json['entries'] as List? ?? []))
-            SetEntry.fromJson((entry as Map).cast<String, Object?>()),
+            SetEntry.fromJson(json: (entry as Map).cast<String, Object?>()),
         ],
         sharedWith: [
           for (final address in (json['shared_with'] as List? ?? [])) '$address',
@@ -124,63 +151,9 @@ class ScoreSet implements SyncedRecord<ScoreSet, SetEntry> {
         ],
         pendingEntries: [
           for (final owed in (json['pending_entries'] as List? ?? []))
-            PendingEntry.fromJson((owed as Map).cast<String, Object?>()),
+            PendingEntry.fromJson(json: (owed as Map).cast<String, Object?>()),
         ],
       );
-
-  @override
-  final String id;
-  @override
-  final String title;
-  @override
-  final String description;
-
-  /// In playing order.
-  @override
-  final List<SetEntry> entries;
-
-  /// The addresses it is readable by; only ever filled in for the owner.
-  @override
-  final List<String> sharedWith;
-
-  /// Whether it is this user's to change.
-  @override
-  final bool isOwner;
-
-  /// When it was last written, here or there.
-  @override
-  final DateTime lastChangedAt;
-
-  /// When it was deleted, or null while it exists.
-  @override
-  final DateTime? deletedAt;
-
-  /// When the server last said what is above.
-  @override
-  final DateTime? lastSyncedAt;
-
-  /// One of [PendingChange], or null when there is nothing owed.
-  @override
-  final String? pendingChange;
-
-  /// The entries whose view this user has written here and the server has not
-  /// heard about yet.
-  ///
-  /// A view is written by whoever it belongs to rather than by the owner of the
-  /// set, so it is owed separately from the set: a player who cannot change a
-  /// note of the running order still has their own reading of it to send.
-  @override
-  final List<String> pendingViews;
-
-  /// What has been done to the running order here and not sent yet, in the
-  /// order it was done.
-  ///
-  /// Entries are written one at a time, so what is owed is one song at a time
-  /// rather than the whole list: a client that added a song at a gig sends that
-  /// song, and nothing it says can undo what somebody else did to the rest of
-  /// the set in the meantime.
-  @override
-  final List<PendingEntry> pendingEntries;
 
   @override
   bool get owesAnything =>
@@ -264,66 +237,54 @@ String? scoreIdOf(Object? value) {
 ///
 /// Everything here but the view is what the band does, which is the same for
 /// everyone the set is shared with and the owner's to say.
-class SetEntry implements SyncedEntry<SetEntry> {
-  const SetEntry({
-    required this.id,
-    required this.scoreId,
-    this.description = '',
-    this.transposition = 0,
-    this.view = const EntryView(),
-    this.synced = false,
-  });
-
-  factory SetEntry.fromApi(
-    Map<String, dynamic> json,
-  ) => SetEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: EntryView.fromJson(json['view']),
-        // Everything the API hands over is on the server by definition.
-        synced: true,
-      );
-
-  factory SetEntry.fromJson(
-    Map<String, Object?> json,
-  ) => SetEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: EntryView.fromJson(json['view']),
-        synced: json['synced'] == true,
-      );
-
+class const SetEntry({
   /// What this entry is called, here and on the server.
   ///
   /// An entry keeps its id across a write of the set, which is what lets a view
   /// of it go on pointing at the same thing; an entry added here is named here,
   /// and the server keeps the name.
-  @override
-  final String id;
+  @override required final String id,
 
   /// The score that is played, or null for a song that has none — one the
   /// band still plays from paper. It is still in the running order, in its
   /// place, with its description.
-  final String? scoreId;
-  final String description;
+  required final String? scoreId,
+  final String description = '',
 
   /// How far the band plays this one from where it is written, in semitones,
   /// negative for down.
-  final int transposition;
+  final int transposition = 0,
 
   /// How this user looks at it, which is theirs alone.
-  @override
-  final EntryView view;
+  @override final EntryView view = const EntryView(),
 
   /// Whether the server has this entry. An entry that was added here and never
   /// sent is nothing to tell the server about when it is taken out again: there
   /// is no row there to remove.
-  @override
-  final bool synced;
+  @override final bool synced = false,
+}) implements SyncedEntry<SetEntry> {
+  factory SetEntry.fromApi({
+    required Map<String, dynamic> json,
+  }) => SetEntry(
+        id: '${json['id']}',
+        scoreId: scoreIdOf(json['score_id']),
+        description: '${json['description'] ?? ''}',
+        transposition: transpositionOf(json['transposition']),
+        view: EntryView.fromJson(json: json['view']),
+        // Everything the API hands over is on the server by definition.
+        synced: true,
+      );
+
+  factory SetEntry.fromJson({
+    required Map<String, Object?> json,
+  }) => SetEntry(
+        id: '${json['id']}',
+        scoreId: scoreIdOf(json['score_id']),
+        description: '${json['description'] ?? ''}',
+        transposition: transpositionOf(json['transposition']),
+        view: EntryView.fromJson(json: json['view']),
+        synced: json['synced'] == true,
+      );
 
   /// How far the score is read from where it is written: the key the band plays
   /// it in, plus how far this player reads it from there.
@@ -367,16 +328,23 @@ class SetEntry implements SyncedEntry<SetEntry> {
 /// The saxophone player reading their part a sixth up changes nothing for the
 /// pianist, and the pianist wanting the piano staff alone changes nothing for
 /// the singer.
-class EntryView {
-  const EntryView({
-    this.transposition = 0,
-    this.hiddenParts = const [],
-    this.zoom = 1,
-  });
+class const EntryView({
+  /// Semitones on top of the entry's own.
+  final int transposition = 0,
 
-  factory EntryView.fromJson(
-    Object? json,
-  ) {
+  /// By MusicXML part id.
+  final List<String> hiddenParts = const [],
+
+  /// How big this player draws it, where 1 is the size it is written at.
+  ///
+  /// It is part of the view the server keeps, and a view is written whole: one
+  /// sent without it is stored as the size the score is written at, over
+  /// whatever size the player had.
+  final double zoom = 1,
+}) {
+  factory EntryView.fromJson({
+    required Object? json,
+  }) {
     if (json is! Map) return const EntryView();
     return EntryView(
       transposition: transpositionOf(json['transposition']),
@@ -386,19 +354,6 @@ class EntryView {
       zoom: zoomOf(json['zoom']),
     );
   }
-
-  /// Semitones on top of the entry's own.
-  final int transposition;
-
-  /// By MusicXML part id.
-  final List<String> hiddenParts;
-
-  /// How big this player draws it, where 1 is the size it is written at.
-  ///
-  /// It is part of the view the server keeps, and a view is written whole: one
-  /// sent without it is stored as the size the score is written at, over
-  /// whatever size the player had.
-  final double zoom;
 
   Map<String, Object?> toJson() => {
         'transposition': transposition,
@@ -478,21 +433,16 @@ abstract interface class SyncedEntry<E> {
 }
 
 /// One thing owed to the server about one entry.
-class PendingEntry {
-  const PendingEntry(
-    this.id,
-    this.action,
-  );
-
-  factory PendingEntry.fromJson(
-    Map<String, Object?> json,
-  ) =>
-      PendingEntry('${json['id']}', '${json['action']}');
-
-  final String id;
+class const PendingEntry({
+  required final String id,
 
   /// One of [PendingChange].
-  final String action;
+  required final String action,
+}) {
+  factory PendingEntry.fromJson({
+    required Map<String, Object?> json,
+  }) =>
+      PendingEntry(id: '${json['id']}', action: '${json['action']}');
 
   Map<String, Object?> toJson() => {'id': id, 'action': action};
 }
@@ -508,7 +458,7 @@ List<PendingEntry> owing(
   String entryId,
   String action,
 ) =>
-    [...withoutOwed(owed, entryId), PendingEntry(entryId, action)];
+    [...withoutOwed(owed, entryId), PendingEntry(id: entryId, action: action)];
 
 /// What is owed about the entries of a set or a collection, with nothing owed
 /// about [entryId] any more.

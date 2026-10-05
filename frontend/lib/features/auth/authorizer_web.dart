@@ -8,15 +8,11 @@ import 'package:web/web.dart' as web;
 /// for a code means leaving: the app is torn down, the provider does its half,
 /// and the app starts again with the answer in its own address. Nothing here
 /// waits for anything — [authorize] never returns, in the sense that matters.
-class PlatformAuthorizer implements Authorizer {
-  PlatformAuthorizer(
-    this._config,
-  );
-
-  final OidcConfig _config;
-
+class PlatformAuthorizer({
+  required final OidcConfig config,
+}) implements Authorizer {
   @override
-  Uri get redirectUri => _config.redirectUri;
+  Uri get redirectUri => config.redirectUri;
 
   @override
   Future<Callback?> authorize(Uri authorizationUrl) async {

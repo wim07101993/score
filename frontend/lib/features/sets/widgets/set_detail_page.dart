@@ -40,15 +40,12 @@ import 'package:uuid/uuid.dart';
 /// as they are made. There is nothing to save afterwards, and nothing to lose
 /// by leaving the page.
 @RoutePage()
-class SetDetailPage extends StatefulWidget {
-  const SetDetailPage({
-    super.key,
-    @PathParam('setId') required this.setId,
-  });
+class const SetDetailPage({
+  super.key,
 
   /// `new` for a set that has not been saved yet.
-  final String setId;
-
+  @PathParam('setId') required final String setId,
+}) extends StatefulWidget {
   @override
   State<SetDetailPage> createState() => _SetDetailPageState();
 }
@@ -572,19 +569,12 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
 /// A set to read and play from: what the gig is, and its running order, each
 /// song a tap away from the stand.
-class _SetOverview extends StatelessWidget {
-  const _SetOverview({
-    required this.set,
-    required this.owner,
-    required this.scoreOf,
-    required this.onPlay,
-  });
-
-  final ScoreSet set;
-  final bool owner;
-  final Score? Function(String scoreId) scoreOf;
-  final void Function(SetEntry entry) onPlay;
-
+class const _SetOverview({
+  required final ScoreSet set,
+  required final bool owner,
+  required final Score? Function(String scoreId) scoreOf,
+  required final void Function(SetEntry entry) onPlay,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -645,19 +635,12 @@ class _SetOverview extends StatelessWidget {
 
 /// One song of the running order, as it is read: which song, what the set
 /// says next to it, and the key the band plays it in.
-class _OverviewRow extends StatelessWidget {
-  const _OverviewRow({
-    required this.position,
-    required this.entry,
-    required this.score,
-    required this.onTap,
-  });
-
-  final int position;
-  final SetEntry entry;
-  final Score? score;
-  final VoidCallback onTap;
-
+class const _OverviewRow({
+  required final int position,
+  required final SetEntry entry,
+  required final Score? score,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -700,11 +683,9 @@ class _OverviewRow extends StatelessWidget {
 }
 
 /// What is shown for a set this device does not have and could not fetch.
-class _NotOnThisDevice extends StatelessWidget {
-  const _NotOnThisDevice({required this.onRetry});
-
-  final VoidCallback onRetry;
-
+class const _NotOnThisDevice({
+  required final VoidCallback onRetry,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -729,32 +710,19 @@ class _NotOnThisDevice extends StatelessWidget {
 
 /// One song of the set: what it is, how the band plays it, and how this player
 /// reads it.
-class _EntryCard extends StatelessWidget {
-  const _EntryCard({
-    super.key,
-    required this.entry,
-    required this.index,
-    required this.count,
-    required this.setId,
-    required this.owner,
-    required this.score,
-    required this.onMove,
-    required this.onDescription,
-    required this.onBandTransposition,
-    required this.onRemove,
-  });
-
-  final SetEntry entry;
-  final int index;
-  final int count;
-  final String setId;
-  final bool owner;
-  final Score? score;
-  final void Function(int position) onMove;
-  final void Function(String description) onDescription;
-  final void Function(int semitones) onBandTransposition;
-  final Future<void> Function() onRemove;
-
+class const _EntryCard({
+  super.key,
+  required final SetEntry entry,
+  required final int index,
+  required final int count,
+  required final String setId,
+  required final bool owner,
+  required final Score? score,
+  required final void Function(int position) onMove,
+  required final void Function(String description) onDescription,
+  required final void Function(int semitones) onBandTransposition,
+  required final Future<void> Function() onRemove,
+}) extends StatelessWidget {
   Future<void> _saveMyView(
     BuildContext context, {
     required int transposition,

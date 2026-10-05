@@ -6,11 +6,9 @@ import 'package:score/router.dart';
 ///
 /// Never hidden, whatever roles the user turns out to have: a user who is shown
 /// nothing at all is exactly the user who needs to see why.
-class ProfileButton extends StatelessWidget {
-  const ProfileButton({
-    super.key,
-  });
-
+class const ProfileButton({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

@@ -27,10 +27,10 @@ final _oidcConfig = OidcConfig(
   rolesKey: 'roles',
 );
 
-class _SignedIn extends OidcApi {
-  _SignedIn(
-    LocalStore store,
-  ) : super(_oidcConfig, store);
+class _SignedIn({
+  required super.store,
+}) extends OidcApi {
+  this : super(config: _oidcConfig);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
@@ -38,8 +38,8 @@ class _SignedIn extends OidcApi {
 
 /// An API that lists what it is told to, and hands out documents until it is
 /// told to stop.
-class _Api extends ScoresApi {
-  _Api() : super(ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
+class _Api() extends ScoresApi {
+  this : super(config: ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
 
   List<Map<String, dynamic>> answers = [];
   bool documentsFail = false;
@@ -68,7 +68,7 @@ class _Api extends ScoresApi {
       return null;
     }
     if (documentsFail) {
-      throw ScoresApiException('not now', null);
+      throw ScoresApiException(message: 'not now', status: null);
     }
     return '<new/>';
   }
@@ -93,7 +93,7 @@ void main() {
       ..answers = [
         {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store, api, _SignedIn(store));
+    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await scores.init();
 
     await scores.syncWithApi();
@@ -123,11 +123,11 @@ void main() {
     ]);
     await store.writeMusicXml('abc', '<old/>');
     late ScoresRepository scores;
-    final api = _OpensWhileFetching(() => scores.markViewed('abc'))
+    final api = _OpensWhileFetching(meanwhile: () => scores.markViewed('abc'))
       ..answers = [
         {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    scores = ScoresRepository(store, api, _SignedIn(store));
+    scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await scores.init();
 
     await scores.syncWithApi();
@@ -139,7 +139,7 @@ void main() {
     final store = await LocalStore.inMemory();
     await store.writeScores([const Score(id: 'abc').toJson()]);
     final api = _Api()..gone = {'abc'};
-    final scores = ScoresRepository(store, api, _SignedIn(store));
+    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await scores.init();
 
     await expectLater(
@@ -163,7 +163,7 @@ void main() {
       ..answers = [
         {'id': 'kept', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store, api, _SignedIn(store));
+    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await scores.init();
 
     await scores.forgetWhatTheServerNoLongerHas();
@@ -189,7 +189,7 @@ void main() {
       ..answers = [
         {'id': 'gone', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store, api, _SignedIn(store));
+    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await scores.init();
 
     final sync = scores.syncWithApi();
@@ -211,7 +211,7 @@ void main() {
       ..answers = [
         {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store, api, _SignedIn(store));
+    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await scores.init();
     await scores.syncWithApi();
 
@@ -247,11 +247,9 @@ class _SlowFirstListing extends _Api {
 
 /// An API whose document download lets the player open the score while it is
 /// on its way.
-class _OpensWhileFetching extends _Api {
-  _OpensWhileFetching(this.meanwhile);
-
-  final Future<void> Function() meanwhile;
-
+class _OpensWhileFetching({
+  required final Future<void> Function() meanwhile,
+}) extends _Api {
   @override
   Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
     await meanwhile();

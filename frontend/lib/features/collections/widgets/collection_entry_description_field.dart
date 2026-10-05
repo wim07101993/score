@@ -8,24 +8,16 @@ import 'package:flutter/material.dart';
 /// one. Emptying it puts the name back rather than refusing out loud; nobody
 /// meant to leave a piece of a book with nothing to call it, they meant to type
 /// over it.
-class CollectionEntryDescriptionField extends StatefulWidget {
-  const CollectionEntryDescriptionField({
-    super.key,
-    required this.initialValue,
-    required this.isTheOnlyName,
-    required this.enabled,
-    required this.onSubmitted,
-  });
-
-  final String initialValue;
+class const CollectionEntryDescriptionField({
+  super.key,
+  required final String initialValue,
 
   /// Whether this is all the piece is called, which it is when it has no
   /// score to take a title from.
-  final bool isTheOnlyName;
-
-  final bool enabled;
-  final ValueChanged<String> onSubmitted;
-
+  required final bool isTheOnlyName,
+  required final bool enabled,
+  required final ValueChanged<String> onSubmitted,
+}) extends StatefulWidget {
   @override
   State<CollectionEntryDescriptionField> createState() =>
       _CollectionEntryDescriptionFieldState();

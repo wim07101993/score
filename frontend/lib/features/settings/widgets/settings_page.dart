@@ -14,11 +14,9 @@ import 'package:score/features/settings/widgets/reset_look_button.dart';
 /// case all of this exists for — the machine's own theme is often not what the
 /// room is, and how dim a page wants to be is a question about the room.
 @RoutePage()
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({
-    super.key,
-  });
-
+class const SettingsPage({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = GetIt.I<Settings>();
@@ -59,37 +57,28 @@ class SettingsPage extends StatelessWidget {
 ///
 /// It is handed the answers and a way to change them rather than reaching for
 /// the app itself, which is what lets it be looked at on its own.
-class Appearance extends StatelessWidget {
-  const Appearance({
-    super.key,
-    required this.mode,
-    required this.onModeChanged,
-    required this.brightness,
-    required this.look,
-    required this.onLookChanged,
-    this.onLookCommitted,
-    this.onLookReset,
-  });
+class const Appearance({
+  super.key,
 
   /// Light, dark, or the machine's own choice.
-  final ThemeMode mode;
-  final ValueChanged<ThemeMode> onModeChanged;
+  required final ThemeMode mode,
+  required final ValueChanged<ThemeMode> onModeChanged,
 
   /// Which page is being lit — the one in force, since that is the one on
   /// screen to judge it by.
-  final Brightness brightness;
+  required final Brightness brightness,
+  required final PageLook look,
 
-  final PageLook look;
   /// Called for every step of a drag: what the page should look like now.
-  final ValueChanged<PageLook> onLookChanged;
+  required final ValueChanged<PageLook> onLookChanged,
 
   /// Called once a drag lets go, with where it was left: what is worth
   /// keeping. Null when nothing is kept beyond what [onLookChanged] was told.
-  final ValueChanged<PageLook>? onLookCommitted;
+  final ValueChanged<PageLook>? onLookCommitted,
 
   /// Null when there is nothing to put back.
-  final VoidCallback? onLookReset;
-
+  final VoidCallback? onLookReset,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -228,65 +217,46 @@ class Appearance extends StatelessWidget {
 
 /// One of the three answers, and what it means to a player rather than to a
 /// framework.
-class _ThemeChoice {
-  const _ThemeChoice(
-    this.mode,
-    this.title,
-    this.explanation,
-    this.icon,
-  );
-
-  final ThemeMode mode;
-  final String title;
-  final String explanation;
-  final IconData icon;
-
+class const _ThemeChoice({
+  required final ThemeMode mode,
+  required final String title,
+  required final String explanation,
+  required final IconData icon,
+}) {
   static const all = [
     _ThemeChoice(
-      ThemeMode.system,
-      'Follow the system',
-      'Whatever this machine is set to.',
-      Icons.brightness_auto_outlined,
+      mode: ThemeMode.system,
+      title: 'Follow the system',
+      explanation: 'Whatever this machine is set to.',
+      icon: Icons.brightness_auto_outlined,
     ),
     _ThemeChoice(
-      ThemeMode.light,
-      'Light',
-      'Black on white, the way a score is printed.',
-      Icons.light_mode_outlined,
+      mode: ThemeMode.light,
+      title: 'Light',
+      explanation: 'Black on white, the way a score is printed.',
+      icon: Icons.light_mode_outlined,
     ),
     _ThemeChoice(
-      ThemeMode.dark,
-      'Dark',
-      'The same page with the lamp turned down.',
-      Icons.dark_mode_outlined,
+      mode: ThemeMode.dark,
+      title: 'Dark',
+      explanation: 'The same page with the lamp turned down.',
+      icon: Icons.dark_mode_outlined,
     ),
   ];
 }
 
 /// A slider with what it is worth written beside it.
-class _Dial extends StatelessWidget {
-  const _Dial({
-    required this.label,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.readout,
-    required this.low,
-    required this.high,
-    required this.onChanged,
-    this.onChangeEnd,
-  });
-
-  final String label;
-  final double value;
-  final double min;
-  final double max;
-  final String readout;
-  final IconData low;
-  final IconData high;
-  final ValueChanged<double> onChanged;
-  final ValueChanged<double>? onChangeEnd;
-
+class const _Dial({
+  required final String label,
+  required final double value,
+  required final double min,
+  required final double max,
+  required final String readout,
+  required final IconData low,
+  required final IconData high,
+  required final ValueChanged<double> onChanged,
+  final ValueChanged<double>? onChangeEnd,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -330,13 +300,9 @@ class _Dial extends StatelessWidget {
 
 /// A scrap of staff in the palette being set, so the lamp can be seen rather
 /// than read about.
-class _Page extends StatelessWidget {
-  const _Page({
-    required this.palette,
-  });
-
-  final SheetPalette palette;
-
+class const _Page({
+  required final SheetPalette palette,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -346,7 +312,7 @@ class _Page extends StatelessWidget {
         child: SizedBox(
           height: 96,
           width: double.infinity,
-          child: CustomPaint(painter: _StaffSample(palette)),
+          child: CustomPaint(painter: _StaffSample(palette: palette)),
         ),
       ),
     );
@@ -357,13 +323,9 @@ class _Page extends StatelessWidget {
 ///
 /// Not the engine: a sample that had to lay out a document would be a document
 /// this page had to carry, and what is being shown is a page and the ink on it.
-class _StaffSample extends CustomPainter {
-  const _StaffSample(
-    this.palette,
-  );
-
-  final SheetPalette palette;
-
+class const _StaffSample({
+  required final SheetPalette palette,
+}) extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const space = 7.5;

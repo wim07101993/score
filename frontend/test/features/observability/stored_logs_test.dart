@@ -14,7 +14,7 @@ void main() {
   /// waits for them to have been written.
   Future<LogsController> run(List<LogRecord> records) async {
     final logs = LogsController();
-    final sink = StoredLogSink(Future.value(store), logs);
+    final sink = StoredLogSink(store: Future.value(store), logs: logs);
     await sink.restored;
     for (final record in records) {
       logs.addLog(record);
@@ -56,7 +56,7 @@ void main() {
   test('records logged before the store has opened are kept too', () async {
     final opened = Completer<LocalStore>();
     final logs = LogsController();
-    final sink = StoredLogSink(opened.future, logs);
+    final sink = StoredLogSink(store: opened.future, logs: logs);
 
     final logging = sink.log(LogRecord(Level.INFO, 'early', 'score.App'));
     opened.complete(store);

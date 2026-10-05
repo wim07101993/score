@@ -15,9 +15,9 @@ Callback? readCallback(Map<String, String> query) {
   final error = query['error'];
   if (error != null) {
     throw AuthorizationRefused(
-      error,
-      query['error_description'],
-      query['state'],
+      error: error,
+      description: query['error_description'],
+      state: query['state'],
     );
   }
   final code = query['code'];
@@ -29,20 +29,14 @@ Callback? readCallback(Map<String, String> query) {
 }
 
 /// The provider sent the user back without a code.
-class AuthorizationRefused implements Exception {
-  const AuthorizationRefused(
-    this.error, [
-    this.description,
-    this.state,
-  ]);
-
+class const AuthorizationRefused({
   /// The OAuth error code, `access_denied` most often.
-  final String error;
-  final String? description;
+  required final String error,
+  final String? description,
 
   /// Which sign-in was refused, when the provider said.
-  final String? state;
-
+  final String? state,
+}) implements Exception {
   @override
   String toString() => description == null || description!.isEmpty
       ? 'the provider did not sign you in: $error'
@@ -62,9 +56,9 @@ class AuthorizationRefused implements Exception {
 /// Everything else about signing in — the verifier, the exchange, the refresh,
 /// the roles — is the same on both, and lives in [OidcApi].
 abstract class Authorizer {
-  factory Authorizer(
-    OidcConfig config,
-  ) = PlatformAuthorizer;
+  factory Authorizer({
+    required OidcConfig config,
+  }) = PlatformAuthorizer;
 
   /// Which of the two addresses the provider should send the user back to.
   Uri get redirectUri;

@@ -25,11 +25,9 @@ import 'package:score/router.dart';
 /// under, the claims that actually arrived, and whether they came from the
 /// provider or from the copy this device kept.
 @RoutePage()
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({
-    super.key,
-  });
-
+class const ProfilePage({
+  super.key,
+}) extends StatefulWidget {
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
@@ -273,17 +271,11 @@ String _yesNo(bool yes) => yes ? 'yes' : 'no';
 String _asked(bool? answer) =>
     answer == null ? 'asking…' : (answer ? 'yes' : 'no');
 
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.rows,
-    this.footer,
-  });
-
-  final String title;
-  final List<(String, String?)> rows;
-  final String? footer;
-
+class const _Section({
+  required final String title,
+  required final List<(String, String?)> rows,
+  final String? footer,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

@@ -9,23 +9,17 @@ import 'package:score/features/scores/models.dart';
 /// is for: a list of composers says who is in the library, and a list of
 /// composers with numbers beside them says which of them the library is
 /// actually made of.
-class ScoreFiltersPanel extends StatefulWidget {
-  const ScoreFiltersPanel({
-    super.key,
-    required this.filters,
-    required this.scores,
-    required this.onChanged,
-  });
-
-  final ScoreFilters filters;
+class const ScoreFiltersPanel({
+  super.key,
+  required final ScoreFilters filters,
 
   /// What the values are counted in: the scores the search leaves, before
   /// anything is ticked.
-  final List<Score> scores;
+  required final List<Score> scores,
 
   /// Called after a box was ticked, unticked or cleared.
-  final VoidCallback onChanged;
-
+  required final VoidCallback onChanged,
+}) extends StatefulWidget {
   @override
   State<ScoreFiltersPanel> createState() => _ScoreFiltersPanelState();
 }

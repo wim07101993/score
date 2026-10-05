@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Reads the score a semitone higher than it is now.
-class TransposeUpButton extends StatelessWidget {
-  const TransposeUpButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const TransposeUpButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

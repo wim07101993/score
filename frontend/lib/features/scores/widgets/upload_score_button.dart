@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 
 /// Reads a score off the device, either as a new one or over one that is there.
-class UploadScoreButton extends StatelessWidget {
-  const UploadScoreButton({
-    super.key,
-    required this.replacing,
-    required this.onPressed,
-  });
+class const UploadScoreButton({
+  super.key,
 
   /// Whether there is already a score here for this to be written over.
-  final bool replacing;
-
-  final VoidCallback? onPressed;
-
+  required final bool replacing,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(

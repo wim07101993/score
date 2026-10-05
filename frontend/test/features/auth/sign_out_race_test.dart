@@ -22,11 +22,10 @@ final _claimsA = <String, dynamic>{
 
 /// A provider whose token endpoint (and optionally userinfo) answers only when
 /// told to.
-class _SlowProvider {
-  _SlowProvider(this.host, {this.gateUserInfo = false});
-  final String host;
-  final bool gateUserInfo;
-
+class _SlowProvider({
+  required final String host,
+  final bool gateUserInfo = false,
+}) {
   final tokenRequested = Completer<void>();
   final releaseToken = Completer<void>();
   final userInfoRequested = Completer<void>();
@@ -144,10 +143,10 @@ void main() {
     final store = await LocalStore.inMemory();
     await store.writeSetting('auth_token_response', _expiredToken());
     await store.writeSetting('app_user_info',
-        jsonEncode(UserInfo.fromClaims(_claimsA, _rolesKey).toJson()));
+        jsonEncode(UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson()));
 
-    final provider = _SlowProvider('provider-a.test');
-    final api = OidcApi(_config(provider.host), store,
+    final provider = _SlowProvider(host: 'provider-a.test');
+    final api = OidcApi(config: _config(provider.host), store: store,
         client: provider.client, authorizer: _Recording());
 
     // A sync asking for a token behind the user's back.
@@ -162,7 +161,7 @@ void main() {
 
     // And the next start asks who it is, rather than going on as them.
     final authorizer = _Recording();
-    final next = OidcApi(_config(provider.host), store,
+    final next = OidcApi(config: _config(provider.host), store: store,
         client: provider.client, authorizer: authorizer);
     expect(await next.getUserInfo(), isNull);
     expect(authorizer.sentTo, isNotNull);
@@ -173,10 +172,10 @@ void main() {
     final store = await LocalStore.inMemory();
     await store.writeSetting('auth_token_response', _validToken());
     await store.writeSetting('app_user_info',
-        jsonEncode(UserInfo.fromClaims(_claimsA, _rolesKey).toJson()));
+        jsonEncode(UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson()));
 
-    final provider = _SlowProvider('provider-b.test', gateUserInfo: true);
-    final api = OidcApi(_config(provider.host), store,
+    final provider = _SlowProvider(host: 'provider-b.test', gateUserInfo: true);
+    final api = OidcApi(config: _config(provider.host), store: store,
         client: provider.client, authorizer: _Recording());
 
     final asked = api.getUserInfo();

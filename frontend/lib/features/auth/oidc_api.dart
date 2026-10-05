@@ -62,27 +62,27 @@ String _flowStateKey(String state) => '$_flowStatePrefix:$state';
 /// already gone.
 const Duration _slack = Duration(seconds: 30);
 
-class OidcApi {
-  OidcApi(
-    this._config,
-    this._store, {
-    http.Client? client,
-    Authorizer? authorizer,
-    Duration? otherTabsGrace,
-  })  : _http = client ?? http.Client(),
-        _authorizer = authorizer ?? Authorizer(_config),
-        _otherTabsGrace = otherTabsGrace ??
-            (kIsWeb ? const Duration(seconds: 2) : Duration.zero);
+class OidcApi({
+  required final OidcConfig config,
+  required final LocalStore store,
+  http.Client? client,
+  Authorizer? authorizer,
+  Duration? otherTabsGrace,
+}) {
+  this
+    : client = client ?? http.Client(),
+      authorizer = authorizer ?? Authorizer(config: config),
+      otherTabsGrace =
+          otherTabsGrace ??
+          (kIsWeb ? const Duration(seconds: 2) : Duration.zero);
 
-  final OidcConfig _config;
-  final LocalStore _store;
-  final http.Client _http;
-  final Authorizer _authorizer;
+  final http.Client client;
+  final Authorizer authorizer;
 
   /// How long a refused refresh token is watched for another tab's
   /// replacement before it is given up on (see [_refreshNow]). Only the web
   /// has tabs.
-  final Duration _otherTabsGrace;
+  final Duration otherTabsGrace;
 
   Future<openid.Client>? _clientFuture;
 
@@ -92,7 +92,7 @@ class OidcApi {
   /// wants a token would otherwise make it again.
   Future<openid.Client> _client() =>
       _clientFuture ??= _describeProvider().then(
-        (issuer) => openid.Client(issuer, _config.clientIdHere, httpClient: _http),
+        (issuer) => openid.Client(issuer, config.clientIdHere, httpClient: client),
       );
 
   /// What the provider says about itself, or what the config says when it
@@ -105,13 +105,13 @@ class OidcApi {
   /// the endpoints the config was built with rather than failing.
   Future<openid.Issuer> _describeProvider() async {
     try {
-      return await openid.Issuer.discover(_config.issuer, httpClient: _http);
+      return await openid.Issuer.discover(config.issuer, httpClient: client);
     } catch (_) {
       return openid.Issuer(openid.OpenIdProviderMetadata.fromJson({
-        'issuer': _config.issuer.toString(),
-        'authorization_endpoint': _config.authorizationEndpoint.toString(),
-        'token_endpoint': _config.tokenEndpoint.toString(),
-        'userinfo_endpoint': _config.userInfoEndpoint.toString(),
+        'issuer': config.issuer.toString(),
+        'authorization_endpoint': config.authorizationEndpoint.toString(),
+        'token_endpoint': config.tokenEndpoint.toString(),
+        'userinfo_endpoint': config.userInfoEndpoint.toString(),
         'response_types_supported': ['code'],
         // Not decoration. A flow keeps only the scopes the provider is known to
         // support, so a metadata document that lists none asks for none — and
@@ -218,12 +218,12 @@ class OidcApi {
   Future<String?> _finishPendingSignIn() async {
     final Callback? callback;
     try {
-      callback = await _authorizer.pendingCallback();
+      callback = await authorizer.pendingCallback();
     } catch (error) {
       // The provider sent the user back with a refusal rather than a code.
-      await _authorizer.clearCallback();
+      await authorizer.clearCallback();
       if (error case AuthorizationRefused(:final state?)) {
-        await _store.writeSetting(_flowStateKey(state), null);
+        await store.writeSetting(_flowStateKey(state), null);
       }
       _signInFailure = error;
       return null;
@@ -241,9 +241,9 @@ class OidcApi {
       _signInFailure = error;
       return null;
     } finally {
-      await _authorizer.clearCallback();
+      await authorizer.clearCallback();
     }
-    await _authorizer.returnTo(started?.returnTo);
+    await authorizer.returnTo(started?.returnTo);
     return token;
   }
 
@@ -289,7 +289,7 @@ class OidcApi {
   /// What the other tab wrote down reaches this one's store a moment after it
   /// was written — the store hears of it from the other tab — and the refusal
   /// of the race it lost is often back before that. So the store is watched
-  /// for it for a while ([_otherTabsGrace]) before the token is given up on;
+  /// for it for a while ([otherTabsGrace]) before the token is given up on;
   /// and what is forgotten then is only the refresh token that was refused,
   /// never one another tab has written over it since.
   Future<String?> _refreshNow({bool readBackIfRefused = true}) async {
@@ -329,9 +329,9 @@ class OidcApi {
   }
 
   /// Whether another tab wrote down a different refresh token than the one in
-  /// [spent], within [_otherTabsGrace].
+  /// [spent], within [otherTabsGrace].
   Future<bool> _replacedByAnotherTab(openid.Credential spent) async {
-    final until = DateTime.now().add(_otherTabsGrace);
+    final until = DateTime.now().add(otherTabsGrace);
     while (true) {
       final now = await _heldRefreshToken();
       if (now != null && now != spent.refreshToken) {
@@ -347,7 +347,7 @@ class OidcApi {
   /// The refresh token in the store, read as it is rather than as a credential:
   /// no provider has to be reached to read it.
   Future<String?> _heldRefreshToken() async {
-    final json = await _store.readSetting(_tokenKey);
+    final json = await store.readSetting(_tokenKey);
     if (json == null) {
       return null;
     }
@@ -385,7 +385,7 @@ class OidcApi {
     if (held == null) {
       // Nothing was sent from this device, so nothing can have come back to it.
       throw OidcException(
-        'a sign-in came back that was not started on this device',
+        message: 'a sign-in came back that was not started on this device',
       );
     }
 
@@ -402,10 +402,10 @@ class OidcApi {
       await _keep(credential);
       final token = (await credential.getTokenResponse()).accessToken;
       if (token == null) {
-        throw OidcException('the provider sent no access token');
+        throw OidcException(message: 'the provider sent no access token');
       }
       _signInFailure = null;
-      await _store.writeSetting(_signedOutKey, null);
+      await store.writeSetting(_signedOutKey, null);
       return token;
     } finally {
       await _forgetFlowState(callback.state);
@@ -417,19 +417,19 @@ class OidcApi {
   /// starts again.
   Future<String?> _startFlow() async {
     final started = _FlowState(
-      _randomString(24),
-      _randomString(56),
-      returnTo: _authorizer.whereTheUserIs(),
+      state: _randomString(24),
+      verifier: _randomString(56),
+      returnTo: authorizer.whereTheUserIs(),
     );
     // After signing out, the provider is asked to ask who it is rather than
     // wave the next person through on the session it still has for the last.
-    final signedOut = await _store.readSetting(_signedOutKey) != null;
+    final signedOut = await store.readSetting(_signedOutKey) != null;
     final flow = await _flow(started, prompt: signedOut ? 'login' : null);
 
     // Written down before the user goes anywhere. On the web this app is about
     // to stop existing, and what comes back is worthless without these — and
     // the user is lost without the last one.
-    await _store.writeSetting(
+    await store.writeSetting(
       _flowStateKey(started.state),
       jsonEncode({
         'state': started.state,
@@ -439,7 +439,7 @@ class OidcApi {
     );
 
     try {
-      final callback = await _authorizer.authorize(flow.authenticationUri);
+      final callback = await authorizer.authorize(flow.authenticationUri);
       if (callback == null) {
         return null;
       }
@@ -450,7 +450,7 @@ class OidcApi {
       // Nothing will come back for this sign-in any more: it was cancelled,
       // timed out, or refused, and on a device there is no later start of the
       // app for an answer to arrive in.
-      await _store.writeSetting(_flowStateKey(started.state), null);
+      await store.writeSetting(_flowStateKey(started.state), null);
       return null;
     }
   }
@@ -471,7 +471,7 @@ class OidcApi {
       state: started.state,
       codeVerifier: started.verifier,
       prompt: prompt,
-    )..redirectUri = _authorizer.redirectUri;
+    )..redirectUri = authorizer.redirectUri;
 
     // A flow keeps only the scopes the provider says it supports, and drops the
     // rest without a word. Losing `openid` means what goes out is not a sign-in
@@ -479,7 +479,7 @@ class OidcApi {
     // refusing a code for no stated reason.
     if (!flow.scopes.contains('openid')) {
       throw OidcException(
-        'the provider at ${_config.issuer} does not offer the openid scope,'
+        message: 'the provider at ${config.issuer} does not offer the openid scope,'
         ' so it cannot be signed in to',
       );
     }
@@ -494,12 +494,12 @@ class OidcApi {
     if (response == null) {
       return;
     }
-    await _store.writeSetting(_tokenKey, jsonEncode(response));
+    await store.writeSetting(_tokenKey, jsonEncode(response));
   }
 
   /// What this device is holding, as something that can be spent and refreshed.
   Future<openid.Credential?> _heldCredential() async {
-    final json = await _store.readSetting(_tokenKey);
+    final json = await store.readSetting(_tokenKey);
     if (json == null) {
       return null;
     }
@@ -539,7 +539,7 @@ class OidcApi {
   /// its address, which has to be dealt with before anything else is shown.
   Future<bool> isFinishingASignIn() async {
     try {
-      return await _authorizer.pendingCallback() != null;
+      return await authorizer.pendingCallback() != null;
     } catch (_) {
       // A refusal is an answer too.
       return true;
@@ -548,10 +548,10 @@ class OidcApi {
 
   /// Whether this device holds a token, or a refresh token to get one with.
   Future<bool> holdsAToken() async =>
-      await _store.readSetting(_tokenKey) != null;
+      await store.readSetting(_tokenKey) != null;
 
   Future<void> _forgetTokens() async {
-    await _store.writeSetting(_tokenKey, null);
+    await store.writeSetting(_tokenKey, null);
   }
 
   /// Throws away the access token and keeps the refresh token, so that the next
@@ -561,7 +561,7 @@ class OidcApi {
   /// revoked, or the session behind it ended somewhere else. Kept, it would be
   /// sent again with every request until it ran out on its own.
   Future<void> forgetAccessToken() async {
-    final json = await _store.readSetting(_tokenKey);
+    final json = await store.readSetting(_tokenKey);
     if (json == null) {
       return;
     }
@@ -570,7 +570,7 @@ class OidcApi {
         ..remove('access_token')
         ..remove('expires_at')
         ..remove('expires_in');
-      await _store.writeSetting(
+      await store.writeSetting(
         _tokenKey,
         token['refresh_token'] == null ? null : jsonEncode(token),
       );
@@ -585,8 +585,8 @@ class OidcApi {
   /// sign-in — so that a sign-in that was out while the app was updated still
   /// finishes.
   Future<_FlowState?> _readFlowState(String state) async {
-    final json = await _store.readSetting(_flowStateKey(state)) ??
-        await _store.readSetting(_flowStatePrefix);
+    final json = await store.readSetting(_flowStateKey(state)) ??
+        await store.readSetting(_flowStatePrefix);
     if (json == null) {
       return null;
     }
@@ -597,8 +597,8 @@ class OidcApi {
       }
       final returnTo = map['return_to'];
       return _FlowState(
-        '${map['state']}',
-        '${map['verifier']}',
+        state: '${map['state']}',
+        verifier: '${map['verifier']}',
         returnTo: returnTo is String ? Uri.tryParse(returnTo) : null,
       );
     } catch (_) {
@@ -607,8 +607,8 @@ class OidcApi {
   }
 
   Future<void> _forgetFlowState(String state) async {
-    await _store.writeSetting(_flowStateKey(state), null);
-    await _store.writeSetting(_flowStatePrefix, null);
+    await store.writeSetting(_flowStateKey(state), null);
+    await store.writeSetting(_flowStatePrefix, null);
   }
 
   /// What the provider says about the user right now.
@@ -638,34 +638,34 @@ class OidcApi {
     }
     if (response.statusCode >= 400) {
       throw OidcException(
-        'failed to get the user info: ${response.statusCode} ${response.body}',
+        message: 'failed to get the user info: ${response.statusCode} ${response.body}',
       );
     }
 
     final claims = jsonDecode(response.body) as Map<String, dynamic>;
-    final user = UserInfo.fromClaims(claims, _config.rolesKey);
+    final user = UserInfo.fromClaims(claims: claims, rolesKey: config.rolesKey);
     // Signed out while the provider was being asked: who it says this is, is
     // nobody this device should go on as.
     if (!await holdsAToken()) {
       return null;
     }
-    await _store.writeSetting(_userInfoKey, jsonEncode(user.toJson()));
+    await store.writeSetting(_userInfoKey, jsonEncode(user.toJson()));
     return user;
   }
 
-  Future<http.Response> _askUserInfo(String token) => _http.get(
-        _config.userInfoEndpoint,
+  Future<http.Response> _askUserInfo(String token) => client.get(
+        config.userInfoEndpoint,
         headers: {'Authorization': 'Bearer $token'},
       );
 
   /// What the provider last said about the user, from before there was no
   /// network to ask over.
   Future<UserInfo?> keptUserInfo() async {
-    final json = await _store.readSetting(_userInfoKey);
+    final json = await store.readSetting(_userInfoKey);
     if (json == null) {
       return null;
     }
-    return UserInfo.fromJson(jsonDecode(json) as Map<String, dynamic>);
+    return UserInfo.fromJson(json: jsonDecode(json) as Map<String, dynamic>);
   }
 
   /// Whether the provider is there to be asked.
@@ -675,8 +675,8 @@ class OidcApi {
   /// device, and a network that is down is the very case it is asked in.
   Future<bool> canBeReached() async {
     try {
-      final response = await _http
-          .get(_config.healthzEndpoint)
+      final response = await client
+          .get(config.healthzEndpoint)
           .timeout(const Duration(seconds: 5));
       return response.statusCode < 400;
     } catch (error) {
@@ -699,8 +699,8 @@ class OidcApi {
   Future<void> forgetUser() async {
     _signInFailure = null;
     await _forgetTokens();
-    await _store.forgetSettingsStartingWith(_flowStatePrefix);
-    await _store.writeSetting(_userInfoKey, null);
+    await store.forgetSettingsStartingWith(_flowStatePrefix);
+    await store.writeSetting(_userInfoKey, null);
   }
 
   /// Forgets who is signed in, as [forgetUser] does, and has the next sign-in
@@ -712,7 +712,7 @@ class OidcApi {
   /// one without asking; so the next sign-in asks it to ask again.
   Future<void> signOut() async {
     await forgetUser();
-    await _store.writeSetting(_signedOutKey, 'true');
+    await store.writeSetting(_signedOutKey, 'true');
   }
 
   /// The subject of the user the sets and collections on this device belong
@@ -724,10 +724,10 @@ class OidcApi {
   /// the user who is signed in is the one they belong to (see
   /// [holdsTheDataOfTheSignedInUser]), and a different user signing in has
   /// them forgotten first (see [Auth.updateAuth]).
-  Future<String?> dataOwner() => _store.readSetting(_dataOwnerKey);
+  Future<String?> dataOwner() => store.readSetting(_dataOwnerKey);
 
   Future<void> keepDataOwner(String? subject) =>
-      _store.writeSetting(_dataOwnerKey, subject);
+      store.writeSetting(_dataOwnerKey, subject);
 
   /// Whether the sets and collections on this device may be synced with the
   /// token of the user who is signed in: whether they are that user's, or
@@ -745,13 +745,9 @@ class OidcApi {
   }
 }
 
-class OidcException implements Exception {
-  OidcException(
-    this.message,
-  );
-
-  final String message;
-
+class OidcException({
+  required final String message,
+}) implements Exception {
   @override
   String toString() => message;
 }
@@ -763,19 +759,13 @@ class OidcException implements Exception {
 /// What this device has to remember while the user is away at the provider: the
 /// secret it will prove the code with, and the state it will know its own
 /// answer by.
-class _FlowState {
-  const _FlowState(
-    this.state,
-    this.verifier, {
-    this.returnTo,
-  });
-
-  final String state;
-  final String verifier;
+class const _FlowState({
+  required final String state,
+  required final String verifier,
 
   /// Where the user was when they were sent to sign in.
-  final Uri? returnTo;
-}
+  final Uri? returnTo,
+});
 
 const _alphabet =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -798,20 +788,25 @@ String _randomString(int length) {
 /// with is the one thing that explains why this app thinks what it thinks about
 /// a user — which is worth being able to show when it thinks something the user
 /// disagrees with.
-class UserInfo {
-  const UserInfo({
-    this.name,
-    this.subject,
-    this.email,
-    this.roles,
-    this.claims,
-    this.rolesKey,
-  });
+class const UserInfo({
+  final String? name,
+  final String? subject,
+  final String? email,
 
-  factory UserInfo.fromClaims(
-    Map<String, dynamic> claims,
-    String rolesKey,
-  ) {
+  /// The roles as the provider sent them, which is a map whose keys are the
+  /// role names.
+  final Map<String, dynamic>? roles,
+
+  /// The answer this was read out of.
+  final Map<String, dynamic>? claims,
+
+  /// The claim the roles were looked for under.
+  final String? rolesKey,
+}) {
+  factory UserInfo.fromClaims({
+    required Map<String, dynamic> claims,
+    required String rolesKey,
+  }) {
     final roles = claims[rolesKey];
     return UserInfo(
       name: claims['name'] as String?,
@@ -823,9 +818,9 @@ class UserInfo {
     );
   }
 
-  factory UserInfo.fromJson(
-    Map<String, dynamic> json,
-  ) => UserInfo(
+  factory UserInfo.fromJson({
+    required Map<String, dynamic> json,
+  }) => UserInfo(
         name: json['name'] as String?,
         subject: json['subject'] as String?,
         email: json['email'] as String?,
@@ -833,20 +828,6 @@ class UserInfo {
         claims: (json['claims'] as Map?)?.cast<String, dynamic>(),
         rolesKey: json['rolesKey'] as String?,
       );
-
-  final String? name;
-  final String? subject;
-  final String? email;
-
-  /// The roles as the provider sent them, which is a map whose keys are the
-  /// role names.
-  final Map<String, dynamic>? roles;
-
-  /// The answer this was read out of.
-  final Map<String, dynamic>? claims;
-
-  /// The claim the roles were looked for under.
-  final String? rolesKey;
 
   bool get isScoreEditor => roles?['score_editor'] != null;
 

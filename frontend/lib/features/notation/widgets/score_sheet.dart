@@ -24,19 +24,18 @@ export 'package:score/features/notation/sheet_palette.dart';
 /// on a score of its own (`musicXmlForView`), which is why what is on screen
 /// and what that download holds agree; the download as written is the file as
 /// it was uploaded.
-class ScoreSheet extends StatefulWidget {
-  const ScoreSheet({
-    super.key,
-    required this.musicXml,
-    this.view,
-    this.space = 7.0,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    this.palette,
-    this.onPinched,
-  });
+class const ScoreSheet({
+  super.key,
 
   /// The score as it was uploaded. Never written to.
-  final String musicXml;
+  required final String musicXml,
+
+  /// How it is being looked at. Null is the score as it was written.
+  final ScoreView? view,
+
+  /// What one staff space is worth in logical pixels — the zoom.
+  final double space = 7.0,
+  final EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 
   /// The page and the ink on it. Null follows the app's own brightness, which
   /// is what a score drawn anywhere but the reading page does.
@@ -44,23 +43,15 @@ class ScoreSheet extends StatefulWidget {
   /// Whatever is passed is a *pair*, and that is the point of taking a palette
   /// rather than two colours: nothing can hand this a page from one setting and
   /// ink from another.
-  final SheetPalette? palette;
-
-  /// How it is being looked at. Null is the score as it was written.
-  final ScoreView? view;
-
-  /// What one staff space is worth in logical pixels — the zoom.
-  final double space;
-
-  final EdgeInsets padding;
+  final SheetPalette? palette,
 
   /// Called with how much a pinch, or ctrl and the scroll wheel, has made the
   /// score bigger or smaller than [space] says — 1 before anybody has, and
   /// again for each new document. It is on top of [space], not instead of it:
   /// what is on screen is the two multiplied, which is what a page that keeps
   /// the size it is read at has to keep.
-  final ValueChanged<double>? onPinched;
-
+  final ValueChanged<double>? onPinched,
+}) extends StatefulWidget {
   @override
   State<ScoreSheet> createState() => _ScoreSheetState();
 }

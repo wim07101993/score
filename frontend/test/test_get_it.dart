@@ -19,7 +19,7 @@ extension TestGetItExtensions on GetIt {
     pushNewScope();
     registerLazySingletonAsync<Config>(
       () async => Config(
-        oidc: OidcConfig.fromJson({
+        oidc: OidcConfig.fromJson(json: {
           'clientId': 'test',
           'nativeClientId': 'test',
           'issuer': 'https://auth.invalid',

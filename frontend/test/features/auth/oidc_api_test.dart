@@ -53,13 +53,11 @@ Map<String, dynamic> _metadata(String host) => {
 ///
 /// It records where it was sent and hands back a code with the state it was
 /// given, which is what a provider that is behaving does.
-class _Obliging implements Authorizer {
-  _Obliging({this.state});
-
+class _Obliging({
   /// The state to answer with. Null echoes back whatever it was sent, which is
   /// the honest case; setting it is how a mismatch is staged.
-  final String? state;
-
+  final String? state,
+}) implements Authorizer {
   /// A code waiting from a previous life of the app, as the web has after a
   /// redirect.
   Callback? pending;
@@ -106,11 +104,10 @@ class _Obliging implements Authorizer {
 /// This is the web, and it is not a failure: the page navigates away to the
 /// provider and this app stops existing. Whatever it was waiting for arrives in
 /// the *next* life of the app, through [Authorizer.pendingCallback].
-class _GoesAway implements Authorizer {
-  _GoesAway({this.here});
-
+class _GoesAway({
+  final Uri? here,
+}) implements Authorizer {
   Uri? sentTo;
-  final Uri? here;
 
   @override
   Uri? whereTheUserIs() => here;
@@ -132,27 +129,19 @@ class _GoesAway implements Authorizer {
 }
 
 /// A provider, as far as the app can tell.
-class _Provider {
-  _Provider(
-    this.host, {
-    this.discoverable = true,
-    this.reissuesRefreshTokens = true,
-    this.claims = const {},
-    this.refused = const {},
-  });
-
-  /// Access tokens the provider no longer takes, however long they had left.
-  final Set<String> refused;
-  final List<String?> userInfoAskedWith = [];
-
-  final String host;
-  final bool discoverable;
+class _Provider({
+  required final String host,
+  final bool discoverable = true,
 
   /// Whether a refresh answers with a new refresh token. Plenty do not, and a
   /// client that took the answer at its word would forget the one it had.
-  final bool reissuesRefreshTokens;
+  final bool reissuesRefreshTokens = true,
+  final Map<String, dynamic> claims = const {},
 
-  final Map<String, dynamic> claims;
+  /// Access tokens the provider no longer takes, however long they had left.
+  final Set<String> refused = const {},
+}) {
+  final List<String?> userInfoAskedWith = [];
 
   final List<Map<String, String>> tokenRequests = [];
   int discoveries = 0;
@@ -223,8 +212,8 @@ Future<(OidcApi, LocalStore)> _api(
   final held = store ?? await LocalStore.inMemory();
   return (
     OidcApi(
-      _config(provider.host),
-      held,
+      config: _config(provider.host),
+      store: held,
       client: provider.client,
       authorizer: authorizer ?? _Obliging(),
     ),
@@ -235,7 +224,7 @@ Future<(OidcApi, LocalStore)> _api(
 void main() {
   group('being sent to the provider', () {
     test('is asked for with a challenge, and the discovered endpoint', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final authorizer = _Obliging();
       final (api, _) = await _api(provider, authorizer: authorizer);
 
@@ -259,7 +248,7 @@ void main() {
     });
 
     test('proves the code with the verifier it sent', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final (api, _) = await _api(provider);
 
       final token = await api.getActiveAccessToken();
@@ -273,7 +262,7 @@ void main() {
     });
 
     test('refuses a code that came back with a state it never sent', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final (api, _) = await _api(
         provider,
         authorizer: _Obliging(state: 'not-the-state-that-went-out'),
@@ -286,7 +275,7 @@ void main() {
     });
 
     test('picks up a code the app was started with', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
 
       // The web: the flow starts and the page navigates away, so this app gets
@@ -300,7 +289,7 @@ void main() {
       final restarted = _Obliging()
         ..pending = (code: 'the-code', state: state);
       final (second, _) = await _api(
-        _Provider(provider.host),
+        _Provider(host: provider.host),
         authorizer: restarted,
         store: store,
       );
@@ -316,7 +305,7 @@ void main() {
       // A sync or a queued write finding no token: on the web a sign-in is the
       // page leaving, and a token the API keeps refusing would be signed in
       // for over and over with nobody asking.
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final authorizer = _Obliging();
       final (api, _) = await _api(provider, authorizer: authorizer);
 
@@ -326,7 +315,7 @@ void main() {
     });
 
     test("behind the user's back still spends a refresh token", () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
       await store.writeSetting(
         'auth_token_response',
@@ -345,14 +334,14 @@ void main() {
       // Every tab of the web app shares the one store. The sign-in the second
       // tab started must not be written over the first's, or the first to come
       // back is refused for a state that is not its own.
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
       final firstTab = _GoesAway();
       final secondTab = _GoesAway();
       final (first, _) =
           await _api(provider, authorizer: firstTab, store: store);
       final (second, _) =
-          await _api(_Provider(provider.host), authorizer: secondTab, store: store);
+          await _api(_Provider(host: provider.host), authorizer: secondTab, store: store);
       await first.getActiveAccessToken();
       await second.getActiveAccessToken();
 
@@ -362,14 +351,14 @@ void main() {
           state: firstTab.sentTo!.queryParameters['state']!,
         );
       final (firstAgain, _) =
-          await _api(_Provider(provider.host), authorizer: back, store: store);
+          await _api(_Provider(host: provider.host), authorizer: back, store: store);
 
       expect(await firstAgain.getActiveAccessToken(), isNotNull);
       expect(firstAgain.signInFailure, isNull);
     });
 
     test('forgetting the user forgets every sign-in that is out', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
       final leaving = _GoesAway();
       final (api, _) = await _api(provider, authorizer: leaving, store: store);
@@ -383,13 +372,13 @@ void main() {
           state: leaving.sentTo!.queryParameters['state']!,
         );
       final (again, _) =
-          await _api(_Provider(provider.host), authorizer: back, store: store);
+          await _api(_Provider(host: provider.host), authorizer: back, store: store);
       expect(await again.getActiveAccessToken(), isNot('access-1'),
           reason: 'a sign-in started before signing out was finished after it');
     });
 
     test('puts the user back where the sign-in was started from', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
       final link = Uri.parse('http://localhost:3000/scores/abc?set=def');
 
@@ -404,7 +393,7 @@ void main() {
         ..pending = (code: 'the-code', state: state)
         ..here = Uri.parse('http://localhost:3000/');
       final (second, _) = await _api(
-        _Provider(provider.host),
+        _Provider(host: provider.host),
         authorizer: restarted,
         store: store,
       );
@@ -416,7 +405,7 @@ void main() {
 
   group('a token it is already holding', () {
     test('is used again rather than asked for twice', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
 
       final (first, _) = await _api(provider, store: store);
@@ -424,7 +413,7 @@ void main() {
 
       final authorizer = _Obliging();
       final (second, _) = await _api(
-        _Provider(provider.host),
+        _Provider(host: provider.host),
         authorizer: authorizer,
         store: store,
       );
@@ -435,7 +424,7 @@ void main() {
     });
 
     test('is refreshed once it has run out', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
 
       await store.writeSetting(
@@ -462,7 +451,7 @@ void main() {
     });
 
     test('is refreshed while it still has a moment left on it', () async {
-      final provider = _Provider(_nextHost());
+      final provider = _Provider(host: _nextHost());
       final store = await LocalStore.inMemory();
 
       // Ten seconds left: still valid, and not enough to be worth spending on a
@@ -531,7 +520,7 @@ void main() {
             headers: {'content-type': 'application/json'});
       });
       final authorizer = _Obliging();
-      final api = OidcApi(_config(host), store,
+      final api = OidcApi(config: _config(host), store: store,
           client: client, authorizer: authorizer);
 
       expect(await api.getActiveAccessToken(), 'the-other-tabs');
@@ -587,7 +576,7 @@ void main() {
             headers: {'content-type': 'application/json'});
       });
       final authorizer = _Obliging();
-      final api = OidcApi(_config(host), store,
+      final api = OidcApi(config: _config(host), store: store,
           client: client,
           authorizer: authorizer,
           otherTabsGrace: const Duration(seconds: 2));
@@ -603,7 +592,7 @@ void main() {
 
     test('keeps its refresh token when the provider sends no new one', () async {
       final provider =
-          _Provider(_nextHost(), reissuesRefreshTokens: false);
+          _Provider(host: _nextHost(), reissuesRefreshTokens: false);
       final store = await LocalStore.inMemory();
 
       final (first, _) = await _api(provider, store: store);
@@ -619,7 +608,7 @@ void main() {
       await store.writeSetting('auth_token_response', jsonEncode(kept));
 
       final (second, _) = await _api(
-        _Provider(provider.host, reissuesRefreshTokens: false),
+        _Provider(host: provider.host, reissuesRefreshTokens: false),
         store: store,
       );
       expect(await second.getActiveAccessToken(), isNotNull);
@@ -633,7 +622,7 @@ void main() {
 
   group('a provider that cannot be described', () {
     test('falls back to the endpoints the config was built with', () async {
-      final provider = _Provider(_nextHost(), discoverable: false);
+      final provider = _Provider(host: _nextHost(), discoverable: false);
       final authorizer = _Obliging();
       final (api, _) = await _api(provider, authorizer: authorizer);
 
@@ -654,7 +643,7 @@ void main() {
   group('the user', () {
     test('is read out of the provider, roles and all', () async {
       final provider = _Provider(
-        _nextHost(),
+        host: _nextHost(),
         claims: {
           'sub': 'user-1',
           'name': 'A Player',
@@ -684,7 +673,7 @@ void main() {
       // Revoked, or signed out somewhere else: this device still thinks it has
       // an hour left on it.
       final provider = _Provider(
-        _nextHost(),
+        host: _nextHost(),
         claims: const {'sub': 'user-1', 'name': 'A Player'},
         refused: const {'revoked'},
       );
@@ -717,7 +706,7 @@ void main() {
     test('is signed in for again when a refused token cannot be refreshed',
         () async {
       final provider = _Provider(
-        _nextHost(),
+        host: _nextHost(),
         claims: const {'sub': 'user-1'},
         refused: const {'revoked'},
       );
@@ -742,7 +731,7 @@ void main() {
     });
 
     test('is forgotten on the way out', () async {
-      final provider = _Provider(_nextHost(), claims: const {'sub': 'user-1'});
+      final provider = _Provider(host: _nextHost(), claims: const {'sub': 'user-1'});
       final (api, store) = await _api(provider);
 
       await api.getUserInfo();
@@ -756,7 +745,7 @@ void main() {
     test('signing out has the next sign-in ask who it is', () async {
       // The provider keeps a session of its own, and would otherwise sign the
       // next person on this device in as the last one without asking.
-      final provider = _Provider(_nextHost(), claims: const {'sub': 'user-1'});
+      final provider = _Provider(host: _nextHost(), claims: const {'sub': 'user-1'});
       final authorizer = _Obliging();
       final (api, store) = await _api(provider, authorizer: authorizer);
       await api.getUserInfo();
@@ -780,7 +769,7 @@ void main() {
     });
 
     test('is nobody when the provider will not talk and nothing is kept', () async {
-      final provider = _Provider(_nextHost(), discoverable: false);
+      final provider = _Provider(host: _nextHost(), discoverable: false);
       final (api, _) = await _api(provider, authorizer: _GoesAway());
 
       expect(await api.getUserInfo(), isNull);

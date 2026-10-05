@@ -15,11 +15,9 @@ import 'package:score/widgets/sync_button.dart';
 /// A set is a playlist for a gig: the scores that are played, in playing order,
 /// each in the key it is played in.
 @RoutePage()
-class SetsPage extends StatefulWidget {
-  const SetsPage({
-    super.key,
-  });
-
+class const SetsPage({
+  super.key,
+}) extends StatefulWidget {
   @override
   State<SetsPage> createState() => _SetsPageState();
 }
@@ -122,13 +120,9 @@ class _SetsPageState extends State<SetsPage> {
   }
 }
 
-class _SetCard extends StatelessWidget {
-  const _SetCard({
-    required this.set,
-  });
-
-  final ScoreSet set;
-
+class const _SetCard({
+  required final ScoreSet set,
+}) extends StatelessWidget {
   /// What is worth saying about a set beyond what it holds: whose it is, and
   /// whether the server has heard about it yet.
   ///

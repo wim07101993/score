@@ -13,14 +13,14 @@ extension SyncGetItExtensions on GetIt {
   void registerSync() {
     registerLazySingletonAsync<Sync>(
       () async => Sync(
-        await getAsync<Auth>(),
-        await getAsync<OidcApi>(),
-        await getAsync<ScoresApi>(),
-        await getAsync<SetsApi>(),
-        await getAsync<CollectionsApi>(),
-        await getAsync<ScoresRepository>(),
-        await getAsync<SetsRepository>(),
-        await getAsync<CollectionsRepository>(),
+        auth: await getAsync<Auth>(),
+        oidc: await getAsync<OidcApi>(),
+        scoresApi: await getAsync<ScoresApi>(),
+        setsApi: await getAsync<SetsApi>(),
+        collectionsApi: await getAsync<CollectionsApi>(),
+        scores: await getAsync<ScoresRepository>(),
+        sets: await getAsync<SetsRepository>(),
+        collections: await getAsync<CollectionsRepository>(),
       ),
     );
   }

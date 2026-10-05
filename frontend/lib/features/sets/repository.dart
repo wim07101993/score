@@ -22,13 +22,13 @@ final _log = GetIt.I<Logger>(param1: 'Sets');
 /// What is a set's own is its running order: where each song is placed, here
 /// and on the server, which is what [saveEntry] and the way the songs are sent
 /// (see [_RunningOrder]) are about.
-class SetsRepository extends ChangeNotifier {
-  SetsRepository(
-    LocalStore store,
-    SetsApi api,
-    OidcApi oidc,
-  ) {
-    _sync = SyncEngine(_Sets(store, api), oidc, notifyListeners);
+class SetsRepository({
+  required LocalStore store,
+  required SetsApi api,
+  required OidcApi oidc,
+}) extends ChangeNotifier {
+  this {
+    _sync = SyncEngine(adapter: _Sets(store: store, api: api), oidc: oidc, changed: notifyListeners);
   }
 
   static const _uuid = Uuid();
@@ -208,57 +208,49 @@ class SetsRepository extends ChangeNotifier {
 ///
 /// Giving up on an edit is the one thing the app does behind the player's back,
 /// so it says so when it happens.
-class SyncProblem {
-  const SyncProblem({
-    required this.setId,
-    required this.title,
-    required this.action,
-    required this.error,
-  });
-
-  final String setId;
-  final String title;
-  final String action;
-  final SetsApiException error;
-}
+class const SyncProblem({
+  required final String setId,
+  required final String title,
+  required final String action,
+  required final SetsApiException error,
+});
 
 typedef _Engine
     = SyncEngine<ScoreSet, SetEntry, SetsApiException, SyncProblem>;
 
 /// What a set is to the [SyncEngine]: where it is stored, which endpoints it
 /// is written to, and that its songs are sent in their running order.
-class _Sets
+class _Sets({
+  required final LocalStore store,
+  required final SetsApi api,
+})
     extends SyncAdapter<ScoreSet, SetEntry, SetsApiException, SyncProblem> {
-  _Sets(this._store, this._api);
-
-  final LocalStore _store;
-  final SetsApi _api;
 
   @override
   String get noun => 'Set';
 
   @override
-  Future<List<Map<String, Object?>>> readStored() => _store.readSets();
+  Future<List<Map<String, Object?>>> readStored() => store.readSets();
 
   @override
   Future<void> writeStored(List<Map<String, Object?>> records) =>
-      _store.writeSets(records);
+      store.writeSets(records);
 
   @override
-  Future<void> forgetStored() => _store.forgetSets();
+  Future<void> forgetStored() => store.forgetSets();
 
   @override
-  ScoreSet fromJson(Map<String, Object?> json) => ScoreSet.fromJson(json);
+  ScoreSet fromJson(Map<String, Object?> json) => ScoreSet.fromJson(json: json);
 
   @override
   ScoreSet fromApi(Map<String, dynamic> json, DateTime syncedAt) =>
-      ScoreSet.fromApi(json, syncedAt);
+      ScoreSet.fromApi(json: json, syncedAt: syncedAt);
 
   @override
-  SetEntry entryFromApi(Map<String, dynamic> json) => SetEntry.fromApi(json);
+  SetEntry entryFromApi(Map<String, dynamic> json) => SetEntry.fromApi(json: json);
 
   @override
-  Future<bool> canBeReached() => _api.canBeReached();
+  Future<bool> canBeReached() => api.canBeReached();
 
   @override
   Future<List<Map<String, dynamic>>> list(
@@ -266,11 +258,11 @@ class _Sets
     DateTime changesUntil,
     String token,
   ) =>
-      _api.listSets(changesSince, changesUntil, token);
+      api.listSets(changesSince, changesUntil, token);
 
   @override
   Future<Map<String, dynamic>?> fetch(String id, String token) =>
-      _api.getSet(id, token);
+      api.getSet(id, token);
 
   @override
   Future<Map<String, dynamic>> put(
@@ -278,10 +270,10 @@ class _Sets
     String token,
     Map<String, Object?> write,
   ) =>
-      _api.putSet(id, token, write);
+      api.putSet(id, token, write);
 
   @override
-  Future<void> remove(String id, String token) => _api.deleteSet(id, token);
+  Future<void> remove(String id, String token) => api.deleteSet(id, token);
 
   @override
   Future<Map<String, dynamic>> putEntry(
@@ -290,11 +282,11 @@ class _Sets
     String token,
     Map<String, Object?> write,
   ) =>
-      _api.putEntry(id, entryId, token, write);
+      api.putEntry(id, entryId, token, write);
 
   @override
   Future<void> removeEntry(String id, String entryId, String token) =>
-      _api.deleteEntry(id, entryId, token);
+      api.deleteEntry(id, entryId, token);
 
   @override
   Future<Map<String, dynamic>> putEntryView(
@@ -303,7 +295,7 @@ class _Sets
     String token,
     Map<String, Object?> write,
   ) =>
-      _api.putEntryView(id, entryId, token, write);
+      api.putEntryView(id, entryId, token, write);
 
   @override
   SyncProblem problem({
@@ -322,7 +314,7 @@ class _Sets
     final queued = _inTheOrderToSend(set);
     final known = await _orderOnTheServer(engine, set, queued);
     if (known == null) return null;
-    return _RunningOrder(queued, known);
+    return _RunningOrder(queue: queued, order: known);
   }
 
   /// The running order the server has for the set, as the ids of its songs.
@@ -349,7 +341,7 @@ class _Sets
     try {
       final token = await engine.token();
       if (token == null) return null;
-      final json = await _api.getSet(set.id, token);
+      final json = await api.getSet(set.id, token);
       if (json == null) {
         // Not there for this user any more: each write will say so.
         return here;
@@ -386,21 +378,18 @@ class _Sets
 /// Where a song ends up here once the server has it is where it already is:
 /// the place the server answers with is only used to follow the server's
 /// order for the songs that are still to go.
-class _RunningOrder extends EntryRun<ScoreSet, SetEntry, SetsApiException> {
-  _RunningOrder(this.queue, this._order);
-
-  @override
-  final List<PendingEntry> queue;
+class _RunningOrder({
+  @override required final List<PendingEntry> queue,
 
   /// The server's running order, as it is after what was sent so far.
-  List<String> _order;
-
+  required var List<String> order,
+}) extends EntryRun<ScoreSet, SetEntry, SetsApiException> {
   /// Where the song that was written last was asked to go.
   int _position = 0;
 
   @override
   Map<String, Object?> writeOf(ScoreSet set, SetEntry entry) {
-    _position = _placeAfter(_order, set.entries, entry);
+    _position = _placeAfter(order, set.entries, entry);
     return {
       'score_id': entry.scoreId,
       'description': entry.description,
@@ -411,13 +400,13 @@ class _RunningOrder extends EntryRun<ScoreSet, SetEntry, SetsApiException> {
 
   @override
   void removed(String entryId) =>
-      _order = [for (final id in _order) if (id != entryId) id];
+      order = [for (final id in order) if (id != entryId) id];
 
   @override
   void written(String entryId, Map<String, dynamic> stored) {
     final placed = stored['position'];
-    _order = _placedAt(
-      _order,
+    order = _placedAt(
+      order,
       entryId,
       placed is num ? placed.round() : _position,
     );

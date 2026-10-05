@@ -33,16 +33,16 @@ final _oidcConfig = OidcConfig(
 );
 
 /// An API that is not there, which is the case the whole design is for.
-class _OfflineApi extends SetsApi {
-  _OfflineApi() : super(ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
+class _OfflineApi() extends SetsApi {
+  this : super(config: ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
 
   @override
   Future<bool> canBeReached() async => false;
 }
 
 /// An API that takes whatever it is given and hands it back.
-class _WorkingApi extends SetsApi {
-  _WorkingApi() : super(ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
+class _WorkingApi() extends SetsApi {
+  this : super(config: ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
 
   final List<String> calls = [];
   final Map<String, Map<String, dynamic>> stored = {};
@@ -138,13 +138,13 @@ class _WriteFailsApi extends _WorkingApi {
   @override
   Future<Map<String, dynamic>> putSet(
       String setId, String token, Map<String, Object?> write) {
-    throw SetsApiException('nothing answered', null);
+    throw SetsApiException(message: 'nothing answered', status: null);
   }
 
   @override
   Future<Map<String, dynamic>> putEntry(String setId, String entryId,
       String token, Map<String, Object?> write) {
-    throw SetsApiException('nothing answered', null);
+    throw SetsApiException(message: 'nothing answered', status: null);
   }
 }
 
@@ -154,7 +154,7 @@ class _RefusingApi extends _WorkingApi {
   Future<Map<String, dynamic>> putSet(
       String setId, String token, Map<String, Object?> write) {
     calls.add('putSet');
-    throw SetsApiException('no', 403, {
+    throw SetsApiException(message: 'no', status: 403, problem: {
       'errorCode': 'not_set_owner',
       'detail': 'that set belongs to somebody else',
     });
@@ -253,14 +253,14 @@ class _TokenRefusedApi extends _WorkingApi {
   @override
   Future<Map<String, dynamic>> putSet(
       String setId, String token, Map<String, Object?> write) {
-    throw SetsApiException('the token is no good', 401);
+    throw SetsApiException(message: 'the token is no good', status: 401);
   }
 }
 
 /// A provider that counts the tokens it was told to forget.
-class _Counting extends _SignedIn {
-  _Counting(super.store);
-
+class _Counting({
+  required super.store,
+}) extends _SignedIn {
   int forgotten = 0;
 
   @override
@@ -269,10 +269,10 @@ class _Counting extends _SignedIn {
 
 /// A provider whose token cannot be had right now: a refresh that failed
 /// because the network did.
-class _TokenFails extends OidcApi {
-  _TokenFails(
-    LocalStore store,
-  ) : super(_oidcConfig, store);
+class _TokenFails({
+  required super.store,
+}) extends OidcApi {
+  this : super(config: _oidcConfig);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async =>
@@ -294,15 +294,15 @@ class _AnswerLostApi extends _WorkingApi {
     final stored = await super.putEntry(setId, entryId, token, write);
     if (_lost) return stored;
     _lost = true;
-    throw SetsApiException('the answer was lost', null);
+    throw SetsApiException(message: 'the answer was lost', status: null);
   }
 }
 
 /// A provider that always has a token to hand.
-class _SignedIn extends OidcApi {
-  _SignedIn(
-    LocalStore store,
-  ) : super(_oidcConfig, store);
+class _SignedIn({
+  required super.store,
+}) extends OidcApi {
+  this : super(config: _oidcConfig);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
@@ -313,7 +313,7 @@ class _SignedIn extends OidcApi {
 
 Future<(SetsRepository, LocalStore)> _repository(SetsApi api) async {
   final store = await LocalStore.inMemory();
-  final repository = SetsRepository(store, api, _SignedIn(store));
+  final repository = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
   await repository.init();
   return (repository, store);
 }
@@ -345,7 +345,7 @@ void main() {
         sets.saveSet(id: set.id, title: 'Zomerbar, renamed'),
       ]);
 
-      final reopened = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final reopened = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await reopened.init();
       for (final now in [sets.getSet(set.id)!, reopened.getSet(set.id)!]) {
         expect(now.title, 'Zomerbar, renamed');
@@ -356,12 +356,12 @@ void main() {
 
     test('a set survives being read back off the device', () async {
       final store = await LocalStore.inMemory();
-      final first = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final first = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await first.init();
       await first.saveSet(title: 'Zomerbar', description: 'two sets of forty');
 
       // The same device, opened again.
-      final second = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final second = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await second.init();
 
       expect(second.sets, hasLength(1));
@@ -569,7 +569,7 @@ void main() {
 
       // The same device, now with a network.
       final store = await LocalStore.inMemory();
-      final online = SetsRepository(store, api, _SignedIn(store));
+      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await store.writeSets([sets.getSet(set.id)!.toJson()]);
       await online.init();
 
@@ -593,7 +593,7 @@ void main() {
           id: added.entries.first.id, description: 'Happy birthday, twice');
 
       final store = await LocalStore.inMemory();
-      final online = SetsRepository(store, api, _SignedIn(store));
+      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await store.writeSets([sets.getSet(set.id)!.toJson()]);
       await online.init();
       await online.syncWithApi();
@@ -609,7 +609,7 @@ void main() {
     test('a set the server refuses is taken back and reported', () async {
       final api = _RefusingApi();
       final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       final problems = <SyncProblem>[];
@@ -634,7 +634,7 @@ void main() {
       await sets.saveEntry(set.id, scoreId: 'score-1');
 
       final store = await LocalStore.inMemory();
-      final online = SetsRepository(store, api, _SignedIn(store));
+      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await store.writeSets([sets.getSet(set.id)!.toJson()]);
       await online.init();
       final problems = <SyncProblem>[];
@@ -656,7 +656,7 @@ void main() {
       // set: the edit is stored, and goes out with the next sync rather than
       // being reported as not saved.
       final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store, _WorkingApi(), _TokenFails(store));
+      final sets = SetsRepository(store: store, api: _WorkingApi(), oidc: _TokenFails(store: store));
       await sets.init();
 
       final saved = await sets.saveSet(title: 'Zomerbar');
@@ -684,12 +684,12 @@ void main() {
             SetEntry(id: 'e', scoreId: 'score-e', synced: true),
           ],
           pendingEntries: const [
-            PendingEntry('a', PendingChange.write),
-            PendingEntry('e', PendingChange.write),
+            PendingEntry(id: 'a', action: PendingChange.write),
+            PendingEntry(id: 'e', action: PendingChange.write),
           ],
         ).toJson(),
       ]);
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       final syncing = sets.syncWithApi();
@@ -712,7 +712,7 @@ void main() {
       // through would have settled the disagreement honestly.
       final api = _WriteFailsApi();
       final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       await store.writeSets([
@@ -749,7 +749,7 @@ void main() {
         () async {
       final api = _WriteFailsApi();
       final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await store.writeSets([
         ScoreSet(
           id: 'mine',
@@ -759,7 +759,7 @@ void main() {
           entries: const [
             SetEntry(id: 'e1', scoreId: 'here-only'),
           ],
-          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+          pendingEntries: const [PendingEntry(id: 'e1', action: PendingChange.write)],
         ).toJson(),
       ]);
       await sets.init();
@@ -817,12 +817,12 @@ void main() {
             ],
           ).toJson(),
         ]);
-        final offline = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+        final offline = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
         await offline.init();
         await arrange(offline);
 
         final api = _OrderingApi()..orders['mine'] = [...onTheServer];
-        final online = SetsRepository(store, api, _SignedIn(store));
+        final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
         await online.init();
         await online.syncWithApi();
         return (online, api);
@@ -892,7 +892,7 @@ void main() {
         lastSyncedAt: DateTime.now(),
       );
       await store.writeSets([before.toJson()]);
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       // The server's answer is made while the set still has its old title...
@@ -923,12 +923,12 @@ void main() {
         ).toJson(),
       ]);
       final api = _SometimesThereApi();
-      final thisTab = SetsRepository(store, api, _SignedIn(store));
+      final thisTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await thisTab.init();
       await thisTab.saveSet(id: 'mine', title: 'Offline');
 
       api.there = true;
-      final otherTab = SetsRepository(store, api, _SignedIn(store));
+      final otherTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
       await otherTab.syncWithApi();
       await otherTab.saveSet(id: 'mine', title: 'Latest');
@@ -953,9 +953,9 @@ void main() {
         ..answers = [
           {...before.toJson(), 'is_owner': true, 'entries': <Object?>[]},
         ];
-      final otherTab = SetsRepository(store, api, _SignedIn(store));
+      final otherTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
-      final thisTab = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final thisTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
 
       // The other tab's answer is on its way when the song is put in here.
@@ -982,14 +982,14 @@ void main() {
           lastSyncedAt: DateTime.now(),
         ).toJson(),
       ]);
-      final offline = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final offline = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await offline.init();
       await offline.saveEntry('mine', id: 'x', scoreId: 'x');
 
       final api = _HeldEntryApi();
-      final otherTab = SetsRepository(store, api, _SignedIn(store));
+      final otherTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
-      final thisTab = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final thisTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
 
       // The other tab sends song x, and song n is put in here while it is out.
@@ -1006,7 +1006,7 @@ void main() {
           contains('n'));
 
       // Song x, whose answer was dropped for it, goes again and is settled.
-      final again = SetsRepository(store, _WorkingApi(), _SignedIn(store));
+      final again = SetsRepository(store: store, api: _WorkingApi(), oidc: _SignedIn(store: store));
       await again.init();
       await again.syncWithApi();
       expect(again.getSet('mine')!.pendingEntries, isEmpty);
@@ -1017,8 +1017,8 @@ void main() {
     test('a token the API refuses is forgotten, and the write stays queued',
         () async {
       final store = await LocalStore.inMemory();
-      final oidc = _Counting(store);
-      final sets = SetsRepository(store, _TokenRefusedApi(), oidc);
+      final oidc = _Counting(store: store);
+      final sets = SetsRepository(store: store, api: _TokenRefusedApi(), oidc: oidc);
       await sets.init();
 
       final saved = await sets.saveSet(title: 'Zomerbar');
@@ -1042,13 +1042,13 @@ void main() {
           entries: const [SetEntry(id: 'a', scoreId: 'a', synced: true)],
         ).toJson(),
       ]);
-      final offline = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final offline = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await offline.init();
       await offline.saveEntry('mine', id: 'x', scoreId: 'x', position: 0);
       await offline.saveEntry('mine', id: 'y', scoreId: 'y', position: 0);
 
       final api = _WorkingApi();
-      final online = SetsRepository(store, api, _SignedIn(store));
+      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -1146,14 +1146,14 @@ void main() {
           lastChangedAt: DateTime.now(),
           lastSyncedAt: DateTime.now(),
           entries: const [SetEntry(id: 'e1', scoreId: 'score-1')],
-          pendingEntries: const [PendingEntry('e1', PendingChange.write)],
+          pendingEntries: const [PendingEntry(id: 'e1', action: PendingChange.write)],
         ).toJson(),
       ]);
       await sets.init();
 
       await sets.deleteSet('gone');
 
-      final kept = (await store.readSets()).map(ScoreSet.fromJson).single;
+      final kept = (await store.readSets()).map((json) => ScoreSet.fromJson(json: json)).single;
       expect(kept.pendingChange, PendingChange.delete);
       expect(kept.pendingEntries, isEmpty,
           reason: 'there is no set left on the server to put them into');
@@ -1170,7 +1170,7 @@ void main() {
       expect(sets.hasPendingChanges, isTrue);
 
       final api = _WorkingApi();
-      final online = SetsRepository(store, api, _SignedIn(store));
+      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -1214,7 +1214,7 @@ void main() {
           lastSyncedAt: DateTime.now(),
         ).toJson(),
       ]);
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       final added = await sets.saveEntry('mine', id: 'x', scoreId: 'x');
@@ -1247,7 +1247,7 @@ void main() {
       ).toJson(),
     ]);
     final api = _OrderingApi()..orders['mine'] = ['b', 'c', 'x', 'f'];
-    final sets = SetsRepository(store, api, _SignedIn(store));
+    final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await sets.init();
 
     await sets.saveEntry('mine', id: 'x', description: 'capo 2');
@@ -1279,7 +1279,7 @@ void main() {
       ]);
       await signedInAs(store, owner: 'alice', subject: 'bob');
       final api = _WorkingApi();
-      final sets = SetsRepository(store, api, _SignedIn(store));
+      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       await sets.syncWithApi();
@@ -1306,7 +1306,7 @@ void main() {
       expect(sets.sets, isEmpty);
       expect(sets.hasPendingChanges, isFalse);
       expect(await store.readSets(), isEmpty);
-      final reopened = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final reopened = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await reopened.init();
       expect(reopened.sets, isEmpty);
     });
@@ -1344,10 +1344,10 @@ void main() {
       // Two tabs of the web app over the one store. What the other tab forgot
       // is not to live on here, or to be written back by the next edit.
       final store = await LocalStore.inMemory();
-      final thisTab = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final thisTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
       await thisTab.saveSet(id: 'mine', title: 'Zomerbar');
-      final otherTab = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+      final otherTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await otherTab.init();
 
       await otherTab.forgetAll();
@@ -1373,13 +1373,13 @@ void main() {
         lastChangedAt: DateTime.now(),
         lastSyncedAt: DateTime.now(),
         entries: const [SetEntry(id: 'a', scoreId: 'a')],
-        pendingEntries: const [PendingEntry('a', PendingChange.write)],
+        pendingEntries: const [PendingEntry(id: 'a', action: PendingChange.write)],
       ).toJson(),
     ]);
     final api = _HeldEntryApi();
-    final thisTab = SetsRepository(store, api, _SignedIn(store));
+    final thisTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
     await thisTab.init();
-    final otherTab = SetsRepository(store, _OfflineApi(), _SignedIn(store));
+    final otherTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
     await otherTab.init();
 
     final syncing = thisTab.syncWithApi();
@@ -1392,7 +1392,7 @@ void main() {
     await renaming;
 
     final stored =
-        (await store.readSets()).map(ScoreSet.fromJson).single;
+        (await store.readSets()).map((json) => ScoreSet.fromJson(json: json)).single;
     expect(stored.title, 'Zomerbar 2');
     expect(stored.entries.map((entry) => entry.id), ['a', 'b']);
     // And song b went out with the rename rather than being dropped by it.

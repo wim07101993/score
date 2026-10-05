@@ -12,11 +12,9 @@ import 'package:score/widgets/error_snack_bar.dart';
 /// The syncs themselves swallow what goes wrong, so whether anything did is
 /// asked again here — whether the server could be reached, and whether there
 /// is still a sign-in to send things with — and said only when it did.
-class SyncButton extends StatefulWidget {
-  const SyncButton({
-    super.key,
-  });
-
+class const SyncButton({
+  super.key,
+}) extends StatefulWidget {
   @override
   State<SyncButton> createState() => _SyncButtonState();
 }

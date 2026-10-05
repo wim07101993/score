@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:score/router.dart';
 
 /// The way to the sets from wherever the user is.
-class SetsButton extends StatelessWidget {
-  const SetsButton({
-    super.key,
-  });
-
+class const SetsButton({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

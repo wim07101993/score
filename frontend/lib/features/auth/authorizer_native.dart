@@ -28,20 +28,18 @@ import 'package:window_to_front/window_to_front.dart';
 /// into it, which is why
 /// [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252#section-8.12) says not to
 /// and why providers increasingly refuse it.
-class PlatformAuthorizer implements Authorizer {
-  PlatformAuthorizer(this._config);
-
+class PlatformAuthorizer({
+  required final OidcConfig config,
+}) implements Authorizer {
   /// Whether this is a machine where the answer has to come back to a port.
   ///
   /// macOS is not one of them: it hands a scheme to an app the way a phone
   /// does, and it has a sign-in window of the system's own to do it in.
   static final bool _listensOnAPort = Platform.isLinux || Platform.isWindows;
 
-  final OidcConfig _config;
-
   @override
   Uri get redirectUri =>
-      _listensOnAPort ? _config.desktopRedirectUri : _config.nativeRedirectUri;
+      _listensOnAPort ? config.desktopRedirectUri : config.nativeRedirectUri;
 
   @override
   Future<Callback?> authorize(Uri authorizationUrl) async {

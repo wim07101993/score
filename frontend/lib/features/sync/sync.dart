@@ -17,27 +17,16 @@ final _log = GetIt.I<Logger>(param1: 'Sync');
 /// A page reads what is stored and asks for a sync; it never waits on the
 /// network to draw. What is on this device is on screen straight away, and
 /// whatever the server has to add arrives when it arrives.
-class Sync {
-  Sync(
-    this._auth,
-    this._oidc,
-    this._scoresApi,
-    this._setsApi,
-    this._collectionsApi,
-    this._scores,
-    this._sets,
-    this._collections,
-  );
-
-  final Auth _auth;
-  final OidcApi _oidc;
-  final ScoresApi _scoresApi;
-  final SetsApi _setsApi;
-  final CollectionsApi _collectionsApi;
-  final ScoresRepository _scores;
-  final SetsRepository _sets;
-  final CollectionsRepository _collections;
-
+class Sync({
+  required final Auth auth,
+  required final OidcApi oidc,
+  required final ScoresApi scoresApi,
+  required final SetsApi setsApi,
+  required final CollectionsApi collectionsApi,
+  required final ScoresRepository scores,
+  required final SetsRepository sets,
+  required final CollectionsRepository collections,
+}) {
   /// Asks the provider who the user is behind a page that is already showing,
   /// and then fetches what a page drawn before there was anyone to fetch it for
   /// did not: a page asks for its sync once, when it is opened, and a user who
@@ -46,9 +35,9 @@ class Sync {
   ///
   /// [retry] is as for [Auth.updateAuth].
   Future<void> updateAuthAndCatchUp({bool retry = false}) async {
-    final couldView = _auth.user?.isScoreViewer == true;
-    await _auth.updateAuth(retry: retry);
-    if (couldView || _auth.user?.isScoreViewer != true) {
+    final couldView = auth.user?.isScoreViewer == true;
+    await auth.updateAuth(retry: retry);
+    if (couldView || auth.user?.isScoreViewer != true) {
       return;
     }
     await updateScores();
@@ -67,13 +56,13 @@ class Sync {
     // The provider too, as for the sets: a sync with no token to hand starts a
     // sign-in, and on the web a sign-in is the page leaving for a provider that
     // is not there.
-    if (!await _scoresApi.canBeReached() || !await _oidc.canBeReached()) {
+    if (!await scoresApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
       _log.fine('syncing the scores');
-      await _scores.syncWithApi();
-      await _auth.sayIfNoLongerSignedIn();
+      await scores.syncWithApi();
+      await auth.sayIfNoLongerSignedIn();
     } catch (error, stackTrace) {
       _log.warning('failed to sync the scores', error, stackTrace);
       await _forgetTokenIfRefused(error);
@@ -85,12 +74,12 @@ class Sync {
   /// what is gone. The repository runs it after whatever sync is running
   /// instead.
   Future<void> _forgetTheScoresThatAreGone() async {
-    if (!await _scoresApi.canBeReached() || !await _oidc.canBeReached()) {
+    if (!await scoresApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
-      await _scores.forgetWhatTheServerNoLongerHas();
-      await _auth.sayIfNoLongerSignedIn();
+      await scores.forgetWhatTheServerNoLongerHas();
+      await auth.sayIfNoLongerSignedIn();
     } catch (error, stackTrace) {
       _log.warning(
           'failed to look for the scores that are gone', error, stackTrace);
@@ -103,13 +92,13 @@ class Sync {
   Future<void> updateSets() => _oneAtATime('sets', _updateSets);
 
   Future<void> _updateSets() async {
-    if (!await _setsApi.canBeReached() || !await _oidc.canBeReached()) {
+    if (!await setsApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
       _log.fine('syncing the sets');
-      await _sets.syncWithApi();
-      await _auth.sayIfNoLongerSignedIn();
+      await sets.syncWithApi();
+      await auth.sayIfNoLongerSignedIn();
     } catch (error, stackTrace) {
       _log.warning('failed to sync the sets', error, stackTrace);
       await _forgetTokenIfRefused(error);
@@ -133,9 +122,9 @@ class Sync {
       _ => null,
     };
     if (status == 401) {
-      await _oidc.forgetAccessToken();
+      await oidc.forgetAccessToken();
     }
-    await _auth.sayIfNoLongerSignedIn();
+    await auth.sayIfNoLongerSignedIn();
   }
 
   /// Squares the collections with the API, which is also when whatever was
@@ -157,13 +146,13 @@ class Sync {
   }
 
   Future<void> _updateCollections() async {
-    if (!await _collectionsApi.canBeReached() || !await _oidc.canBeReached()) {
+    if (!await collectionsApi.canBeReached() || !await oidc.canBeReached()) {
       return;
     }
     try {
       _log.fine('syncing the collections');
-      await _collections.syncWithApi();
-      await _auth.sayIfNoLongerSignedIn();
+      await collections.syncWithApi();
+      await auth.sayIfNoLongerSignedIn();
     } catch (error, stackTrace) {
       _log.warning('failed to sync the collections', error, stackTrace);
       await _forgetTokenIfRefused(error);

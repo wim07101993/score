@@ -5,22 +5,14 @@ import 'package:score/widgets/semitone_up_button.dart';
 
 /// A number of semitones with a button either side: how far the band plays an
 /// entry from where it is written, or how far one player reads it from there.
-class Semitones extends StatelessWidget {
-  const Semitones({
-    super.key,
-    required this.label,
-    required this.tooltip,
-    required this.value,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String tooltip;
-  final int value;
-  final bool enabled;
-  final void Function(int) onChanged;
-
+class const Semitones({
+  super.key,
+  required final String label,
+  required final String tooltip,
+  required final int value,
+  required final bool enabled,
+  required final void Function(int) onChanged,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(

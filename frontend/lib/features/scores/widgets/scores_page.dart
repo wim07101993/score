@@ -22,11 +22,9 @@ import 'package:score/widgets/sync_button.dart';
 /// to sync with; syncing only ever adds to it. The most recently opened come
 /// first, because what was played last is what is likely to be played next.
 @RoutePage()
-class ScoresPage extends StatefulWidget {
-  const ScoresPage({
-    super.key,
-  });
-
+class const ScoresPage({
+  super.key,
+}) extends StatefulWidget {
   @override
   State<ScoresPage> createState() => _ScoresPageState();
 }
@@ -118,23 +116,17 @@ class _ScoresPageState extends State<ScoresPage> {
 /// The same card wherever a list of scores is shown — the list of every score,
 /// and the pieces of a collection — so that a piece looks the same in the book
 /// as it does on the shelf.
-class ScoreCard extends StatelessWidget {
-  const ScoreCard({
-    super.key,
-    required this.score,
-    this.onTap,
-    this.note,
-  });
-
-  final Score score;
+class const ScoreCard({
+  super.key,
+  required final Score score,
 
   /// What a tap does, when it is not opening the score on its own: a piece of
   /// a collection opens as that piece, read the way the collection says.
-  final VoidCallback? onTap;
+  final VoidCallback? onTap,
 
   /// What the list it is in says next to it, if anything.
-  final String? note;
-
+  final String? note,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -199,15 +191,10 @@ class ScoreCard extends StatelessWidget {
   }
 }
 
-class _Line extends StatelessWidget {
-  const _Line({
-    required this.icon,
-    required this.text,
-  });
-
-  final IconData icon;
-  final String text;
-
+class const _Line({
+  required final IconData icon,
+  required final String text,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -233,16 +220,12 @@ class _Line extends StatelessWidget {
 /// Not an empty list: an empty list says there is nothing, and that is not what
 /// happened. A page that shows nothing is a page that was told nothing, and the
 /// profile is where what it was told can be read.
-class _NotAViewer extends StatelessWidget {
-  const _NotAViewer({
-    this.problem,
-  });
-
+class const _NotAViewer({
   /// What went wrong signing in, when something did. A sign-in that failed
   /// looks exactly like an account with no roles, and the two want opposite
   /// things done about them.
-  final Object? problem;
-
+  final Object? problem,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

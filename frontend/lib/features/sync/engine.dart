@@ -139,22 +139,16 @@ abstract class EntryRun<R, E, X extends ApiException> {
 /// The sets or the collections, as this device has them: see the library
 /// documentation above for what that means and why.
 class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
-    X extends ApiException, P> {
-  SyncEngine(
-    this._adapter,
-    this._oidc,
-    this._changed,
-  );
-
-  final SyncAdapter<R, E, X, P> _adapter;
-  final OidcApi _oidc;
+    X extends ApiException, P>({
+  required final SyncAdapter<R, E, X, P> adapter,
+  required final OidcApi oidc,
 
   /// What is called when what is held here changed, for whoever is listening
   /// to the repository this engine keeps.
-  final VoidCallback _changed;
-
+  required final VoidCallback changed,
+}) {
   /// What one of them is called in the middle of a message.
-  String get _kind => _adapter.noun.toLowerCase();
+  String get _kind => adapter.noun.toLowerCase();
 
   /// Every one that is kept here, the deleted ones included.
   final Map<String, R> _records = {};
@@ -185,11 +179,11 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   /// The token to send what is owed about [id] with, remembering why there is
   /// none when there is not.
   Future<String?> _tokenFor(String id) async {
-    if (!await _oidc.holdsTheDataOfTheSignedInUser()) {
+    if (!await oidc.holdsTheDataOfTheSignedInUser()) {
       _whyNotSynced[id] = SyncHold.notTheirs;
       return null;
     }
-    final token = await _oidc.getActiveAccessToken(signIn: false);
+    final token = await oidc.getActiveAccessToken(signIn: false);
     if (token == null) _whyNotSynced[id] = SyncHold.noToken;
     return token;
   }
@@ -205,7 +199,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   ///
   Future<void> takeInWhatOthersStored() async {
     final keptBefore = {..._kept};
-    final stored = await _adapter.readStored();
+    final stored = await adapter.readStored();
     var changed = false;
 
     // One that is here and no longer in the store was forgotten by another tab
@@ -231,7 +225,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       if (_kept[id] != keptBefore[id] || (_writing[id] ?? 0) > 0) {
         continue;
       }
-      final taken = _adapter.fromJson(record);
+      final taken = adapter.fromJson(record);
       // A push that is out squares what it sent with what is here by which
       // object it is, so what this tab stored itself is left as it is: taken
       // in again, the push would find nothing it sent and send it once more.
@@ -251,7 +245,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       _records[taken.id] = taken;
       changed = true;
     }
-    if (changed) _changed();
+    if (changed) this.changed();
   }
 
   /// How often this tab has changed each record, and how many of those
@@ -272,7 +266,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   /// rather than sending it again — see [OidcApi.forgetAccessToken].
   Future<void> forgetTokenIfRefused(X error) async {
     if (error.status == 401) {
-      await _oidc.forgetAccessToken();
+      await oidc.forgetAccessToken();
     }
   }
 
@@ -283,10 +277,10 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   /// in (see [OidcApi.dataOwner]): pushed with their token, it would become
   /// theirs.
   Future<String?> token() async {
-    if (!await _oidc.holdsTheDataOfTheSignedInUser()) {
+    if (!await oidc.holdsTheDataOfTheSignedInUser()) {
       return null;
     }
-    return _oidc.getActiveAccessToken(signIn: false);
+    return oidc.getActiveAccessToken(signIn: false);
   }
 
   /// How many times everything here was forgotten: see [forgetAll].
@@ -314,8 +308,8 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     }
     _records.clear();
     _seen.clear();
-    await _adapter.forgetStored();
-    _changed();
+    await adapter.forgetStored();
+    changed();
   }
 
   /// The ones there are, most recently changed first. The deleted ones are kept
@@ -341,12 +335,12 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       _records.values.any((record) => record.owesAnything);
 
   Future<void> init() async {
-    for (final json in await _adapter.readStored()) {
-      final record = _adapter.fromJson(json);
+    for (final json in await adapter.readStored()) {
+      final record = adapter.fromJson(json);
       _records[record.id] = record;
       _seen[record.id] = _asStored(record);
     }
-    _changed();
+    changed();
   }
 
   void addSyncProblemListener(void Function(P) listener) =>
@@ -363,7 +357,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
 
   void _report(String id, String title, String action, X error) =>
       reportProblem(
-        _adapter.problem(id: id, title: title, action: action, error: error),
+        adapter.problem(id: id, title: title, action: action, error: error),
       );
 
   // -------------------------------------------------------------------------
@@ -380,7 +374,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     await takeInWhatOthersStored();
     final existing = _records[id];
     if (existing != null && !existing.isOwner) {
-      throw StateError("${_adapter.noun} with id '$id' belongs to someone"
+      throw StateError("${adapter.noun} with id '$id' belongs to someone"
           ' else and cannot be changed.');
     }
 
@@ -443,13 +437,13 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     final existing = _records[id];
     if (existing == null || existing.deletedAt != null) {
       throw StateError(
-          "${_adapter.noun} with id '$id' is not on this device.");
+          "${adapter.noun} with id '$id' is not on this device.");
     }
     final entry = existing.entries
         .where((candidate) => candidate.id == entryId)
         .firstOrNull;
     if (entry == null) {
-      throw StateError("${_adapter.noun} '$id' has no entry '$entryId'.");
+      throw StateError("${adapter.noun} '$id' has no entry '$entryId'.");
     }
 
     await keep([
@@ -486,7 +480,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       return;
     }
     if (!existing.isOwner) {
-      throw StateError("${_adapter.noun} with id '$id' belongs to someone"
+      throw StateError("${adapter.noun} with id '$id' belongs to someone"
           ' else and cannot be deleted.');
     }
 
@@ -514,10 +508,10 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     final record = _records[id];
     if (record == null || record.deletedAt != null) {
       throw StateError(
-          "${_adapter.noun} with id '$id' is not on this device.");
+          "${adapter.noun} with id '$id' is not on this device.");
     }
     if (!record.isOwner) {
-      throw StateError("${_adapter.noun} with id '$id' belongs to someone"
+      throw StateError("${adapter.noun} with id '$id' belongs to someone"
           ' else and cannot be changed.');
     }
     return record;
@@ -562,8 +556,8 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       return;
     }
     final reachable = await Future.wait([
-      _adapter.canBeReached(),
-      _oidc.canBeReached(),
+      adapter.canBeReached(),
+      oidc.canBeReached(),
     ]);
     if (reachable.contains(false)) {
       _log.info('the api cannot be reached; what was written stays queued');
@@ -634,7 +628,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       if (token == null) return;
 
       if (action == PendingChange.delete) {
-        await _adapter.remove(record.id, token);
+        await adapter.remove(record.id, token);
         _tookAWrite(id);
         // Written again while the delete was on its way, which brings it back:
         // that write is newer than the delete and is still owed.
@@ -645,7 +639,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
         return;
       }
 
-      final stored = await _adapter.put(record.id, token, {
+      final stored = await adapter.put(record.id, token, {
         'title': record.title,
         'description': record.description,
         'shared_with': record.sharedWith,
@@ -673,7 +667,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       // That is read from what is here now rather than from what was sent: an
       // entry may have been put in while the request was out.
       await keepAnswer(
-        carryPending(_adapter.fromApi(stored, syncedAt), current),
+        carryPending(adapter.fromApi(stored, syncedAt), current),
       );
     } on X catch (error) {
       await forgetTokenIfRefused(error);
@@ -704,7 +698,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   Future<void> _pushEntries(String id) async {
     final record = _records[id];
     if (record == null || record.pendingEntries.isEmpty) return;
-    final run = await _adapter.startEntries(this, record);
+    final run = await adapter.startEntries(this, record);
     if (run == null) return;
     await _sendEntries(id, run);
     final finishing = run.finish();
@@ -732,14 +726,14 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
         if (token == null) return;
 
         if (owed.action == PendingChange.delete) {
-          await _adapter.removeEntry(id, owed.id, token);
+          await adapter.removeEntry(id, owed.id, token);
           _tookAWrite(id);
           run.removed(owed.id);
           if (!await keepAnswer(_settled(_records[id]!, owed))) return;
           continue;
         }
 
-        final stored = await _adapter.putEntry(
+        final stored = await adapter.putEntry(
           id,
           owed.id,
           token,
@@ -817,7 +811,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
         // Whole, the size included: a view is replaced by what is written, and
         // one written without a size is read by the server as the size the
         // score is written at.
-        final stored = await _adapter.putEntryView(id, entryId, token, {
+        final stored = await adapter.putEntryView(id, entryId, token, {
           'transposition': entry.view.transposition,
           'hidden_parts': entry.view.hiddenParts,
           'zoom': entry.view.zoom,
@@ -836,7 +830,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
           _withEntryView(
             current,
             entryId,
-            EntryView.fromJson(stored),
+            EntryView.fromJson(json: stored),
             owed: false,
           ),
         );
@@ -889,7 +883,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       if (token == null) {
         throw StateError('there is no token to read the $_kind back with');
       }
-      fromApi = await _adapter.fetch(record.id, token);
+      fromApi = await adapter.fetch(record.id, token);
     } catch (readError) {
       final current = _records[record.id] ?? record;
       if (!changedSince(record)) {
@@ -923,7 +917,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     } else if (!changedSince(record)) {
       await keepAnswer(
         carryPending(
-          _adapter.fromApi(fromApi, syncedOutsideAPull(record)),
+          adapter.fromApi(fromApi, syncedOutsideAPull(record)),
           current,
         ),
       );
@@ -944,7 +938,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     // moments in it at all falls back on when it was asked for.
     final takenBefore = {..._taken};
     final asked = DateTime.now();
-    final fromApi = await _adapter.list(
+    final fromApi = await adapter.list(
         _lastSyncedAt()?.subtract(pullOverlap), endOfTime, token);
     if (fromApi.isEmpty) {
       return;
@@ -982,7 +976,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       // stands. That goes for the entries of one whose own write is still owed
       // too: skipping the answer whole would move the window past what other
       // devices put into it, and it would never be asked for again.
-      final carried = carryPending(_adapter.fromApi(json, syncedAt), existing);
+      final carried = carryPending(adapter.fromApi(json, syncedAt), existing);
       toStore.add(existing?.pendingChange == null
           ? carried
           : carried.copyWith(
@@ -1039,14 +1033,14 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
       _writing[record.id] = (_writing[record.id] ?? 0) + 1;
     }
     try {
-      await _adapter
+      await adapter
           .writeStored([for (final record in records) record.toJson()]);
     } finally {
       for (final record in records) {
         _writing[record.id] = _writing[record.id]! - 1;
       }
     }
-    _changed();
+    changed();
   }
 
   /// Keeps what a push made of the server's answer, unless it was changed
@@ -1067,7 +1061,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     // A write of this tab's own that is still on its way may not be in what
     // the read finds, and what is found then is not another tab's.
     final writingBefore = _writing[record.id] ?? 0;
-    final json = (await _adapter.readStored())
+    final json = (await adapter.readStored())
         .where((json) => '${json['id']}' == record.id)
         .firstOrNull;
     if (_kept[record.id] != keptBefore) {
@@ -1076,11 +1070,11 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
     if (json != null &&
         writingBefore == 0 &&
         (_writing[record.id] ?? 0) == 0) {
-      final stored = _adapter.fromJson(json);
+      final stored = adapter.fromJson(json);
       if (_asStored(stored) != _seen[record.id]) {
         _records[record.id] = stored;
         _seen[record.id] = _asStored(stored);
-        _changed();
+        changed();
         return false;
       }
     }
@@ -1157,7 +1151,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>,
   /// server's order differs about the other songs — another device moved them
   /// — the pull that follows the push brings it in.
   R _withStoredEntry(R record, Map<String, dynamic> json) {
-    var stored = _adapter.entryFromApi(json);
+    var stored = adapter.entryFromApi(json);
 
     // Its own view is the one this device has: the answer carries the view the
     // server knew about, which is older than one that is still waiting to be

@@ -9,22 +9,18 @@ import 'package:flutter/material.dart';
 /// had as well, but as a second thing, saying so in the menu and in the name
 /// of the file: a copy in the band's key with the piano taken out, replaced
 /// over the real score after a typo was fixed in it, is the real score gone.
-class DownloadScoreButton extends StatelessWidget {
-  const DownloadScoreButton({
-    super.key,
-    required this.onDownloadAsWritten,
-    this.onDownloadAsOnScreen,
-  });
+class const DownloadScoreButton({
+  super.key,
 
   /// Writes out the score as it was uploaded.
-  final VoidCallback? onDownloadAsWritten;
+  required final VoidCallback? onDownloadAsWritten,
 
   /// Writes out the score the way it is on screen, or null while that is the
   /// way it was written — there is only the one file to offer then, and a menu
   /// claiming otherwise would be asking the player to choose between two of
   /// the same.
-  final VoidCallback? onDownloadAsOnScreen;
-
+  final VoidCallback? onDownloadAsOnScreen,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final asOnScreen = onDownloadAsOnScreen;
@@ -68,19 +64,12 @@ class DownloadScoreButton extends StatelessWidget {
 }
 
 /// One of the two files the menu offers.
-class _Choice extends StatelessWidget {
-  const _Choice({
-    required this.onPressed,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final VoidCallback? onPressed;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
+class const _Choice({
+  required final VoidCallback? onPressed,
+  required final IconData icon,
+  required final String title,
+  required final String subtitle,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MenuItemButton(

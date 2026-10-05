@@ -14,41 +14,30 @@ import 'package:score/features/scores/widgets/score_search_field.dart';
 /// What is listed does not have to be a score: a piece of a collection that
 /// was never scanned is listed too. It is found by [textOf] alone, and only
 /// shown while nothing is ticked, as there is nothing it could be ticked by.
-class ScoreLibrary<T> extends StatefulWidget {
-  const ScoreLibrary({
-    super.key,
-    required this.items,
-    required this.scoreOf,
-    required this.itemBuilder,
-    required this.empty,
-    this.textOf,
-    this.header = const [],
-    this.footer = const [],
-    this.onRefresh,
-  });
+class const ScoreLibrary<T>({
+  super.key,
 
   /// In the order they are to be listed in.
-  final List<T> items;
+  required final List<T> items,
 
   /// The score an item is, when it is one.
-  final Score? Function(T item) scoreOf;
-
-  final Widget Function(BuildContext context, T item) itemBuilder;
+  required final Score? Function(T item) scoreOf,
+  required final Widget Function(BuildContext context, T item) itemBuilder,
 
   /// What is said when there is nothing to list at all.
-  final String empty;
+  required final String empty,
 
   /// What an item is found by besides its score: what a collection says next
   /// to a piece, say.
-  final String Function(T item)? textOf;
+  final String Function(T item)? textOf,
 
   /// What scrolls along above and below the items.
-  final List<Widget> header;
-  final List<Widget> footer;
+  final List<Widget> header = const [],
+  final List<Widget> footer = const [],
 
   /// What pulling the list down does, if anything.
-  final Future<void> Function()? onRefresh;
-
+  final Future<void> Function()? onRefresh,
+}) extends StatefulWidget {
   @override
   State<ScoreLibrary<T>> createState() => _ScoreLibraryState<T>();
 }

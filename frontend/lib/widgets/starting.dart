@@ -6,25 +6,18 @@ import 'package:flutter/material.dart';
 /// device with a few hundred scores is not nothing — and on the web it is there
 /// while the browser is already pointing at a particular score, which is what
 /// makes it more than a spinner.
-class Starting extends StatelessWidget {
-  const Starting({
-    super.key,
-    required this.theme,
-    required this.darkTheme,
-    this.themeMode = ThemeMode.system,
-    this.failure,
-  });
-
-  final ThemeData theme;
-  final ThemeData darkTheme;
+class const Starting({
+  super.key,
+  required final ThemeData theme,
+  required final ThemeData darkTheme,
 
   /// Light or dark as this device was last told, where that can be known
   /// before the settings are loaded: see [rememberedThemeMode].
-  final ThemeMode themeMode;
+  final ThemeMode themeMode = ThemeMode.system,
 
   /// What went wrong, when what went wrong is that the app could not start.
-  final Object? failure;
-
+  final Object? failure,
+}) extends StatelessWidget {
   Widget _screen(BuildContext context) {
     return Scaffold(
       body: Center(

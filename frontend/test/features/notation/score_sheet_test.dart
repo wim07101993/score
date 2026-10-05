@@ -274,7 +274,7 @@ void _smoke() {
   testWidgets('leaves a hidden part off the page', (tester) async {
     final musicXml = _read('BeetAnGeSample.musicxml');
     final parts = readParts(parseMusicXml(musicXml));
-    final view = ScoreView.forParts([for (final part in parts) part.id])
+    final view = ScoreView.forParts(partIds: [for (final part in parts) part.id])
         .withPartVisible(parts.first.id, false);
 
     await tester.pumpWidget(
@@ -297,7 +297,7 @@ void _smoke() {
   testWidgets('reads the score in the key the view asks for', (tester) async {
     final musicXml = _read('BeetAnGeSample.musicxml');
     final parts = readParts(parseMusicXml(musicXml));
-    final view = ScoreView.forParts([for (final part in parts) part.id]);
+    final view = ScoreView.forParts(partIds: [for (final part in parts) part.id]);
 
     await tester.pumpWidget(
       MaterialApp(

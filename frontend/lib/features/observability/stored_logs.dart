@@ -11,8 +11,11 @@ import 'package:score/features/sembast/local_store.dart';
 /// When the store has opened, what earlier runs of the app logged is put in
 /// front of what this one has logged so far in [logs], which is what the logs
 /// page shows.
-class StoredLogSink with LogSinkMixin {
-  StoredLogSink(Future<LocalStore> store, LogsController logs) {
+class StoredLogSink({
+  required Future<LocalStore> store,
+  required LogsController logs,
+}) with LogSinkMixin {
+  this {
     _written = restored = store.then((store) async {
       _store = store;
       await store.keepLastLogs(keptCount);
@@ -67,33 +70,31 @@ class StoredLogSink with LogSinkMixin {
     final value = json['levelValue']! as int;
     final stackTrace = json['stackTrace'] as String?;
     return _StoredLogRecord(
-      DateTime.parse(json['time']! as String),
-      Level.LEVELS.firstWhere(
+      loggedAt: DateTime.parse(json['time']! as String),
+      level: Level.LEVELS.firstWhere(
         (level) => level.value == value,
         orElse: () => Level(name, value),
       ),
-      json['message']! as String,
-      json['logger']! as String,
-      json['error'],
-      stackTrace == null ? null : StackTrace.fromString(stackTrace),
+      message: json['message']! as String,
+      loggerName: json['logger']! as String,
+      error: json['error'],
+      stackTrace: stackTrace == null ? null : StackTrace.fromString(stackTrace),
     );
   }
 }
 
 /// A record logged by an earlier run, at the moment it was logged rather than
 /// the moment it was read back.
-class _StoredLogRecord extends LogRecord {
-  _StoredLogRecord(
-    this._time,
-    super.level,
-    super.message,
-    super.loggerName, [
-    super.error,
-    super.stackTrace,
-  ]);
-
-  final DateTime _time;
+class _StoredLogRecord({
+  required final DateTime loggedAt,
+  required Level level,
+  required String message,
+  required String loggerName,
+  Object? error,
+  StackTrace? stackTrace,
+}) extends LogRecord {
+  this : super(level, message, loggerName, error, stackTrace);
 
   @override
-  DateTime get time => _time;
+  DateTime get time => loggedAt;
 }

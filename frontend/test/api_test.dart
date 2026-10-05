@@ -12,7 +12,7 @@ void main() {
 
   test('gives up on a server that never answers', () async {
     final hangs = MockClient((_) => Completer<http.Response>().future);
-    final client = TimingOutClient(hangs, patience: patience);
+    final client = TimingOutClient(inner: hangs, patience: patience);
 
     await expectLater(
       client.get(Uri.parse('https://api.test/sets')),
@@ -25,7 +25,7 @@ void main() {
       final body = StreamController<List<int>>()..add([1, 2, 3]);
       return http.StreamedResponse(body.stream, 200, request: request);
     });
-    final client = TimingOutClient(stalls, patience: patience);
+    final client = TimingOutClient(inner: stalls, patience: patience);
 
     await expectLater(
       client.get(Uri.parse('https://api.test/sets')),
@@ -35,7 +35,7 @@ void main() {
 
   test('a failed call through it is one worth trying again', () async {
     final hangs = MockClient((_) => Completer<http.Response>().future);
-    final client = TimingOutClient(hangs, patience: patience);
+    final client = TimingOutClient(inner: hangs, patience: patience);
 
     try {
       await callTheApi(
@@ -129,7 +129,7 @@ void main() {
 
   test('passes an answer that comes through', () async {
     final answers = MockClient((request) async => http.Response('[]', 200));
-    final client = TimingOutClient(answers, patience: patience);
+    final client = TimingOutClient(inner: answers, patience: patience);
 
     final response = await client.get(Uri.parse('https://api.test/sets'));
     expect(response.body, '[]');

@@ -24,17 +24,12 @@ Score parseMusicXml(String musicXml) => const MusicXmlReader().read(musicXml);
 /// is still a part. Taking one off the screen matches them up the same way, so
 /// a score with two parts both called `P1` still has two parts that can be
 /// hidden separately.
-class ScorePartRef {
-  const ScorePartRef(
-    this.id,
-    this.name,
-  );
-
-  final String id;
+class const ScorePartRef({
+  required final String id,
 
   /// What to call it in a control.
-  final String name;
-
+  required final String name,
+}) {
   @override
   String toString() => 'ScorePartRef($id, $name)';
 }
@@ -59,7 +54,7 @@ List<ScorePartRef> readParts(Score score) {
     taken.add(id);
 
     final name = part.name.trim();
-    parts.add(ScorePartRef(id, name.isEmpty ? 'Part ${index + 1}' : name));
+    parts.add(ScorePartRef(id: id, name: name.isEmpty ? 'Part ${index + 1}' : name));
   }
 
   return parts;

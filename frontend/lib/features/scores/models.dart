@@ -9,32 +9,43 @@ library;
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/json.dart';
 
-class Score {
-  const Score({
-    required this.id,
-    this.work,
-    this.movement,
-    this.creators = const Creators(),
-    this.languages = const [],
-    this.instruments = const [],
-    this.lastChangedAt,
-    this.tags = const [],
-    this.lastSyncedAt,
-    this.lastFetchedFileAt,
-    this.lastViewedAt,
-  });
+class const Score({
+  required final String id,
+  final Work? work,
+  final Movement? movement,
+  final Creators creators = const Creators(),
+  final List<String> languages = const [],
+  final List<String> instruments = const [],
 
+  /// When it last changed on the server.
+  final DateTime? lastChangedAt,
+  final List<String> tags = const [],
+
+  /// When the server last said anything about it, which is where the next sync
+  /// window starts.
+  final DateTime? lastSyncedAt,
+
+  /// Which version of the document this device holds, as the moment the server
+  /// said the score last changed when it was fetched — the server's clock, so
+  /// that it can be compared with that moment later on. It is how the app
+  /// knows a score it is holding has been uploaded again since.
+  final DateTime? lastFetchedFileAt,
+
+  /// When it was last opened on this device, which is what the list is sorted
+  /// by: what was played last is what is likely to be played next.
+  final DateTime? lastViewedAt,
+}) {
   /// A score the way the API hands it over, as one this app keeps: the moments
   /// as dates rather than as the strings they arrive as, and whatever is only
   /// known locally carried over from the score being replaced.
-  factory Score.fromApi(
-    Map<String, dynamic> json, {
+  factory Score.fromApi({
+    required Map<String, dynamic> json,
     Score? existing,
   }) => Score(
         id: '${json['id']}',
         work: Work.fromJson(json['work']),
         movement: Movement.fromJson(json['movement']),
-        creators: Creators.fromJson(json['creators']),
+        creators: Creators.fromJson(json: json['creators']),
         languages: stringsOf(json['languages']),
         instruments: stringsOf(json['instruments']),
         lastChangedAt: dateOf(json['last_changed_at']),
@@ -44,13 +55,13 @@ class Score {
         lastViewedAt: existing?.lastViewedAt,
       );
 
-  factory Score.fromJson(
-    Map<String, Object?> json,
-  ) => Score(
+  factory Score.fromJson({
+    required Map<String, Object?> json,
+  }) => Score(
         id: '${json['id']}',
         work: Work.fromJson(json['work']),
         movement: Movement.fromJson(json['movement']),
-        creators: Creators.fromJson(json['creators']),
+        creators: Creators.fromJson(json: json['creators']),
         languages: stringsOf(json['languages']),
         instruments: stringsOf(json['instruments']),
         lastChangedAt: dateOf(json['last_changed_at']),
@@ -59,32 +70,6 @@ class Score {
         lastFetchedFileAt: dateOf(json['last_fetched_file_at']),
         lastViewedAt: dateOf(json['last_viewed_at']),
       );
-
-  final String id;
-  final Work? work;
-  final Movement? movement;
-  final Creators creators;
-  final List<String> languages;
-  final List<String> instruments;
-
-  /// When it last changed on the server.
-  final DateTime? lastChangedAt;
-
-  final List<String> tags;
-
-  /// When the server last said anything about it, which is where the next sync
-  /// window starts.
-  final DateTime? lastSyncedAt;
-
-  /// Which version of the document this device holds, as the moment the server
-  /// said the score last changed when it was fetched — the server's clock, so
-  /// that it can be compared with that moment later on. It is how the app
-  /// knows a score it is holding has been uploaded again since.
-  final DateTime? lastFetchedFileAt;
-
-  /// When it was last opened on this device, which is what the list is sorted
-  /// by: what was played last is what is likely to be played next.
-  final DateTime? lastViewedAt;
 
   /// What to call it.
   ///
@@ -178,15 +163,10 @@ class Score {
       };
 }
 
-class Work {
-  const Work({
-    this.title,
-    this.number,
-  });
-
-  final String? title;
-  final String? number;
-
+class const Work({
+  final String? title,
+  final String? number,
+}) {
   static Work? fromJson(Object? json) {
     if (json is! Map) return null;
     return Work(
@@ -198,15 +178,10 @@ class Work {
   Map<String, Object?> toJson() => {'title': title, 'number': number};
 }
 
-class Movement {
-  const Movement({
-    this.title,
-    this.number,
-  });
-
-  final String? title;
-  final String? number;
-
+class const Movement({
+  final String? title,
+  final String? number,
+}) {
   static Movement? fromJson(Object? json) {
     if (json is! Map) return null;
     return Movement(
@@ -218,15 +193,13 @@ class Movement {
   Map<String, Object?> toJson() => {'title': title, 'number': number};
 }
 
-class Creators {
-  const Creators({
-    this.composers = const [],
-    this.lyricists = const [],
-  });
-
-  factory Creators.fromJson(
-    Object? json,
-  ) {
+class const Creators({
+  final List<String> composers = const [],
+  final List<String> lyricists = const [],
+}) {
+  factory Creators.fromJson({
+    required Object? json,
+  }) {
     if (json is! Map) return const Creators();
     return Creators(
       composers: stringsOf(json['composers']),
@@ -234,13 +207,9 @@ class Creators {
     );
   }
 
-  final List<String> composers;
-  final List<String> lyricists;
-
   Map<String, Object?> toJson() =>
       {'composers': composers, 'lyricists': lyricists};
 }
-
 
 /// A query as the words [Score.matchesWords] looks for: each put through
 /// [forSearch], and none of them empty, so that a query of nothing but spaces

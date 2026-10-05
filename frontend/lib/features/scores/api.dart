@@ -10,15 +10,13 @@ import 'package:score/config.dart';
 /// keeps a sync small. The consequence is that a score older than the window a
 /// client has left to ask about is in no answer a listing will ever give: it
 /// has to be asked for by its id, which is what [getScore] is for.
-class ScoresApi {
-  ScoresApi(
-    this._config, {
-    http.Client? client,
-  })
-      : _client = client ?? http.Client();
+class ScoresApi({
+  required final ApiConfig config,
+  http.Client? client,
+}) {
+  this : client = client ?? http.Client();
 
-  final ApiConfig _config;
-  final http.Client _client;
+  final http.Client client;
 
   /// The scores that changed within the window.
   Future<List<Map<String, dynamic>>> listScores(
@@ -28,8 +26,8 @@ class ScoresApi {
   ) async {
     const what = 'list the scores';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('scores', {
+      () => client.get(
+        config.path('scores', {
           'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
           'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
         }),
@@ -47,8 +45,8 @@ class ScoresApi {
   Future<Map<String, dynamic>?> getScore(String scoreId, String authToken) async {
     const what = 'fetch the score';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('scores/$scoreId'),
+      () => client.get(
+        config.path('scores/$scoreId'),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Accept': 'application/json',
@@ -73,8 +71,8 @@ class ScoresApi {
   Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
     const what = 'fetch the score';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('scores/$scoreId'),
+      () => client.get(
+        config.path('scores/$scoreId'),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Accept': 'application/vnd.recordare.musicxml',
@@ -102,8 +100,8 @@ class ScoresApi {
       String scoreId, String authToken, String musicXml) async {
     const what = 'save the score';
     final response = await callTheApi(
-      () => _client.put(
-        _config.path('scores/$scoreId'),
+      () => client.put(
+        config.path('scores/$scoreId'),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Content-Type': 'application/vnd.recordare.musicxml',
@@ -116,15 +114,13 @@ class ScoresApi {
     throwUnlessOk(response, what, ScoresApiException.new);
   }
 
-  Future<bool> canBeReached() => apiCanBeReached(_client, _config);
+  Future<bool> canBeReached() => apiCanBeReached(client, config);
 }
 
 /// A call to the scores endpoints that did not come back with what was asked
 /// for; see [ApiException].
-class ScoresApiException extends ApiException {
-  ScoresApiException(
-    super.message,
-    super.status, [
-    super.problem,
-  ]);
-}
+class ScoresApiException({
+  required super.message,
+  required super.status,
+  super.problem,
+}) extends ApiException;

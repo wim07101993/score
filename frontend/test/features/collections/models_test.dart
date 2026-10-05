@@ -15,7 +15,7 @@ import 'package:score/features/collections/models.dart';
 void main() {
   group('a piece that has yet to be scanned', () {
     test('has no score when the API says it has none', () {
-      final entry = CollectionEntry.fromApi({
+      final entry = CollectionEntry.fromApi(json: {
         'id': 'e1',
         'score_id': null,
         'description': 'Blue Bossa — page 62',
@@ -34,7 +34,7 @@ void main() {
       // that a null which turned into a string on the way would be caught.
       final stored = jsonDecode(jsonEncode(entry.toJson()));
       final back =
-          CollectionEntry.fromJson((stored as Map).cast<String, Object?>());
+          CollectionEntry.fromJson(json: (stored as Map).cast<String, Object?>());
 
       expect(entry.toJson()['score_id'], isNull);
       expect(entry.toJson().containsKey('score_id'), isTrue,
@@ -48,7 +48,7 @@ void main() {
       // back as an id it would be sent to the server as a score that does not
       // exist.
       final entry =
-          CollectionEntry.fromJson({'id': 'e1', 'score_id': 'null'});
+          CollectionEntry.fromJson(json: {'id': 'e1', 'score_id': 'null'});
 
       expect(entry.scoreId, isNull);
     });
@@ -94,11 +94,11 @@ void main() {
         lastSyncedAt: DateTime.utc(2026, 9, 1, 11),
         pendingChange: PendingChange.write,
         pendingViews: const ['e1'],
-        pendingEntries: const [PendingEntry('e2', PendingChange.write)],
+        pendingEntries: const [PendingEntry(id: 'e2', action: PendingChange.write)],
       );
 
       final stored = jsonDecode(jsonEncode(collection.toJson()));
-      final back = Collection.fromJson((stored as Map).cast<String, Object?>());
+      final back = Collection.fromJson(json: (stored as Map).cast<String, Object?>());
 
       expect(back.title, 'The Real Book, vol. 1');
       expect(back.description, 'what the band can be asked for');
@@ -127,7 +127,7 @@ void main() {
     test('that owes nothing and was never deleted says so', () {
       final collection = Collection(id: 'c1', lastChangedAt: DateTime.utc(2026));
 
-      final back = Collection.fromJson(collection.toJson());
+      final back = Collection.fromJson(json: collection.toJson());
 
       expect(back.pendingChange, isNull);
       expect(back.deletedAt, isNull);
@@ -139,7 +139,7 @@ void main() {
   group('a collection the API hands over', () {
     test('owes nothing and was synced when it was asked for', () {
       final syncedAt = DateTime.utc(2026, 9, 2);
-      final collection = Collection.fromApi({
+      final collection = Collection.fromApi(json: {
         'id': 'c1',
         'title': 'The Real Book',
         'description': '',
@@ -156,7 +156,7 @@ void main() {
         'is_owner': false,
         'last_changed_at': '2026-09-01T00:00:00Z',
         'deleted_at': null,
-      }, syncedAt);
+      }, syncedAt: syncedAt);
 
       expect(collection.isOwner, isFalse);
       expect(collection.lastSyncedAt, syncedAt);
@@ -166,11 +166,11 @@ void main() {
     });
 
     test('that was deleted there says when', () {
-      final collection = Collection.fromApi({
+      final collection = Collection.fromApi(json: {
         'id': 'c1',
         'last_changed_at': '2026-09-01T00:00:00Z',
         'deleted_at': '2026-09-01T00:00:00Z',
-      }, DateTime.utc(2026, 9, 2));
+      }, syncedAt: DateTime.utc(2026, 9, 2));
 
       expect(collection.deletedAt, DateTime.utc(2026, 9));
     });

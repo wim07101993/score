@@ -14,14 +14,10 @@ import 'package:score/widgets/error_snack_bar.dart';
 /// goes; a collection has no order for it to go anywhere in. Only the sets and
 /// collections that are this player's are offered: one that is only shared
 /// with them is not theirs to fill.
-class AddToListButtons extends StatelessWidget {
-  const AddToListButtons({
-    super.key,
-    required this.scoreId,
-  });
-
-  final String scoreId;
-
+class const AddToListButtons({
+  super.key,
+  required final String scoreId,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -175,13 +171,11 @@ class AddToListButtons extends StatelessWidget {
 enum _Kind { set, collection }
 
 /// The set or collection picked, or none yet: a new one is to be made.
-class _Pick {
-  const _Pick({required this.id, required this.title});
-
+class const _Pick({
+  required final String? id,
+  required final String title,
+}) {
   const _Pick.newOne()
-      : id = null,
-        title = '';
+      : this(id: null, title: '');
 
-  final String? id;
-  final String title;
 }

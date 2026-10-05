@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:score/router.dart';
 
 /// The way to the collections from wherever the user is.
-class CollectionsButton extends StatelessWidget {
-  const CollectionsButton({
-    super.key,
-  });
-
+class const CollectionsButton({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

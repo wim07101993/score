@@ -4,16 +4,11 @@ import 'package:flutter/material.dart';
 ///
 /// The same field wherever scores are picked from, so that what may be typed
 /// into one of them is what may be typed into all of them.
-class ScoreSearchField extends StatelessWidget {
-  const ScoreSearchField({
-    super.key,
-    this.controller,
-    required this.onChanged,
-  });
-
-  final TextEditingController? controller;
-  final ValueChanged<String> onChanged;
-
+class const ScoreSearchField({
+  super.key,
+  final TextEditingController? controller,
+  required final ValueChanged<String> onChanged,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(

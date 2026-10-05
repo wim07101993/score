@@ -22,13 +22,13 @@ final _log = GetIt.I<Logger>(param1: 'Collections');
 /// once. It is held here as well as on the server, because a player who is
 /// offline should be told they already have a piece at the moment they add it
 /// rather than at the next sync.
-class CollectionsRepository extends ChangeNotifier {
-  CollectionsRepository(
-    LocalStore store,
-    CollectionsApi api,
-    OidcApi oidc,
-  ) {
-    _sync = SyncEngine(_Collections(store, api), oidc, notifyListeners);
+class CollectionsRepository({
+  required LocalStore store,
+  required CollectionsApi api,
+  required OidcApi oidc,
+}) extends ChangeNotifier {
+  this {
+    _sync = SyncEngine(adapter: _Collections(store: store, api: api), oidc: oidc, changed: notifyListeners);
   }
 
   static const _uuid = Uuid();
@@ -160,7 +160,7 @@ class CollectionsRepository extends ChangeNotifier {
               candidate.id != entryId && candidate.scoreId == score)
           .firstOrNull;
       if (alreadyIn != null) {
-        throw ScoreAlreadyInCollectionException(score, alreadyIn.id);
+        throw ScoreAlreadyInCollectionException(scoreId: score, entryId: alreadyIn.id);
       }
     }
 
@@ -264,17 +264,12 @@ class CollectionsRepository extends ChangeNotifier {
 /// It is the one refusal that is worth acting on rather than reporting: what
 /// the caller wanted was the piece to be in the book, and it is. What it is in
 /// is [entryId], so a page can point at it instead of saying no.
-class ScoreAlreadyInCollectionException implements Exception {
-  const ScoreAlreadyInCollectionException(
-    this.scoreId,
-    this.entryId,
-  );
-
-  final String scoreId;
+class const ScoreAlreadyInCollectionException({
+  required final String scoreId,
 
   /// The entry the score is already in.
-  final String entryId;
-
+  required final String entryId,
+}) implements Exception {
   @override
   String toString() =>
       "Score '$scoreId' is already in this collection, as entry '$entryId'.";
@@ -284,19 +279,12 @@ class ScoreAlreadyInCollectionException implements Exception {
 ///
 /// Giving up on an edit is the one thing the app does behind the player's back,
 /// so it says so when it happens.
-class CollectionSyncProblem {
-  const CollectionSyncProblem({
-    required this.collectionId,
-    required this.title,
-    required this.action,
-    required this.error,
-  });
-
-  final String collectionId;
-  final String title;
-  final String action;
-  final CollectionsApiException error;
-}
+class const CollectionSyncProblem({
+  required final String collectionId,
+  required final String title,
+  required final String action,
+  required final CollectionsApiException error,
+});
 
 typedef _Engine = SyncEngine<Collection, CollectionEntry,
     CollectionsApiException, CollectionSyncProblem>;
@@ -304,39 +292,38 @@ typedef _Engine = SyncEngine<Collection, CollectionEntry,
 /// What a collection is to the [SyncEngine]: where it is stored, which
 /// endpoints it is written to, and what is done when the server says it
 /// already holds a piece.
-class _Collections extends SyncAdapter<Collection, CollectionEntry,
+class _Collections({
+  required final LocalStore store,
+  required final CollectionsApi api,
+}) extends SyncAdapter<Collection, CollectionEntry,
     CollectionsApiException, CollectionSyncProblem> {
-  _Collections(this._store, this._api);
-
-  final LocalStore _store;
-  final CollectionsApi _api;
 
   @override
   String get noun => 'Collection';
 
   @override
-  Future<List<Map<String, Object?>>> readStored() => _store.readCollections();
+  Future<List<Map<String, Object?>>> readStored() => store.readCollections();
 
   @override
   Future<void> writeStored(List<Map<String, Object?>> records) =>
-      _store.writeCollections(records);
+      store.writeCollections(records);
 
   @override
-  Future<void> forgetStored() => _store.forgetCollections();
+  Future<void> forgetStored() => store.forgetCollections();
 
   @override
-  Collection fromJson(Map<String, Object?> json) => Collection.fromJson(json);
+  Collection fromJson(Map<String, Object?> json) => Collection.fromJson(json: json);
 
   @override
   Collection fromApi(Map<String, dynamic> json, DateTime syncedAt) =>
-      Collection.fromApi(json, syncedAt);
+      Collection.fromApi(json: json, syncedAt: syncedAt);
 
   @override
   CollectionEntry entryFromApi(Map<String, dynamic> json) =>
-      CollectionEntry.fromApi(json);
+      CollectionEntry.fromApi(json: json);
 
   @override
-  Future<bool> canBeReached() => _api.canBeReached();
+  Future<bool> canBeReached() => api.canBeReached();
 
   @override
   Future<List<Map<String, dynamic>>> list(
@@ -344,11 +331,11 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
     DateTime changesUntil,
     String token,
   ) =>
-      _api.listCollections(changesSince, changesUntil, token);
+      api.listCollections(changesSince, changesUntil, token);
 
   @override
   Future<Map<String, dynamic>?> fetch(String id, String token) =>
-      _api.getCollection(id, token);
+      api.getCollection(id, token);
 
   @override
   Future<Map<String, dynamic>> put(
@@ -356,11 +343,11 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
     String token,
     Map<String, Object?> write,
   ) =>
-      _api.putCollection(id, token, write);
+      api.putCollection(id, token, write);
 
   @override
   Future<void> remove(String id, String token) =>
-      _api.deleteCollection(id, token);
+      api.deleteCollection(id, token);
 
   @override
   Future<Map<String, dynamic>> putEntry(
@@ -369,11 +356,11 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
     String token,
     Map<String, Object?> write,
   ) =>
-      _api.putEntry(id, entryId, token, write);
+      api.putEntry(id, entryId, token, write);
 
   @override
   Future<void> removeEntry(String id, String entryId, String token) =>
-      _api.deleteEntry(id, entryId, token);
+      api.deleteEntry(id, entryId, token);
 
   @override
   Future<Map<String, dynamic>> putEntryView(
@@ -382,7 +369,7 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
     String token,
     Map<String, Object?> write,
   ) =>
-      _api.putEntryView(id, entryId, token, write);
+      api.putEntryView(id, entryId, token, write);
 
   @override
   CollectionSyncProblem problem({
@@ -401,11 +388,11 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
   @override
   Future<EntryRun<Collection, CollectionEntry, CollectionsApiException>?>
       startEntries(_Engine engine, Collection collection) async => _Pieces(
-            engine,
-            _api,
-            collection.id,
-            [...collection.pendingEntries],
-            collection.lastChangedAt,
+            engine: engine,
+            api: api,
+            collectionId: collection.id,
+            queue: [...collection.pendingEntries],
+            lastChangedAtTheStart: collection.lastChangedAt,
           );
 }
 
@@ -414,26 +401,17 @@ class _Collections extends SyncAdapter<Collection, CollectionEntry,
 ///
 /// A piece the collection already holds is not a refusal like the others: see
 /// [take].
-class _Pieces
-    extends EntryRun<Collection, CollectionEntry, CollectionsApiException> {
-  _Pieces(
-    this._engine,
-    this._api,
-    this._collectionId,
-    this.queue,
-    this._lastChangedAtTheStart,
-  );
-
-  final _Engine _engine;
-  final CollectionsApi _api;
-  final String _collectionId;
+class _Pieces({
+  required final _Engine engine,
+  required final CollectionsApi api,
+  required final String collectionId,
+  @override required final List<PendingEntry> queue,
 
   /// When the collection itself was last changed as this run started: see
   /// [_takeInTheCopiesKept].
-  final DateTime _lastChangedAtTheStart;
-
-  @override
-  final List<PendingEntry> queue;
+  required final DateTime lastChangedAtTheStart,
+})
+    extends EntryRun<Collection, CollectionEntry, CollectionsApiException> {
 
   /// The copies that were dropped for being in the collection already.
   final _dropped = <(CollectionEntry, CollectionsApiException)>[];
@@ -460,8 +438,8 @@ class _Pieces
   Future<void> take(PendingEntry owed, CollectionsApiException error) async {
     _log.fine('the collection already holds the score of entry'
         ' ${owed.id}; dropping this copy of it');
-    final current = _engine.held(_collectionId)!;
-    if (!_engine.isStillOwed(current, owed)) {
+    final current = engine.held(collectionId)!;
+    if (!engine.isStillOwed(current, owed)) {
       // It was changed again while this was on its way, and that is what goes
       // next.
       return;
@@ -487,8 +465,8 @@ class _Pieces
         .firstOrNull;
     // Kept as an answer: the refusal was a round trip, and another tab may
     // have stored something about this collection since.
-    final kept = await _engine.keepAnswer(
-      _engine.withEntries(
+    final kept = await engine.keepAnswer(
+      engine.withEntries(
         current,
         current.entries.where((candidate) => candidate.id != owed.id).toList(),
         withoutOwed(current.pendingEntries, owed.id),
@@ -516,34 +494,34 @@ class _Pieces
   /// follows brings the copies in instead.
   Future<void> _takeInTheCopiesKept() async {
     try {
-      final token = await _engine.token();
-      final before = _engine.held(_collectionId);
+      final token = await engine.token();
+      final before = engine.held(collectionId);
       if (token != null &&
           before != null &&
           before.pendingChange == null &&
-          before.lastChangedAt == _lastChangedAtTheStart) {
-        final fromApi = await _api.getCollection(_collectionId, token);
-        final current = _engine.held(_collectionId);
+          before.lastChangedAt == lastChangedAtTheStart) {
+        final fromApi = await api.getCollection(collectionId, token);
+        final current = engine.held(collectionId);
         if (fromApi != null &&
             current != null &&
-            !_engine.changedSince(before)) {
-          await _engine.keepAnswer(_engine.carryPending(
-            Collection.fromApi(fromApi, _engine.syncedOutsideAPull(current)),
+            !engine.changedSince(before)) {
+          await engine.keepAnswer(engine.carryPending(
+            Collection.fromApi(json: fromApi, syncedAt: engine.syncedOutsideAPull(current)),
             current,
           ));
         }
       }
     } catch (error, stackTrace) {
       // The next sync brings it in instead.
-      _log.warning('collection $_collectionId could not be read back', error,
+      _log.warning('collection $collectionId could not be read back', error,
           stackTrace);
     }
 
     for (final (entry, error) in _dropped) {
       if (entry.description.isEmpty && entry.transposition == 0) continue;
-      _engine.reportProblem(CollectionSyncProblem(
-        collectionId: _collectionId,
-        title: _engine.held(_collectionId)?.title ?? '',
+      engine.reportProblem(CollectionSyncProblem(
+        collectionId: collectionId,
+        title: engine.held(collectionId)?.title ?? '',
         action: 'the piece was in it already, so the copy with your note or'
             ' key was dropped',
         error: error,

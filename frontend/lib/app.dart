@@ -38,14 +38,10 @@ void run() {
   runApp(ScoreApp(initialRoute: initialRoute));
 }
 
-class ScoreApp extends StatefulWidget {
-  const ScoreApp({
-    super.key,
-    this.initialRoute,
-  });
-
-  final String? initialRoute;
-
+class const ScoreApp({
+  super.key,
+  final String? initialRoute,
+}) extends StatefulWidget {
   @override
   State<ScoreApp> createState() => _ScoreAppState();
 }

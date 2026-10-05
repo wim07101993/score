@@ -7,18 +7,13 @@ import 'package:score/widgets/leave_page_warning.dart';
 /// Going back in the app asks in a dialog of its own. Closing or reloading the
 /// tab on the web is the browser's to ask about, and it does, in its own words:
 /// see [warnBeforeLeavingThePage].
-class UnsavedChangesGuard extends StatefulWidget {
-  const UnsavedChangesGuard({
-    super.key,
-    required this.unsaved,
-    required this.child,
-  });
+class const UnsavedChangesGuard({
+  super.key,
 
   /// Whether there is anything that would be lost.
-  final bool unsaved;
-
-  final Widget child;
-
+  required final bool unsaved,
+  required final Widget child,
+}) extends StatefulWidget {
   @override
   State<UnsavedChangesGuard> createState() => _UnsavedChangesGuardState();
 }

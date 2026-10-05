@@ -6,14 +6,10 @@ import 'package:score/features/app_update/app_update.dart';
 ///
 /// Offered rather than done: the app is on a stage, and starting again in the
 /// middle of a song — or of a note being typed — is not for the app to decide.
-class NewVersionBar extends StatelessWidget {
-  const NewVersionBar({
-    super.key,
-    required this.child,
-  });
-
-  final Widget child;
-
+class const NewVersionBar({
+  super.key,
+  required final Widget child,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(

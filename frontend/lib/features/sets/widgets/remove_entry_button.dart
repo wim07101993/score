@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Takes the song out of the set.
-class RemoveEntryButton extends StatelessWidget {
-  const RemoveEntryButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const RemoveEntryButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

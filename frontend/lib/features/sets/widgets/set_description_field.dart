@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 
 /// What there is to say about the gig.
-class SetDescriptionField extends StatelessWidget {
-  const SetDescriptionField({
-    super.key,
-    required this.controller,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final bool enabled;
-  final ValueChanged<String> onChanged;
-
+class const SetDescriptionField({
+  super.key,
+  required final TextEditingController controller,
+  required final bool enabled,
+  required final ValueChanged<String> onChanged,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(

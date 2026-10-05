@@ -8,15 +8,15 @@ import 'package:score/features/sembast/local_store.dart';
 extension ScoresGetItExtensions on GetIt {
   void registerScores() {
     registerLazySingletonAsync<ScoresApi>(
-      () async => ScoresApi((await getAsync<Config>()).api, client: get()),
+      () async => ScoresApi(config: (await getAsync<Config>()).api, client: get()),
     );
 
     registerLazySingletonAsync<ScoresRepository>(
       () async {
         final repository = ScoresRepository(
-          await getAsync<LocalStore>(),
-          await getAsync<ScoresApi>(),
-          await getAsync<OidcApi>(),
+          store: await getAsync<LocalStore>(),
+          api: await getAsync<ScoresApi>(),
+          oidc: await getAsync<OidcApi>(),
         );
         await repository.init();
         return repository;

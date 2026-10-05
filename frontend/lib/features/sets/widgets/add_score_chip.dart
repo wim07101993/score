@@ -4,16 +4,11 @@ import 'package:flutter/material.dart';
 ///
 /// The same score can be played more than once in a gig, each time with its own
 /// key and its own note next to it, so this adds rather than toggles.
-class AddScoreChip extends StatelessWidget {
-  const AddScoreChip({
-    super.key,
-    required this.title,
-    required this.onPressed,
-  });
-
-  final String title;
-  final VoidCallback? onPressed;
-
+class const AddScoreChip({
+  super.key,
+  required final String title,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ActionChip(label: Text(title), onPressed: onPressed);

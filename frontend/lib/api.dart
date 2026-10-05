@@ -17,19 +17,13 @@ import 'package:score/config.dart';
 /// The status is the one http gave, and [errorCode] the one this API gives —
 /// which is the one to branch on, the way the API says. Both are absent when
 /// the call never reached a server at all.
-class ApiException implements Exception {
-  ApiException(
-    this.message,
-    this.status, [
-    this.problem,
-  ]);
-
-  final String message;
-  final int? status;
+class ApiException({
+  required final String message,
+  required final int? status,
 
   /// The RFC 9457 body, when there was one.
-  final Map<String, dynamic>? problem;
-
+  final Map<String, dynamic>? problem,
+}) implements Exception {
   String? get errorCode => problem?['errorCode'] as String?;
 
   String get detail => (problem?['detail'] as String?) ?? message;
@@ -69,11 +63,11 @@ class ApiException implements Exception {
 
 /// How a part of the API says a call failed: which kind of [ApiException] it
 /// throws. A constructor of one is one.
-typedef ApiFailure = ApiException Function(
-  String message,
-  int? status, [
+typedef ApiFailure = ApiException Function({
+  required String message,
+  required int? status,
   Map<String, dynamic>? problem,
-]);
+});
 
 /// Makes a call, turning a network that is not there into the same kind of
 /// failure as a server that said no — one with no status, since nothing
@@ -86,7 +80,7 @@ Future<http.Response> callTheApi(
   try {
     return await send();
   } catch (error) {
-    throw failure('failed to $what: $error', null);
+    throw failure(message: 'failed to $what: $error', status: null);
   }
 }
 
@@ -103,9 +97,9 @@ void throwUnlessOk(http.Response response, String what, ApiFailure failure) {
   final problem = _problemIn(response);
   if (_saysNothingAboutTheRequest(response.statusCode, problem)) {
     throw failure(
-      'failed to $what: ${response.statusCode} from something that does not'
-      ' know this request',
-      null,
+      message: 'failed to $what: ${response.statusCode} from something that'
+          ' does not know this request',
+      status: null,
     );
   }
 
@@ -113,9 +107,9 @@ void throwUnlessOk(http.Response response, String what, ApiFailure failure) {
   // said it in: this is what a player is shown.
   final said = problem?['detail'] ?? response.body;
   throw failure(
-    'failed to $what: ${response.statusCode} $said',
-    response.statusCode,
-    problem,
+    message: 'failed to $what: ${response.statusCode} $said',
+    status: response.statusCode,
+    problem: problem,
   );
 }
 
@@ -172,8 +166,9 @@ bool isNotThere(
     return true;
   }
   throw failure(
-    'failed to $what: 404 from something that does not know this request',
-    null,
+    message:
+        'failed to $what: 404 from something that does not know this request',
+    status: null,
   );
 }
 
@@ -192,10 +187,16 @@ Map<String, dynamic> objectIn(
   try {
     parsed = jsonDecode(response.body);
   } catch (error) {
-    throw failure('failed to $what: what answered was not the API', null);
+    throw failure(
+      message: 'failed to $what: what answered was not the API',
+      status: null,
+    );
   }
   if (parsed is! Map) {
-    throw failure('failed to $what: what answered was not the API', null);
+    throw failure(
+      message: 'failed to $what: what answered was not the API',
+      status: null,
+    );
   }
   return parsed.cast<String, dynamic>();
 }
@@ -210,10 +211,16 @@ List<Map<String, dynamic>> objectsIn(
   try {
     parsed = jsonDecode(response.body);
   } catch (error) {
-    throw failure('failed to $what: what answered was not the API', null);
+    throw failure(
+      message: 'failed to $what: what answered was not the API',
+      status: null,
+    );
   }
   if (parsed is! List) {
-    throw failure('failed to $what: what answered was not the API', null);
+    throw failure(
+      message: 'failed to $what: what answered was not the API',
+      status: null,
+    );
   }
   return [
     for (final object in parsed) (object as Map).cast<String, dynamic>(),
@@ -229,17 +236,15 @@ List<Map<String, dynamic>> objectsIn(
 /// the app looks up once, the writes to a set, which go out one after another.
 /// A request that times out fails the way a network that is not there does,
 /// and is tried again later.
-class TimingOutClient extends http.BaseClient {
-  TimingOutClient(this._inner, {this.patience = const Duration(seconds: 60)});
-
-  final http.Client _inner;
+class TimingOutClient({
+  required final http.Client inner,
 
   /// How long to wait for an answer to start, and then for each part of it.
-  final Duration patience;
-
+  final Duration patience = const Duration(seconds: 60),
+}) extends http.BaseClient {
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    final response = await _inner.send(request).timeout(patience);
+    final response = await inner.send(request).timeout(patience);
     return http.StreamedResponse(
       response.stream.timeout(patience),
       response.statusCode,
@@ -253,7 +258,7 @@ class TimingOutClient extends http.BaseClient {
   }
 
   @override
-  void close() => _inner.close();
+  void close() => inner.close();
 }
 
 /// Whether the API is there to be asked.

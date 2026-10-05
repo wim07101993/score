@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// One place earlier in the running order.
-class MoveEntryUpButton extends StatelessWidget {
-  const MoveEntryUpButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const MoveEntryUpButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

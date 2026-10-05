@@ -11,37 +11,35 @@ import 'package:score/features/scores/models.dart';
 /// scores say a dozen names between them. That is what makes a list of them
 /// worth ticking, and it is why the title is not among them — every score has
 /// a different one, and a list of every title is the list of scores again.
-class ScoreField {
-  const ScoreField._(this.key, this.title, this.of);
-
-  final String key;
-  final String title;
-  final List<String> Function(Score score) of;
-
+class const ScoreField._({
+  required final String key,
+  required final String title,
+  required final List<String> Function(Score score) of,
+}) {
   static final composers = ScoreField._(
-    'composers',
-    'Composers',
-    (score) => score.creators.composers,
+    key: 'composers',
+    title: 'Composers',
+    of: (score) => score.creators.composers,
   );
   static final lyricists = ScoreField._(
-    'lyricists',
-    'Lyricists',
-    (score) => score.creators.lyricists,
+    key: 'lyricists',
+    title: 'Lyricists',
+    of: (score) => score.creators.lyricists,
   );
 
   /// Read as their names rather than the sounds MusicXML writes, so that what
   /// is ticked is what the cards say.
   static final instruments = ScoreField._(
-    'instruments',
-    'Instruments',
-    (score) => [for (final one in score.instruments) instrumentName(one)],
+    key: 'instruments',
+    title: 'Instruments',
+    of: (score) => [for (final one in score.instruments) instrumentName(one)],
   );
   static final languages = ScoreField._(
-    'languages',
-    'Languages',
-    (score) => score.languages,
+    key: 'languages',
+    title: 'Languages',
+    of: (score) => score.languages,
   );
-  static final tags = ScoreField._('tags', 'Tags', (score) => score.tags);
+  static final tags = ScoreField._(key: 'tags', title: 'Tags', of: (score) => score.tags);
 
   static final all = [composers, lyricists, instruments, languages, tags];
 }

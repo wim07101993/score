@@ -14,27 +14,23 @@ import 'package:score/config.dart';
 
 /// A call to the sets endpoints that did not come back with what was asked
 /// for; see [ApiException].
-class SetsApiException extends ApiException {
-  SetsApiException(
-    super.message,
-    super.status, [
-    super.problem,
-  ]);
-
+class SetsApiException({
+  required super.message,
+  required super.status,
+  super.problem,
+}) extends ApiException {
   /// The set belongs to someone else, and waiting does not change whose it is.
   @override
   String get notTheOwnersCode => 'not_set_owner';
 }
 
-class SetsApi {
-  SetsApi(
-    this._config, {
-    http.Client? client,
-  })
-      : _client = client ?? http.Client();
+class SetsApi({
+  required final ApiConfig config,
+  http.Client? client,
+}) {
+  this : client = client ?? http.Client();
 
-  final ApiConfig _config;
-  final http.Client _client;
+  final http.Client client;
 
   /// The sets that changed within the window, the caller's own and the ones
   /// shared with them. Sets that were deleted within it come back too, with
@@ -46,8 +42,8 @@ class SetsApi {
   ) async {
     const what = 'list the sets';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('sets', {
+      () => client.get(
+        config.path('sets', {
           'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
           'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
         }),
@@ -68,8 +64,8 @@ class SetsApi {
   Future<Map<String, dynamic>?> getSet(String setId, String authToken) async {
     const what = 'fetch the set';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('sets/$setId'),
+      () => client.get(
+        config.path('sets/$setId'),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Accept': 'application/json',
@@ -140,7 +136,7 @@ class SetsApi {
   Future<void> deleteSet(String setId, String authToken) =>
       _delete('sets/$setId', authToken, 'delete the set');
 
-  Future<bool> canBeReached() => apiCanBeReached(_client, _config);
+  Future<bool> canBeReached() => apiCanBeReached(client, config);
 
   Future<Map<String, dynamic>> _write(
     String path,
@@ -149,8 +145,8 @@ class SetsApi {
     String what,
   ) async {
     final response = await callTheApi(
-      () => _client.put(
-        _config.path(path),
+      () => client.put(
+        config.path(path),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Content-Type': 'application/json',
@@ -167,8 +163,8 @@ class SetsApi {
 
   Future<void> _delete(String path, String authToken, String what) async {
     final response = await callTheApi(
-      () => _client.delete(
-        _config.path(path),
+      () => client.delete(
+        config.path(path),
         headers: {'Authorization': 'Bearer $authToken'},
       ),
       what,

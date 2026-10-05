@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// One semitone down, beside the number it is counted in.
-class SemitoneDownButton extends StatelessWidget {
-  const SemitoneDownButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const SemitoneDownButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

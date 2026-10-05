@@ -11,30 +11,21 @@ import 'package:score/features/sync/sync.dart';
 /// on its own says that something is wrong and nothing about what, and a
 /// player who has been looking at it for a day wants to know whether to wait
 /// for the network, sign in again, or ask somebody.
-class SyncStatus extends StatelessWidget {
-  const SyncStatus({
-    super.key,
-    required this.label,
-    required this.unsynced,
-    required this.whyNotSynced,
-    required this.apiCanBeReached,
-    required this.sync,
-  });
-
-  final String label;
+class const SyncStatus({
+  super.key,
+  required final String label,
 
   /// Whether anything about it is still to be synced.
-  final bool unsynced;
+  required final bool unsynced,
 
   /// Why the last try left it unsynced, as the sync engine remembers it: see
   /// [SyncEngine.whyNotSynced].
-  final Object? Function() whyNotSynced;
-
-  final Future<bool> Function() apiCanBeReached;
+  required final Object? Function() whyNotSynced,
+  required final Future<bool> Function() apiCanBeReached,
 
   /// Syncs it now.
-  final Future<void> Function() sync;
-
+  required final Future<void> Function() sync,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!unsynced) {
@@ -58,17 +49,11 @@ class SyncStatus extends StatelessWidget {
 /// What is known about why it is not synced: what can be asked right now —
 /// whether the server is there, whether there is anyone signed in to send it
 /// as — and what the last try ran into.
-class _WhyNotSynced extends StatefulWidget {
-  const _WhyNotSynced({
-    required this.whyNotSynced,
-    required this.apiCanBeReached,
-    required this.sync,
-  });
-
-  final Object? Function() whyNotSynced;
-  final Future<bool> Function() apiCanBeReached;
-  final Future<void> Function() sync;
-
+class const _WhyNotSynced({
+  required final Object? Function() whyNotSynced,
+  required final Future<bool> Function() apiCanBeReached,
+  required final Future<void> Function() sync,
+}) extends StatefulWidget {
   @override
   State<_WhyNotSynced> createState() => _WhyNotSyncedState();
 }

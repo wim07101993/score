@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Asks the provider who this is, again.
-class AskProviderAgainButton extends StatelessWidget {
-  const AskProviderAgainButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const AskProviderAgainButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilledButton.tonal(

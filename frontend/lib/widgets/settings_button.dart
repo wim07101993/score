@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:score/router.dart';
 
 /// The way to the settings.
-class SettingsButton extends StatelessWidget {
-  const SettingsButton({
-    super.key,
-  });
-
+class const SettingsButton({
+  super.key,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(

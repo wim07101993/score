@@ -48,36 +48,67 @@ export 'package:score/features/sets/models.dart'
 /// A collection as this app keeps it: what the API says a collection is, plus
 /// what only this device knows — when it last heard from the server about it,
 /// and what it still owes the server.
-class Collection implements SyncedRecord<Collection, CollectionEntry> {
-  const Collection({
-    required this.id,
-    this.title = '',
-    this.description = '',
-    this.entries = const [],
-    this.sharedWith = const [],
-    this.isOwner = true,
-    required this.lastChangedAt,
-    this.deletedAt,
-    this.lastSyncedAt,
-    this.pendingChange,
-    this.pendingViews = const [],
-    this.pendingEntries = const [],
-  });
+class const Collection({
+  @override required final String id,
+  @override final String title = '',
+  @override final String description = '',
 
+  /// The pieces in it.
+  ///
+  /// They are kept in whatever order they arrived in — by title from the
+  /// server, and at the end for anything added here — and that is not an order
+  /// the collection has, because it has none. What a piece is called is in its
+  /// score rather than in the entry, so a list is sorted where the titles are,
+  /// which is [entriesByTitle].
+  @override final List<CollectionEntry> entries = const [],
+
+  /// The addresses it is readable by; only ever filled in for the owner.
+  @override final List<String> sharedWith = const [],
+
+  /// Whether it is this user's to change.
+  @override final bool isOwner = true,
+
+  /// When it was last written, here or there.
+  @override required final DateTime lastChangedAt,
+
+  /// When it was deleted, or null while it exists.
+  @override final DateTime? deletedAt,
+
+  /// When the server last said what is above.
+  @override final DateTime? lastSyncedAt,
+
+  /// One of [PendingChange], or null when there is nothing owed.
+  @override final String? pendingChange,
+
+  /// The entries whose view this user has written here and the server has not
+  /// heard about yet.
+  ///
+  /// A view is written by whoever it belongs to rather than by the owner, so it
+  /// is owed separately: a player who cannot add a piece to the book still has
+  /// their own reading of one that is in it to send.
+  @override final List<String> pendingViews = const [],
+
+  /// What has been done to the collection here and not sent yet, in the order
+  /// it was done.
+  ///
+  /// Entries are written one at a time, so what is owed is one piece at a time
+  /// rather than the whole book.
+  @override final List<PendingEntry> pendingEntries = const [],
+}) implements SyncedRecord<Collection, CollectionEntry> {
   /// A collection the way the API hands it over, as one this app keeps: the
   /// moments as dates rather than as the strings they arrive as, and nothing
   /// owed.
-  factory Collection.fromApi(
-    Map<String, dynamic> json,
-    DateTime syncedAt,
-  ) =>
+  factory Collection.fromApi({
+    required Map<String, dynamic> json,
+    required DateTime syncedAt,
+  }) =>
       Collection(
         id: '${json['id']}',
         title: '${json['title'] ?? ''}',
         description: '${json['description'] ?? ''}',
         entries: [
           for (final entry in (json['entries'] as List? ?? []))
-            CollectionEntry.fromApi((entry as Map).cast<String, dynamic>()),
+            CollectionEntry.fromApi(json: (entry as Map).cast<String, dynamic>()),
         ],
         sharedWith: [
           for (final address in (json['shared_with'] as List? ?? [])) '$address',
@@ -92,16 +123,16 @@ class Collection implements SyncedRecord<Collection, CollectionEntry> {
   /// A collection as this device stored it — which is also how the app that was
   /// there before this one stored it, so what it left behind in a browser is
   /// read by this and nothing else.
-  factory Collection.fromJson(
-    Map<String, Object?> json,
-  ) =>
+  factory Collection.fromJson({
+    required Map<String, Object?> json,
+  }) =>
       Collection(
         id: '${json['id']}',
         title: '${json['title'] ?? ''}',
         description: '${json['description'] ?? ''}',
         entries: [
           for (final entry in (json['entries'] as List? ?? []))
-            CollectionEntry.fromJson((entry as Map).cast<String, Object?>()),
+            CollectionEntry.fromJson(json: (entry as Map).cast<String, Object?>()),
         ],
         sharedWith: [
           for (final address in (json['shared_with'] as List? ?? [])) '$address',
@@ -117,67 +148,9 @@ class Collection implements SyncedRecord<Collection, CollectionEntry> {
         ],
         pendingEntries: [
           for (final owed in (json['pending_entries'] as List? ?? []))
-            PendingEntry.fromJson((owed as Map).cast<String, Object?>()),
+            PendingEntry.fromJson(json: (owed as Map).cast<String, Object?>()),
         ],
       );
-
-  @override
-  final String id;
-  @override
-  final String title;
-  @override
-  final String description;
-
-  /// The pieces in it.
-  ///
-  /// They are kept in whatever order they arrived in — by title from the
-  /// server, and at the end for anything added here — and that is not an order
-  /// the collection has, because it has none. What a piece is called is in its
-  /// score rather than in the entry, so a list is sorted where the titles are,
-  /// which is [entriesByTitle].
-  @override
-  final List<CollectionEntry> entries;
-
-  /// The addresses it is readable by; only ever filled in for the owner.
-  @override
-  final List<String> sharedWith;
-
-  /// Whether it is this user's to change.
-  @override
-  final bool isOwner;
-
-  /// When it was last written, here or there.
-  @override
-  final DateTime lastChangedAt;
-
-  /// When it was deleted, or null while it exists.
-  @override
-  final DateTime? deletedAt;
-
-  /// When the server last said what is above.
-  @override
-  final DateTime? lastSyncedAt;
-
-  /// One of [PendingChange], or null when there is nothing owed.
-  @override
-  final String? pendingChange;
-
-  /// The entries whose view this user has written here and the server has not
-  /// heard about yet.
-  ///
-  /// A view is written by whoever it belongs to rather than by the owner, so it
-  /// is owed separately: a player who cannot add a piece to the book still has
-  /// their own reading of one that is in it to send.
-  @override
-  final List<String> pendingViews;
-
-  /// What has been done to the collection here and not sent yet, in the order
-  /// it was done.
-  ///
-  /// Entries are written one at a time, so what is owed is one piece at a time
-  /// rather than the whole book.
-  @override
-  final List<PendingEntry> pendingEntries;
 
   @override
   bool get owesAnything =>
@@ -250,48 +223,13 @@ class Collection implements SyncedRecord<Collection, CollectionEntry> {
 ///
 /// There is no position. Where a piece comes in a collection is not a thing a
 /// collection has an answer to.
-class CollectionEntry implements SyncedEntry<CollectionEntry> {
-  const CollectionEntry({
-    required this.id,
-    this.scoreId,
-    this.description = '',
-    this.transposition = 0,
-    this.view = const CollectionEntryView(),
-    this.synced = false,
-  });
-
-  factory CollectionEntry.fromApi(
-    Map<String, dynamic> json,
-  ) =>
-      CollectionEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: CollectionEntryView.fromJson(json['view']),
-        // Everything the API hands over is on the server by definition.
-        synced: true,
-      );
-
-  factory CollectionEntry.fromJson(
-    Map<String, Object?> json,
-  ) =>
-      CollectionEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: CollectionEntryView.fromJson(json['view']),
-        synced: json['synced'] == true,
-      );
-
+class const CollectionEntry({
   /// What this entry is called, here and on the server.
   ///
   /// An entry added here is named here, and the server keeps the name, which is
   /// what lets a player put a piece in and say how they read it before either
   /// has been sent anywhere.
-  @override
-  final String id;
+  @override required final String id,
 
   /// The piece, and null for one that is in the collection but not in here — a
   /// page of a book nobody has scanned.
@@ -299,25 +237,48 @@ class CollectionEntry implements SyncedEntry<CollectionEntry> {
   /// A score is in a collection at most once; the pieces that have none are
   /// outside that rule, since they are told apart by what is written next to
   /// them.
-  final String? scoreId;
+  final String? scoreId,
 
   /// Whatever is worth remembering about this one — and, for a piece with no
   /// score, the only name it has.
-  final String description;
+  final String description = '',
 
   /// How far the group plays this one from where it is written, in semitones,
   /// negative for down.
-  final int transposition;
+  final int transposition = 0,
 
   /// How this user looks at it, which is theirs alone.
-  @override
-  final CollectionEntryView view;
+  @override final CollectionEntryView view = const CollectionEntryView(),
 
   /// Whether the server has this entry. An entry that was added here and never
   /// sent is nothing to tell the server about when it is taken out again: there
   /// is no row there to remove.
-  @override
-  final bool synced;
+  @override final bool synced = false,
+}) implements SyncedEntry<CollectionEntry> {
+  factory CollectionEntry.fromApi({
+    required Map<String, dynamic> json,
+  }) =>
+      CollectionEntry(
+        id: '${json['id']}',
+        scoreId: scoreIdOf(json['score_id']),
+        description: '${json['description'] ?? ''}',
+        transposition: transpositionOf(json['transposition']),
+        view: CollectionEntryView.fromJson(json: json['view']),
+        // Everything the API hands over is on the server by definition.
+        synced: true,
+      );
+
+  factory CollectionEntry.fromJson({
+    required Map<String, Object?> json,
+  }) =>
+      CollectionEntry(
+        id: '${json['id']}',
+        scoreId: scoreIdOf(json['score_id']),
+        description: '${json['description'] ?? ''}',
+        transposition: transpositionOf(json['transposition']),
+        view: CollectionEntryView.fromJson(json: json['view']),
+        synced: json['synced'] == true,
+      );
 
   /// Whether this is a piece that has yet to be scanned: in the book, and not
   /// in here.
@@ -389,7 +350,6 @@ class CollectionEntry implements SyncedEntry<CollectionEntry> {
 /// same way, as how they look at one entry of a set — the key on top of the
 /// group's, the parts on screen, and how big they draw it.
 typedef CollectionEntryView = EntryView;
-
 
 /// The entries of a collection by title, which is how a collection is read: it
 /// has no order of its own, and what a piece is called is in its score rather

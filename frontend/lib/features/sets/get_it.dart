@@ -8,15 +8,15 @@ import 'package:score/features/sets/repository.dart';
 extension SetsGetItExtensions on GetIt {
   void registerSets() {
     registerLazySingletonAsync<SetsApi>(
-      () async => SetsApi((await getAsync<Config>()).api, client: get()),
+      () async => SetsApi(config: (await getAsync<Config>()).api, client: get()),
     );
 
     registerLazySingletonAsync<SetsRepository>(
       () async {
         final repository = SetsRepository(
-          await getAsync<LocalStore>(),
-          await getAsync<SetsApi>(),
-          await getAsync<OidcApi>(),
+          store: await getAsync<LocalStore>(),
+          api: await getAsync<SetsApi>(),
+          oidc: await getAsync<OidcApi>(),
         );
         await repository.init();
         return repository;

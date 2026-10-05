@@ -46,15 +46,12 @@ import 'package:uuid/uuid.dart';
 /// order, so what is here is by name, which is how somebody looking for a piece
 /// reads a list.
 @RoutePage()
-class CollectionDetailPage extends StatefulWidget {
-  const CollectionDetailPage({
-    super.key,
-    @PathParam('collectionId') required this.collectionId,
-  });
+class const CollectionDetailPage({
+  super.key,
 
   /// `new` for a collection that has not been saved yet.
-  final String collectionId;
-
+  @PathParam('collectionId') required final String collectionId,
+}) extends StatefulWidget {
   @override
   State<CollectionDetailPage> createState() => _CollectionDetailPageState();
 }
@@ -681,19 +678,12 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
 /// A collection to read and play from: what it is, and the pieces in it by
 /// title, each a tap away from the stand.
-class _CollectionOverview extends StatelessWidget {
-  const _CollectionOverview({
-    required this.collection,
-    required this.owner,
-    required this.scoreOf,
-    required this.onOpen,
-  });
-
-  final Collection collection;
-  final bool owner;
-  final Score? Function(String scoreId) scoreOf;
-  final void Function(CollectionEntry entry) onOpen;
-
+class const _CollectionOverview({
+  required final Collection collection,
+  required final bool owner,
+  required final Score? Function(String scoreId) scoreOf,
+  required final void Function(CollectionEntry entry) onOpen,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -772,17 +762,11 @@ String _noteOf(CollectionEntry entry) {
 
 /// One piece of the collection, as it is read: which piece, what the
 /// collection says next to it, and the key the group plays it in.
-class _OverviewRow extends StatelessWidget {
-  const _OverviewRow({
-    required this.entry,
-    required this.score,
-    required this.onTap,
-  });
-
-  final CollectionEntry entry;
-  final Score? score;
-  final VoidCallback onTap;
-
+class const _OverviewRow({
+  required final CollectionEntry entry,
+  required final Score? score,
+  required final VoidCallback onTap,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -826,11 +810,9 @@ class _OverviewRow extends StatelessWidget {
 
 /// What is shown for a collection this device does not have and could not
 /// fetch.
-class _NotOnThisDevice extends StatelessWidget {
-  const _NotOnThisDevice({required this.onRetry});
-
-  final VoidCallback onRetry;
-
+class const _NotOnThisDevice({
+  required final VoidCallback onRetry,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -855,31 +837,19 @@ class _NotOnThisDevice extends StatelessWidget {
 
 /// One piece of the collection: what it is, how the group plays it, and how
 /// this player reads it.
-class _EntryCard extends StatelessWidget {
-  const _EntryCard({
-    super.key,
-    required this.entry,
-    required this.collectionId,
-    required this.owner,
-    required this.pointedAt,
-    required this.score,
-    required this.onDescription,
-    required this.onGroupTransposition,
-    required this.onRemove,
-  });
-
-  final CollectionEntry entry;
-  final String collectionId;
-  final bool owner;
+class const _EntryCard({
+  super.key,
+  required final CollectionEntry entry,
+  required final String collectionId,
+  required final bool owner,
 
   /// Whether this is the piece that was just asked for again, and is lit.
-  final bool pointedAt;
-
-  final Score? score;
-  final void Function(String description) onDescription;
-  final void Function(int semitones) onGroupTransposition;
-  final Future<void> Function() onRemove;
-
+  required final bool pointedAt,
+  required final Score? score,
+  required final void Function(String description) onDescription,
+  required final void Function(int semitones) onGroupTransposition,
+  required final Future<void> Function() onRemove,
+}) extends StatelessWidget {
   /// Stores how this player reads the piece. What is not said is kept as it
   /// is: the repository writes a view whole, filling in what was left out.
   Future<void> _saveMyView(

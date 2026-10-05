@@ -14,13 +14,11 @@ import 'package:score/config.dart';
 
 /// A call to the collections endpoints that did not come back with what was
 /// asked for; see [ApiException].
-class CollectionsApiException extends ApiException {
-  CollectionsApiException(
-    super.message,
-    super.status, [
-    super.problem,
-  ]);
-
+class CollectionsApiException({
+  required super.message,
+  required super.status,
+  super.problem,
+}) extends ApiException {
   /// The collection belongs to someone else, and waiting does not change whose
   /// it is.
   @override
@@ -35,14 +33,13 @@ class CollectionsApiException extends ApiException {
       errorCode == 'score_already_in_collection';
 }
 
-class CollectionsApi {
-  CollectionsApi(
-    this._config, {
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+class CollectionsApi({
+  required final ApiConfig config,
+  http.Client? client,
+}) {
+  this : client = client ?? http.Client();
 
-  final ApiConfig _config;
-  final http.Client _client;
+  final http.Client client;
 
   /// The collections that changed within the window, the caller's own and the
   /// ones shared with them. Collections that were deleted within it come back
@@ -54,8 +51,8 @@ class CollectionsApi {
   ) async {
     const what = 'list the collections';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('collections', {
+      () => client.get(
+        config.path('collections', {
           'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
           'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
         }),
@@ -83,8 +80,8 @@ class CollectionsApi {
   ) async {
     const what = 'fetch the collection';
     final response = await callTheApi(
-      () => _client.get(
-        _config.path('collections/$collectionId'),
+      () => client.get(
+        config.path('collections/$collectionId'),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Accept': 'application/json',
@@ -166,7 +163,7 @@ class CollectionsApi {
   Future<void> deleteCollection(String collectionId, String authToken) =>
       _delete('collections/$collectionId', authToken, 'delete the collection');
 
-  Future<bool> canBeReached() => apiCanBeReached(_client, _config);
+  Future<bool> canBeReached() => apiCanBeReached(client, config);
 
   Future<Map<String, dynamic>> _write(
     String path,
@@ -175,8 +172,8 @@ class CollectionsApi {
     String what,
   ) async {
     final response = await callTheApi(
-      () => _client.put(
-        _config.path(path),
+      () => client.put(
+        config.path(path),
         headers: {
           'Authorization': 'Bearer $authToken',
           'Content-Type': 'application/json',
@@ -193,8 +190,8 @@ class CollectionsApi {
 
   Future<void> _delete(String path, String authToken, String what) async {
     final response = await callTheApi(
-      () => _client.delete(
-        _config.path(path),
+      () => client.delete(
+        config.path(path),
         headers: {'Authorization': 'Bearer $authToken'},
       ),
       what,

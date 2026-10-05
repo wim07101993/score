@@ -7,20 +7,13 @@ import 'package:score/features/scores/widgets/score_detail_page.dart';
 /// [scoreId] is `new` for a score that is about to be uploaded, and
 /// [ScoreDetailPage.paper] for an entry that is played from paper.
 @RoutePage()
-class ScorePage extends StatelessWidget {
-  const ScorePage({
-    super.key,
-    @PathParam('scoreId') required this.scoreId,
-    @QueryParam('set') this.setId,
-    @QueryParam('collection') this.collectionId,
-    @QueryParam('entry') this.entryId,
-  });
-
-  final String scoreId;
-  final String? setId;
-  final String? collectionId;
-  final String? entryId;
-
+class const ScorePage({
+  super.key,
+  @PathParam('scoreId') required final String scoreId,
+  @QueryParam('set') final String? setId,
+  @QueryParam('collection') final String? collectionId,
+  @QueryParam('entry') final String? entryId,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ScoreDetailPage(
         scoreId: scoreId,
@@ -35,25 +28,17 @@ class ScorePage extends StatelessWidget {
 /// Played from a set or a collection, [setId] or [collectionId] says which
 /// and [entryId] which of its entries this is.
 @RoutePage()
-class PerformScorePage extends StatelessWidget {
-  const PerformScorePage({
-    super.key,
-    @PathParam('scoreId') required this.scoreId,
-    @QueryParam('set') this.setId,
-    @QueryParam('collection') this.collectionId,
-    @QueryParam('entry') this.entryId,
-    this.handover,
-  });
-
-  final String scoreId;
-  final String? setId;
-  final String? collectionId;
-  final String? entryId;
+class const PerformScorePage({
+  super.key,
+  @PathParam('scoreId') required final String scoreId,
+  @QueryParam('set') final String? setId,
+  @QueryParam('collection') final String? collectionId,
+  @QueryParam('entry') final String? entryId,
 
   /// How the details page had it, when that is where the score is being
   /// played from; an address opened on its own has none.
-  final ScoreReadingHandover? handover;
-
+  final ScoreReadingHandover? handover,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ScoreDetailPage(
         scoreId: scoreId,

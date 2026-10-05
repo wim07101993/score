@@ -31,7 +31,7 @@ void main() {
       () {
     late OidcConfig config;
     final lines = printed(
-      () => config = OidcConfig.fromJson(oidc({'nativeClientId': 'native'})),
+      () => config = OidcConfig.fromJson(json: oidc({'nativeClientId': 'native'})),
     );
 
     expect(config.clientId, 'web-client');
@@ -43,7 +43,7 @@ void main() {
 
   test('and as the web client when there is not, saying so', () {
     late OidcConfig config;
-    final lines = printed(() => config = OidcConfig.fromJson(oidc()));
+    final lines = printed(() => config = OidcConfig.fromJson(json: oidc()));
 
     expect(config.nativeClientId, 'web-client');
     expect(config.clientIdHere, 'web-client');
@@ -53,7 +53,7 @@ void main() {
   test('an empty native client counts as none', () {
     late OidcConfig config;
     final lines = printed(
-      () => config = OidcConfig.fromJson(oidc({'nativeClientId': ''})),
+      () => config = OidcConfig.fromJson(json: oidc({'nativeClientId': ''})),
     );
 
     expect(config.nativeClientId, 'web-client');

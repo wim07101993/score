@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Asks to delete the collection. The scores in it stay where they are.
-class DeleteCollectionButton extends StatelessWidget {
-  const DeleteCollectionButton({
-    super.key,
-    required this.onPressed,
-  });
-
-  final VoidCallback? onPressed;
-
+class const DeleteCollectionButton({
+  super.key,
+  required final VoidCallback? onPressed,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
