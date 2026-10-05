@@ -1,8 +1,9 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
+import 'package:score/features/observability/widgets/logs_button.dart';
 import 'package:score/features/settings/settings.dart';
-import 'package:score/features/settings/widgets/logs_button.dart';
 import 'package:score/features/settings/widgets/look_slider.dart';
 import 'package:score/features/settings/widgets/reset_look_button.dart';
 
@@ -12,6 +13,7 @@ import 'package:score/features/settings/widgets/reset_look_button.dart';
 /// here. A rehearsal room with the lights down and a laptop on a stand is the
 /// case all of this exists for — the machine's own theme is often not what the
 /// room is, and how dim a page wants to be is a question about the room.
+@RoutePage()
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     super.key,
@@ -19,7 +21,7 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
+    final settings = GetIt.I<Settings>();
 
     return Scaffold(
       appBar: AppBar(
@@ -31,21 +33,21 @@ class SettingsPage extends StatelessWidget {
       // control that did not move until something else happened to redraw the
       // page would be the app disagreeing with what it had just been told.
       body: ListenableBuilder(
-        listenable: app.settings,
+        listenable: settings,
         builder: (context, _) {
           final brightness = Theme.of(context).brightness;
           return Appearance(
-            mode: app.settings.themeMode,
-            onModeChanged: app.settings.setThemeMode,
+            mode: settings.themeMode,
+            onModeChanged: settings.setThemeMode,
             brightness: brightness,
-            look: app.settings.pageLook(brightness),
+            look: settings.pageLook(brightness),
             onLookChanged: (look) =>
-                app.settings.previewPageLook(brightness, look),
+                settings.previewPageLook(brightness, look),
             onLookCommitted: (look) =>
-                app.settings.setPageLook(brightness, look),
-            onLookReset: app.settings.isPageLookDefault(brightness)
+                settings.setPageLook(brightness, look),
+            onLookReset: settings.isPageLookDefault(brightness)
                 ? null
-                : () => app.settings.resetPageLook(brightness),
+                : () => settings.resetPageLook(brightness),
           );
         },
       ),

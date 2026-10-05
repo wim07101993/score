@@ -10,7 +10,7 @@ import 'package:score/features/settings/theme_hint_native.dart'
 /// in whatever the system is, which for a player who chose dark on a laptop set
 /// to light is a white screen on a dark stage. So on the web it is also kept
 /// in `localStorage`, which the page can read before the app has loaded at all
-/// (see web/index.html), under the name the app before this one kept it by.
+/// (see web/index.html).
 /// Elsewhere there is no page to paint first, and this is the system's.
 ThemeMode rememberedThemeMode() => platformRememberedThemeMode();
 

@@ -34,10 +34,6 @@ class Settings extends ChangeNotifier {
   /// a dark stage is a white screen in somebody's face.
   static Future<Settings> load(LocalStore store) async {
     final themeMode = _readThemeMode(await store.readSetting(_themeKey));
-    // Kept in step with the store, which is where the choice lives: a choice
-    // made before the hint was, or brought over from the app before this one,
-    // is painted from the next start on.
-    rememberThemeMode(themeMode);
     return Settings._(
       store,
       themeMode,

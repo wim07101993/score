@@ -1,4 +1,6 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:score/router.dart';
 
 /// The way to the settings.
 class SettingsButton extends StatelessWidget {
@@ -11,7 +13,7 @@ class SettingsButton extends StatelessWidget {
     return IconButton(
       tooltip: 'Settings',
       icon: const Icon(Icons.settings_outlined),
-      onPressed: () => Navigator.of(context).pushNamed('/settings'),
+      onPressed: () => context.router.push(const SettingsRoute()),
     );
   }
 }

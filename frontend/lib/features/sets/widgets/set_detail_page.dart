@@ -1,7 +1,11 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/auth.dart';
 import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/repository.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
+import 'package:score/features/sets/api.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/repository.dart';
 import 'package:score/features/sets/widgets/add_score_chip.dart';
@@ -13,7 +17,8 @@ import 'package:score/features/sets/widgets/open_score_button.dart';
 import 'package:score/features/sets/widgets/remove_entry_button.dart';
 import 'package:score/features/sets/widgets/set_description_field.dart';
 import 'package:score/features/sets/widgets/set_title_field.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
 import 'package:score/widgets/error_snack_bar.dart';
@@ -34,10 +39,11 @@ import 'package:uuid/uuid.dart';
 /// so adding a song, taking one out, moving one and changing its key each land
 /// as they are made. There is nothing to save afterwards, and nothing to lose
 /// by leaving the page.
+@RoutePage()
 class SetDetailPage extends StatefulWidget {
   const SetDetailPage({
     super.key,
-    required this.setId,
+    @PathParam('setId') required this.setId,
   });
 
   /// `new` for a set that has not been saved yet.
@@ -48,6 +54,11 @@ class SetDetailPage extends StatefulWidget {
 }
 
 class _SetDetailPageState extends State<SetDetailPage> {
+  final _auth = GetIt.I<Auth>();
+  final _sync = GetIt.I<Sync>();
+  final _scores = GetIt.I<ScoresRepository>();
+  final _sets = GetIt.I<SetsRepository>();
+
   static const _uuid = Uuid();
   final _title = TextEditingController();
   final _description = TextEditingController();
@@ -74,10 +85,6 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   void Function(SyncProblem)? _problemListener;
 
-  /// The sets this page listens to, kept for [dispose]: by then the page is
-  /// out of the tree, and [context] can no longer be used to look anything up.
-  SetsRepository? _repository;
-
   @override
   void initState() {
     super.initState();
@@ -87,13 +94,11 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   @override
   void dispose() {
-    final repository = _repository;
-    if (repository != null) {
-      final listener = _problemListener;
-      if (listener != null) {
-        repository.removeSyncProblemListener(listener);
-      }
-      repository.removeListener(_takeStoredChanges);
+    final listener = _problemListener;
+    if (listener != null) {
+      _sets
+        ..removeSyncProblemListener(listener)
+        ..removeListener(_takeStoredChanges);
     }
     _title.dispose();
     _description.dispose();
@@ -105,20 +110,18 @@ class _SetDetailPageState extends State<SetDetailPage> {
   }
 
   Future<void> _load() async {
-    final app = AppScope.read(context);
-
     // A set this device has is drawn from what it has, network or no network.
     // One it has never heard of is asked about first: a link into a set can be
     // followed on a device that has not synced since it was shared, and drawing
     // an empty set to type over would be a lie about what is stored under that
     // id.
-    if (widget.setId != 'new' && app.sets.getSet(_setId) == null) {
-      await app.updateSets();
+    if (widget.setId != 'new' && _sets.getSet(_setId) == null) {
+      await _sync.updateSets();
     }
 
     if (!mounted) return;
     _readFromStored();
-    final stored = app.sets.getSet(_setId);
+    final stored = _sets.getSet(_setId);
     setState(() {
       _loading = false;
       _editing =
@@ -140,13 +143,13 @@ class _SetDetailPageState extends State<SetDetailPage> {
         setState(() {});
       }
     };
-    _repository = app.sets
+    _sets
       ..addSyncProblemListener(_problemListener!)
       ..addListener(_takeStoredChanges);
 
-    await app.updateScores();
+    await _sync.updateScores();
     if (widget.setId != 'new') {
-      await app.updateSets();
+      await _sync.updateSets();
     }
     if (mounted && !_dirty) {
       _readFromStored();
@@ -156,9 +159,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   /// Asks the server for the set again, for a page that found it was not here.
   Future<void> _retry() async {
-    final app = AppScope.read(context);
     setState(() => _loading = true);
-    await app.updateSets();
+    await _sync.updateSets();
     if (!mounted) return;
     setState(() {
       _readFromStored();
@@ -175,7 +177,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
   }
 
   void _readFromStored() {
-    final set = AppScope.read(context).sets.getSet(_setId);
+    final set = _sets.getSet(_setId);
     // Only what differs is written: writing a field puts its cursor at the end.
     void show(TextEditingController field, String text) {
       if (field.text != text) field.text = text;
@@ -187,19 +189,18 @@ class _SetDetailPageState extends State<SetDetailPage> {
     _dirty = false;
   }
 
-  ScoreSet? get _stored => AppScope.read(context).sets.getSet(_setId);
+  ScoreSet? get _stored => _sets.getSet(_setId);
 
   bool get _isOwner => _stored?.isOwner ?? true;
 
   bool get _isStored => _stored != null;
 
   Future<void> _save() async {
-    final app = AppScope.read(context);
     final title = _title.text;
     final description = _description.text;
     final sharedWith = _sharedWith.text;
     try {
-      await app.sets.saveSet(
+      await _sets.saveSet(
         id: _setId,
         title: title,
         description: description,
@@ -216,14 +217,11 @@ class _SetDetailPageState extends State<SetDetailPage> {
       }
       // Only once nothing typed is left unsaved: the page at the new address
       // reads what is stored, and would drop it.
-      if (widget.setId == 'new' && !_dirty && app.sets.getSet(_setId) != null) {
+      if (widget.setId == 'new' && !_dirty && _sets.getSet(_setId) != null) {
         // Saved, it is a set like any other and is at its own address, so that
         // reloading it or keeping it opens this set rather than a new empty
         // one.
-        Navigator.of(context).pushReplacementNamed(
-          AppRoute.set(_setId),
-          arguments: AppRoute.renamed,
-        );
+        context.router.replace(SetDetailRoute(setId: _setId));
       }
     } catch (error) {
       if (mounted) _say('The set could not be saved: $error');
@@ -242,10 +240,14 @@ class _SetDetailPageState extends State<SetDetailPage> {
   /// Plays the set from its first song.
   void _playFrom(SetEntry entry) {
     final scoreId = entry.scoreId;
-    Navigator.of(context).pushNamed(
+    context.router.push(
       scoreId == null
-          ? AppRoute.paper(setId: _setId, entryId: entry.id)
-          : AppRoute.perform(scoreId, setId: _setId, entryId: entry.id),
+          ? paperRoute(setId: _setId, entryId: entry.id)
+          : PerformScoreRoute(
+              scoreId: scoreId,
+              setId: _setId,
+              entryId: entry.id,
+            ),
     );
   }
 
@@ -266,7 +268,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await AppScope.read(context).sets.deleteSet(_setId);
+      await _sets.deleteSet(_setId);
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) _say('The set could not be deleted: $error');
@@ -280,12 +282,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
     int? transposition,
     int? position,
   }) async {
-    // Through the repository held since the page loaded rather than looked up
-    // again: a note is also written as its field is thrown away, which can be
-    // as this page is being left, when there is no looking anything up.
-    final sets = _repository ?? AppScope.read(context).sets;
     try {
-      await sets.saveEntry(
+      await _sets.saveEntry(
             _setId,
             id: id,
             scoreId: scoreId,
@@ -335,7 +333,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     );
   }
 
-  Widget _entries(App app, ScoreSet? set, bool owner) {
+  Widget _entries(ScoreSet? set, bool owner) {
     final entries = set?.entries ?? const <SetEntry>[];
 
     return Column(
@@ -362,7 +360,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
               setId: _setId,
               owner: owner,
               score: switch (entries[index].scoreId) {
-                final scoreId? => app.scores.getScore(scoreId),
+                final scoreId? => _scores.getScore(scoreId),
                 null => null,
               },
               onMove: (to) =>
@@ -373,7 +371,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                   _writeEntry(id: entries[index].id, transposition: semitones),
               onRemove: () async {
                 try {
-                  await app.sets.deleteEntry(_setId, entries[index].id);
+                  await _sets.deleteEntry(_setId, entries[index].id);
                 } catch (error) {
                   if (mounted) _say('That song could not be taken out: $error');
                 }
@@ -383,9 +381,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
     );
   }
 
-  Widget _picker(App app) {
+  Widget _picker() {
     final needle = _filter.text.trim();
-    final scores = app.scores.scores
+    final scores = _scores.scores
         .where((score) => score.matches(needle))
         .toList()
       ..sort((a, b) => a.title.compareTo(b.title));
@@ -444,8 +442,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
     );
   }
 
-  /// Puts a song played from paper at the end of the set, the way the old app
-  /// did: named by what was typed, or not named at all.
+  /// Puts a song played from paper at the end of the set: named by what was
+  /// typed, or not named at all.
   Future<void> _addPaperEntry() async {
     final description = _paperEntry.text.trim();
     _paperEntry.clear();
@@ -474,8 +472,15 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    if (app.user?.isScoreViewer != true) {
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    if (_auth.user?.isScoreViewer != true) {
       return Scaffold(
         appBar: AppBar(title: const Text('Set')),
         body: const Center(
@@ -487,7 +492,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     return UnsavedChangesGuard(
       unsaved: _dirty,
       child: ListenableBuilder(
-        listenable: app.sets,
+        listenable: _sets,
         builder: (context, _) {
           final set = _stored;
           final owner = _isOwner;
@@ -513,9 +518,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
                   child: SyncStatus(
                     label: _stateOf(set),
                     unsynced: set?.owesAnything == true && !_dirty,
-                    whyNotSynced: () => app.sets.whyNotSynced(_setId),
-                    apiCanBeReached: app.setsApi.canBeReached,
-                    sync: app.updateSets,
+                    whyNotSynced: () => _sets.whyNotSynced(_setId),
+                    apiCanBeReached: GetIt.I<SetsApi>().canBeReached,
+                    sync: _sync.updateSets,
                   ),
                 ),
                 if (editing) SaveButton(onPressed: _dirty ? _save : null),
@@ -539,7 +544,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 ? _SetOverview(
                     set: set,
                     owner: owner,
-                    scoreOf: app.scores.getScore,
+                    scoreOf: _scores.getScore,
                     onPlay: _playFrom,
                   )
                 : ListView(
@@ -547,9 +552,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
                     children: [
                       _about(owner),
                       const SizedBox(height: 24),
-                      _entries(app, set, owner),
+                      _entries(set, owner),
                       const SizedBox(height: 24),
-                      if (owner && _isStored) _picker(app),
+                      if (owner && _isStored) _picker(),
                       if (owner) ...[
                         const SizedBox(height: 24),
                         _sharing(),
@@ -756,7 +761,7 @@ class _EntryCard extends StatelessWidget {
     required List<String> hiddenParts,
   }) async {
     try {
-      await AppScope.read(context).sets.saveEntryView(
+      await GetIt.I<SetsRepository>().saveEntryView(
             setId,
             entry.id,
             transposition: transposition,
@@ -815,17 +820,17 @@ class _EntryCard extends StatelessWidget {
                 ),
                 OpenScoreButton(
                   onPressed: switch (entry.scoreId) {
-                    final scoreId? => () => Navigator.of(context).pushNamed(
-                      AppRoute.perform(
-                        scoreId,
+                    final scoreId? => () => context.router.push(
+                      PerformScoreRoute(
+                        scoreId: scoreId,
                         setId: setId,
                         entryId: entry.id,
                       ),
                     ),
                     // A song with no score opens all the same, as the song it
                     // is in the running order, with the way on to the next.
-                    null => () => Navigator.of(context).pushNamed(
-                      AppRoute.paper(setId: setId, entryId: entry.id),
+                    null => () => context.router.push(
+                      paperRoute(setId: setId, entryId: entry.id),
                     ),
                   },
                 ),

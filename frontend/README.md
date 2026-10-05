@@ -36,10 +36,7 @@ app holds stays the one the editor uploaded. The download button takes the same
 two steps on a score of its own (`musicXmlForView`) and writes that out, so the
 score on screen and the file that comes out agree, and a view that changes
 nothing downloads the editor's own file byte for byte. A view is immutable, so
-putting a score back the way it was is a matter of keeping the old view around —
-which is not true of the app this replaces: OSMD rewrites the sheet it holds in
-memory, and asking it for a transposition of zero again does not put the keys
-back.
+putting a score back the way it was is a matter of keeping the old view around.
 
 ### Light and dark
 
@@ -117,16 +114,19 @@ lamp is judged by the ink rather than by the smear.
 
 ```
 lib/
-├── main.dart        starting up, and which page an address leads to
-├── routes.dart      the addresses, the ones the app it replaces used
-├── app.dart         everything wired together once
+├── main.dart        runs the app in a zone that catches what nothing else did
+├── app.dart         starting up, and which page an address leads to
+├── get_it.dart      everything the app is made of, registered on GetIt
+├── router.dart      the addresses, and what is behind a link to one (AutoRoute)
 ├── config.dart      where the API is, and how a user proves who they are
 ├── features/        what the app knows, a directory per subject
 │   ├── auth/            proving who the user is
 │   ├── scores/          the scores and the documents behind them
 │   ├── sets/            the playlists a gig is played from
+│   ├── sync/            squaring what is on the device with the server
 │   ├── collections/     the scores kept together under a name
 │   ├── notation/        drawing a score (above)
+│   ├── observability/   logging, kept in the local store across runs, and the logs page
 │   ├── settings/        what this device prefers, which is not the account's
 │   ├── sembast/         where things are kept on the device
 │   ├── files/           how a file leaves the app
@@ -135,26 +135,24 @@ lib/
 ```
 
 A subject is an `api.dart` that speaks to the server, `models.dart` for what it
-holds, and a `repository.dart` that is the only thing a page talks to. **A page
+holds, a `repository.dart` that is the only thing a page talks to, and a
+`get_it.dart` that registers them. A page gets what it needs with
+`GetIt.I<T>()`. **A page
 reads what is stored and asks for a sync; it never waits on the network to
 draw.** A score is read on a stage and a set is edited at a gig, and both of
 those are exactly where there is no network.
 
 The rules a set is written under — what is queued, in what order it goes out,
 and what happens when the server refuses — are the ones
-[the project README](../README.md#sets-are-written-offline) describes, and they
-were ported from the app this replaced rather than reinvented. A set owes the
-server three separate things in
-order: what the set is, the songs added or moved, and how this player reads
+[the project README](../README.md#sets-are-written-offline) describes. A set
+owes the server three separate things in order: what the set is, the songs added or moved, and how this player reads
 them. Each is written against the one before it, so whatever did not get through
 keeps what depends on it queued behind it.
 
-## Where it differs from the app it replaces
+## Things to know
 
-- **Tokens survive a restart.** The old app kept them in `sessionStorage`, which
-  lasts as long as a tab. A device that is closed and opened again at the next
-  rehearsal should not ask the player to sign in again, and a refresh token that
-  lives no longer than a tab never gets used.
+- **Tokens survive a restart.** A device that is closed and opened again at the
+  next rehearsal should not ask the player to sign in again.
 - **A device needs a redirect address of its own.** An app cannot be sent back
   to a web page, so `nativeRedirectUri` and `desktopRedirectUri` in
   [assets/config.json](assets/config.json) have to be registered with the
@@ -163,9 +161,9 @@ keeps what depends on it queued behind it.
   builds sign in as. Left out, they sign in as `clientId` (and say so in the
   debug log). [assets/config.prod.json](assets/config.prod.json) must carry
   `nativeClientId`: the release workflow refuses to build without it.
-- **The score can be written out as MusicXML, but not yet as a picture.** The
-  old app exported the drawn SVG out of OSMD; the equivalent here would be
-  writing what the engraver paints out as SVG, which has not been done.
+- **The score can be written out as MusicXML, but not yet as a picture.** That
+  would be writing what the engraver paints out as SVG, which has not been
+  done.
 
 ## Running it
 
@@ -173,6 +171,7 @@ keeps what depends on it queued behind it.
 $ flutter run -d chrome --web-port=3000   # CHROME_EXECUTABLE=/usr/bin/chromium if needed
 $ flutter run -d linux
 $ flutter test
+$ dart run build_runner build             # after changing a page's route: writes lib/router.gr.dart
 ```
 
 **The port on the web is not a detail.** A provider compares a redirect address

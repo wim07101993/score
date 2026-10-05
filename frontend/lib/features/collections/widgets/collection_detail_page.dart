@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/auth.dart';
+import 'package:score/features/collections/api.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/features/collections/repository.dart';
 import 'package:score/features/collections/widgets/add_score_to_collection_chip.dart';
@@ -12,10 +15,12 @@ import 'package:score/features/collections/widgets/delete_collection_button.dart
 import 'package:score/features/collections/widgets/open_collection_entry_button.dart';
 import 'package:score/features/collections/widgets/remove_collection_entry_button.dart';
 import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/repository.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 import 'package:score/features/scores/widgets/scores_page.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
 import 'package:score/widgets/error_snack_bar.dart';
@@ -40,10 +45,11 @@ import 'package:uuid/uuid.dart';
 /// The pieces are listed by title, and have no numbers: a collection has no
 /// order, so what is here is by name, which is how somebody looking for a piece
 /// reads a list.
+@RoutePage()
 class CollectionDetailPage extends StatefulWidget {
   const CollectionDetailPage({
     super.key,
-    required this.collectionId,
+    @PathParam('collectionId') required this.collectionId,
   });
 
   /// `new` for a collection that has not been saved yet.
@@ -54,6 +60,11 @@ class CollectionDetailPage extends StatefulWidget {
 }
 
 class _CollectionDetailPageState extends State<CollectionDetailPage> {
+  final _auth = GetIt.I<Auth>();
+  final _sync = GetIt.I<Sync>();
+  final _scores = GetIt.I<ScoresRepository>();
+  final _collections = GetIt.I<CollectionsRepository>();
+
   static const _uuid = Uuid();
   final _title = TextEditingController();
   final _description = TextEditingController();
@@ -88,11 +99,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   void Function(CollectionSyncProblem)? _problemListener;
 
-  /// The collections this page listens to, kept for [dispose]: by then the
-  /// page is out of the tree, and [context] can no longer be used to look
-  /// anything up.
-  CollectionsRepository? _repository;
-
   @override
   void initState() {
     super.initState();
@@ -103,13 +109,11 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   @override
   void dispose() {
-    final repository = _repository;
-    if (repository != null) {
-      final listener = _problemListener;
-      if (listener != null) {
-        repository.removeSyncProblemListener(listener);
-      }
-      repository.removeListener(_takeStoredChanges);
+    final listener = _problemListener;
+    if (listener != null) {
+      _collections
+        ..removeSyncProblemListener(listener)
+        ..removeListener(_takeStoredChanges);
     }
     _pointing?.cancel();
     _title.dispose();
@@ -122,21 +126,19 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   }
 
   Future<void> _load() async {
-    final app = AppScope.read(context);
-
     // A collection this device has is drawn from what it has, network or no
     // network. One it has never heard of is asked about first: a link into a
     // collection can be followed on a device that has not synced since it was
     // shared, and drawing an empty one to type over would be a lie about what
     // is stored under that id.
     if (widget.collectionId != 'new' &&
-        app.collections.getCollection(_collectionId) == null) {
-      await app.updateCollections();
+        _collections.getCollection(_collectionId) == null) {
+      await _sync.updateCollections();
     }
 
     if (!mounted) return;
     _readFromStored();
-    final stored = app.collections.getCollection(_collectionId);
+    final stored = _collections.getCollection(_collectionId);
     setState(() {
       _loading = false;
       _editing = widget.collectionId == 'new' ||
@@ -157,16 +159,16 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         setState(() {});
       }
     };
-    _repository = app.collections
+    _collections
       ..addSyncProblemListener(_problemListener!)
       ..addListener(_takeStoredChanges);
 
     // The scores are what the pieces are called by, and they may bring in ones
     // this collection names; and, when nothing is being typed, the sync may
     // bring in a newer version of the collection itself.
-    await app.updateScores();
+    await _sync.updateScores();
     if (widget.collectionId != 'new') {
-      await app.updateCollections();
+      await _sync.updateCollections();
     }
     if (mounted && !_dirty) {
       _readFromStored();
@@ -177,9 +179,8 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   /// Asks the server for the collection again, for a page that found it was
   /// not here.
   Future<void> _retry() async {
-    final app = AppScope.read(context);
     setState(() => _loading = true);
-    await app.updateCollections();
+    await _sync.updateCollections();
     if (!mounted) return;
     setState(() {
       _readFromStored();
@@ -197,8 +198,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   }
 
   void _readFromStored() {
-    final collection =
-        AppScope.read(context).collections.getCollection(_collectionId);
+    final collection = _collections.getCollection(_collectionId);
     // Only what differs is written: writing a field puts its cursor at the end.
     void show(TextEditingController field, String text) {
       if (field.text != text) field.text = text;
@@ -210,8 +210,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     _dirty = false;
   }
 
-  Collection? get _stored =>
-      AppScope.read(context).collections.getCollection(_collectionId);
+  Collection? get _stored => _collections.getCollection(_collectionId);
 
   /// Whose the collection is, is something a sync can change its mind about,
   /// so this is read from the collection every time rather than settled once
@@ -224,12 +223,11 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   bool get _isStored => _stored != null;
 
   Future<void> _save() async {
-    final app = AppScope.read(context);
     final title = _title.text;
     final description = _description.text;
     final sharedWith = _sharedWith.text;
     try {
-      await app.collections.saveCollection(
+      await _collections.saveCollection(
         id: _collectionId,
         title: title,
         description: description,
@@ -248,14 +246,12 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       // reads what is stored, and would drop it.
       if (widget.collectionId == 'new' &&
           !_dirty &&
-          app.collections.getCollection(_collectionId) != null) {
+          _collections.getCollection(_collectionId) != null) {
         // Saved, it is a collection like any other and is at its own address,
         // so that reloading it or keeping it opens this collection rather than
         // a new empty one.
-        Navigator.of(context).pushReplacementNamed(
-          AppRoute.collection(_collectionId),
-          arguments: AppRoute.renamed,
-        );
+        context.router
+            .replace(CollectionDetailRoute(collectionId: _collectionId));
       }
     } catch (error) {
       if (mounted) _say('The collection could not be saved: $error');
@@ -276,11 +272,11 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   /// opens as the piece it is.
   void _open(CollectionEntry entry) {
     final scoreId = entry.scoreId;
-    Navigator.of(context).pushNamed(
+    context.router.push(
       scoreId == null
-          ? AppRoute.paper(collectionId: _collectionId, entryId: entry.id)
-          : AppRoute.score(
-              scoreId,
+          ? paperRoute(collectionId: _collectionId, entryId: entry.id)
+          : ScoreRoute(
+              scoreId: scoreId,
               collectionId: _collectionId,
               entryId: entry.id,
             ),
@@ -305,7 +301,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await AppScope.read(context).collections.deleteCollection(_collectionId);
+      await _collections.deleteCollection(_collectionId);
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) _say('The collection could not be deleted: $error');
@@ -326,12 +322,8 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     String? description,
     int? transposition,
   }) async {
-    // Through the repository held since the page loaded rather than looked up
-    // again: a note is also written as its field is thrown away, which can be
-    // as this page is being left, when there is no looking anything up.
-    final collections = _repository ?? AppScope.read(context).collections;
     try {
-      await collections.saveEntry(
+      await _collections.saveEntry(
             _collectionId,
             id: id,
             scoreId: scoreId,
@@ -430,10 +422,10 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     );
   }
 
-  Widget _entries(App app, Collection? collection, bool owner) {
+  Widget _entries(Collection? collection, bool owner) {
     final entries = entriesByTitle(
       collection?.entries ?? const <CollectionEntry>[],
-      (scoreId) => app.scores.getScore(scoreId)?.title,
+      (scoreId) => _scores.getScore(scoreId)?.title,
     );
     _entryKeys.removeWhere(
         (id, _) => !entries.any((entry) => entry.id == id));
@@ -461,7 +453,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               owner: owner,
               pointedAt: _pointedAt == entry.id,
               score: switch (entry.scoreId) {
-                final scoreId? => app.scores.getScore(scoreId),
+                final scoreId? => _scores.getScore(scoreId),
                 null => null,
               },
               onDescription: (text) =>
@@ -470,7 +462,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                   _writeEntry(id: entry.id, transposition: semitones),
               onRemove: () async {
                 try {
-                  await app.collections.deleteEntry(_collectionId, entry.id);
+                  await _collections.deleteEntry(_collectionId, entry.id);
                 } catch (error) {
                   if (mounted) {
                     _say('That piece could not be taken out of the'
@@ -483,9 +475,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     );
   }
 
-  Widget _picker(App app, Collection? collection) {
+  Widget _picker(Collection? collection) {
     final needle = _filter.text.trim();
-    final scores = app.scores.scores
+    final scores = _scores.scores
         .where((score) => score.matches(needle))
         .toList()
       ..sort((a, b) => a.title.compareTo(b.title));
@@ -500,7 +492,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 8),
-        if (app.scores.scores.isEmpty)
+        if (_scores.scores.isEmpty)
           const Text('No scores on this device to add. They arrive with the'
               ' next sync.')
         else
@@ -577,8 +569,15 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    if (app.user?.isScoreViewer != true) {
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    if (_auth.user?.isScoreViewer != true) {
       return Scaffold(
         appBar: AppBar(title: const Text('Collection')),
         body: const Center(
@@ -594,7 +593,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     return UnsavedChangesGuard(
       unsaved: _dirty,
       child: ListenableBuilder(
-      listenable: Listenable.merge([app.collections, app.scores]),
+      listenable: Listenable.merge([_collections, _scores]),
       builder: (context, _) {
         final collection = _stored;
         final owner = _isOwner;
@@ -620,9 +619,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                 child: SyncStatus(
                   label: _stateOf(collection),
                   unsynced: collection?.owesAnything == true && !_dirty,
-                  whyNotSynced: () => app.collections.whyNotSynced(_collectionId),
-                  apiCanBeReached: app.collectionsApi.canBeReached,
-                  sync: app.updateCollections,
+                  whyNotSynced: () => _collections.whyNotSynced(_collectionId),
+                  apiCanBeReached: GetIt.I<CollectionsApi>().canBeReached,
+                  sync: _sync.updateCollections,
                 ),
               ),
               if (editing) SaveButton(onPressed: _dirty ? _save : null),
@@ -646,7 +645,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               ? _CollectionOverview(
                   collection: collection,
                   owner: owner,
-                  scoreOf: app.scores.getScore,
+                  scoreOf: _scores.getScore,
                   onOpen: _open,
                 )
               // Laid out whole rather than as the list scrolls: the piece a
@@ -660,9 +659,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                   children: [
                     _about(owner),
                     const SizedBox(height: 24),
-                    _entries(app, collection, owner),
+                    _entries(collection, owner),
                     const SizedBox(height: 24),
-                    if (owner && _isStored) _picker(app, collection),
+                    if (owner && _isStored) _picker(collection),
                     if (owner) ...[
                       const SizedBox(height: 24),
                       _sharing(),
@@ -889,7 +888,7 @@ class _EntryCard extends StatelessWidget {
     List<String>? hiddenParts,
   }) async {
     try {
-      await AppScope.read(context).collections.saveEntryView(
+      await GetIt.I<CollectionsRepository>().saveEntryView(
             collectionId,
             entry.id,
             transposition: transposition,
@@ -958,14 +957,16 @@ class _EntryCard extends StatelessWidget {
                   onPressed: switch (entry.scoreId) {
                     // Straight to the music. Opening a piece of a collection
                     // is opening it to play it, not to read who wrote it.
-                    final scoreId? => () => Navigator.of(context).pushNamed(
-                          AppRoute.score(scoreId,
-                              collectionId: collectionId, entryId: entry.id),
+                    final scoreId? => () => context.router.push(
+                          ScoreRoute(
+                              scoreId: scoreId,
+                              collectionId: collectionId,
+                              entryId: entry.id),
                         ),
                     // A piece with no score opens all the same, to say which
                     // piece it is, with the way on to the next.
-                    null => () => Navigator.of(context).pushNamed(
-                          AppRoute.paper(
+                    null => () => context.router.push(
+                          paperRoute(
                               collectionId: collectionId, entryId: entry.id),
                         ),
                   },

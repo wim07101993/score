@@ -1,6 +1,7 @@
-import 'package:score/logging.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logging/logging.dart';
 
-final _log = appLogger('Background');
+final _log = GetIt.I<Logger>(param1: 'Background');
 
 /// Starts [work] and does not wait for it, saying so when it fails.
 ///

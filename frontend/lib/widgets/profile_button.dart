@@ -1,4 +1,6 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:score/router.dart';
 
 /// The way to the profile.
 ///
@@ -14,7 +16,7 @@ class ProfileButton extends StatelessWidget {
     return IconButton(
       tooltip: 'Profile',
       icon: const Icon(Icons.person_outline),
-      onPressed: () => Navigator.of(context).pushNamed('/profile'),
+      onPressed: () => context.router.push(const ProfileRoute()),
     );
   }
 }

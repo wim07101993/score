@@ -168,7 +168,7 @@ class OidcApi {
   /// out of nowhere and a write waiting minutes on it. Worse, a token the API
   /// keeps refusing would be signed in for, refused, and signed in for again,
   /// with nobody asking for any of it. Signing in is for the app starting and
-  /// the user asking — see [App.updateAuth].
+  /// the user asking — see [Auth.updateAuth].
   Future<String?> getActiveAccessToken({bool signIn = true}) async {
     final held = await _heldToken();
     if (held != null) {
@@ -723,7 +723,7 @@ class OidcApi {
   /// token, those would become that user's — so a sync only goes out while
   /// the user who is signed in is the one they belong to (see
   /// [holdsTheDataOfTheSignedInUser]), and a different user signing in has
-  /// them forgotten first (see [App.updateAuth]).
+  /// them forgotten first (see [Auth.updateAuth]).
   Future<String?> dataOwner() => _store.readSetting(_dataOwnerKey);
 
   Future<void> keepDataOwner(String? subject) =>

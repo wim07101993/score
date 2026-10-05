@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:score/app.dart';
+import 'package:score/features/sync/sync.dart';
 
 void main() {
   test('a sync that is asked for finishes', () async {

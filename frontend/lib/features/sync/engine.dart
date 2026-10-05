@@ -24,12 +24,13 @@ library;
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logging/logging.dart';
 import 'package:score/api.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/logging.dart';
 
-final _log = appLogger('Sync');
+final _log = GetIt.I<Logger>(param1: 'Sync');
 
 /// Why what is owed about a set or a collection was not sent, when it was not
 /// the server saying so: see [SyncEngine.whyNotSynced].

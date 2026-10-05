@@ -2,9 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:score/logging.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logging/logging.dart';
 
-final _log = appLogger('Config');
+final _log = GetIt.I<Logger>(param1: 'Config');
 
 /// What the app has to be told before it can do anything: where the API is, and
 /// how a user proves who they are.

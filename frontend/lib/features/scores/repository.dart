@@ -1,15 +1,16 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logging/logging.dart';
 import 'package:score/api.dart';
 import 'package:score/background.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/scores/api.dart';
 import 'package:score/features/scores/models.dart';
 import 'package:score/features/sembast/local_store.dart';
-import 'package:score/logging.dart';
 
-final _log = appLogger('Scores');
+final _log = GetIt.I<Logger>(param1: 'Scores');
 
 /// The scores, as this device has them.
 ///

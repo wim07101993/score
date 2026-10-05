@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:score/api.dart';
-import 'package:score/app.dart';
+import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/sync/engine.dart';
+import 'package:score/features/sync/sync.dart';
 
 /// Where a set or a collection stands with the server, in the bar of its page.
 ///
@@ -79,10 +81,10 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
   bool _busy = false;
 
   Future<_Reason> _find() async {
-    final app = AppScope.read(context);
+    final oidc = GetIt.I<OidcApi>();
     final reachable = await Future.wait([
       widget.apiCanBeReached(),
-      app.oidc.canBeReached(),
+      oidc.canBeReached(),
     ]);
     if (!reachable[0]) {
       return (
@@ -99,14 +101,14 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
         signIn: false,
       );
     }
-    if (!await app.oidc.holdsAToken()) {
+    if (!await oidc.holdsAToken()) {
       return (
         text: 'This device is no longer signed in, so there is nothing to send'
             ' it with. Sign in again, and it goes straight after.',
         signIn: true,
       );
     }
-    if (!await app.oidc.holdsTheDataOfTheSignedInUser()) {
+    if (!await oidc.holdsTheDataOfTheSignedInUser()) {
       return (
         text: 'What is on this device belongs to another account than the one'
             ' signed in, and is not sent as this one.',
@@ -156,10 +158,11 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
   }
 
   Future<void> _act(bool signIn) async {
-    final app = AppScope.read(context);
     setState(() => _busy = true);
     try {
-      if (signIn) await app.updateAuthAndCatchUp(retry: true);
+      if (signIn) {
+        await GetIt.I<Sync>().updateAuthAndCatchUp(retry: true);
+      }
       await widget.sync();
     } finally {
       if (mounted) {

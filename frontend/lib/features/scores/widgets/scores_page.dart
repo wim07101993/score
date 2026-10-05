@@ -1,11 +1,15 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/auth.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/repository.dart';
 import 'package:score/features/scores/widgets/add_to_list_button.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/upload_score_fab.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 import 'package:score/widgets/collections_button.dart';
 import 'package:score/widgets/profile_button.dart';
 import 'package:score/widgets/sets_button.dart';
@@ -17,6 +21,7 @@ import 'package:score/widgets/sync_button.dart';
 /// What is on screen is what this device has, whether or not there is anything
 /// to sync with; syncing only ever adds to it. The most recently opened come
 /// first, because what was played last is what is likely to be played next.
+@RoutePage()
 class ScoresPage extends StatefulWidget {
   const ScoresPage({
     super.key,
@@ -27,6 +32,9 @@ class ScoresPage extends StatefulWidget {
 }
 
 class _ScoresPageState extends State<ScoresPage> {
+  final _auth = GetIt.I<Auth>();
+  final _scores = GetIt.I<ScoresRepository>();
+
   bool _syncing = false;
 
   @override
@@ -36,19 +44,19 @@ class _ScoresPageState extends State<ScoresPage> {
   }
 
   Future<void> _sync() async {
-    final app = AppScope.read(context);
-    if (app.user?.isScoreViewer != true) {
+    final sync = GetIt.I<Sync>();
+    if (_auth.user?.isScoreViewer != true) {
       return;
     }
 
     setState(() => _syncing = true);
-    await app.updateScores();
+    await sync.updateScores();
     // Whatever was written to a set or a collection while there was nothing to
     // send it to is still owed to the server, and any page with a network is a
     // chance to send it: waiting for the player to open the sets or the
     // collections again is waiting for nothing.
-    await app.updateSets();
-    await app.updateCollections();
+    await sync.updateSets();
+    await sync.updateCollections();
     if (mounted) {
       setState(() => _syncing = false);
     }
@@ -56,9 +64,16 @@ class _ScoresPageState extends State<ScoresPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    final mayView = app.user?.isScoreViewer == true;
-    final mayEdit = app.user?.isScoreEditor == true;
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    final mayView = _auth.user?.isScoreViewer == true;
+    final mayEdit = _auth.user?.isScoreEditor == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,15 +90,15 @@ class _ScoresPageState extends State<ScoresPage> {
       ),
       floatingActionButton: mayEdit ? const UploadScoreFab() : null,
       body: !mayView
-          ? _NotAViewer(problem: app.authProblem)
+          ? _NotAViewer(problem: _auth.authProblem)
           : Column(
               children: [
                 if (_syncing) const LinearProgressIndicator(),
                 Expanded(
                   child: ListenableBuilder(
-                    listenable: app.scores,
+                    listenable: _scores,
                     builder: (context, _) => ScoreLibrary<Score>(
-                      items: app.scores.scores,
+                      items: _scores.scores,
                       scoreOf: (score) => score,
                       itemBuilder: (context, score) => ScoreCard(score: score),
                       empty: 'No scores on this device yet.\nThey arrive with'
@@ -132,7 +147,7 @@ class ScoreCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap ??
-            () => Navigator.of(context).pushNamed(AppRoute.score(score.id)),
+            () => context.router.push(ScoreRoute(scoreId: score.id)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
           // The buttons that put the score into a set or a collection are
@@ -266,7 +281,7 @@ class _NotAViewer extends StatelessWidget {
             ],
             const SizedBox(height: 16),
             FilledButton.tonal(
-              onPressed: () => Navigator.of(context).pushNamed('/profile'),
+              onPressed: () => context.router.push(const ProfileRoute()),
               child: const Text('See what the provider said'),
             ),
           ],

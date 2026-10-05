@@ -1,7 +1,12 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/auth.dart';
+import 'package:score/features/collections/api.dart';
 import 'package:score/features/collections/models.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/collections/repository.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 import 'package:score/widgets/offline_notice.dart';
 import 'package:score/widgets/sync_button.dart';
 
@@ -9,6 +14,7 @@ import 'package:score/widgets/sync_button.dart';
 ///
 /// A collection is a group of scores that belong together without being played
 /// in any order: a book they are printed in, or the repertoire of a band.
+@RoutePage()
 class CollectionsPage extends StatefulWidget {
   const CollectionsPage({
     super.key,
@@ -19,6 +25,9 @@ class CollectionsPage extends StatefulWidget {
 }
 
 class _CollectionsPageState extends State<CollectionsPage> {
+  final _auth = GetIt.I<Auth>();
+  final _collections = GetIt.I<CollectionsRepository>();
+
   bool _offline = false;
 
   @override
@@ -28,15 +37,15 @@ class _CollectionsPageState extends State<CollectionsPage> {
   }
 
   Future<void> _sync() async {
-    final app = AppScope.read(context);
-    if (app.user?.isScoreViewer != true) return;
+    final sync = GetIt.I<Sync>();
+    if (_auth.user?.isScoreViewer != true) return;
 
-    await app.updateCollections();
+    await sync.updateCollections();
     // The scores are what a collection is made of, so one that was written on
     // another device is only readable here once its scores are.
-    await app.updateScores();
+    await sync.updateScores();
 
-    final reachable = await app.collectionsApi.canBeReached();
+    final reachable = await GetIt.I<CollectionsApi>().canBeReached();
     if (mounted) {
       setState(() => _offline = !reachable);
     }
@@ -44,8 +53,15 @@ class _CollectionsPageState extends State<CollectionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    final mayView = app.user?.isScoreViewer == true;
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    final mayView = _auth.user?.isScoreViewer == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,8 +70,8 @@ class _CollectionsPageState extends State<CollectionsPage> {
       ),
       floatingActionButton: mayView
           ? FloatingActionButton.extended(
-              onPressed: () =>
-                  Navigator.of(context).pushNamed(AppRoute.newCollection()),
+              onPressed: () => context.router
+                  .push(CollectionDetailRoute(collectionId: 'new')),
               icon: const Icon(Icons.add),
               label: const Text('New collection'),
             )
@@ -63,9 +79,9 @@ class _CollectionsPageState extends State<CollectionsPage> {
       body: !mayView
           ? const Center(child: Text('Collections are for score viewers.'))
           : ListenableBuilder(
-              listenable: app.collections,
+              listenable: _collections,
               builder: (context, _) {
-                final collections = app.collections.collections;
+                final collections = _collections.collections;
 
                 return RefreshIndicator(
                   onRefresh: _sync,
@@ -139,8 +155,8 @@ class _CollectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context)
-            .pushNamed(AppRoute.collection(collection.id)),
+        onTap: () => context.router
+            .push(CollectionDetailRoute(collectionId: collection.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

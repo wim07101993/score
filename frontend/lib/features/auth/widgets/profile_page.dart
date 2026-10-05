@@ -1,10 +1,20 @@
 import 'dart:convert';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/config.dart';
+import 'package:score/features/auth/auth.dart';
+import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/auth/widgets/ask_provider_again_button.dart';
 import 'package:score/features/auth/widgets/sign_in_again_button.dart';
 import 'package:score/features/auth/widgets/sign_out_button.dart';
+import 'package:score/features/collections/repository.dart';
+import 'package:score/features/scores/api.dart';
+import 'package:score/features/scores/repository.dart';
+import 'package:score/features/sets/repository.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 
 /// What this app has been told about the user, and by whom.
 ///
@@ -14,6 +24,7 @@ import 'package:score/features/auth/widgets/sign_out_button.dart';
 /// rather than what this app made of it: the claim the roles were looked for
 /// under, the claims that actually arrived, and whether they came from the
 /// provider or from the copy this device kept.
+@RoutePage()
 class ProfilePage extends StatefulWidget {
   const ProfilePage({
     super.key,
@@ -24,6 +35,12 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final _auth = GetIt.I<Auth>();
+  final _sync = GetIt.I<Sync>();
+  final _config = GetIt.I<Config>();
+  final _scores = GetIt.I<ScoresRepository>();
+  final _sets = GetIt.I<SetsRepository>();
+
   bool _asking = false;
   bool? _providerReachable;
   bool? _apiReachable;
@@ -35,12 +52,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _ask() async {
-    final app = AppScope.read(context);
     // Both of these are a round trip, and the rest of the page is worth showing
     // before they come back.
     final results = await Future.wait([
-      app.oidc.canBeReached(),
-      app.scoresApi.canBeReached(),
+      GetIt.I<OidcApi>().canBeReached(),
+      GetIt.I<ScoresApi>().canBeReached(),
     ]);
     if (mounted) {
       setState(() {
@@ -57,7 +73,7 @@ class _ProfilePageState extends State<ProfilePage> {
     // has everything fetched for them, rather than waiting for a page to be
     // opened again to ask for it.
     try {
-      await AppScope.read(context).updateAuthAndCatchUp(retry: true);
+      await _sync.updateAuthAndCatchUp(retry: true);
       if (!mounted) return;
       await _ask();
     } finally {
@@ -69,11 +85,10 @@ class _ProfilePageState extends State<ProfilePage> {
   /// what the button says, rather than leaving the player signed out on a page
   /// that tells them they may not read scores.
   Future<void> _signInAgain() async {
-    final app = AppScope.read(context);
-    final navigator = Navigator.of(context);
-    await app.forgetUser();
-    navigator.pushNamedAndRemoveUntil('/', (route) => false);
-    await app.updateAuthAndCatchUp(retry: true);
+    final router = context.router;
+    await _auth.forgetUser();
+    await router.replaceAll([const ScoresRoute()]);
+    await _sync.updateAuthAndCatchUp(retry: true);
   }
 
   /// Signs the user out of this device and forgets their sets and
@@ -82,10 +97,9 @@ class _ProfilePageState extends State<ProfilePage> {
   ///
   /// What has not been sent yet goes with them, so that is asked about first.
   Future<void> _signOut() async {
-    final app = AppScope.read(context);
-    final navigator = Navigator.of(context);
-    final unsent =
-        app.sets.hasPendingChanges || app.collections.hasPendingChanges;
+    final router = context.router;
+    final unsent = _sets.hasPendingChanges ||
+        GetIt.I<CollectionsRepository>().hasPendingChanges;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -108,8 +122,8 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
     if (confirmed != true) return;
-    await app.signOut();
-    navigator.pushNamedAndRemoveUntil('/', (route) => false);
+    await _auth.signOut();
+    await router.replaceAll([const ScoresRoute()]);
   }
 
   String? _rolesExplanation(
@@ -130,9 +144,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    final user = app.user;
-    final rolesKey = user?.rolesKey ?? app.config.oidc.rolesKey;
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    final user = _auth.user;
+    final rolesKey = user?.rolesKey ?? _config.oidc.rolesKey;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -149,16 +170,16 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
             footer: user == null
                 ? 'Nobody is signed in on this device.'
-                : app.userIsFromThisDevice
+                : _auth.userIsFromThisDevice
                     ? 'The provider could not be reached, so this is the copy'
                         ' this device kept the last time it could ask. Your'
                         ' roles may have changed since.'
                     : 'Asked of the provider just now.',
           ),
-          if (app.authProblem != null)
+          if (_auth.authProblem != null)
             _Section(
               title: 'Signing in did not finish',
-              rows: [('What went wrong', '${app.authProblem}')],
+              rows: [('What went wrong', '${_auth.authProblem}')],
               footer: 'Nothing will send you to the provider again on its own.'
                   ' Ask the provider again to try once more.',
             ),
@@ -178,25 +199,25 @@ class _ProfilePageState extends State<ProfilePage> {
           _Section(
             title: 'Where it is pointed',
             rows: [
-              ('API', '${app.config.api.baseUrl}'),
+              ('API', '${_config.api.baseUrl}'),
               ('API reachable', _asked(_apiReachable)),
-              ('Provider', '${app.config.oidc.authorizationEndpoint}'),
+              ('Provider', '${_config.oidc.authorizationEndpoint}'),
               ('Provider reachable', _asked(_providerReachable)),
-              ('Client id', app.config.oidc.clientIdHere),
-              ('Redirect (web)', '${app.config.oidc.redirectUri}'),
-              ('Redirect (device)', '${app.config.oidc.nativeRedirectUri}'),
+              ('Client id', _config.oidc.clientIdHere),
+              ('Redirect (web)', '${_config.oidc.redirectUri}'),
+              ('Redirect (device)', '${_config.oidc.nativeRedirectUri}'),
             ],
           ),
           ListenableBuilder(
-            listenable: Listenable.merge([app.scores, app.sets]),
+            listenable: Listenable.merge([_scores, _sets]),
             builder: (context, _) {
               final owing =
-                  app.sets.sets.where((set) => set.owesAnything).toList();
+                  _sets.sets.where((set) => set.owesAnything).toList();
               return _Section(
                 title: 'On this device',
                 rows: [
-                  ('Scores', '${app.scores.scores.length}'),
-                  ('Sets', '${app.sets.sets.length}'),
+                  ('Scores', '${_scores.scores.length}'),
+                  ('Sets', '${_sets.sets.length}'),
                   (
                     'Sets not synced yet',
                     owing.isEmpty

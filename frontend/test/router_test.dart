@@ -1,0 +1,179 @@
+import 'package:auto_route/auto_route.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:score/features/scores/widgets/score_detail_page.dart';
+import 'package:score/router.dart';
+
+/// Addresses, and what is behind them.
+///
+/// A browser hands over a whole address at once, and this app has to say what
+/// a player finds when they leave the page it opened.
+
+final _router = AppRouter();
+
+/// The pages [address] opens onto, by their address.
+List<String> _pathsAt(String address) =>
+    [for (final route in _router.stackAt(address)) _router.pathOf(route)];
+
+/// The page [address] opens.
+PageRouteInfo _at(String address) => _router.stackAt(address).last;
+
+Matcher _route(
+  String name, {
+  Map<String, Object?> path = const {},
+  Map<String, Object?> query = const {},
+}) =>
+    isA<PageRouteInfo>()
+        .having((r) => r.routeName, 'routeName', name)
+        .having((r) => r.rawPathParams, 'path', path)
+        .having((r) => r.rawQueryParams, 'query', query);
+
+void main() {
+  group('reading an address', () {
+    test('a score inside a set carries both, and which entry', () {
+      expect(
+        _at('/scores/abc?set=def&entry=ghi'),
+        _route(
+          ScoreRoute.name,
+          path: {'scoreId': 'abc'},
+          query: {'set': 'def', 'entry': 'ghi'},
+        ),
+      );
+    });
+
+    test('anything unrecognised is the list of scores', () {
+      expect(_at('/nowhere'), _route(ScoresRoute.name));
+      expect(_at('/'), _route(ScoresRoute.name));
+      expect(_at('/scores'), _route(ScoresRoute.name));
+    });
+
+    test('an address that cannot be read at all is the list of scores', () {
+      // Escapes that are not UTF-8, and one with nothing after the scheme.
+      expect(_at('/scores/%E9t%E9'), _route(ScoresRoute.name));
+      expect(_at('/scores/abc?set=%FF'), _route(ScoresRoute.name));
+      expect(_router.stackAt('//a:b/'), [_route(ScoresRoute.name)]);
+    });
+
+    test('a trailing slash is the same page', () {
+      expect(_at('/sets/'), _route(SetsRoute.name));
+      expect(_at('/collections/'), _route(CollectionsRoute.name));
+    });
+
+    test('a song with no score, opened from a set, is that song on paper', () {
+      expect(
+        _at('/scores/paper/perform?set=def&entry=ghi'),
+        _route(
+          PerformScoreRoute.name,
+          path: {'scoreId': ScoreDetailPage.paper},
+          query: {'set': 'def', 'entry': 'ghi'},
+        ),
+      );
+      expect(_pathsAt('/scores/paper/perform?set=def&entry=ghi'), [
+        '/',
+        '/sets',
+        '/sets/def',
+        '/scores/paper/perform?set=def&entry=ghi',
+      ]);
+    });
+
+    test('a score is played from its own address', () {
+      expect(
+        _at('/scores/abc/perform?set=def&entry=ghi'),
+        _route(
+          PerformScoreRoute.name,
+          path: {'scoreId': 'abc'},
+          query: {'set': 'def', 'entry': 'ghi'},
+        ),
+      );
+      expect(
+        _at('/scores/abc'),
+        _route(ScoreRoute.name, path: {'scoreId': 'abc'}),
+      );
+    });
+
+    test('a score played on its own is left for its details', () {
+      expect(_pathsAt('/scores/abc/perform'), [
+        '/',
+        '/scores/abc',
+        '/scores/abc/perform',
+      ]);
+    });
+
+    test('an address read and written again is the address it was', () {
+      const addresses = [
+        '/',
+        '/sets',
+        '/collections',
+        '/collections/abc',
+        '/scores/abc?collection=def&entry=ghi',
+        '/scores/paper/perform?set=def&entry=ghi',
+        '/profile',
+        '/settings',
+        '/settings/logs',
+        '/sets/abc',
+        '/scores/abc',
+        '/scores/abc?set=def&entry=ghi',
+      ];
+
+      for (final address in addresses) {
+        expect(_router.pathOf(_at(address)), address);
+      }
+    });
+  });
+
+  group('what a link opens onto', () {
+    test('a score has the list of scores behind it, once', () {
+      expect(_pathsAt('/scores/abc'), ['/', '/scores/abc']);
+    });
+
+    test('a set has the list of sets behind it', () {
+      expect(_pathsAt('/sets/def'), ['/', '/sets', '/sets/def']);
+    });
+
+    test('a score played from a set is left through that set', () {
+      expect(_pathsAt('/scores/abc?set=def&entry=ghi'), [
+        '/',
+        '/sets',
+        '/sets/def',
+        '/scores/abc?set=def&entry=ghi',
+      ]);
+    });
+
+    test('a score played from a collection is left through it', () {
+      expect(_pathsAt('/scores/abc?collection=def&entry=ghi'), [
+        '/',
+        '/collections',
+        '/collections/def',
+        '/scores/abc?collection=def&entry=ghi',
+      ]);
+    });
+
+    test('the list of scores is not put behind itself', () {
+      expect(_pathsAt('/'), ['/']);
+      expect(_pathsAt('/nowhere'), ['/']);
+    });
+
+    test('every address leads somewhere, and ends where it was pointed', () {
+      const addresses = [
+        '/',
+        '/sets',
+        '/sets/abc',
+        '/scores/abc',
+        '/scores/abc?set=def&entry=ghi',
+        '/collections',
+        '/collections/abc',
+        '/scores/abc?collection=def&entry=ghi',
+        '/profile',
+        '/settings',
+      ];
+
+      for (final address in addresses) {
+        final stack = _pathsAt(address);
+        expect(stack, isNotEmpty, reason: address);
+        expect(stack.last, address, reason: address);
+        // Nothing is opened twice: a way back that arrives where it started is
+        // the thing this exists to prevent.
+        expect(stack.toSet().length, stack.length, reason: address);
+      }
+    });
+  });
+}

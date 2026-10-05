@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
 import 'package:score/background.dart';
+import 'package:score/features/auth/auth.dart';
 import 'package:score/features/collections/models.dart'
     show Collection, CollectionEntry, entriesByTitle, maxZoom, minZoom;
 import 'package:score/features/collections/repository.dart';
@@ -31,7 +33,9 @@ import 'package:score/features/scores/widgets/zoom_in_button.dart';
 import 'package:score/features/scores/widgets/zoom_out_button.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/repository.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/settings/settings.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 import 'package:uuid/uuid.dart';
 
 /// One score: what is known about it with a look at it, or — [performing] —
@@ -48,7 +52,7 @@ import 'package:uuid/uuid.dart';
 /// how big it is drawn — never changes the document, which is what the editor
 /// uploaded and stays that way. Played from a set or a collection, it is kept
 /// as this player's reading of that entry (see [_ScoreDetailPageState._keepReading]):
-/// theirs alone, and saved as they change it, the way the app it replaces did.
+/// theirs alone, and saved as they change it.
 class ScoreDetailPage extends StatefulWidget {
   const ScoreDetailPage({
     super.key,
@@ -60,8 +64,13 @@ class ScoreDetailPage extends StatefulWidget {
     this.handover,
   });
 
-  /// `new` for a score that is about to be uploaded.
+  /// `new` for a score that is about to be uploaded, and [paper] for an entry
+  /// that is played from paper.
   final String scoreId;
+
+  /// What stands in for the id of a score an entry does not have. Ids are
+  /// UUIDs, so no score is ever called this.
+  static const paper = 'paper';
 
   /// Whether the score is on the whole screen, to be played from.
   final bool performing;
@@ -168,18 +177,18 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// Whether this is an entry of a set or a collection that is played from
   /// paper: there is no score to draw, and the page is there to say which song
   /// it is and to go on to the next.
-  bool get _isPaper => widget.scoreId == ScoreDetailRoute.paper;
+  bool get _isPaper => widget.scoreId == ScoreDetailPage.paper;
 
   /// The score the entry this is opened from has to be of: none, for one on
   /// paper.
   String? get _entryScoreId => _isPaper ? null : widget.scoreId;
 
-  /// Held rather than looked up: the page saves what is waiting on its way out,
-  /// when there is no looking anything up any more.
-  late final App _app;
-  late final SetsRepository _sets;
-  late final CollectionsRepository _collections;
-  late final ScoresRepository _scores;
+  final _auth = GetIt.I<Auth>();
+  final _sync = GetIt.I<Sync>();
+  final _settings = GetIt.I<Settings>();
+  final _sets = GetIt.I<SetsRepository>();
+  final _collections = GetIt.I<CollectionsRepository>();
+  final _scores = GetIt.I<ScoresRepository>();
 
   /// Waits for the player to stop changing how they read the score before it
   /// is kept: see [_keepReading].
@@ -195,10 +204,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   void initState() {
     super.initState();
     _scoreId = _isNew || _isPaper ? null : widget.scoreId;
-    _app = AppScope.read(context);
-    _sets = _app.sets..addListener(_takeSetChanges);
-    _collections = _app.collections..addListener(_takeCollectionChanges);
-    _scores = _app.scores..addListener(_takeScoreChanges);
+    _sets.addListener(_takeSetChanges);
+    _collections.addListener(_takeCollectionChanges);
+    _scores.addListener(_takeScoreChanges);
     // A tablet put away, or a tab put in the background, may not come back:
     // what the player changed is kept before it goes.
     _lifecycle = AppLifecycleListener(
@@ -366,13 +374,14 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       final setId = set?.set.id;
       final collectionId = setId == null ? collection?.collection.id : null;
       final entryId = set?.entry.id ?? collection!.entryId;
-      Navigator.of(context).pushReplacementNamed(
-        widget.performing
-            ? AppRoute.perform(scannedAs,
-                setId: setId, collectionId: collectionId, entryId: entryId)
-            : AppRoute.score(scannedAs,
-                setId: setId, collectionId: collectionId, entryId: entryId),
-        arguments: AppRoute.renamed,
+      context.router.replace(
+        scoreRoute(
+          scannedAs,
+          setId: setId,
+          collectionId: collectionId,
+          entryId: entryId,
+          performing: widget.performing,
+        ),
       );
       return;
     }
@@ -409,9 +418,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   }
 
   Future<void> _load() async {
-    final app = _app;
-
-    if (app.user?.isScoreViewer != true) {
+    if (_auth.user?.isScoreViewer != true) {
       setState(() => _loading = false);
       return;
     }
@@ -429,7 +436,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     try {
       await _readSetContext();
       await _readCollectionContext();
-      final musicXml = await app.scores.getMusicXml(widget.scoreId);
+      final musicXml = await _scores.getMusicXml(widget.scoreId);
       if (!mounted) return;
 
       if (musicXml == null) {
@@ -441,7 +448,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         return;
       }
 
-      _shownFetchedAt = app.scores.getScore(widget.scoreId)?.lastFetchedFileAt;
+      _shownFetchedAt = _scores.getScore(widget.scoreId)?.lastFetchedFileAt;
       _show(musicXml);
     } catch (error) {
       if (mounted) {
@@ -456,9 +463,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // it there: failing to say when the score was last opened — its details
     // could not be fetched, say — must not take the score off the screen.
     if (_musicXml != null) {
-      inTheBackground(app.scores.markViewed(widget.scoreId));
+      inTheBackground(_scores.markViewed(widget.scoreId));
     }
-    inTheBackground(app.updateScores());
+    inTheBackground(_sync.updateScores());
   }
 
   /// Reads a score and starts it off being looked at the way the set says it is
@@ -535,13 +542,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
-    final app = AppScope.read(context);
-    var set = app.sets.getSet(setId);
+    var set = _sets.getSet(setId);
     if (set == null) {
       // A link into a set can be followed on a device that has not synced since
       // it was shared.
-      await app.updateSets();
-      set = app.sets.getSet(setId);
+      await _sync.updateSets();
+      set = _sets.getSet(setId);
     }
     if (set == null) return;
 
@@ -572,11 +578,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
-    final app = AppScope.read(context);
-    var collection = app.collections.getCollection(collectionId);
+    var collection = _collections.getCollection(collectionId);
     if (collection == null) {
-      await app.updateCollections();
-      collection = app.collections.getCollection(collectionId);
+      await _sync.updateCollections();
+      collection = _collections.getCollection(collectionId);
     }
     if (collection == null) return;
 
@@ -683,7 +688,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     _savingReading++;
     try {
-      final saved = await _app.sets.saveEntryView(
+      final saved = await _sets.saveEntryView(
         context.set.id,
         context.entry.id,
         transposition: _readingOffset(
@@ -766,7 +771,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     _savingReading++;
     try {
-      final saved = await _app.collections.saveEntryView(
+      final saved = await _collections.saveEntryView(
         context.collection.id,
         entry.id,
         transposition: _readingOffset(
@@ -887,13 +892,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     }
 
     if (!mounted) return;
-    final app = AppScope.read(context);
     final scoreId = _scoreId ?? _newScoreId;
 
     try {
-      await app.scores.putMusicXml(scoreId, musicXml);
+      await _scores.putMusicXml(scoreId, musicXml);
       if (!mounted) return;
-      if (_isNew && app.user?.isScoreViewer != true) {
+      if (_isNew && _auth.user?.isScoreViewer != true) {
         // Its own address would only say this account may not read it. The
         // page stays, for the next file.
         _say('Uploaded.', briefly: true);
@@ -904,16 +908,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         // that reloading it or keeping it opens this score rather than another
         // empty upload page. The file is on this device by now, so the page at
         // that address opens straight onto it.
-        inTheBackground(app.updateScores());
-        Navigator.of(context).pushReplacementNamed(
-          AppRoute.score(scoreId),
-          arguments: AppRoute.renamed,
-        );
+        inTheBackground(_sync.updateScores());
+        context.router.replace(ScoreRoute(scoreId: scoreId));
         return;
       }
       setState(() => _scoreId = scoreId);
       _show(musicXml);
-      await app.updateScores();
+      await _sync.updateScores();
     } catch (error) {
       if (mounted) _say('That score could not be uploaded: $error');
     }
@@ -930,20 +931,20 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   void _perform() {
     _keepWhatIsWaiting();
     final view = _view;
-    Navigator.of(context).pushNamed(
-      AppRoute.perform(
-        widget.scoreId,
+    context.router.push(
+      PerformScoreRoute(
+        scoreId: widget.scoreId,
         setId: _set?.set.id,
         collectionId: _set == null ? _collection?.collection.id : null,
         entryId: _set?.entry.id ?? _collection?.entryId,
+        handover: view == null
+            ? null
+            : ScoreReadingHandover(
+                view: view,
+                zoom: _zoom,
+                onReturn: _takeBackFromTheStand,
+              ),
       ),
-      arguments: view == null
-          ? null
-          : ScoreReadingHandover(
-              view: view,
-              zoom: _zoom,
-              onReturn: _takeBackFromTheStand,
-            ),
     );
   }
 
@@ -1059,11 +1060,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // keeps up with the slider while it is being dragged. What is passed is a
     // whole palette rather than a colour or two: ink and paper only look right
     // if whoever decides one decides the other.
-    final settings = AppScope.of(context).settings;
     return ListenableBuilder(
-      listenable: settings,
+      listenable: _settings,
       builder: (context, _) {
-        final look = settings.pageLook(Theme.of(context).brightness);
+        final look = _settings.pageLook(Theme.of(context).brightness);
         return ScoreSheet(
           musicXml: musicXml,
           view: _view,
@@ -1085,9 +1085,16 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    final mayView = app.user?.isScoreViewer == true;
-    final score = _scoreId == null ? null : app.scores.getScore(_scoreId!);
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    final mayView = _auth.user?.isScoreViewer == true;
+    final score = _scoreId == null ? null : _scores.getScore(_scoreId!);
     final paperName =
         (_set?.entry.description ?? _collection?.entry?.description ?? '')
             .trim();
@@ -1098,7 +1105,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // Uploading takes being an editor, not a reader: the server lets a score
     // be put by somebody who may not read it back, and an account kept for
     // filling the library is exactly that.
-    final mayUpload = _isNew && app.user?.isScoreEditor == true;
+    final mayUpload = _isNew && _auth.user?.isScoreEditor == true;
     if (!mayView && !mayUpload) {
       return Scaffold(
         appBar: AppBar(title: Text(title)),
@@ -1106,8 +1113,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       );
     }
     return widget.performing
-        ? _stand(app, title)
-        : _details(app, title, score);
+        ? _stand(title)
+        : _details(title, score);
   }
 
   /// The way through the set or the collection this is played from, if it is.
@@ -1117,7 +1124,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// scores, after the page has opened, and a sync can bring in pieces
   /// somebody else put into the book. Which is why whatever draws this
   /// listens to both.
-  _WayThrough? _wayThrough(App app) {
+  _WayThrough? _wayThrough() {
     final set = _set;
     if (set != null) {
       return _WayThrough.ofSet(set, performing: widget.performing);
@@ -1129,9 +1136,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     if (collection != null && widget.performing) {
       return _WayThrough.ofCollection(
         collection.refreshedFrom(
-          app.collections.getCollection(collection.collection.id),
+          _collections.getCollection(collection.collection.id),
         ),
-        titleOf: (scoreId) => app.scores.getScore(scoreId)?.title,
+        titleOf: (scoreId) => _scores.getScore(scoreId)?.title,
         performing: widget.performing,
       );
     }
@@ -1139,14 +1146,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   }
 
   /// Opens the one before or after this one, in place of this one.
-  void _go(String route) {
+  void _go(PageRouteInfo route) {
     _keepWhatIsWaiting();
-    Navigator.of(context).pushReplacementNamed(route);
+    context.router.replace(route);
   }
 
   /// What a bar of the way through is drawn from changing.
-  Listenable _wayChanges(App app) =>
-      Listenable.merge([app.collections, app.scores]);
+  Listenable get _wayChanges => Listenable.merge([_collections, _scores]);
 
   /// The score on the whole screen, with nothing over it but the way back,
   /// its size, and how it is read.
@@ -1161,10 +1167,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// rather than a second one under it: a bar is a staff's worth of height,
   /// and on a stand that is a staff of music not shown. The title says which
   /// set it is and where this song comes in it, and opens the set.
-  Widget _stand(App app, String title) {
+  Widget _stand(String title) {
     return ListenableBuilder(
-      listenable: _wayChanges(app),
-      builder: (context, _) => _standFor(_wayThrough(app), title),
+      listenable: _wayChanges,
+      builder: (context, _) => _standFor(_wayThrough(), title),
     );
   }
 
@@ -1192,7 +1198,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
                   Flexible(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(8),
-                      onTap: () => Navigator.of(context).pushNamed(way.route),
+                      onTap: () => context.router.push(way.route),
                       child: Tooltip(
                         message:
                             way.isSet ? 'Open the set' : 'Open the collection',
@@ -1241,8 +1247,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
   /// What is known about the score and how it is read, beside a look at it —
   /// or above one, on a screen that is taller than it is wide.
-  Widget _details(App app, String title, Score? score) {
-    final mayEdit = app.user?.isScoreEditor == true;
+  Widget _details(String title, Score? score) {
+    final mayEdit = _auth.user?.isScoreEditor == true;
     final hasMusic = _musicXml != null;
 
     final appBar = AppBar(title: Text(title));
@@ -1320,8 +1326,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       body: Column(
         children: [
           ListenableBuilder(
-            listenable: _wayChanges(app),
-            builder: (context, _) => switch (_wayThrough(app)) {
+            listenable: _wayChanges,
+            builder: (context, _) => switch (_wayThrough()) {
               final way? => _WayBar(way: way, go: _go),
               null => const SizedBox.shrink(),
             },
@@ -1413,24 +1419,25 @@ class _WayThrough {
   /// song after it is lost when the band starts that one.
   factory _WayThrough.ofSet(_SetContext context, {required bool performing}) {
     final set = context.set;
-    String? nearest(int step) {
+    PageRouteInfo? nearest(int step) {
       final index = context.index + step;
       if (index < 0 || index >= set.entries.length) return null;
       final entry = set.entries[index];
       final scoreId = entry.scoreId;
       return scoreId == null
-          ? AppRoute.paper(setId: set.id, entryId: entry.id)
-          : (performing ? AppRoute.perform : AppRoute.score)(
+          ? paperRoute(setId: set.id, entryId: entry.id)
+          : scoreRoute(
               scoreId,
               setId: set.id,
               entryId: entry.id,
+              performing: performing,
             );
     }
 
     return _WayThrough(
       isSet: true,
       title: set.displayTitle,
-      route: AppRoute.set(set.id),
+      route: SetDetailRoute(setId: set.id),
       position: context.index + 1,
       count: set.entries.length,
       previous: nearest(-1),
@@ -1451,24 +1458,25 @@ class _WayThrough {
     final index = entries.indexWhere((entry) => entry.id == context.entryId);
     if (index < 0) return null;
 
-    String? nearest(int step) {
+    PageRouteInfo? nearest(int step) {
       final at = index + step;
       if (at < 0 || at >= entries.length) return null;
       final candidate = entries[at];
       final scoreId = candidate.scoreId;
       return scoreId == null
-          ? AppRoute.paper(collectionId: collection.id, entryId: candidate.id)
-          : (performing ? AppRoute.perform : AppRoute.score)(
+          ? paperRoute(collectionId: collection.id, entryId: candidate.id)
+          : scoreRoute(
               scoreId,
               collectionId: collection.id,
               entryId: candidate.id,
+              performing: performing,
             );
     }
 
     return _WayThrough(
       isSet: false,
       title: collection.displayTitle,
-      route: AppRoute.collection(collection.id),
+      route: CollectionDetailRoute(collectionId: collection.id),
       position: index + 1,
       count: entries.length,
       previous: nearest(-1),
@@ -1481,15 +1489,15 @@ class _WayThrough {
 
   /// What the set or the collection is called, and where it is.
   final String title;
-  final String route;
+  final PageRouteInfo route;
 
   /// Where this one comes in it, counted from one, and how many there are.
   final int position;
   final int count;
 
   /// Where the ones either side are, or null at either end.
-  final String? previous;
-  final String? next;
+  final PageRouteInfo? previous;
+  final PageRouteInfo? next;
 
   /// What the set or the collection says next to this one.
   final String note;
@@ -1506,14 +1514,14 @@ class _WayBar extends StatelessWidget {
   final _WayThrough way;
 
   /// Opens the page at a route in place of this one.
-  final void Function(String route) go;
+  final void Function(PageRouteInfo route) go;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final previous = way.previous;
     final next = way.next;
-    void open() => Navigator.of(context).pushNamed(way.route);
+    void open() => context.router.push(way.route);
 
     return Material(
       color: theme.colorScheme.secondaryContainer,

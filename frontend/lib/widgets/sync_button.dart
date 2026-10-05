@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/auth.dart';
+import 'package:score/features/auth/oidc_api.dart';
+import 'package:score/features/scores/api.dart';
+import 'package:score/features/sync/sync.dart';
 import 'package:score/widgets/error_snack_bar.dart';
 
 /// Syncs everything on this device with the server now, rather than at the
@@ -21,18 +25,19 @@ class _SyncButtonState extends State<SyncButton> {
   bool _busy = false;
 
   Future<void> _sync() async {
-    final app = AppScope.read(context);
+    final oidc = GetIt.I<OidcApi>();
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      await app.syncEverything();
+      await GetIt.I<Sync>().syncEverything();
       // A sync that went through says so by the spinner stopping and the list
       // changing; only one that could not happen is worth interrupting for.
-      final problem = !await app.scoresApi.canBeReached()
+      final problem = !await GetIt.I<ScoresApi>().canBeReached()
           ? 'The server cannot be reached right now.'
-          : !await app.oidc.canBeReached()
+          : !await oidc.canBeReached()
               ? 'The sign-in provider cannot be reached right now.'
-              : app.authProblem != null || !await app.oidc.holdsAToken()
+              : GetIt.I<Auth>().authProblem != null ||
+                      !await oidc.holdsAToken()
                   ? 'Not signed in; sign in again to sync.'
                   : null;
       if (problem != null) {

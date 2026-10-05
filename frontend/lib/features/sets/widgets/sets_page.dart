@@ -1,7 +1,12 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
+import 'package:score/features/auth/auth.dart';
+import 'package:score/features/sets/api.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/sets/repository.dart';
+import 'package:score/features/sync/sync.dart';
+import 'package:score/router.dart';
 import 'package:score/widgets/offline_notice.dart';
 import 'package:score/widgets/sync_button.dart';
 
@@ -9,6 +14,7 @@ import 'package:score/widgets/sync_button.dart';
 ///
 /// A set is a playlist for a gig: the scores that are played, in playing order,
 /// each in the key it is played in.
+@RoutePage()
 class SetsPage extends StatefulWidget {
   const SetsPage({
     super.key,
@@ -19,6 +25,9 @@ class SetsPage extends StatefulWidget {
 }
 
 class _SetsPageState extends State<SetsPage> {
+  final _auth = GetIt.I<Auth>();
+  final _sets = GetIt.I<SetsRepository>();
+
   bool _offline = false;
 
   @override
@@ -28,15 +37,15 @@ class _SetsPageState extends State<SetsPage> {
   }
 
   Future<void> _sync() async {
-    final app = AppScope.read(context);
-    if (app.user?.isScoreViewer != true) return;
+    final sync = GetIt.I<Sync>();
+    if (_auth.user?.isScoreViewer != true) return;
 
-    await app.updateSets();
+    await sync.updateSets();
     // The scores are what a set is built out of, so a set that was written on
     // another device is only readable here once its scores are.
-    await app.updateScores();
+    await sync.updateScores();
 
-    final reachable = await app.setsApi.canBeReached();
+    final reachable = await GetIt.I<SetsApi>().canBeReached();
     if (mounted) {
       setState(() => _offline = !reachable);
     }
@@ -44,8 +53,15 @@ class _SetsPageState extends State<SetsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    final mayView = app.user?.isScoreViewer == true;
+    // Who is signed in decides what the page shows.
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => _page(context),
+    );
+  }
+
+  Widget _page(BuildContext context) {
+    final mayView = _auth.user?.isScoreViewer == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -55,7 +71,7 @@ class _SetsPageState extends State<SetsPage> {
       floatingActionButton: mayView
           ? FloatingActionButton.extended(
               onPressed: () =>
-                  Navigator.of(context).pushNamed(AppRoute.newSet()),
+                  context.router.push(SetDetailRoute(setId: 'new')),
               icon: const Icon(Icons.add),
               label: const Text('New set'),
             )
@@ -63,9 +79,9 @@ class _SetsPageState extends State<SetsPage> {
       body: !mayView
           ? const Center(child: Text('Sets are for score viewers.'))
           : ListenableBuilder(
-              listenable: app.sets,
+              listenable: _sets,
               builder: (context, _) {
-                final sets = app.sets.sets;
+                final sets = _sets.sets;
 
                 return RefreshIndicator(
                   onRefresh: _sync,
@@ -135,7 +151,7 @@ class _SetCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).pushNamed(AppRoute.set(set.id)),
+        onTap: () => context.router.push(SetDetailRoute(setId: set.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

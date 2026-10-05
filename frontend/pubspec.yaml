@@ -9,8 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Only for the path url strategy, which keeps the web app's addresses the
-  # ones the app it replaces used.
+  # Only for the path url strategy, which keeps the web app's addresses plain
+  # paths rather than `/#/…`.
   flutter_web_plugins:
     sdk: flutter
 
@@ -54,7 +54,11 @@ dependencies:
   logging: ^1.3.0
   fox_logging: ^1.1.0
   flutter_fox_logging: ^2.2.0
+  get_it: ^9.3.0
+  auto_route: ^11.2.0
 dev_dependencies:
+  auto_route_generator: ^10.6.0
+  build_runner: ^2.16.1
   flutter_test:
     sdk: flutter
   lint: ^2.8.0

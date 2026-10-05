@@ -1,13 +1,14 @@
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
+import 'package:logging/logging.dart';
 import 'package:score/features/auth/oidc_api.dart';
 import 'package:score/features/collections/api.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/features/sembast/local_store.dart';
 import 'package:score/features/sync/engine.dart';
-import 'package:score/logging.dart';
 import 'package:uuid/uuid.dart';
 
-final _log = appLogger('Collections');
+final _log = GetIt.I<Logger>(param1: 'Collections');
 
 /// The collections, as this device has them.
 ///

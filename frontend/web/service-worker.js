@@ -7,10 +7,6 @@
 // still owes the server — it keeps itself, in IndexedDB. This keeps the app
 // that reads it: every file of the build is fetched once, while there is a
 // network, and answered from here from then on.
-//
-// It is at the address the app before this one registered its own worker at,
-// so a browser that still runs that one is handed this one at its next update
-// check, rather than being left on the old app.
 
 // Written in by tool/precache.dart once `flutter build web` has run: every file
 // of the build that is kept, with a hash of what is in it. Left as they are —
@@ -181,8 +177,8 @@ async function keptBefore() {
 }
 
 async function activate() {
-  // Every other cache on this origin is an earlier version of this app, or the
-  // app before it — a copy of the whole app each, which nothing reads any more.
+  // Every other cache on this origin is an earlier version of this app — a copy
+  // of the whole app each, which nothing reads any more.
   for (const name of await caches.keys()) {
     if (name !== CACHE_NAME) {
       await caches.delete(name);

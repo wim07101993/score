@@ -134,62 +134,6 @@ void main() {
       expect(back.lastSyncedAt, isNull);
       expect(back.owesAnything, isFalse);
     });
-
-    test('as the app before this one kept it is read the same way', () {
-      // The old app kept a collection in its own IndexedDB database, with what
-      // it owed the server on the record itself, and its moments as dates —
-      // which JSON writes as ISO strings. This is what one looks like once it
-      // has been brought over: the queue comes with it, and is sent at the
-      // next sync like any other.
-      final legacy = jsonDecode('''
-        {
-          "id": "c1",
-          "title": "Kerstrepertoire",
-          "description": "",
-          "entries": [
-            {
-              "id": "e1",
-              "score_id": "score-1",
-              "description": "",
-              "transposition": 0,
-              "view": {"transposition": 3, "hidden_parts": ["P1"], "zoom": 1.25},
-              "synced": true
-            },
-            {
-              "id": "e2",
-              "score_id": null,
-              "description": "Stille Nacht — in the red folder",
-              "transposition": -1,
-              "view": {"transposition": 0, "hidden_parts": []},
-              "synced": false
-            }
-          ],
-          "shared_with": ["ann@example.com"],
-          "is_owner": true,
-          "last_changed_at": "2026-08-30T19:01:02.345Z",
-          "deleted_at": null,
-          "last_synced_at": "2026-08-30T18:00:00.000Z",
-          "pending_change": null,
-          "pending_views": ["e1"],
-          "pending_entries": [{"id": "e2", "action": "write"}]
-        }
-      ''') as Map;
-
-      final collection =
-          Collection.fromJson(legacy.cast<String, Object?>());
-
-      expect(collection.owesAnything, isTrue);
-      expect(collection.pendingChange, isNull);
-      expect(collection.pendingViews, ['e1']);
-      expect(collection.pendingEntries.single.id, 'e2');
-      expect(collection.entries.first.view.zoom, 1.25);
-      expect(collection.entries.last.scoreId, isNull);
-      expect(collection.entries.last.view.zoom, 1,
-          reason: 'a view from before there was such a thing as a size is'
-              ' the size it is written at');
-      expect(collection.lastChangedAt,
-          DateTime.utc(2026, 8, 30, 19, 1, 2, 345));
-    });
   });
 
   group('a collection the API hands over', () {

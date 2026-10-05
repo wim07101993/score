@@ -1,7 +1,9 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/app.dart';
+import 'package:get_it/get_it.dart';
 import 'package:score/features/collections/repository.dart';
-import 'package:score/routes.dart';
+import 'package:score/features/sets/repository.dart';
+import 'package:score/router.dart';
 import 'package:score/widgets/error_snack_bar.dart';
 
 /// Puts a score into one of this player's sets or collections, from wherever
@@ -40,18 +42,19 @@ class AddToListButtons extends StatelessWidget {
   }
 
   Future<void> _addTo(BuildContext context, _Kind kind) async {
-    final app = AppScope.read(context);
+    final sets = GetIt.I<SetsRepository>();
+    final collections = GetIt.I<CollectionsRepository>();
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
+    final router = context.router;
     final isSet = kind == _Kind.set;
 
     final owned = isSet
         ? [
-            for (final set in app.sets.sets)
+            for (final set in sets.sets)
               if (set.isOwner) (id: set.id, title: set.displayTitle),
           ]
         : [
-            for (final collection in app.collections.collections)
+            for (final collection in collections.collections)
               if (collection.isOwner)
                 (id: collection.id, title: collection.displayTitle),
           ];
@@ -88,8 +91,8 @@ class AddToListButtons extends StatelessWidget {
       if (title == null) return;
       try {
         final id = isSet
-            ? (await app.sets.saveSet(title: title)).id
-            : (await app.collections.saveCollection(title: title)).id;
+            ? (await sets.saveSet(title: title)).id
+            : (await collections.saveCollection(title: title)).id;
         target = _Pick(id: id, title: title);
       } catch (error) {
         messenger.showSnackBar(errorSnackBar(
@@ -100,14 +103,17 @@ class AddToListButtons extends StatelessWidget {
     }
     final id = target.id!;
 
-    void open() =>
-        navigator.pushNamed(isSet ? AppRoute.set(id) : AppRoute.collection(id));
+    void open() => router.push(
+          isSet
+              ? SetDetailRoute(setId: id)
+              : CollectionDetailRoute(collectionId: id),
+        );
 
     try {
       if (isSet) {
-        await app.sets.saveEntry(id, scoreId: scoreId);
+        await sets.saveEntry(id, scoreId: scoreId);
       } else {
-        await app.collections.saveEntry(id, scoreId: scoreId);
+        await collections.saveEntry(id, scoreId: scoreId);
       }
       messenger.showSnackBar(SnackBar(
         content: Text('Added to "${target.title}".'),
