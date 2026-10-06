@@ -1,7 +1,10 @@
+import 'package:behaviour/behaviour.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:get_it/get_it.dart';
+import 'package:score/features/observability/behaviour_monitor.dart';
+import 'package:score/features/observability/storage/logs_store.dart';
 import 'package:score/features/observability/stored_logs.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/storage/databases.dart';
 
 enum LoggerName({required final String name}) {
   root(name: 'root'),
@@ -26,12 +29,20 @@ extension ObservabilityGetItExtensions on GetIt {
     });
 
     registerLazySingleton(() => LogsController());
+
+    registerLazySingleton<BehaviourMonitor>(
+      () => LoggingBehaviourMonitor(logger: logger),
+    );
   }
 
   /// Keeps what is logged in the local store as well: see [StoredLogSink].
   void registerLogStorage() {
     registerLazySingleton(
-      () => StoredLogSink(store: getAsync<LocalStore>(), logs: get<LogsController>()),
+      () => StoredLogSink(
+        store: getAsync<Databases>()
+            .then((databases) => LogsStore(database: databases.data)),
+        logs: get<LogsController>(),
+      ),
     );
   }
 

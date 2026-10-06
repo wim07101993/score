@@ -15,6 +15,7 @@ library;
 // so it is said there and not here, and the same goes for the set's rules about
 // keys and addresses: a collection reads the same music the same way, so it
 // takes them as they are rather than keeping a second copy that could drift.
+import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/sets/models.dart'
     show
@@ -372,4 +373,40 @@ List<CollectionEntry> entriesByTitle(
       // them comes first must not change every time the list is drawn.
       return byName != 0 ? byName : a.id.compareTo(b.id);
     });
+}
+
+/// The piece is already in the collection.
+///
+/// It is the one refusal that is worth acting on rather than reporting: what
+/// the caller wanted was the piece to be in the book, and it is. What it is in
+/// is [entryId], so a page can point at it instead of saying no.
+class const ScoreAlreadyInCollectionException({
+  required final String scoreId,
+
+  /// The entry the score is already in.
+  required final String entryId,
+}) implements Exception {
+  @override
+  String toString() =>
+      "Score '$scoreId' is already in this collection, as entry '$entryId'.";
+}
+
+/// An edit the server refused, which this app has taken back.
+///
+/// Giving up on an edit is the one thing the app does behind the player's back,
+/// so it says so when it happens.
+class const CollectionSyncProblem({
+  required final String collectionId,
+  required final String title,
+  required final String action,
+  required final CollectionsApiException error,
+});
+
+/// A piece with no score has nothing to be called by but what is written next
+/// to it, and one that says nothing cannot be found, sorted, or told from the
+/// next one.
+class const UnnamedPieceException() implements Exception {
+  @override
+  String toString() => 'A piece with no score has nothing to be called by but'
+      ' what is written next to it.';
 }

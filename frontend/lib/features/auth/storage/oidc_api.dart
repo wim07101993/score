@@ -5,9 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:openid_client/openid_client.dart' as openid;
 import 'package:score/config.dart';
-import 'package:score/features/auth/authorizer.dart';
-import 'package:score/features/auth/tab_lock.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/auth/storage/auth_key_value_store.dart';
+import 'package:score/features/auth/storage/authorizer.dart';
+import 'package:score/features/auth/storage/tab_lock.dart';
 
 /// Proving who the user is, and finding out what they may do.
 ///
@@ -64,7 +64,7 @@ const Duration _slack = Duration(seconds: 30);
 
 class OidcApi({
   required final OidcConfig config,
-  required final LocalStore store,
+  required final AuthKeyValueStore store,
   http.Client? client,
   Authorizer? authorizer,
   Duration? otherTabsGrace,
@@ -168,7 +168,7 @@ class OidcApi({
   /// out of nowhere and a write waiting minutes on it. Worse, a token the API
   /// keeps refusing would be signed in for, refused, and signed in for again,
   /// with nobody asking for any of it. Signing in is for the app starting and
-  /// the user asking — see [Auth.updateAuth].
+  /// the user asking — see [UpdateAuth].
   Future<String?> getActiveAccessToken({bool signIn = true}) async {
     final held = await _heldToken();
     if (held != null) {
@@ -223,7 +223,7 @@ class OidcApi({
       // The provider sent the user back with a refusal rather than a code.
       await authorizer.clearCallback();
       if (error case AuthorizationRefused(:final state?)) {
-        await store.writeSetting(_flowStateKey(state), null);
+        await store.write(_flowStateKey(state), null);
       }
       _signInFailure = error;
       return null;
@@ -347,7 +347,7 @@ class OidcApi({
   /// The refresh token in the store, read as it is rather than as a credential:
   /// no provider has to be reached to read it.
   Future<String?> _heldRefreshToken() async {
-    final json = await store.readSetting(_tokenKey);
+    final json = await store.read(_tokenKey);
     if (json == null) {
       return null;
     }
@@ -405,7 +405,7 @@ class OidcApi({
         throw OidcException(message: 'the provider sent no access token');
       }
       _signInFailure = null;
-      await store.writeSetting(_signedOutKey, null);
+      await store.write(_signedOutKey, null);
       return token;
     } finally {
       await _forgetFlowState(callback.state);
@@ -423,13 +423,13 @@ class OidcApi({
     );
     // After signing out, the provider is asked to ask who it is rather than
     // wave the next person through on the session it still has for the last.
-    final signedOut = await store.readSetting(_signedOutKey) != null;
+    final signedOut = await store.read(_signedOutKey) != null;
     final flow = await _flow(started, prompt: signedOut ? 'login' : null);
 
     // Written down before the user goes anywhere. On the web this app is about
     // to stop existing, and what comes back is worthless without these — and
     // the user is lost without the last one.
-    await store.writeSetting(
+    await store.write(
       _flowStateKey(started.state),
       jsonEncode({
         'state': started.state,
@@ -450,7 +450,7 @@ class OidcApi({
       // Nothing will come back for this sign-in any more: it was cancelled,
       // timed out, or refused, and on a device there is no later start of the
       // app for an answer to arrive in.
-      await store.writeSetting(_flowStateKey(started.state), null);
+      await store.write(_flowStateKey(started.state), null);
       return null;
     }
   }
@@ -494,12 +494,12 @@ class OidcApi({
     if (response == null) {
       return;
     }
-    await store.writeSetting(_tokenKey, jsonEncode(response));
+    await store.write(_tokenKey, jsonEncode(response));
   }
 
   /// What this device is holding, as something that can be spent and refreshed.
   Future<openid.Credential?> _heldCredential() async {
-    final json = await store.readSetting(_tokenKey);
+    final json = await store.read(_tokenKey);
     if (json == null) {
       return null;
     }
@@ -548,10 +548,10 @@ class OidcApi({
 
   /// Whether this device holds a token, or a refresh token to get one with.
   Future<bool> holdsAToken() async =>
-      await store.readSetting(_tokenKey) != null;
+      await store.read(_tokenKey) != null;
 
   Future<void> _forgetTokens() async {
-    await store.writeSetting(_tokenKey, null);
+    await store.write(_tokenKey, null);
   }
 
   /// Throws away the access token and keeps the refresh token, so that the next
@@ -561,7 +561,7 @@ class OidcApi({
   /// revoked, or the session behind it ended somewhere else. Kept, it would be
   /// sent again with every request until it ran out on its own.
   Future<void> forgetAccessToken() async {
-    final json = await store.readSetting(_tokenKey);
+    final json = await store.read(_tokenKey);
     if (json == null) {
       return;
     }
@@ -570,7 +570,7 @@ class OidcApi({
         ..remove('access_token')
         ..remove('expires_at')
         ..remove('expires_in');
-      await store.writeSetting(
+      await store.write(
         _tokenKey,
         token['refresh_token'] == null ? null : jsonEncode(token),
       );
@@ -585,8 +585,8 @@ class OidcApi({
   /// sign-in — so that a sign-in that was out while the app was updated still
   /// finishes.
   Future<_FlowState?> _readFlowState(String state) async {
-    final json = await store.readSetting(_flowStateKey(state)) ??
-        await store.readSetting(_flowStatePrefix);
+    final json = await store.read(_flowStateKey(state)) ??
+        await store.read(_flowStatePrefix);
     if (json == null) {
       return null;
     }
@@ -607,8 +607,8 @@ class OidcApi({
   }
 
   Future<void> _forgetFlowState(String state) async {
-    await store.writeSetting(_flowStateKey(state), null);
-    await store.writeSetting(_flowStatePrefix, null);
+    await store.write(_flowStateKey(state), null);
+    await store.write(_flowStatePrefix, null);
   }
 
   /// What the provider says about the user right now.
@@ -649,7 +649,7 @@ class OidcApi({
     if (!await holdsAToken()) {
       return null;
     }
-    await store.writeSetting(_userInfoKey, jsonEncode(user.toJson()));
+    await store.write(_userInfoKey, jsonEncode(user.toJson()));
     return user;
   }
 
@@ -660,13 +660,23 @@ class OidcApi({
 
   /// What the provider last said about the user, from before there was no
   /// network to ask over.
-  Future<UserInfo?> keptUserInfo() async {
-    final json = await store.readSetting(_userInfoKey);
-    if (json == null) {
-      return null;
-    }
-    return UserInfo.fromJson(json: jsonDecode(json) as Map<String, dynamic>);
-  }
+  Future<UserInfo?> keptUserInfo() async =>
+      _userInfoOf(await store.read(_userInfoKey));
+
+  /// [keptUserInfo], again every time it changes.
+  Stream<UserInfo?> watchKeptUserInfo() =>
+      store.watch(_userInfoKey).map(_userInfoOf);
+
+  /// Keeps [user] as who this device is for, or forgets who that was with
+  /// null.
+  Future<void> keepUserInfo(UserInfo? user) => store.write(
+        _userInfoKey,
+        user == null ? null : jsonEncode(user.toJson()),
+      );
+
+  static UserInfo? _userInfoOf(String? json) => json == null
+      ? null
+      : UserInfo.fromJson(json: jsonDecode(json) as Map<String, dynamic>);
 
   /// Whether the provider is there to be asked.
   ///
@@ -699,8 +709,8 @@ class OidcApi({
   Future<void> forgetUser() async {
     _signInFailure = null;
     await _forgetTokens();
-    await store.forgetSettingsStartingWith(_flowStatePrefix);
-    await store.writeSetting(_userInfoKey, null);
+    await store.forgetStartingWith(_flowStatePrefix);
+    await store.write(_userInfoKey, null);
   }
 
   /// Forgets who is signed in, as [forgetUser] does, and has the next sign-in
@@ -712,7 +722,7 @@ class OidcApi({
   /// one without asking; so the next sign-in asks it to ask again.
   Future<void> signOut() async {
     await forgetUser();
-    await store.writeSetting(_signedOutKey, 'true');
+    await store.write(_signedOutKey, 'true');
   }
 
   /// The subject of the user the sets and collections on this device belong
@@ -723,11 +733,11 @@ class OidcApi({
   /// token, those would become that user's — so a sync only goes out while
   /// the user who is signed in is the one they belong to (see
   /// [holdsTheDataOfTheSignedInUser]), and a different user signing in has
-  /// them forgotten first (see [Auth.updateAuth]).
-  Future<String?> dataOwner() => store.readSetting(_dataOwnerKey);
+  /// them forgotten first (see [UpdateAuth]).
+  Future<String?> dataOwner() => store.read(_dataOwnerKey);
 
   Future<void> keepDataOwner(String? subject) =>
-      store.writeSetting(_dataOwnerKey, subject);
+      store.write(_dataOwnerKey, subject);
 
   /// Whether the sets and collections on this device may be synced with the
   /// token of the user who is signed in: whether they are that user's, or

@@ -1,5 +1,5 @@
 import 'package:score/config.dart';
-import 'package:score/features/auth/authorizer.dart';
+import 'package:score/features/auth/storage/authorizer.dart';
 import 'package:web/web.dart' as web;
 
 /// Signing in in a browser.

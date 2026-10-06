@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/api.dart';
-import 'package:score/features/auth/oidc_api.dart';
-import 'package:score/features/sync/engine.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/behaviours/exception_or.dart';
+import 'package:score/features/auth/behaviours/update_auth.dart';
+import 'package:score/features/sync/behaviours/check_connection.dart';
+import 'package:score/features/sync/behaviours/sync_engine.dart';
+import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
 
 /// Where a set or a collection stands with the server, in the bar of its page.
 ///
@@ -18,10 +19,9 @@ class const SyncStatus({
   /// Whether anything about it is still to be synced.
   required final bool unsynced,
 
-  /// Why the last try left it unsynced, as the sync engine remembers it: see
+  /// Why the last try left it unsynced, as the store has it: see
   /// [SyncEngine.whyNotSynced].
-  required final Object? Function() whyNotSynced,
-  required final Future<bool> Function() apiCanBeReached,
+  required final WhyNotSynced? Function() whyNotSynced,
 
   /// Syncs it now.
   required final Future<void> Function() sync,
@@ -38,7 +38,6 @@ class const SyncStatus({
         context: context,
         builder: (context) => _WhyNotSynced(
           whyNotSynced: whyNotSynced,
-          apiCanBeReached: apiCanBeReached,
           sync: sync,
         ),
       ),
@@ -50,8 +49,7 @@ class const SyncStatus({
 /// whether the server is there, whether there is anyone signed in to send it
 /// as — and what the last try ran into.
 class const _WhyNotSynced({
-  required final Object? Function() whyNotSynced,
-  required final Future<bool> Function() apiCanBeReached,
+  required final WhyNotSynced? Function() whyNotSynced,
   required final Future<void> Function() sync,
 }) extends StatefulWidget {
   @override
@@ -66,19 +64,18 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
   bool _busy = false;
 
   Future<_Reason> _find() async {
-    final oidc = GetIt.I<OidcApi>();
-    final reachable = await Future.wait([
-      widget.apiCanBeReached(),
-      oidc.canBeReached(),
-    ]);
-    if (!reachable[0]) {
+    final connection = (await GetIt.I<CheckConnection>()()).valueOrNull ??
+        // Not known, rather than not there: what the last try ran into is
+        // still worth saying.
+        (server: true, provider: true, signedIn: true, holdsTheirData: true);
+    if (!connection.server) {
       return (
         text: 'The server cannot be reached from this device right now. What'
             ' you changed is kept here, and goes as soon as it can.',
         signIn: false,
       );
     }
-    if (!reachable[1]) {
+    if (!connection.provider) {
       return (
         text: 'The sign-in provider cannot be reached from this device right'
             ' now, and nothing can be sent without it. What you changed is'
@@ -86,14 +83,14 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
         signIn: false,
       );
     }
-    if (!await oidc.holdsAToken()) {
+    if (!connection.signedIn) {
       return (
         text: 'This device is no longer signed in, so there is nothing to send'
             ' it with. Sign in again, and it goes straight after.',
         signIn: true,
       );
     }
-    if (!await oidc.holdsTheDataOfTheSignedInUser()) {
+    if (!connection.holdsTheirData) {
       return (
         text: 'What is on this device belongs to another account than the one'
             ' signed in, and is not sent as this one.',
@@ -107,36 +104,36 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
               ' the next sync — or now.',
           signIn: false,
         ),
-      SyncHold.unreachable => (
+      WhyNotSynced(hold: SyncHold.unreachable) => (
           text: 'The server could not be reached the last time it was tried.',
           signIn: false,
         ),
-      SyncHold.noToken => (
+      WhyNotSynced(hold: SyncHold.noToken) => (
           text: 'There was no sign-in to send it with the last time it was'
               ' tried. Sign in again, and it goes straight after.',
           signIn: true,
         ),
-      SyncHold.notTheirs => (
+      WhyNotSynced(hold: SyncHold.notTheirs) => (
           text: 'What is on this device belonged to another account than the'
               ' one signed in the last time it was tried.',
           signIn: false,
         ),
-      ApiException(status: 401) => (
+      WhyNotSynced(:final error?) => (
+          text: 'The last try ran into this: $error',
+          signIn: false,
+        ),
+      WhyNotSynced(status: 401) => (
           text: 'The server did not take this sign-in the last time it was'
               ' tried. Sign in again, and it goes straight after.',
           signIn: true,
         ),
-      ApiException(status: null) && final error => (
-          text: 'Nothing answered the last time it was tried: ${error.detail}',
+      WhyNotSynced(status: null, :final detail) => (
+          text: 'Nothing answered the last time it was tried: $detail',
           signIn: false,
         ),
-      ApiException(:final status?) && final error => (
+      WhyNotSynced(:final status, :final detail) => (
           text: 'The server answered $status the last time it was tried:'
-              ' ${error.detail}',
-          signIn: false,
-        ),
-      final error => (
-          text: 'The last try ran into this: $error',
+              ' $detail',
           signIn: false,
         ),
     };
@@ -146,7 +143,9 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
     setState(() => _busy = true);
     try {
       if (signIn) {
-        await GetIt.I<Sync>().updateAuthAndCatchUp(retry: true);
+        await GetIt.I<UpdateAuthAndCatchUp>()(
+          const UpdateAuthParams(retry: true),
+        );
       }
       await widget.sync();
     } finally {

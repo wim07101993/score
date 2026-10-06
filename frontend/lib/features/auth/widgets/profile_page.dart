@@ -3,17 +3,20 @@ import 'dart:convert';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:score/behaviours/exception_or.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/auth.dart';
-import 'package:score/features/auth/oidc_api.dart';
+import 'package:score/features/auth/behaviours/forget_user.dart';
+import 'package:score/features/auth/behaviours/sign_out.dart';
+import 'package:score/features/auth/behaviours/update_auth.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/auth/widgets/ask_provider_again_button.dart';
 import 'package:score/features/auth/widgets/sign_in_again_button.dart';
 import 'package:score/features/auth/widgets/sign_out_button.dart';
-import 'package:score/features/collections/repository.dart';
-import 'package:score/features/scores/api.dart';
-import 'package:score/features/scores/repository.dart';
-import 'package:score/features/sets/repository.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/collections/notifiers/collections_notifier.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
+import 'package:score/features/sets/notifiers/sets_notifier.dart';
+import 'package:score/features/sync/behaviours/check_connection.dart';
+import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
 import 'package:score/router.dart';
 
 /// What this app has been told about the user, and by whom.
@@ -33,11 +36,10 @@ class const ProfilePage({
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final _auth = GetIt.I<Auth>();
-  final _sync = GetIt.I<Sync>();
+  final _auth = GetIt.I<AuthNotifier>();
   final _config = GetIt.I<Config>();
-  final _scores = GetIt.I<ScoresRepository>();
-  final _sets = GetIt.I<SetsRepository>();
+  final _scores = GetIt.I<ScoresNotifier>();
+  final _sets = GetIt.I<SetsNotifier>();
 
   bool _asking = false;
   bool? _providerReachable;
@@ -52,14 +54,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _ask() async {
     // Both of these are a round trip, and the rest of the page is worth showing
     // before they come back.
-    final results = await Future.wait([
-      GetIt.I<OidcApi>().canBeReached(),
-      GetIt.I<ScoresApi>().canBeReached(),
-    ]);
+    final connection = (await GetIt.I<CheckConnection>()()).valueOrNull;
     if (mounted) {
       setState(() {
-        _providerReachable = results[0];
-        _apiReachable = results[1];
+        _providerReachable = connection?.provider;
+        _apiReachable = connection?.server;
       });
     }
   }
@@ -71,7 +70,9 @@ class _ProfilePageState extends State<ProfilePage> {
     // has everything fetched for them, rather than waiting for a page to be
     // opened again to ask for it.
     try {
-      await _sync.updateAuthAndCatchUp(retry: true);
+      await GetIt.I<UpdateAuthAndCatchUp>()(
+        const UpdateAuthParams(retry: true),
+      );
       if (!mounted) return;
       await _ask();
     } finally {
@@ -84,9 +85,9 @@ class _ProfilePageState extends State<ProfilePage> {
   /// that tells them they may not read scores.
   Future<void> _signInAgain() async {
     final router = context.router;
-    await _auth.forgetUser();
+    await GetIt.I<ForgetUser>()();
     await router.replaceAll([const ScoresRoute()]);
-    await _sync.updateAuthAndCatchUp(retry: true);
+    await GetIt.I<UpdateAuthAndCatchUp>()(const UpdateAuthParams(retry: true));
   }
 
   /// Signs the user out of this device and forgets their sets and
@@ -97,7 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _signOut() async {
     final router = context.router;
     final unsent = _sets.hasPendingChanges ||
-        GetIt.I<CollectionsRepository>().hasPendingChanges;
+        GetIt.I<CollectionsNotifier>().hasPendingChanges;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -120,7 +121,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
     if (confirmed != true) return;
-    await _auth.signOut();
+    await GetIt.I<SignOut>()();
     await router.replaceAll([const ScoresRoute()]);
   }
 

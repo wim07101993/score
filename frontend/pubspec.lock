@@ -73,6 +73,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "10.6.0"
+  behaviour:
+    dependency: "direct main"
+    description:
+      name: behaviour
+      sha256: ffa6c38b8822e8a039fd15f0eb63fe4111b4135a0a09c454a6a8c2f5c046a887
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.2"
   boolean_selector:
     dependency: transitive
     description:

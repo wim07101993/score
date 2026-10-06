@@ -1,14 +1,16 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/auth.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/repository.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/add_to_list_button.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/upload_score_fab.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/sync/behaviours/update_collections.dart';
+import 'package:score/features/sync/behaviours/update_scores.dart';
+import 'package:score/features/sync/behaviours/update_sets.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/collections_button.dart';
 import 'package:score/widgets/profile_button.dart';
@@ -30,8 +32,8 @@ class const ScoresPage({
 }
 
 class _ScoresPageState extends State<ScoresPage> {
-  final _auth = GetIt.I<Auth>();
-  final _scores = GetIt.I<ScoresRepository>();
+  final _auth = GetIt.I<AuthNotifier>();
+  final _scores = GetIt.I<ScoresNotifier>();
 
   bool _syncing = false;
 
@@ -42,19 +44,18 @@ class _ScoresPageState extends State<ScoresPage> {
   }
 
   Future<void> _sync() async {
-    final sync = GetIt.I<Sync>();
     if (_auth.user?.isScoreViewer != true) {
       return;
     }
 
     setState(() => _syncing = true);
-    await sync.updateScores();
+    await GetIt.I<UpdateScores>()();
     // Whatever was written to a set or a collection while there was nothing to
     // send it to is still owed to the server, and any page with a network is a
     // chance to send it: waiting for the player to open the sets or the
     // collections again is waiting for nothing.
-    await sync.updateSets();
-    await sync.updateCollections();
+    await GetIt.I<UpdateSets>()();
+    await GetIt.I<UpdateCollections>()();
     if (mounted) {
       setState(() => _syncing = false);
     }

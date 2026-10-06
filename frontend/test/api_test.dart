@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:score/api.dart';
+import 'package:score/storage/api.dart';
 
 /// A request that stops answering is given up on rather than waited for: the
 /// health checks passing says nothing about the request after them.

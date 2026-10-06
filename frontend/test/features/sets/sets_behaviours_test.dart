@@ -2,12 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/oidc_api.dart';
-import 'package:score/features/sembast/local_store.dart';
-import 'package:score/features/sets/api.dart';
+import 'package:score/features/auth/storage/oidc_api.dart';
+import 'package:score/features/sets/behaviours/delete_set.dart';
+import 'package:score/features/sets/behaviours/delete_set_entry.dart';
+import 'package:score/features/sets/behaviours/forget_sets.dart';
+import 'package:score/features/sets/behaviours/save_set.dart';
+import 'package:score/features/sets/behaviours/save_set_entry.dart';
+import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
+import 'package:score/features/sets/behaviours/sets_engine.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sets/repository.dart';
+import 'package:score/features/sets/storage/sets_api.dart';
+import 'package:score/features/sync/behaviours/sync_engine.dart';
+
+import '../../test_stores.dart';
 
 /// What a set does when the server is not there.
 ///
@@ -18,7 +27,7 @@ import 'package:score/features/sets/repository.dart';
 /// what happens when the server refuses — are what these are about.
 
 /// A provider nobody calls: these tests are about what happens to a set, and
-/// the token is only ever something the repository has to be holding.
+/// the token is only ever something the sync has to be holding.
 final _oidcConfig = OidcConfig(
   clientId: 'test',
   issuer: Uri.parse('http://nowhere'),
@@ -300,9 +309,9 @@ class _AnswerLostApi extends _WorkingApi {
 
 /// A provider that always has a token to hand.
 class _SignedIn({
-  required super.store,
+  required Stores store,
 }) extends OidcApi {
-  this : super(config: _oidcConfig);
+  this : super(config: _oidcConfig, store: store.auth);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
@@ -311,17 +320,116 @@ class _SignedIn({
   Future<bool> canBeReached() async => true;
 }
 
-Future<(SetsRepository, LocalStore)> _repository(SetsApi api) async {
-  final store = await LocalStore.inMemory();
-  final repository = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
-  await repository.init();
-  return (repository, store);
+/// The sets behaviours over one store, one API and one provider, as the app
+/// wires them — under the names these rules were first written down with.
+/// What is read is read off the engine's working copy, which the behaviours
+/// have written by the time they are done.
+class _Sets({
+  required final Stores store,
+  required final SetsApi api,
+  required final OidcApi oidc,
+}) {
+  late final SetsEngine _engine = SetsEngine(
+    logger: Logger('test'),
+    adapter: SetsAdapter(
+      logger: Logger('test'),
+      store: store.sets,
+      holds: store.holds,
+      api: api,
+    ),
+    oidc: oidc,
+  );
+
+  Future<void> init() => _engine.init();
+
+  List<ScoreSet> get sets => _engine.all;
+
+  ScoreSet? getSet(String setId) => _engine.get(setId);
+
+  bool get hasPendingChanges => _engine.hasPendingChanges;
+
+  void addSyncProblemListener(void Function(SyncProblem) listener) =>
+      _engine.problems.listen(listener);
+
+  Future<ScoreSet> saveSet({
+    String? id,
+    required String title,
+    String description = '',
+    List<String> sharedWith = const [],
+  }) =>
+      SaveSet(engine: _engine).action(
+        SaveSetParams(
+          id: id,
+          title: title,
+          description: description,
+          sharedWith: sharedWith,
+        ),
+        null,
+      );
+
+  Future<ScoreSet> saveEntry(
+    String setId, {
+    String? id,
+    String? scoreId,
+    String? description,
+    int? transposition,
+    int? position,
+  }) =>
+      SaveSetEntry(engine: _engine).action(
+        SaveSetEntryParams(
+          setId: setId,
+          id: id,
+          scoreId: scoreId,
+          description: description,
+          transposition: transposition,
+          position: position,
+        ),
+        null,
+      );
+
+  Future<ScoreSet> deleteEntry(String setId, String entryId) =>
+      DeleteSetEntry(engine: _engine).action(
+        DeleteSetEntryParams(setId: setId, entryId: entryId),
+        null,
+      );
+
+  Future<ScoreSet> saveEntryView(
+    String setId,
+    String entryId, {
+    int? transposition,
+    List<String>? hiddenParts,
+    double? zoom,
+  }) =>
+      SaveSetEntryView(engine: _engine).action(
+        SaveSetEntryViewParams(
+          setId: setId,
+          entryId: entryId,
+          transposition: transposition,
+          hiddenParts: hiddenParts,
+          zoom: zoom,
+        ),
+        null,
+      );
+
+  Future<void> deleteSet(String setId) =>
+      DeleteSet(engine: _engine).action(setId, null);
+
+  Future<void> syncWithApi() => _engine.syncWithApi();
+
+  Future<void> forgetAll() => ForgetSets(engine: _engine).action(null);
+}
+
+Future<(_Sets, Stores)> _open(SetsApi api) async {
+  final store = await Stores.inMemory();
+  final opened = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
+  await opened.init();
+  return (opened, store);
 }
 
 void main() {
   group('with nothing to send it to', () {
     test('a set is stored here and marked as owed', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
 
       final saved = await sets.saveSet(title: 'Zomerbar');
 
@@ -334,7 +442,7 @@ void main() {
     test('edits made one straight after another all stay', () async {
       // Each edit first takes in what other tabs stored. What this tab wrote a
       // moment before must not be put back to what the store held before it.
-      final (sets, store) = await _repository(_OfflineApi());
+      final (sets, store) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       await sets.saveEntry(set.id, id: 'a', scoreId: 'a');
       await sets.saveEntry(set.id, id: 'b', scoreId: 'b');
@@ -345,7 +453,7 @@ void main() {
         sets.saveSet(id: set.id, title: 'Zomerbar, renamed'),
       ]);
 
-      final reopened = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final reopened = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await reopened.init();
       for (final now in [sets.getSet(set.id)!, reopened.getSet(set.id)!]) {
         expect(now.title, 'Zomerbar, renamed');
@@ -355,13 +463,13 @@ void main() {
     });
 
     test('a set survives being read back off the device', () async {
-      final store = await LocalStore.inMemory();
-      final first = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final store = await Stores.inMemory();
+      final first = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await first.init();
       await first.saveSet(title: 'Zomerbar', description: 'two sets of forty');
 
       // The same device, opened again.
-      final second = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final second = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await second.init();
 
       expect(second.sets, hasLength(1));
@@ -372,7 +480,7 @@ void main() {
     });
 
     test('a song added at a gig is queued behind the set it is in', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       final withSong = await sets.saveEntry(set.id, scoreId: 'score-1');
 
@@ -386,7 +494,7 @@ void main() {
         () async {
       // There is no row on the server to remove, so there is nothing to tell it
       // about.
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       final added = await sets.saveEntry(set.id, scoreId: 'score-1');
       final removed = await sets.deleteEntry(set.id, added.entries.first.id);
@@ -396,7 +504,7 @@ void main() {
     });
 
     test('the running order is closed up around a song put into it', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       await sets.saveEntry(set.id, scoreId: 'a');
       await sets.saveEntry(set.id, scoreId: 'b');
@@ -407,7 +515,7 @@ void main() {
     });
 
     test('a song is moved by writing it at another place', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       await sets.saveEntry(set.id, scoreId: 'a');
       await sets.saveEntry(set.id, scoreId: 'b');
@@ -423,7 +531,7 @@ void main() {
         () async {
       // A note or a key is written without a place, and taking that for the
       // end would send the song to the back of the gig for everyone.
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       await sets.saveEntry(set.id, scoreId: 'a');
       await sets.saveEntry(set.id, scoreId: 'b');
@@ -445,7 +553,7 @@ void main() {
       // A view is written whole, and the server stores one sent without its
       // size at the size the score is written at.
       final api = _WorkingApi();
-      final (sets, _) = await _repository(api);
+      final (sets, _) = await _open(api);
       final set = await sets.saveSet(title: 'Zomerbar');
       final added = await sets.saveEntry(set.id, scoreId: 'score-1');
       final entryId = added.entries.first.id;
@@ -458,7 +566,7 @@ void main() {
     });
 
     test('is theirs, and is owed to the server on its own', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       final added = await sets.saveEntry(set.id, scoreId: 'score-1');
       final entryId = added.entries.first.id;
@@ -472,7 +580,7 @@ void main() {
     });
 
     test('is counted on top of the key the band plays it in', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       final added =
           await sets.saveEntry(set.id, scoreId: 'score-1', transposition: -2);
@@ -486,7 +594,7 @@ void main() {
     });
 
     test('never asks the score for a key it cannot be shown in', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       final added =
           await sets.saveEntry(set.id, scoreId: 'score-1', transposition: 10);
@@ -501,7 +609,7 @@ void main() {
     });
 
     test('goes with the song when the song leaves the set', () async {
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar');
       final added = await sets.saveEntry(set.id, scoreId: 'score-1');
       final entryId = added.entries.first.id;
@@ -517,8 +625,8 @@ void main() {
       // A view says nothing about the set and changes nothing anybody else
       // sees, so a player who cannot change a note of the running order can
       // still say what key they read it in.
-      final (sets, store) = await _repository(_OfflineApi());
-      await store.writeSets([
+      final (sets, store) = await _open(_OfflineApi());
+      await store.sets.writeAll([
         ScoreSet(
           id: 'theirs',
           title: "Somebody else's gig",
@@ -538,8 +646,8 @@ void main() {
     });
 
     test('but the running order is not theirs to change', () async {
-      final (sets, store) = await _repository(_OfflineApi());
-      await store.writeSets([
+      final (sets, store) = await _open(_OfflineApi());
+      await store.sets.writeAll([
         ScoreSet(
           id: 'theirs',
           title: "Somebody else's gig",
@@ -550,8 +658,8 @@ void main() {
       await sets.init();
 
       expect(() => sets.saveEntry('theirs', scoreId: 'score-1'),
-          throwsA(isA<StateError>()));
-      expect(() => sets.deleteSet('theirs'), throwsA(isA<StateError>()));
+          throwsA(isA<SyncRefused>()));
+      expect(() => sets.deleteSet('theirs'), throwsA(isA<SyncRefused>()));
     });
   });
 
@@ -560,7 +668,7 @@ void main() {
       // Each of them is written against the one before it: an entry against a
       // set, a view against an entry.
       final api = _WorkingApi();
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
 
       final set = await sets.saveSet(title: 'Zomerbar');
       final added = await sets.saveEntry(set.id, scoreId: 'score-1');
@@ -568,9 +676,9 @@ void main() {
           transposition: 2);
 
       // The same device, now with a network.
-      final store = await LocalStore.inMemory();
-      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
-      await store.writeSets([sets.getSet(set.id)!.toJson()]);
+      final store = await Stores.inMemory();
+      final online = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
+      await store.sets.writeAll([sets.getSet(set.id)!.toJson()]);
       await online.init();
 
       await online.syncWithApi();
@@ -585,16 +693,16 @@ void main() {
       // Not as the text `null`, which the server would take for the id of a
       // score and refuse.
       final api = _WorkingApi();
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
 
       final set = await sets.saveSet(title: 'Zomerbar');
       final added = await sets.saveEntry(set.id, description: 'Happy birthday');
       final written = await sets.saveEntry(set.id,
           id: added.entries.first.id, description: 'Happy birthday, twice');
 
-      final store = await LocalStore.inMemory();
-      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
-      await store.writeSets([sets.getSet(set.id)!.toJson()]);
+      final store = await Stores.inMemory();
+      final online = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
+      await store.sets.writeAll([sets.getSet(set.id)!.toJson()]);
       await online.init();
       await online.syncWithApi();
 
@@ -608,8 +716,8 @@ void main() {
 
     test('a set the server refuses is taken back and reported', () async {
       final api = _RefusingApi();
-      final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final store = await Stores.inMemory();
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       final problems = <SyncProblem>[];
@@ -629,13 +737,13 @@ void main() {
       // to: what the player made stays, and its songs wait for a write of the
       // set the server will take rather than being sent into nothing.
       final api = _RefusingApi();
-      final (sets, _) = await _repository(_OfflineApi());
+      final (sets, _) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Zomerbar', sharedWith: ['bas']);
       await sets.saveEntry(set.id, scoreId: 'score-1');
 
-      final store = await LocalStore.inMemory();
-      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
-      await store.writeSets([sets.getSet(set.id)!.toJson()]);
+      final store = await Stores.inMemory();
+      final online = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
+      await store.sets.writeAll([sets.getSet(set.id)!.toJson()]);
       await online.init();
       final problems = <SyncProblem>[];
       online.addSyncProblemListener(problems.add);
@@ -655,8 +763,8 @@ void main() {
       // A refresh that failed because the network did says nothing about the
       // set: the edit is stored, and goes out with the next sync rather than
       // being reported as not saved.
-      final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store: store, api: _WorkingApi(), oidc: _TokenFails(store: store));
+      final store = await Stores.inMemory();
+      final sets = _Sets(store: store, api: _WorkingApi(), oidc: _TokenFails(store: store.auth));
       await sets.init();
 
       final saved = await sets.saveSet(title: 'Zomerbar');
@@ -672,8 +780,8 @@ void main() {
       // The queue that went out still has the write of the song that was taken
       // out; settling that stale write must not take the delete with it.
       final api = _HeldEntryApi();
-      final store = await LocalStore.inMemory();
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'Zomerbar',
@@ -689,7 +797,7 @@ void main() {
           ],
         ).toJson(),
       ]);
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       final syncing = sets.syncWithApi();
@@ -711,11 +819,11 @@ void main() {
       // arrives. The write is made to fail here, because a write that got
       // through would have settled the disagreement honestly.
       final api = _WriteFailsApi();
-      final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final store = await Stores.inMemory();
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
-      await store.writeSets([
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'What I typed',
@@ -748,9 +856,9 @@ void main() {
     test('a running order written here survives what a sync brings in',
         () async {
       final api = _WriteFailsApi();
-      final store = await LocalStore.inMemory();
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'Zomerbar',
@@ -800,12 +908,12 @@ void main() {
     });
 
     group('a running order arranged offline is the one the band gets', () {
-      Future<(SetsRepository, _OrderingApi)> offlineThenOnline(
+      Future<(_Sets, _OrderingApi)> offlineThenOnline(
         List<String> onTheServer,
-        Future<void> Function(SetsRepository offline) arrange,
+        Future<void> Function(_Sets offline) arrange,
       ) async {
-        final store = await LocalStore.inMemory();
-        await store.writeSets([
+        final store = await Stores.inMemory();
+        await store.sets.writeAll([
           ScoreSet(
             id: 'mine',
             title: 'Zomerbar',
@@ -817,12 +925,12 @@ void main() {
             ],
           ).toJson(),
         ]);
-        final offline = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+        final offline = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
         await offline.init();
         await arrange(offline);
 
         final api = _OrderingApi()..orders['mine'] = [...onTheServer];
-        final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+        final online = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
         await online.init();
         await online.syncWithApi();
         return (online, api);
@@ -884,15 +992,15 @@ void main() {
     test('a pull made before a write and answered after it does not undo it',
         () async {
       final api = _SlowListingApi();
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final before = ScoreSet(
         id: 'mine',
         title: 'Old title',
         lastChangedAt: DateTime.now(),
         lastSyncedAt: DateTime.now(),
       );
-      await store.writeSets([before.toJson()]);
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      await store.sets.writeAll([before.toJson()]);
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       // The server's answer is made while the set still has its old title...
@@ -913,8 +1021,8 @@ void main() {
     test('what another tab stored is not sent back over by this one', () async {
       // Two tabs of the web app over the one store. This one was offline when
       // the set was renamed; the other sent that, and then renamed it again.
-      final store = await LocalStore.inMemory();
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'Before',
@@ -923,12 +1031,12 @@ void main() {
         ).toJson(),
       ]);
       final api = _SometimesThereApi();
-      final thisTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final thisTab = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await thisTab.init();
       await thisTab.saveSet(id: 'mine', title: 'Offline');
 
       api.there = true;
-      final otherTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final otherTab = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
       await otherTab.syncWithApi();
       await otherTab.saveSet(id: 'mine', title: 'Latest');
@@ -941,21 +1049,21 @@ void main() {
 
     test('a sync in another tab does not drop a song put in here meanwhile',
         () async {
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final before = ScoreSet(
         id: 'mine',
         title: 'Zomerbar',
         lastChangedAt: DateTime.now(),
         lastSyncedAt: DateTime.now(),
       );
-      await store.writeSets([before.toJson()]);
+      await store.sets.writeAll([before.toJson()]);
       final api = _SlowListingApi()
         ..answers = [
           {...before.toJson(), 'is_owner': true, 'entries': <Object?>[]},
         ];
-      final otherTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final otherTab = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
-      final thisTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final thisTab = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
 
       // The other tab's answer is on its way when the song is put in here.
@@ -973,8 +1081,8 @@ void main() {
 
     test('a push in another tab does not drop a song put in here meanwhile',
         () async {
-      final store = await LocalStore.inMemory();
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'Zomerbar',
@@ -982,14 +1090,14 @@ void main() {
           lastSyncedAt: DateTime.now(),
         ).toJson(),
       ]);
-      final offline = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final offline = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await offline.init();
       await offline.saveEntry('mine', id: 'x', scoreId: 'x');
 
       final api = _HeldEntryApi();
-      final otherTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final otherTab = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
-      final thisTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final thisTab = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
 
       // The other tab sends song x, and song n is put in here while it is out.
@@ -1006,7 +1114,7 @@ void main() {
           contains('n'));
 
       // Song x, whose answer was dropped for it, goes again and is settled.
-      final again = SetsRepository(store: store, api: _WorkingApi(), oidc: _SignedIn(store: store));
+      final again = _Sets(store: store, api: _WorkingApi(), oidc: _SignedIn(store: store));
       await again.init();
       await again.syncWithApi();
       expect(again.getSet('mine')!.pendingEntries, isEmpty);
@@ -1016,9 +1124,9 @@ void main() {
 
     test('a token the API refuses is forgotten, and the write stays queued',
         () async {
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final oidc = _Counting(store: store);
-      final sets = SetsRepository(store: store, api: _TokenRefusedApi(), oidc: oidc);
+      final sets = _Sets(store: store, api: _TokenRefusedApi(), oidc: oidc);
       await sets.init();
 
       final saved = await sets.saveSet(title: 'Zomerbar');
@@ -1032,8 +1140,8 @@ void main() {
       // Two songs put at the top of the set while offline: they go out in the
       // order they run in here, so the second is placed behind the first
       // rather than behind a song the server has not heard of yet.
-      final store = await LocalStore.inMemory();
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'Zomerbar',
@@ -1042,13 +1150,13 @@ void main() {
           entries: const [SetEntry(id: 'a', scoreId: 'a', synced: true)],
         ).toJson(),
       ]);
-      final offline = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final offline = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await offline.init();
       await offline.saveEntry('mine', id: 'x', scoreId: 'x', position: 0);
       await offline.saveEntry('mine', id: 'y', scoreId: 'y', position: 0);
 
       final api = _WorkingApi();
-      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final online = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -1078,7 +1186,7 @@ void main() {
       // Not this device's clock: an hour ahead, it would start the next window
       // past everything the server changes in that hour.
       final api = _WorkingApi();
-      final (sets, _) = await _repository(api);
+      final (sets, _) = await _open(api);
 
       api.answers = [
         answer('a', changedAt: serverNow.subtract(const Duration(minutes: 5))),
@@ -1097,7 +1205,7 @@ void main() {
       // Another set may have changed since the last pull, and a watermark
       // moved to the moment of this write would have the next pull skip it.
       final api = _WorkingApi();
-      final (sets, _) = await _repository(api);
+      final (sets, _) = await _open(api);
 
       api.answers = [answer('a')];
       await sets.syncWithApi();
@@ -1118,8 +1226,8 @@ void main() {
       // A sync only asks about what changed since the last one, so a set that
       // was simply forgotten here would be fetched straight back in as
       // something new.
-      final (sets, store) = await _repository(_OfflineApi());
-      await store.writeSets([
+      final (sets, store) = await _open(_OfflineApi());
+      await store.sets.writeAll([
         ScoreSet(
           id: 'gone',
           title: 'Last summer',
@@ -1138,8 +1246,8 @@ void main() {
     });
 
     test('and takes what was to go into it with it', () async {
-      final (sets, store) = await _repository(_OfflineApi());
-      await store.writeSets([
+      final (sets, store) = await _open(_OfflineApi());
+      await store.sets.writeAll([
         ScoreSet(
           id: 'gone',
           title: 'Last summer',
@@ -1153,7 +1261,7 @@ void main() {
 
       await sets.deleteSet('gone');
 
-      final kept = (await store.readSets()).map((json) => ScoreSet.fromJson(json: json)).single;
+      final kept = (await store.sets.readAll()).map((json) => ScoreSet.fromJson(json: json)).single;
       expect(kept.pendingChange, PendingChange.delete);
       expect(kept.pendingEntries, isEmpty,
           reason: 'there is no set left on the server to put them into');
@@ -1163,14 +1271,14 @@ void main() {
         () async {
       // A first write the server took may have had its answer lost on the way
       // back; left untold, the set would come back with the next pull.
-      final (sets, store) = await _repository(_OfflineApi());
+      final (sets, store) = await _open(_OfflineApi());
       final set = await sets.saveSet(title: 'Typed and thrown away');
 
       await sets.deleteSet(set.id);
       expect(sets.hasPendingChanges, isTrue);
 
       final api = _WorkingApi();
-      final online = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final online = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -1179,8 +1287,8 @@ void main() {
     });
 
     test('comes back when it is written again', () async {
-      final (sets, store) = await _repository(_OfflineApi());
-      await store.writeSets([
+      final (sets, store) = await _open(_OfflineApi());
+      await store.sets.writeAll([
         ScoreSet(
           id: 'gone',
           title: 'Last summer',
@@ -1205,8 +1313,8 @@ void main() {
       // this device never heard that it has the song. Left untold, the song
       // would come back with the next pull.
       final api = _AnswerLostApi();
-      final store = await LocalStore.inMemory();
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      await store.sets.writeAll([
         ScoreSet(
           id: 'mine',
           title: 'Zomerbar',
@@ -1214,7 +1322,7 @@ void main() {
           lastSyncedAt: DateTime.now(),
         ).toJson(),
       ]);
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       final added = await sets.saveEntry('mine', id: 'x', scoreId: 'x');
@@ -1233,8 +1341,8 @@ void main() {
     // Another device took song a out, and this one has not heard of that yet.
     // Counted among the songs here, song x would be written one place further
     // down than it is: a note is no reason to move a song.
-    final store = await LocalStore.inMemory();
-    await store.writeSets([
+    final store = await Stores.inMemory();
+    await store.sets.writeAll([
       ScoreSet(
         id: 'mine',
         title: 'Zomerbar',
@@ -1247,7 +1355,7 @@ void main() {
       ).toJson(),
     ]);
     final api = _OrderingApi()..orders['mine'] = ['b', 'c', 'x', 'f'];
-    final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+    final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
     await sets.init();
 
     await sets.saveEntry('mine', id: 'x', description: 'capo 2');
@@ -1258,18 +1366,18 @@ void main() {
   });
 
   group('a device handed to somebody else', () {
-    Future<void> signedInAs(LocalStore store,
+    Future<void> signedInAs(Stores store,
         {required String owner, required String subject}) async {
-      await store.writeSetting('data_owner', owner);
-      await store.writeSetting(
+      await store.auth.write('data_owner', owner);
+      await store.auth.write(
           'app_user_info', jsonEncode(UserInfo(subject: subject).toJson()));
     }
 
     test('sends nothing of what the last user left', () async {
       // Sent with the new user's token, the last user's sets would become
       // theirs.
-      final store = await LocalStore.inMemory();
-      await store.writeSets([
+      final store = await Stores.inMemory();
+      await store.sets.writeAll([
         ScoreSet(
           id: 'alices',
           title: "Alice's gig",
@@ -1279,7 +1387,7 @@ void main() {
       ]);
       await signedInAs(store, owner: 'alice', subject: 'bob');
       final api = _WorkingApi();
-      final sets = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final sets = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
       await sets.init();
 
       await sets.syncWithApi();
@@ -1289,8 +1397,8 @@ void main() {
     });
 
     test('forgets every set, owed or not', () async {
-      final (sets, store) = await _repository(_OfflineApi());
-      await store.writeSets([
+      final (sets, store) = await _open(_OfflineApi());
+      await store.sets.writeAll([
         ScoreSet(
           id: 'synced',
           title: 'Last summer',
@@ -1305,8 +1413,8 @@ void main() {
 
       expect(sets.sets, isEmpty);
       expect(sets.hasPendingChanges, isFalse);
-      expect(await store.readSets(), isEmpty);
-      final reopened = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      expect(await store.sets.readAll(), isEmpty);
+      final reopened = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await reopened.init();
       expect(reopened.sets, isEmpty);
     });
@@ -1327,7 +1435,7 @@ void main() {
             'entries': <Object?>[],
           },
         ];
-      final (sets, store) = await _repository(api);
+      final (sets, store) = await _open(api);
       await sets.init();
 
       final syncing = sets.syncWithApi();
@@ -1337,17 +1445,17 @@ void main() {
       await syncing;
 
       expect(sets.sets, isEmpty);
-      expect(await store.readSets(), isEmpty);
+      expect(await store.sets.readAll(), isEmpty);
     });
 
     test('has what another tab forgot dropped by this one too', () async {
       // Two tabs of the web app over the one store. What the other tab forgot
       // is not to live on here, or to be written back by the next edit.
-      final store = await LocalStore.inMemory();
-      final thisTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final store = await Stores.inMemory();
+      final thisTab = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
       await thisTab.saveSet(id: 'mine', title: 'Zomerbar');
-      final otherTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+      final otherTab = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await otherTab.init();
 
       await otherTab.forgetAll();
@@ -1355,7 +1463,7 @@ void main() {
 
       expect(thisTab.getSet('mine'), isNull);
       expect(thisTab.sets.map((set) => set.id), ['new']);
-      expect((await store.readSets()).map((json) => json['id']), ['new']);
+      expect((await store.sets.readAll()).map((json) => json['id']), ['new']);
     });
   });
 
@@ -1365,8 +1473,8 @@ void main() {
     // this one renames the set. The rename is put together from what is held
     // here, and written whole over the store, so it has to have taken in
     // song b first.
-    final store = await LocalStore.inMemory();
-    await store.writeSets([
+    final store = await Stores.inMemory();
+    await store.sets.writeAll([
       ScoreSet(
         id: 'mine',
         title: 'Zomerbar',
@@ -1377,9 +1485,9 @@ void main() {
       ).toJson(),
     ]);
     final api = _HeldEntryApi();
-    final thisTab = SetsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+    final thisTab = _Sets(store: store, api: api, oidc: _SignedIn(store: store));
     await thisTab.init();
-    final otherTab = SetsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+    final otherTab = _Sets(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
     await otherTab.init();
 
     final syncing = thisTab.syncWithApi();
@@ -1392,7 +1500,7 @@ void main() {
     await renaming;
 
     final stored =
-        (await store.readSets()).map((json) => ScoreSet.fromJson(json: json)).single;
+        (await store.sets.readAll()).map((json) => ScoreSet.fromJson(json: json)).single;
     expect(stored.title, 'Zomerbar 2');
     expect(stored.entries.map((entry) => entry.id), ['a', 'b']);
     // And song b went out with the rename rather than being dropped by it.
@@ -1402,7 +1510,7 @@ void main() {
 
   test('an address it is shared with is written the way the API reads one',
       () async {
-    final (sets, _) = await _repository(_OfflineApi());
+    final (sets, _) = await _open(_OfflineApi());
 
     final set = await sets.saveSet(
       title: 'Zomerbar',

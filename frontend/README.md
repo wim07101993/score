@@ -119,35 +119,59 @@ lib/
 ├── get_it.dart      everything the app is made of, registered on GetIt
 ├── router.dart      the addresses, and what is behind a link to one (AutoRoute)
 ├── config.dart      where the API is, and how a user proves who they are
+├── storage/         the databases on the device (sembast), what a feature's store is
+│                    built from, and what every API client shares
+├── behaviours/      what more than one behaviour shares
+├── notifiers/       what every notifier is: the store, followed
 ├── features/        what the app knows, a directory per subject
 │   ├── auth/            proving who the user is
 │   ├── scores/          the scores and the documents behind them
 │   ├── sets/            the playlists a gig is played from
-│   ├── sync/            squaring what is on the device with the server
 │   ├── collections/     the scores kept together under a name
+│   ├── sync/            squaring what is on the device with the server
 │   ├── notation/        drawing a score (above)
 │   ├── observability/   logging, kept in the local store across runs, and the logs page
 │   ├── settings/        what this device prefers, which is not the account's
-│   ├── sembast/         where things are kept on the device
 │   ├── files/           how a file leaves the app
 │   └── app_update/      noticing that a newer build is out
 └── widgets/         the pieces more than one page is made of
 ```
 
-A subject is an `api.dart` that speaks to the server, `models.dart` for what it
-holds, a `repository.dart` that is the only thing a page talks to, and a
-`get_it.dart` that registers them. A page gets what it needs with
-`GetIt.I<T>()`. **A page
-reads what is stored and asks for a sync; it never waits on the network to
-draw.** A score is read on a stage and a set is edited at a gig, and both of
-those are exactly where there is no network.
+A subject is built in layers, each in a directory of its own:
+
+- `widgets/` — the pages. A page draws what a **notifier** holds, and does
+  what the player asks by calling a **behaviour**. It never talks to the
+  store or the API.
+- `notifiers/` — what a page is drawn from. A notifier follows the store
+  through sembast's snapshot streams, so whatever writes to the store — a
+  behaviour, a sync, another tab of the web app — is on screen without
+  anybody telling the page.
+- `behaviours/` — one class per thing the app does (the
+  [behaviour](https://pub.dev/packages/behaviour) package): `SaveSet`,
+  `SyncScores`, `SignOut`. A behaviour fetches from the API, decides, and
+  writes to the store; it hands back what went wrong rather than throwing,
+  and every one of them is logged on its way through. What two behaviours
+  share — the sync engine of the sets and collections — is here too.
+- `storage/` — what keeps or fetches: the API client, and the feature's own
+  store in the databases on the device (`ScoresStore`, `SetsStore`, …). No
+  feature reads or writes another's.
+
+`models.dart` is what the subject holds, and `get_it.dart` registers the
+rest: notifiers are made the first time they are asked for and handed out
+once they hold what the store holds, and behaviours are made fresh each time.
+So the way through the app is always the same: a button calls a behaviour,
+the behaviour writes to the store, the store tells the notifier, and the
+notifier redraws the page. **A page reads what is stored and asks for a sync;
+it never waits on the network to draw.** A score is read on a stage and a set
+is edited at a gig, and both of those are exactly where there is no network.
 
 The rules a set is written under — what is queued, in what order it goes out,
 and what happens when the server refuses — are the ones
 [the project README](../README.md#sets-are-written-offline) describes. A set
-owes the server three separate things in order: what the set is, the songs added or moved, and how this player reads
-them. Each is written against the one before it, so whatever did not get through
-keeps what depends on it queued behind it.
+owes the server three separate things in order: what the set is, the songs
+added or moved, and how this player reads them. Each is written against the
+one before it, so whatever did not get through keeps what depends on it queued
+behind it.
 
 ## Things to know
 
@@ -171,6 +195,7 @@ keeps what depends on it queued behind it.
 $ flutter run -d chrome --web-port=3000   # CHROME_EXECUTABLE=/usr/bin/chromium if needed
 $ flutter run -d linux
 $ flutter test
+$ flutter test --platform chrome test/features/scores/score_documents_web_test.dart   # the browser's file system
 $ dart run build_runner build             # after changing a page's route: writes lib/router.gr.dart
 ```
 

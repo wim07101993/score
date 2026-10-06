@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
-import 'package:score/features/settings/settings.dart';
+import 'package:score/features/settings/models.dart';
 import 'package:score/features/settings/widgets/look_slider.dart';
 import 'package:score/features/settings/widgets/settings_page.dart';
 
 /// Setting the theme, and lighting the page.
 ///
-/// What is stored and what it means are [Settings]' business and are tested
-/// there. What is left here is the part a finger touches: that the answers are
-/// all on offer, that what is in force is what is shown, and that moving
-/// something says so.
+/// What is stored and what it means are the settings behaviours' and
+/// notifier's business and are tested there. What is left here is the part a
+/// finger touches: that the answers are all on offer, that what is in force is
+/// what is shown, and that moving something says so.
 
 Future<void> _show(
   WidgetTester tester, {

@@ -1,12 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
+import 'package:score/background.dart';
+import 'package:score/behaviours/in_turn.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/oidc_api.dart';
-import 'package:score/features/scores/api.dart';
+import 'package:score/features/auth/storage/oidc_api.dart';
+import 'package:score/features/scores/behaviours/ensure_score.dart';
+import 'package:score/features/scores/behaviours/forget_gone_scores.dart';
+import 'package:score/features/scores/behaviours/get_music_xml.dart';
+import 'package:score/features/scores/behaviours/kept_scores.dart';
+import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
+import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/repository.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
+import 'package:score/features/scores/storage/scores_api.dart';
+
+import '../../test_stores.dart';
 
 /// What a sync does with a document this device already holds.
 ///
@@ -28,9 +38,9 @@ final _oidcConfig = OidcConfig(
 );
 
 class _SignedIn({
-  required super.store,
+  required Stores store,
 }) extends OidcApi {
-  this : super(config: _oidcConfig);
+  this : super(config: _oidcConfig, store: store.auth);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
@@ -74,11 +84,64 @@ class _Api() extends ScoresApi {
   }
 }
 
+/// The scores behaviours over one store and one API, as the app wires them:
+/// a sync and the search for what is gone share one turn.
+class _Scores({
+  required final Stores store,
+  required final ScoresApi api,
+}) {
+  late final OidcApi _oidc = _SignedIn(store: store);
+  late final KeptScores _kept = KeptScores(
+    store: store.scores,
+    documents: store.documents,
+  );
+  late final InTurn _turn = InTurn();
+  late final EnsureScore _ensureScore =
+      EnsureScore(kept: _kept, api: api, oidc: _oidc);
+
+  Future<void> syncWithApi() =>
+      SyncScores(
+        logger: Logger('test'),
+        documents: store.documents,
+        kept: _kept,
+        api: api,
+        oidc: _oidc,
+        turn: _turn,
+      ).action(null);
+
+  Future<void> forgetWhatTheServerNoLongerHas() =>
+      ForgetGoneScores(
+        logger: Logger('test'),
+        kept: _kept,
+        api: api,
+        oidc: _oidc,
+        turn: _turn,
+      ).action(null);
+
+  Future<String?> getMusicXml(String scoreId) => GetMusicXml(
+        logger: Logger('test'),
+        documents: store.documents,
+        kept: _kept,
+        api: api,
+        oidc: _oidc,
+        ensureScore: _ensureScore,
+        background: Background(logger: Logger('test')),
+      ).action(scoreId, null);
+
+  Future<void> markViewed(String scoreId) =>
+      MarkScoreViewed(store: store.scores, ensureScore: _ensureScore)
+          .action(scoreId, null);
+
+  Future<Score?> getScore(String scoreId) => _kept.get(scoreId);
+
+  Future<List<String>> ids() async => [...(await _kept.all()).keys];
+}
+
 void main() {
   test('a stale document that could not be fetched is tried again', () async {
-    final store = await LocalStore.inMemory();
+    final store = await Stores.inMemory();
     final fetched = DateTime.utc(2026);
-    await store.writeScores([
+    await store.scores.writeAll([
       Score(
         id: 'abc',
         lastChangedAt: fetched,
@@ -86,25 +149,24 @@ void main() {
         lastFetchedFileAt: fetched,
       ).toJson(),
     ]);
-    await store.writeMusicXml('abc', '<old/>');
+    await store.documents.write('abc', '<old/>');
 
     final api = _Api()
       ..documentsFail = true
       ..answers = [
         {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
-    await scores.init();
+    final scores = _Scores(store: store, api: api);
 
     await scores.syncWithApi();
-    expect(await store.readMusicXml('abc'), '<old/>');
+    expect(await store.documents.read('abc'), '<old/>');
 
     // The window was not closed, so it is asked about again.
     api.documentsFail = false;
     await scores.syncWithApi();
-    final asked = fetched.subtract(ScoresRepository.syncOverlap);
+    final asked = fetched.subtract(SyncScores.syncOverlap);
     expect(api.since, [asked, asked]);
-    expect(await store.readMusicXml('abc'), '<new/>');
+    expect(await store.documents.read('abc'), '<new/>');
 
     // And now it is.
     api.answers = [];
@@ -115,32 +177,30 @@ void main() {
   test('refreshing a document keeps when the score was last opened', () async {
     // The download is on its way when the player opens the score, and the
     // copy the refresh started from knows nothing about that.
-    final store = await LocalStore.inMemory();
+    final store = await Stores.inMemory();
     final fetched = DateTime.utc(2026);
-    await store.writeScores([
+    await store.scores.writeAll([
       Score(id: 'abc', lastChangedAt: fetched, lastFetchedFileAt: fetched)
           .toJson(),
     ]);
-    await store.writeMusicXml('abc', '<old/>');
-    late ScoresRepository scores;
+    await store.documents.write('abc', '<old/>');
+    late _Scores scores;
     final api = _OpensWhileFetching(meanwhile: () => scores.markViewed('abc'))
       ..answers = [
         {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
-    await scores.init();
+    scores = _Scores(store: store, api: api);
 
     await scores.syncWithApi();
 
-    expect(scores.getScore('abc')!.lastViewedAt, isNotNull);
+    expect((await scores.getScore('abc'))!.lastViewedAt, isNotNull);
   });
 
   test('a score the server no longer has is forgotten when opened', () async {
-    final store = await LocalStore.inMemory();
-    await store.writeScores([const Score(id: 'abc').toJson()]);
+    final store = await Stores.inMemory();
+    await store.scores.writeAll([const Score(id: 'abc').toJson()]);
     final api = _Api()..gone = {'abc'};
-    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
-    await scores.init();
+    final scores = _Scores(store: store, api: api);
 
     await expectLater(
       scores.getMusicXml('abc'),
@@ -148,23 +208,22 @@ void main() {
           .having((error) => error.status, 'status', 404)),
     );
 
-    expect(scores.getScore('abc'), isNull);
-    expect(await store.readScores(), isEmpty);
+    expect(await scores.getScore('abc'), isNull);
+    expect(await store.scores.readAll(), isEmpty);
   });
 
   test('the scores the server does not list are forgotten', () async {
-    final store = await LocalStore.inMemory();
-    await store.writeScores([
+    final store = await Stores.inMemory();
+    await store.scores.writeAll([
       const Score(id: 'kept').toJson(),
       const Score(id: 'gone').toJson(),
     ]);
-    await store.writeMusicXml('gone', '<old/>');
+    await store.documents.write('gone', '<old/>');
     final api = _Api()
       ..answers = [
         {'id': 'kept', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
-    await scores.init();
+    final scores = _Scores(store: store, api: api);
 
     await scores.forgetWhatTheServerNoLongerHas();
 
@@ -174,8 +233,8 @@ void main() {
       api.until.single!.isAfter(DateTime.now().add(const Duration(days: 365))),
       isTrue,
     );
-    expect(scores.scores.map((score) => score.id), ['kept']);
-    expect(await store.hasMusicXml('gone'), isFalse);
+    expect(await scores.ids(), ['kept']);
+    expect(await store.documents.has('gone'), isFalse);
   });
 
   test('a score forgotten is not brought back by a sync asked for before',
@@ -183,14 +242,13 @@ void main() {
     // The sync is asked for first and its listing answers last: run side by
     // side, it would write back the score the search for what is gone has
     // just forgotten.
-    final store = await LocalStore.inMemory();
-    await store.writeScores([const Score(id: 'gone').toJson()]);
+    final store = await Stores.inMemory();
+    await store.scores.writeAll([const Score(id: 'gone').toJson()]);
     final api = _SlowFirstListing()
       ..answers = [
         {'id': 'gone', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
-    await scores.init();
+    final scores = _Scores(store: store, api: api);
 
     final sync = scores.syncWithApi();
     final search = scores.forgetWhatTheServerNoLongerHas();
@@ -201,24 +259,27 @@ void main() {
     api.release.complete();
     await Future.wait([sync, search]);
 
-    expect(scores.getScore('gone'), isNull);
+    expect(await scores.getScore('gone'), isNull);
     expect(api.since, [null, null]);
   });
 
   test('a sync that finds nothing new writes nothing', () async {
-    final store = await LocalStore.inMemory();
+    final store = await Stores.inMemory();
     final api = _Api()
       ..answers = [
         {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
       ];
-    final scores = ScoresRepository(store: store, api: api, oidc: _SignedIn(store: store));
-    await scores.init();
+    final scores = _Scores(store: store, api: api);
     await scores.syncWithApi();
 
+    final notifier = ScoresNotifier(store: store.scores);
+    addTearDown(notifier.dispose);
+    await notifier.ready;
     var told = 0;
-    scores.addListener(() => told++);
+    notifier.addListener(() => told++);
     // The window starts before the newest score, so it is read back again.
     await scores.syncWithApi();
+    await Future<void>.delayed(Duration.zero);
 
     expect(told, 0, reason: 'every page was redrawn for nothing');
   });

@@ -7,18 +7,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/background.dart';
-import 'package:score/features/auth/auth.dart';
+import 'package:score/behaviours/exception_or.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
 import 'package:score/features/collections/models.dart'
     show Collection, CollectionEntry, entriesByTitle, maxZoom, minZoom;
-import 'package:score/features/collections/repository.dart';
+import 'package:score/features/collections/notifiers/collections_notifier.dart';
 import 'package:score/features/files/file_saver.dart';
 import 'package:score/features/notation/parts.dart';
 import 'package:score/features/notation/view/musicxml_view.dart';
 import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
+import 'package:score/features/scores/behaviours/get_music_xml.dart';
+import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
+import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/repository.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/download_score_button.dart';
 import 'package:score/features/scores/widgets/next_score_button.dart';
 import 'package:score/features/scores/widgets/open_collection_button.dart';
@@ -31,10 +36,13 @@ import 'package:score/features/scores/widgets/transpose_up_button.dart';
 import 'package:score/features/scores/widgets/upload_score_button.dart';
 import 'package:score/features/scores/widgets/zoom_in_button.dart';
 import 'package:score/features/scores/widgets/zoom_out_button.dart';
+import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sets/repository.dart';
-import 'package:score/features/settings/settings.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/sets/notifiers/sets_notifier.dart';
+import 'package:score/features/settings/notifiers/settings_notifier.dart';
+import 'package:score/features/sync/behaviours/ensure_collection.dart';
+import 'package:score/features/sync/behaviours/ensure_set.dart';
+import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/router.dart';
 import 'package:uuid/uuid.dart';
 
@@ -67,7 +75,7 @@ class const ScoreDetailPage({
   /// A set is a gig and a collection is a book, but what a score is opened as
   /// is the same thing in both — a piece, in the key the others play it in,
   /// read the way this player reads it, with the rest of the list either side
-  /// of it. What differs is which repository a view is written to, and what
+  /// of it. What differs is which behaviour a view is written with, and what
   /// order the list is in.
   final String? collectionId,
 
@@ -168,12 +176,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// paper.
   String? get _entryScoreId => _isPaper ? null : widget.scoreId;
 
-  final _auth = GetIt.I<Auth>();
-  final _sync = GetIt.I<Sync>();
-  final _settings = GetIt.I<Settings>();
-  final _sets = GetIt.I<SetsRepository>();
-  final _collections = GetIt.I<CollectionsRepository>();
-  final _scores = GetIt.I<ScoresRepository>();
+  final _auth = GetIt.I<AuthNotifier>();
+  final _settings = GetIt.I<SettingsNotifier>();
+  final _sets = GetIt.I<SetsNotifier>();
+  final _collections = GetIt.I<CollectionsNotifier>();
+  final _scores = GetIt.I<ScoresNotifier>();
+  final _background = GetIt.I<Background>();
 
   /// Waits for the player to stop changing how they read the score before it
   /// is kept: see [_keepReading].
@@ -397,7 +405,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final newer = _shownFetchedAt != null && fetched.isAfter(_shownFetchedAt!);
     _shownFetchedAt = fetched;
     if (!newer) return;
-    final musicXml = await _scores.getMusicXml(scoreId!);
+    final musicXml = (await GetIt.I<GetMusicXml>()(scoreId!)).valueOrNull;
     if (!mounted || musicXml == null || musicXml == _musicXml) return;
     _show(musicXml, keepingTheView: true);
   }
@@ -421,7 +429,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     try {
       await _readSetContext();
       await _readCollectionContext();
-      final musicXml = await _scores.getMusicXml(widget.scoreId);
+      final musicXml =
+          (await GetIt.I<GetMusicXml>()(widget.scoreId)).orThrow();
       if (!mounted) return;
 
       if (musicXml == null) {
@@ -448,9 +457,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // it there: failing to say when the score was last opened — its details
     // could not be fetched, say — must not take the score off the screen.
     if (_musicXml != null) {
-      inTheBackground(_scores.markViewed(widget.scoreId));
+      _background(GetIt.I<MarkScoreViewed>()(widget.scoreId));
     }
-    inTheBackground(_sync.updateScores());
+    _background(GetIt.I<UpdateScores>()());
   }
 
   /// Reads a score and starts it off being looked at the way the set says it is
@@ -527,13 +536,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
-    var set = _sets.getSet(setId);
-    if (set == null) {
-      // A link into a set can be followed on a device that has not synced since
-      // it was shared.
-      await _sync.updateSets();
-      set = _sets.getSet(setId);
-    }
+    // A link into a set can be followed on a device that has not synced since
+    // it was shared: see [EnsureSet].
+    final set = (await GetIt.I<EnsureSet>()(setId)).valueOrNull;
     if (set == null) return;
 
     final index = set.entries.indexWhere((entry) => entry.id == entryId);
@@ -563,11 +568,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
-    var collection = _collections.getCollection(collectionId);
-    if (collection == null) {
-      await _sync.updateCollections();
-      collection = _collections.getCollection(collectionId);
-    }
+    final collection =
+        (await GetIt.I<EnsureCollection>()(collectionId)).valueOrNull;
     if (collection == null) return;
 
     final entry = collection.entries
@@ -627,9 +629,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     waiting.cancel();
     if (!_canSaveView) return;
     if (_set != null) {
-      inTheBackground(_saveViewToSet());
+      _background(_saveViewToSet());
     } else if (_collection != null) {
-      inTheBackground(_saveViewToCollection());
+      _background(_saveViewToCollection());
     }
   }
 
@@ -673,18 +675,21 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     _savingReading++;
     try {
-      final saved = await _sets.saveEntryView(
-        context.set.id,
-        context.entry.id,
-        transposition: _readingOffset(
-          band: context.entry.transposition,
-          saved: context.entry.view.transposition,
-          savedReadAt: context.entry.readAt,
-          onScreen: view.transposition,
+      final saved = (await GetIt.I<SaveSetEntryView>()(
+        SaveSetEntryViewParams(
+          setId: context.set.id,
+          entryId: context.entry.id,
+          transposition: _readingOffset(
+            band: context.entry.transposition,
+            saved: context.entry.view.transposition,
+            savedReadAt: context.entry.readAt,
+            onScreen: view.transposition,
+          ),
+          hiddenParts: [...view.hiddenPartIds],
+          zoom: _zoom,
         ),
-        hiddenParts: [...view.hiddenPartIds],
-        zoom: _zoom,
-      );
+      ))
+          .orThrow();
       // Where the entry comes in the set is read again rather than kept: a sync
       // can have reordered the gig while this was being written, and taking the
       // place it used to be at would put somebody else's song on the screen.
@@ -756,18 +761,21 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     _savingReading++;
     try {
-      final saved = await _collections.saveEntryView(
-        context.collection.id,
-        entry.id,
-        transposition: _readingOffset(
-          band: entry.transposition,
-          saved: entry.view.transposition,
-          savedReadAt: entry.readAt,
-          onScreen: view.transposition,
+      final saved = (await GetIt.I<SaveCollectionEntryView>()(
+        SaveCollectionEntryViewParams(
+          collectionId: context.collection.id,
+          entryId: entry.id,
+          transposition: _readingOffset(
+            band: entry.transposition,
+            saved: entry.view.transposition,
+            savedReadAt: entry.readAt,
+            onScreen: view.transposition,
+          ),
+          hiddenParts: [...view.hiddenPartIds],
+          zoom: _zoom,
         ),
-        hiddenParts: [...view.hiddenPartIds],
-        zoom: _zoom,
-      );
+      ))
+          .orThrow();
       if (!mounted) return;
       final piece =
           saved.entries.where((piece) => piece.id == entry.id).firstOrNull;
@@ -880,7 +888,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final scoreId = _scoreId ?? _newScoreId;
 
     try {
-      await _scores.putMusicXml(scoreId, musicXml);
+      (await GetIt.I<UploadScore>()(
+        UploadScoreParams(scoreId: scoreId, musicXml: musicXml),
+      ))
+          .orThrow();
       if (!mounted) return;
       if (_isNew && _auth.user?.isScoreViewer != true) {
         // Its own address would only say this account may not read it. The
@@ -893,13 +904,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         // that reloading it or keeping it opens this score rather than another
         // empty upload page. The file is on this device by now, so the page at
         // that address opens straight onto it.
-        inTheBackground(_sync.updateScores());
+        _background(GetIt.I<UpdateScores>()());
         context.router.replace(ScoreRoute(scoreId: scoreId));
         return;
       }
       setState(() => _scoreId = scoreId);
       _show(musicXml);
-      await _sync.updateScores();
+      await GetIt.I<UpdateScores>()();
     } catch (error) {
       if (mounted) _say('That score could not be uploaded: $error');
     }

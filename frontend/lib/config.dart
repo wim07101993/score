@@ -2,10 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
 import 'package:logging/logging.dart';
-
-final _log = GetIt.I<Logger>(param1: 'Config');
 
 /// What the app has to be told before it can do anything: where the API is, and
 /// how a user proves who they are.
@@ -20,14 +17,26 @@ class const Config({
 }) {
   factory Config.fromJson({
     required Map<String, dynamic> json,
+
+    /// Where what is wrong with it is said: see [OidcConfig.fromJson].
+    required Logger logger,
   }) => Config(
-        oidc: OidcConfig.fromJson(json: json['oidc'] as Map<String, dynamic>),
+        oidc: OidcConfig.fromJson(
+          json: json['oidc'] as Map<String, dynamic>,
+          logger: logger,
+        ),
         api: ApiConfig.fromJson(json: json['api'] as Map<String, dynamic>),
       );
 
-  static Future<Config> load([String asset = 'assets/config.json']) async {
+  static Future<Config> load({
+    String asset = 'assets/config.json',
+    required Logger logger,
+  }) async {
     final text = await rootBundle.loadString(asset);
-    return Config.fromJson(json: jsonDecode(text) as Map<String, dynamic>);
+    return Config.fromJson(
+      json: jsonDecode(text) as Map<String, dynamic>,
+      logger: logger,
+    );
   }
 }
 
@@ -98,6 +107,9 @@ class const OidcConfig({
 
   factory OidcConfig.fromJson({
     required Map<String, dynamic> json,
+
+    /// Where a config that will not work on a device is said to be one.
+    required Logger logger,
   }) {
     final nativeClientId = json['nativeClientId'] == null
         ? null
@@ -110,9 +122,10 @@ class const OidcConfig({
       // with a redirect_uri mismatch and nothing on the device says why, so it
       // is said here. A release does not even build without one (see
       // .github/workflows/release.yaml).
-      _log.warning('the config has no nativeClientId, so this device signs in as '
-          'the web client ${json['clientId']}; the provider will refuse that '
-          'unless the redirect addresses of a device are registered on it too');
+      logger.warning('the config has no nativeClientId, so this device signs in'
+          ' as the web client ${json['clientId']}; the provider will refuse'
+          ' that unless the redirect addresses of a device are registered on'
+          ' it too');
     }
     return OidcConfig(
       clientId: '${json['clientId']}',

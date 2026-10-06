@@ -2,9 +2,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/oidc_api.dart';
+import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/scores/widgets/upload_score_button.dart';
-import 'package:score/features/sets/repository.dart';
+import 'package:score/features/sets/behaviours/delete_set_entry.dart';
+import 'package:score/features/sets/behaviours/save_set.dart';
+import 'package:score/features/sets/behaviours/save_set_entry.dart';
 import 'package:score/router.dart';
 
 import '../../../test_get_it.dart';
@@ -39,18 +41,19 @@ void main() {
   });
 
   group('a song of a set on the stand', () {
-    late SetsRepository sets;
     late AppRouter router;
     late String setId;
     late String entryId;
 
     Future<void> openPaperEntry(WidgetTester tester) async {
       await tester.runAsync(() => GetIt.I.registerForTesting(user: _viewer));
-      sets = GetIt.I<SetsRepository>();
       await tester.runAsync(() async {
-        final set = await sets.saveSet(title: 'Friday');
-        final withEntry =
-            await sets.saveEntry(set.id, description: 'Happy birthday');
+        final set = await GetIt.I<SaveSet>()
+            .action(const SaveSetParams(title: 'Friday'), null);
+        final withEntry = await GetIt.I<SaveSetEntry>().action(
+          SaveSetEntryParams(setId: set.id, description: 'Happy birthday'),
+          null,
+        );
         setId = set.id;
         entryId = withEntry.entries.single.id;
       });
@@ -70,7 +73,14 @@ void main() {
         (tester) async {
       await openPaperEntry(tester);
 
-      await tester.runAsync(() => sets.deleteEntry(setId, entryId));
+      await tester.runAsync(() async {
+        await GetIt.I<DeleteSetEntry>().action(
+          DeleteSetEntryParams(setId: setId, entryId: entryId),
+          null,
+        );
+        // What was written reaches the page through the store.
+        await Future<void>.delayed(Duration.zero);
+      });
       await tester.pump();
 
       expect(find.text('This song is no longer in there.'), findsOneWidget);
@@ -80,8 +90,13 @@ void main() {
         (tester) async {
       await openPaperEntry(tester);
 
-      await tester.runAsync(
-          () => sets.saveEntry(setId, id: entryId, scoreId: 'scanned'));
+      await tester.runAsync(() async {
+        await GetIt.I<SaveSetEntry>().action(
+          SaveSetEntryParams(setId: setId, id: entryId, scoreId: 'scanned'),
+          null,
+        );
+        await Future<void>.delayed(Duration.zero);
+      });
       await tester.pump();
 
       expect(

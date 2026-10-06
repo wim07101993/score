@@ -1,12 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/oidc_api.dart';
-import 'package:score/features/collections/api.dart';
+import 'package:score/features/auth/storage/oidc_api.dart';
+import 'package:score/features/collections/behaviours/collections_engine.dart';
+import 'package:score/features/collections/behaviours/delete_collection.dart';
+import 'package:score/features/collections/behaviours/delete_collection_entry.dart';
+import 'package:score/features/collections/behaviours/forget_collections.dart';
+import 'package:score/features/collections/behaviours/save_collection.dart';
+import 'package:score/features/collections/behaviours/save_collection_entry.dart';
+import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
 import 'package:score/features/collections/models.dart';
-import 'package:score/features/collections/repository.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/collections/storage/collections_api.dart';
+import 'package:score/features/sync/behaviours/sync_engine.dart';
+
+import '../../test_stores.dart';
 
 /// What a collection does when the server is not there, and when it is again.
 ///
@@ -18,7 +27,7 @@ import 'package:score/features/sembast/local_store.dart';
 /// something. Those are what these are about.
 
 /// A provider nobody calls: these tests are about what happens to a
-/// collection, and the token is only ever something the repository has to be
+/// collection, and the token is only ever something the sync has to be
 /// holding.
 final _oidcConfig = OidcConfig(
   clientId: 'test',
@@ -249,9 +258,9 @@ class _TokenFails({
 
 /// A provider that always has a token to hand.
 class _SignedIn({
-  required super.store,
+  required Stores store,
 }) extends OidcApi {
-  this : super(config: _oidcConfig);
+  this : super(config: _oidcConfig, store: store.auth);
 
   @override
   Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
@@ -260,22 +269,132 @@ class _SignedIn({
   Future<bool> canBeReached() async => true;
 }
 
-Future<(CollectionsRepository, LocalStore)> _repository(
+/// The collections behaviours over one store, one API and one provider, as
+/// the app wires them — under the names these rules were first written down
+/// with. What is read is read off the engine's working copy, which the
+/// behaviours have written by the time they are done.
+class _Collections({
+  required final Stores store,
+  required final CollectionsApi api,
+  required final OidcApi oidc,
+}) {
+  late final CollectionsEngine _engine = CollectionsEngine(
+    logger: Logger('test'),
+    adapter: CollectionsAdapter(
+      logger: Logger('test'),
+      store: store.collections,
+      holds: store.holds,
+      api: api,
+    ),
+    oidc: oidc,
+  );
+
+  Future<void> init() => _engine.init();
+
+  List<Collection> get collections => _engine.all;
+
+  Collection? getCollection(String collectionId) => _engine.get(collectionId);
+
+  List<Collection> collectionsWith(String scoreId) => [
+        for (final collection in collections)
+          if (collection.holds(scoreId)) collection,
+      ];
+
+  bool get hasPendingChanges => _engine.hasPendingChanges;
+
+  void addSyncProblemListener(
+    void Function(CollectionSyncProblem) listener,
+  ) =>
+      _engine.problems.listen(listener);
+
+  Future<Collection> saveCollection({
+    String? id,
+    required String title,
+    String description = '',
+    List<String> sharedWith = const [],
+  }) =>
+      SaveCollection(engine: _engine).action(
+        SaveCollectionParams(
+          id: id,
+          title: title,
+          description: description,
+          sharedWith: sharedWith,
+        ),
+        null,
+      );
+
+  Future<Collection> saveEntry(
+    String collectionId, {
+    String? id,
+    String? scoreId,
+    bool onPaper = false,
+    String? description,
+    int? transposition,
+  }) =>
+      SaveCollectionEntry(engine: _engine).action(
+        SaveCollectionEntryParams(
+          collectionId: collectionId,
+          id: id,
+          scoreId: scoreId,
+          onPaper: onPaper,
+          description: description,
+          transposition: transposition,
+        ),
+        null,
+      );
+
+  Future<Collection> deleteEntry(String collectionId, String entryId) =>
+      DeleteCollectionEntry(engine: _engine).action(
+        DeleteCollectionEntryParams(
+          collectionId: collectionId,
+          entryId: entryId,
+        ),
+        null,
+      );
+
+  Future<Collection> saveEntryView(
+    String collectionId,
+    String entryId, {
+    int? transposition,
+    List<String>? hiddenParts,
+    double? zoom,
+  }) =>
+      SaveCollectionEntryView(engine: _engine).action(
+        SaveCollectionEntryViewParams(
+          collectionId: collectionId,
+          entryId: entryId,
+          transposition: transposition,
+          hiddenParts: hiddenParts,
+          zoom: zoom,
+        ),
+        null,
+      );
+
+  Future<void> deleteCollection(String collectionId) =>
+      DeleteCollection(engine: _engine).action(collectionId, null);
+
+  Future<void> syncWithApi() => _engine.syncWithApi();
+
+  Future<void> forgetAll() =>
+      ForgetCollections(engine: _engine).action(null);
+}
+
+Future<(_Collections, Stores)> _open(
     CollectionsApi api) async {
-  final store = await LocalStore.inMemory();
-  final repository = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
-  await repository.init();
-  return (repository, store);
+  final store = await Stores.inMemory();
+  final opened = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
+  await opened.init();
+  return (opened, store);
 }
 
 /// What was stored on one device, opened on the same device with a network.
-Future<CollectionsRepository> _online(
-    CollectionsRepository offline, CollectionsApi api) async {
-  final store = await LocalStore.inMemory();
-  await store.writeCollections([
+Future<_Collections> _online(
+    _Collections offline, CollectionsApi api) async {
+  final store = await Stores.inMemory();
+  await store.collections.writeAll([
     for (final collection in offline.collections) collection.toJson(),
   ]);
-  final online = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+  final online = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
   await online.init();
   return online;
 }
@@ -283,7 +402,7 @@ Future<CollectionsRepository> _online(
 void main() {
   group('with nothing to send it to', () {
     test('a collection is stored here and marked as owed', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
 
       final saved = await collections.saveCollection(title: 'The Real Book');
 
@@ -294,9 +413,9 @@ void main() {
     });
 
     test('a collection survives being read back off the device', () async {
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final first =
-          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+          _Collections(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await first.init();
       final saved = await first.saveCollection(title: 'The Real Book');
       await first.saveEntry(saved.id, scoreId: 'score-1');
@@ -304,7 +423,7 @@ void main() {
 
       // The same device, opened again.
       final second =
-          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+          _Collections(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await second.init();
 
       final back = second.getCollection(saved.id)!;
@@ -317,7 +436,7 @@ void main() {
     });
 
     test('a piece added is queued behind the collection it is in', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
 
       final withPiece =
@@ -329,7 +448,7 @@ void main() {
     });
 
     test('writing a collection leaves what is in it alone', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       await collections.saveEntry(collection.id, scoreId: 'score-1');
 
@@ -344,7 +463,7 @@ void main() {
         () async {
       // There is no row on the server to remove, so there is nothing to tell
       // it about.
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -357,7 +476,7 @@ void main() {
     });
 
     test('a piece that is taken out can be put back in', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -373,7 +492,7 @@ void main() {
     test('a piece already in the collection stays where it is when it is'
         ' written', () async {
       // A collection has no order, so writing a piece is never a move.
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       await collections.saveEntry(collection.id, scoreId: 'a');
       final two = await collections.saveEntry(collection.id, scoreId: 'b');
@@ -388,7 +507,7 @@ void main() {
 
   group('a score is in a collection once', () {
     test('and adding it again names the entry it is already in', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -403,7 +522,7 @@ void main() {
 
     test('but the entry it is in can be written without being refused',
         () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -416,7 +535,7 @@ void main() {
 
     test('and the collections a score is in are the ones that hold it',
         () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final holding = await collections.saveCollection(title: 'Holding');
       await collections.saveCollection(title: 'Not holding');
       await collections.saveEntry(holding.id, scoreId: 'score-1');
@@ -428,7 +547,7 @@ void main() {
 
   group('a piece that has yet to be scanned', () {
     test('has no score, and two of them are two pieces', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       await collections.saveEntry(collection.id,
           onPaper: true, description: 'page 12');
@@ -443,12 +562,12 @@ void main() {
     test('has to be called something', () async {
       // A collection has nowhere for a piece to come, so an unnamed one could
       // never be found, sorted, or told from the next unnamed one.
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
 
       await expectLater(
         collections.saveEntry(collection.id, onPaper: true, description: '  '),
-        throwsA(isA<ArgumentError>()),
+        throwsA(isA<UnnamedPieceException>()),
       );
       expect(collections.getCollection(collection.id)!.entries, isEmpty);
       expect(collections.getCollection(collection.id)!.pendingEntries, isEmpty,
@@ -456,7 +575,7 @@ void main() {
     });
 
     test('cannot have its name taken away', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final written = await collections.saveEntry(collection.id,
           onPaper: true, description: 'page 12');
@@ -464,7 +583,7 @@ void main() {
 
       await expectLater(
         collections.saveEntry(collection.id, id: entryId, description: ''),
-        throwsA(isA<ArgumentError>()),
+        throwsA(isA<UnnamedPieceException>()),
       );
       expect(collections.getCollection(collection.id)!.entries.single
           .description, 'page 12');
@@ -472,7 +591,7 @@ void main() {
 
     test('keeps its name, and stays without a score, when something else'
         ' about it changes', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final written = await collections.saveEntry(collection.id,
           onPaper: true, description: 'page 12');
@@ -488,7 +607,7 @@ void main() {
 
     test('goes out as having no score, not as a score called null', () async {
       final api = _WorkingApi();
-      final (offline, _) = await _repository(_OfflineApi());
+      final (offline, _) = await _open(_OfflineApi());
       final collection = await offline.saveCollection(title: 'Book');
       await offline.saveEntry(collection.id,
           onPaper: true, description: 'page 62');
@@ -505,7 +624,7 @@ void main() {
 
   group('how a player reads a piece', () {
     test('is theirs, and is owed to the server on its own', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -524,7 +643,7 @@ void main() {
       // Saying only that the key has changed is not saying to draw the piece
       // at the size every other one is drawn at, or to put the parts that are
       // off screen back on it.
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -542,8 +661,8 @@ void main() {
 
     test('may be written by somebody the collection is only shared with',
         () async {
-      final (collections, store) = await _repository(_OfflineApi());
-      await store.writeCollections([
+      final (collections, store) = await _open(_OfflineApi());
+      await store.collections.writeAll([
         Collection(
           id: 'theirs',
           title: "Somebody else's book",
@@ -565,8 +684,8 @@ void main() {
     });
 
     test('but what is in the collection is not theirs to change', () async {
-      final (collections, store) = await _repository(_OfflineApi());
-      await store.writeCollections([
+      final (collections, store) = await _open(_OfflineApi());
+      await store.collections.writeAll([
         Collection(
           id: 'theirs',
           title: "Somebody else's book",
@@ -577,15 +696,15 @@ void main() {
       await collections.init();
 
       expect(() => collections.saveEntry('theirs', scoreId: 'score-1'),
-          throwsA(isA<StateError>()));
+          throwsA(isA<SyncRefused>()));
       expect(() => collections.saveCollection(id: 'theirs', title: 'Mine'),
-          throwsA(isA<StateError>()));
+          throwsA(isA<SyncRefused>()));
       expect(() => collections.deleteCollection('theirs'),
-          throwsA(isA<StateError>()));
+          throwsA(isA<SyncRefused>()));
     });
 
     test('goes with the piece when the piece leaves the collection', () async {
-      final (collections, _) = await _repository(_OfflineApi());
+      final (collections, _) = await _open(_OfflineApi());
       final collection = await collections.saveCollection(title: 'Book');
       final added =
           await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -606,7 +725,7 @@ void main() {
       // Each of them is written against the one before it: an entry against a
       // collection, a view against an entry.
       final api = _WorkingApi();
-      final (offline, _) = await _repository(_OfflineApi());
+      final (offline, _) = await _open(_OfflineApi());
       final collection = await offline.saveCollection(title: 'Book');
       final added = await offline.saveEntry(collection.id, scoreId: 'score-1');
       await offline.saveEntryView(collection.id, added.entries.single.id,
@@ -631,7 +750,7 @@ void main() {
       // so this second copy of it goes rather than being asked for over and
       // over.
       final api = _WorkingApi();
-      final (offline, _) = await _repository(_OfflineApi());
+      final (offline, _) = await _open(_OfflineApi());
       final collection = await offline.saveCollection(title: 'Book');
       final written =
           await offline.saveEntry(collection.id, scoreId: 'score-1');
@@ -665,8 +784,8 @@ void main() {
     test('the copy that stays is read in at once', () async {
       // The collection was synced before, so nothing else this sync sends
       // brings back what the server holds.
-      final store = await LocalStore.inMemory();
-      await store.writeCollections([
+      final store = await Stores.inMemory();
+      await store.collections.writeAll([
         Collection(
           id: 'book',
           title: 'Book',
@@ -675,7 +794,7 @@ void main() {
         ).toJson(),
       ]);
       final offline =
-          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+          _Collections(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await offline.init();
       await offline.saveEntry('book', scoreId: 'score-1');
 
@@ -688,7 +807,7 @@ void main() {
             {'id': 'somebody-elses-entry', 'score_id': 'score-1'},
           ],
         };
-      final online = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final online = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -699,7 +818,7 @@ void main() {
 
     test('a dropped copy with a note of its own is said out loud', () async {
       final api = _WorkingApi();
-      final (offline, _) = await _repository(_OfflineApi());
+      final (offline, _) = await _open(_OfflineApi());
       final collection = await offline.saveCollection(title: 'Book');
       await offline.saveEntry(collection.id,
           scoreId: 'score-1', description: 'capo 2');
@@ -723,7 +842,7 @@ void main() {
     test('a collection the server refuses is taken back and reported',
         () async {
       final api = _RefusingApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
 
       final problems = <CollectionSyncProblem>[];
       collections.addSyncProblemListener(problems.add);
@@ -740,7 +859,7 @@ void main() {
     test('an edit that failed for a reason that may pass stays queued',
         () async {
       final api = _WriteFailsApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
 
       final saved = await collections.saveCollection(title: 'Book');
 
@@ -754,8 +873,8 @@ void main() {
       // so it is the newer of the two and the answer is out of date the moment
       // it arrives.
       final api = _WriteFailsApi();
-      final (collections, store) = await _repository(api);
-      await store.writeCollections([
+      final (collections, store) = await _open(api);
+      await store.collections.writeAll([
         Collection(
           id: 'mine',
           title: 'What I typed',
@@ -787,8 +906,8 @@ void main() {
 
     test('pieces put in here survive what a sync brings in', () async {
       final api = _WriteFailsApi();
-      final (collections, store) = await _repository(api);
-      await store.writeCollections([
+      final (collections, store) = await _open(api);
+      await store.collections.writeAll([
         Collection(
           id: 'mine',
           title: 'Book',
@@ -850,7 +969,7 @@ void main() {
 
     test('asks about everything the first time', () async {
       final api = _WorkingApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
 
       await collections.syncWithApi();
 
@@ -861,7 +980,7 @@ void main() {
     test('the next one starts at the newest change the server answered with,'
         ' less the overlap', () async {
       final api = _WorkingApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
 
       api.answers = [answer('a')];
       await collections.syncWithApi();
@@ -875,7 +994,7 @@ void main() {
 
     test('a collection written outside a pull does not move it', () async {
       final api = _WorkingApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
 
       api.answers = [answer('a')];
       await collections.syncWithApi();
@@ -893,7 +1012,7 @@ void main() {
     test('a collection deleted on the server is kept here as a headstone',
         () async {
       final api = _WorkingApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
       api.answers = [answer('a')];
       await collections.syncWithApi();
 
@@ -909,8 +1028,8 @@ void main() {
 
   group('a collection that is deleted', () {
     test('is kept as a headstone and the server is told', () async {
-      final (collections, store) = await _repository(_OfflineApi());
-      await store.writeCollections([
+      final (collections, store) = await _open(_OfflineApi());
+      await store.collections.writeAll([
         Collection(
           id: 'gone',
           title: 'Last year',
@@ -931,7 +1050,7 @@ void main() {
         () async {
       // A first write the server took may have had its answer lost on the way
       // back; left untold, the collection would come back with the next pull.
-      final (collections, store) = await _repository(_OfflineApi());
+      final (collections, store) = await _open(_OfflineApi());
       final collection =
           await collections.saveCollection(title: 'Typed and thrown away');
       await collections.saveEntry(collection.id, scoreId: 'score-1');
@@ -940,7 +1059,7 @@ void main() {
       expect(collections.hasPendingChanges, isTrue);
 
       final api = _WorkingApi();
-      final online = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final online = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
       await online.init();
       await online.syncWithApi();
 
@@ -950,8 +1069,8 @@ void main() {
     });
 
     test('comes back when it is written again', () async {
-      final (collections, store) = await _repository(_OfflineApi());
-      await store.writeCollections([
+      final (collections, store) = await _open(_OfflineApi());
+      await store.collections.writeAll([
         Collection(
           id: 'gone',
           title: 'Last year',
@@ -971,11 +1090,11 @@ void main() {
   });
 
   group('a piece that is in the collection twice', () {
-    Future<CollectionsRepository> holdingItTwice() async {
+    Future<_Collections> holdingItTwice() async {
       // Two devices put the same piece in offline, and both copies reached the
       // server before it held a collection to a piece once.
-      final (collections, store) = await _repository(_OfflineApi());
-      await store.writeCollections([
+      final (collections, store) = await _open(_OfflineApi());
+      await store.collections.writeAll([
         Collection(
           id: 'book',
           title: 'Book',
@@ -1026,8 +1145,8 @@ void main() {
           {'id': 'e1', 'score_id': 'score-1'},
         ],
       };
-    final store = await LocalStore.inMemory();
-    await store.writeCollections([
+    final store = await Stores.inMemory();
+    await store.collections.writeAll([
       Collection(
         id: 'book',
         title: 'Book',
@@ -1040,7 +1159,7 @@ void main() {
         ],
       ).toJson(),
     ]);
-    final collections = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+    final collections = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
     await collections.init();
 
     await collections.syncWithApi();
@@ -1079,8 +1198,8 @@ void main() {
           {'id': 'somebody-elses-entry', 'score_id': 'score-1'},
         ],
       };
-    final store = await LocalStore.inMemory();
-    await store.writeCollections([
+    final store = await Stores.inMemory();
+    await store.collections.writeAll([
       Collection(
         id: 'book',
         title: 'Book',
@@ -1090,7 +1209,7 @@ void main() {
         pendingEntries: const [PendingEntry(id: 'mine', action: PendingChange.write)],
       ).toJson(),
     ]);
-    final collections = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+    final collections = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
     await collections.init();
 
     final syncing = collections.syncWithApi();
@@ -1111,7 +1230,7 @@ void main() {
 
   test('forgetting every collection empties the store as well', () async {
     // For a device that is handed to somebody else.
-    final (collections, store) = await _repository(_OfflineApi());
+    final (collections, store) = await _open(_OfflineApi());
     final made = await collections.saveCollection(title: 'Book');
     await collections.saveEntry(made.id, scoreId: 'score-1');
 
@@ -1120,14 +1239,14 @@ void main() {
     expect(collections.collections, isEmpty);
     expect(collections.hasPendingChanges, isFalse);
     final reopened =
-        CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+        _Collections(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
     await reopened.init();
     expect(reopened.collections, isEmpty);
   });
 
   test('an address it is shared with is written the way the API reads one',
       () async {
-    final (collections, _) = await _repository(_OfflineApi());
+    final (collections, _) = await _open(_OfflineApi());
 
     final collection = await collections.saveCollection(
       title: 'Book',
@@ -1148,7 +1267,7 @@ void main() {
       // The picker shows up as soon as the collection is kept here, so a piece
       // can be put in while the collection itself is still on its way.
       final api = _HeldApi();
-      final (collections, _) = await _repository(api);
+      final (collections, _) = await _open(api);
 
       final saving = collections.saveCollection(id: 'book', title: 'Book');
       await pumpEventQueue();
@@ -1170,7 +1289,7 @@ void main() {
 
   group('what is sent and what is read back at the same time', () {
     test('edits made one straight after another all stay', () async {
-      final (collections, store) = await _repository(_OfflineApi());
+      final (collections, store) = await _open(_OfflineApi());
       final made = await collections.saveCollection(title: 'Book');
       await collections.saveEntry(made.id, id: 'a', scoreId: 'a');
       await collections.saveEntry(made.id, id: 'b', scoreId: 'b');
@@ -1182,7 +1301,7 @@ void main() {
       ]);
 
       final reopened =
-          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+          _Collections(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await reopened.init();
       for (final now in [
         collections.getCollection(made.id)!,
@@ -1197,15 +1316,15 @@ void main() {
     test('a pull made before a write and answered after it does not undo it',
         () async {
       final api = _SlowListingApi();
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final before = Collection(
         id: 'book',
         title: 'Old title',
         lastChangedAt: DateTime.now(),
         lastSyncedAt: DateTime.now(),
       );
-      await store.writeCollections([before.toJson()]);
-      final collections = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      await store.collections.writeAll([before.toJson()]);
+      final collections = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
       await collections.init();
 
       api.answers = [
@@ -1222,22 +1341,22 @@ void main() {
 
     test('a sync in another tab does not drop a piece put in here meanwhile',
         () async {
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final before = Collection(
         id: 'book',
         title: 'Real Book',
         lastChangedAt: DateTime.now(),
         lastSyncedAt: DateTime.now(),
       );
-      await store.writeCollections([before.toJson()]);
+      await store.collections.writeAll([before.toJson()]);
       final api = _SlowListingApi()
         ..answers = [
           {...before.toJson(), 'is_owner': true, 'entries': <Object?>[]},
         ];
-      final otherTab = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final otherTab = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
       final thisTab =
-          CollectionsRepository(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
+          _Collections(store: store, api: _OfflineApi(), oidc: _SignedIn(store: store));
       await thisTab.init();
 
       final syncing = otherTab.syncWithApi();
@@ -1255,8 +1374,8 @@ void main() {
     });
 
     test('what another tab stored is not sent back over by this one', () async {
-      final store = await LocalStore.inMemory();
-      await store.writeCollections([
+      final store = await Stores.inMemory();
+      await store.collections.writeAll([
         Collection(
           id: 'book',
           title: 'Before',
@@ -1265,12 +1384,12 @@ void main() {
         ).toJson(),
       ]);
       final api = _SometimesThereApi();
-      final thisTab = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final thisTab = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
       await thisTab.init();
       await thisTab.saveCollection(id: 'book', title: 'Offline');
 
       api.there = true;
-      final otherTab = CollectionsRepository(store: store, api: api, oidc: _SignedIn(store: store));
+      final otherTab = _Collections(store: store, api: api, oidc: _SignedIn(store: store));
       await otherTab.init();
       await otherTab.syncWithApi();
       await otherTab.saveCollection(id: 'book', title: 'Latest');
@@ -1282,9 +1401,9 @@ void main() {
     });
 
     test('a write whose token could not be had stays queued', () async {
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final collections =
-          CollectionsRepository(store: store, api: _WorkingApi(), oidc: _TokenFails(store: store));
+          _Collections(store: store, api: _WorkingApi(), oidc: _TokenFails(store: store));
       await collections.init();
 
       final saved = await collections.saveCollection(title: 'Book');
@@ -1295,10 +1414,10 @@ void main() {
 
     test('a token the API refuses is forgotten, and the write stays queued',
         () async {
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final oidc = _Counting(store: store);
       final collections =
-          CollectionsRepository(store: store, api: _TokenRefusedApi(), oidc: oidc);
+          _Collections(store: store, api: _TokenRefusedApi(), oidc: oidc);
       await collections.init();
 
       final saved = await collections.saveCollection(title: 'Book');
@@ -1315,7 +1434,7 @@ void main() {
       // It was never on the server, so there is nothing there to take it back
       // to: what the player made stays, and its pieces wait for a write of the
       // collection the server will take.
-      final (offline, _) = await _repository(_OfflineApi());
+      final (offline, _) = await _open(_OfflineApi());
       final made =
           await offline.saveCollection(title: 'Book', sharedWith: ['bas']);
       await offline.saveEntry(made.id, scoreId: 'score-1');
@@ -1338,14 +1457,14 @@ void main() {
       // A mistyped address is the collection's own write. The pieces are
       // separate writes the server has said nothing against.
       final api = _RefusingApi();
-      final (collections, store) = await _repository(api);
+      final (collections, store) = await _open(api);
       api.stored['book'] = {
         'id': 'book',
         'title': 'Book',
         'is_owner': true,
         'entries': <Map<String, dynamic>>[],
       };
-      await store.writeCollections([
+      await store.collections.writeAll([
         Collection(
           id: 'book',
           title: 'Book',
@@ -1374,8 +1493,8 @@ void main() {
     test('a collection that is not there takes what was to go in it with it',
         () async {
       final api = _RefusingApi();
-      final (collections, store) = await _repository(api);
-      await store.writeCollections([
+      final (collections, store) = await _open(api);
+      await store.collections.writeAll([
         Collection(
           id: 'gone',
           title: 'Gone',

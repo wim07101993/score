@@ -2,19 +2,21 @@ import 'dart:async';
 
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:score/features/observability/storage/logs_store.dart';
 import 'package:score/features/observability/stored_logs.dart';
-import 'package:score/features/sembast/local_store.dart';
+
+import '../../test_stores.dart';
 
 void main() {
-  late LocalStore store;
+  late Stores store;
 
-  setUp(() async => store = await LocalStore.inMemory());
+  setUp(() async => store = await Stores.inMemory());
 
   /// Logs [records] through a sink over [store], as one run of the app, and
   /// waits for them to have been written.
   Future<LogsController> run(List<LogRecord> records) async {
     final logs = LogsController();
-    final sink = StoredLogSink(store: Future.value(store), logs: logs);
+    final sink = StoredLogSink(store: Future.value(store.logs), logs: logs);
     await sink.restored;
     for (final record in records) {
       logs.addLog(record);
@@ -54,15 +56,15 @@ void main() {
   });
 
   test('records logged before the store has opened are kept too', () async {
-    final opened = Completer<LocalStore>();
+    final opened = Completer<LogsStore>();
     final logs = LogsController();
     final sink = StoredLogSink(store: opened.future, logs: logs);
 
     final logging = sink.log(LogRecord(Level.INFO, 'early', 'score.App'));
-    opened.complete(store);
+    opened.complete(store.logs);
     await logging;
 
-    expect((await store.readLogs()).single['message'], 'early');
+    expect((await store.logs.readAll()).single['message'], 'early');
   });
 
   test('only the last ones are kept for the next run', () async {
@@ -72,7 +74,7 @@ void main() {
     ]);
 
     await run([]);
-    final kept = await store.readLogs();
+    final kept = await store.logs.readAll();
 
     expect(kept, hasLength(StoredLogSink.keptCount));
     expect(kept.last['message'], '${StoredLogSink.keptCount + 4}');

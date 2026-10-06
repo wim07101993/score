@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/auth.dart';
+import 'package:score/behaviours/exception_or.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/repository.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
-import 'package:score/features/sets/api.dart';
+import 'package:score/features/sets/behaviours/delete_set.dart';
+import 'package:score/features/sets/behaviours/delete_set_entry.dart';
+import 'package:score/features/sets/behaviours/save_set.dart';
+import 'package:score/features/sets/behaviours/save_set_entry.dart';
+import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sets/repository.dart';
+import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/sets/widgets/add_score_chip.dart';
 import 'package:score/features/sets/widgets/delete_set_button.dart';
 import 'package:score/features/sets/widgets/entry_description_field.dart';
@@ -17,7 +24,8 @@ import 'package:score/features/sets/widgets/open_score_button.dart';
 import 'package:score/features/sets/widgets/remove_entry_button.dart';
 import 'package:score/features/sets/widgets/set_description_field.dart';
 import 'package:score/features/sets/widgets/set_title_field.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/sync/behaviours/update_scores.dart';
+import 'package:score/features/sync/behaviours/update_sets.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
@@ -51,10 +59,9 @@ class const SetDetailPage({
 }
 
 class _SetDetailPageState extends State<SetDetailPage> {
-  final _auth = GetIt.I<Auth>();
-  final _sync = GetIt.I<Sync>();
-  final _scores = GetIt.I<ScoresRepository>();
-  final _sets = GetIt.I<SetsRepository>();
+  final _auth = GetIt.I<AuthNotifier>();
+  final _scores = GetIt.I<ScoresNotifier>();
+  final _sets = GetIt.I<SetsNotifier>();
 
   static const _uuid = Uuid();
   final _title = TextEditingController();
@@ -80,7 +87,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
   bool _editing = false;
   bool _loading = true;
 
-  void Function(SyncProblem)? _problemListener;
+  StreamSubscription<SyncProblem>? _problems;
 
   @override
   void initState() {
@@ -91,12 +98,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   @override
   void dispose() {
-    final listener = _problemListener;
-    if (listener != null) {
-      _sets
-        ..removeSyncProblemListener(listener)
-        ..removeListener(_takeStoredChanges);
-    }
+    unawaited(_problems?.cancel());
+    _sets.removeListener(_takeStoredChanges);
     _title.dispose();
     _description.dispose();
     _sharedWith.dispose();
@@ -113,7 +116,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     // an empty set to type over would be a lie about what is stored under that
     // id.
     if (widget.setId != 'new' && _sets.getSet(_setId) == null) {
-      await _sync.updateSets();
+      await GetIt.I<UpdateSets>()();
     }
 
     if (!mounted) return;
@@ -128,7 +131,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
     // Giving up on an edit is the one thing this app does behind the player's
     // back, so it says so when it happens.
-    _problemListener = (problem) {
+    _problems = _sets.problems.listen((problem) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(
         '"${problem.title.isEmpty ? 'A set' : problem.title}" could not be'
@@ -139,14 +142,12 @@ class _SetDetailPageState extends State<SetDetailPage> {
         _readFromStored();
         setState(() {});
       }
-    };
-    _sets
-      ..addSyncProblemListener(_problemListener!)
-      ..addListener(_takeStoredChanges);
+    });
+    _sets.addListener(_takeStoredChanges);
 
-    await _sync.updateScores();
+    await GetIt.I<UpdateScores>()();
     if (widget.setId != 'new') {
-      await _sync.updateSets();
+      await GetIt.I<UpdateSets>()();
     }
     if (mounted && !_dirty) {
       _readFromStored();
@@ -157,7 +158,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
   /// Asks the server for the set again, for a page that found it was not here.
   Future<void> _retry() async {
     setState(() => _loading = true);
-    await _sync.updateSets();
+    await GetIt.I<UpdateSets>()();
     if (!mounted) return;
     setState(() {
       _readFromStored();
@@ -197,12 +198,15 @@ class _SetDetailPageState extends State<SetDetailPage> {
     final description = _description.text;
     final sharedWith = _sharedWith.text;
     try {
-      await _sets.saveSet(
-        id: _setId,
-        title: title,
-        description: description,
-        sharedWith: addressesIn(sharedWith),
-      );
+      (await GetIt.I<SaveSet>()(
+        SaveSetParams(
+          id: _setId,
+          title: title,
+          description: description,
+          sharedWith: addressesIn(sharedWith),
+        ),
+      ))
+          .orThrow();
       if (!mounted) return;
       // Only what was sent is saved. Whatever was typed while the write was
       // out is still to be saved; and when nothing was, the fields show what
@@ -213,8 +217,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
         setState(_readFromStored);
       }
       // Only once nothing typed is left unsaved: the page at the new address
-      // reads what is stored, and would drop it.
-      if (widget.setId == 'new' && !_dirty && _sets.getSet(_setId) != null) {
+      // reads what is stored, and would drop it. What was saved is stored by
+      // now, whether or not this page has heard so yet.
+      if (widget.setId == 'new' && !_dirty) {
         // Saved, it is a set like any other and is at its own address, so that
         // reloading it or keeping it opens this set rather than a new empty
         // one.
@@ -265,7 +270,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await _sets.deleteSet(_setId);
+      (await GetIt.I<DeleteSet>()(_setId)).orThrow();
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) _say('The set could not be deleted: $error');
@@ -280,14 +285,17 @@ class _SetDetailPageState extends State<SetDetailPage> {
     int? position,
   }) async {
     try {
-      await _sets.saveEntry(
-            _setId,
-            id: id,
-            scoreId: scoreId,
-            description: description,
-            transposition: transposition,
-            position: position,
-          );
+      (await GetIt.I<SaveSetEntry>()(
+        SaveSetEntryParams(
+          setId: _setId,
+          id: id,
+          scoreId: scoreId,
+          description: description,
+          transposition: transposition,
+          position: position,
+        ),
+      ))
+          .orThrow();
     } catch (error) {
       if (mounted) {
         _say('That song could not be written into the set: $error');
@@ -368,7 +376,13 @@ class _SetDetailPageState extends State<SetDetailPage> {
                   _writeEntry(id: entries[index].id, transposition: semitones),
               onRemove: () async {
                 try {
-                  await _sets.deleteEntry(_setId, entries[index].id);
+                  (await GetIt.I<DeleteSetEntry>()(
+                    DeleteSetEntryParams(
+                      setId: _setId,
+                      entryId: entries[index].id,
+                    ),
+                  ))
+                      .orThrow();
                 } catch (error) {
                   if (mounted) _say('That song could not be taken out: $error');
                 }
@@ -516,8 +530,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                     label: _stateOf(set),
                     unsynced: set?.owesAnything == true && !_dirty,
                     whyNotSynced: () => _sets.whyNotSynced(_setId),
-                    apiCanBeReached: GetIt.I<SetsApi>().canBeReached,
-                    sync: _sync.updateSets,
+                    sync: () async => GetIt.I<UpdateSets>()(),
                   ),
                 ),
                 if (editing) SaveButton(onPressed: _dirty ? _save : null),
@@ -729,12 +742,15 @@ class const _EntryCard({
     required List<String> hiddenParts,
   }) async {
     try {
-      await GetIt.I<SetsRepository>().saveEntryView(
-            setId,
-            entry.id,
-            transposition: transposition,
-            hiddenParts: hiddenParts,
-          );
+      (await GetIt.I<SaveSetEntryView>()(
+        SaveSetEntryViewParams(
+          setId: setId,
+          entryId: entry.id,
+          transposition: transposition,
+          hiddenParts: hiddenParts,
+        ),
+      ))
+          .orThrow();
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

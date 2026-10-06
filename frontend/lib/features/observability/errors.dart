@@ -1,14 +1,19 @@
 import 'package:flutter/foundation.dart';
-import 'package:get_it/get_it.dart';
-import 'package:score/features/observability/get_it.dart';
+import 'package:logging/logging.dart';
 
-void catchUncaughtErrors() {
+/// Logs what Flutter and the platform catch that nothing else did: on
+/// [flutterErrors] what went wrong while building or drawing, and on
+/// [platformErrors] what was thrown outside of that.
+void catchUncaughtErrors({
+  required Logger flutterErrors,
+  required Logger platformErrors,
+}) {
   FlutterError.onError = (details) {
-    GetIt.I.logger('flutter-error').severe('$details', details, details.stack);
+    flutterErrors.severe('$details', details, details.stack);
     FlutterError.presentError(details);
   };
   PlatformDispatcher.instance.onError = (error, stackTrace) {
-    GetIt.I.logger('platform-error').severe('$error', error, stackTrace);
+    platformErrors.severe('$error', error, stackTrace);
     return false;
   };
 }

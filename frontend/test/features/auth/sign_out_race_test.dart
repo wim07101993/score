@@ -5,9 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/authorizer.dart';
-import 'package:score/features/auth/oidc_api.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/auth/storage/authorizer.dart';
+import 'package:score/features/auth/storage/oidc_api.dart';
+
+import '../../test_stores.dart';
 
 const _rolesKey = 'urn:zitadel:iam:org:project:roles';
 
@@ -140,13 +141,13 @@ String _validToken() => jsonEncode({
 
 void main() {
   test('a refresh that answers after signing out is not kept', () async {
-    final store = await LocalStore.inMemory();
-    await store.writeSetting('auth_token_response', _expiredToken());
-    await store.writeSetting('app_user_info',
+    final store = await Stores.inMemory();
+    await store.auth.write('auth_token_response', _expiredToken());
+    await store.auth.write('app_user_info',
         jsonEncode(UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson()));
 
     final provider = _SlowProvider(host: 'provider-a.test');
-    final api = OidcApi(config: _config(provider.host), store: store,
+    final api = OidcApi(config: _config(provider.host), store: store.auth,
         client: provider.client, authorizer: _Recording());
 
     // A sync asking for a token behind the user's back.
@@ -161,7 +162,7 @@ void main() {
 
     // And the next start asks who it is, rather than going on as them.
     final authorizer = _Recording();
-    final next = OidcApi(config: _config(provider.host), store: store,
+    final next = OidcApi(config: _config(provider.host), store: store.auth,
         client: provider.client, authorizer: authorizer);
     expect(await next.getUserInfo(), isNull);
     expect(authorizer.sentTo, isNotNull);
@@ -169,13 +170,13 @@ void main() {
 
   test('who the provider says it is, said after signing out, is not kept',
       () async {
-    final store = await LocalStore.inMemory();
-    await store.writeSetting('auth_token_response', _validToken());
-    await store.writeSetting('app_user_info',
+    final store = await Stores.inMemory();
+    await store.auth.write('auth_token_response', _validToken());
+    await store.auth.write('app_user_info',
         jsonEncode(UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson()));
 
     final provider = _SlowProvider(host: 'provider-b.test', gateUserInfo: true);
-    final api = OidcApi(config: _config(provider.host), store: store,
+    final api = OidcApi(config: _config(provider.host), store: store.auth,
         client: provider.client, authorizer: _Recording());
 
     final asked = api.getUserInfo();

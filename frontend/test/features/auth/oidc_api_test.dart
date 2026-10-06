@@ -4,9 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/authorizer.dart';
-import 'package:score/features/auth/oidc_api.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/auth/storage/authorizer.dart';
+import 'package:score/features/auth/storage/oidc_api.dart';
+
+import '../../test_stores.dart';
 
 /// Signing in, with the provider played by a fake.
 ///
@@ -204,16 +205,16 @@ class _Provider({
       });
 }
 
-Future<(OidcApi, LocalStore)> _api(
+Future<(OidcApi, Stores)> _api(
   _Provider provider, {
   Authorizer? authorizer,
-  LocalStore? store,
+  Stores? store,
 }) async {
-  final held = store ?? await LocalStore.inMemory();
+  final held = store ?? await Stores.inMemory();
   return (
     OidcApi(
       config: _config(provider.host),
-      store: held,
+      store: held.auth,
       client: provider.client,
       authorizer: authorizer ?? _Obliging(),
     ),
@@ -276,7 +277,7 @@ void main() {
 
     test('picks up a code the app was started with', () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
 
       // The web: the flow starts and the page navigates away, so this app gets
       // no answer at all — it stops running.
@@ -316,8 +317,8 @@ void main() {
 
     test("behind the user's back still spends a refresh token", () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
-      await store.writeSetting(
+      final store = await Stores.inMemory();
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({'token_type': 'Bearer', 'refresh_token': 'the-refresh'}),
       );
@@ -335,7 +336,7 @@ void main() {
       // tab started must not be written over the first's, or the first to come
       // back is refused for a state that is not its own.
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final firstTab = _GoesAway();
       final secondTab = _GoesAway();
       final (first, _) =
@@ -359,7 +360,7 @@ void main() {
 
     test('forgetting the user forgets every sign-in that is out', () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final leaving = _GoesAway();
       final (api, _) = await _api(provider, authorizer: leaving, store: store);
       await api.getActiveAccessToken();
@@ -379,7 +380,7 @@ void main() {
 
     test('puts the user back where the sign-in was started from', () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final link = Uri.parse('http://localhost:3000/scores/abc?set=def');
 
       // A link to a score, opened in a tab with no token in it.
@@ -406,7 +407,7 @@ void main() {
   group('a token it is already holding', () {
     test('is used again rather than asked for twice', () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
 
       final (first, _) = await _api(provider, store: store);
       expect(await first.getActiveAccessToken(), 'access-1');
@@ -425,9 +426,9 @@ void main() {
 
     test('is refreshed once it has run out', () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
 
-      await store.writeSetting(
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({
           'access_token': 'stale',
@@ -452,11 +453,11 @@ void main() {
 
     test('is refreshed while it still has a moment left on it', () async {
       final provider = _Provider(host: _nextHost());
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
 
       // Ten seconds left: still valid, and not enough to be worth spending on a
       // request that has to travel.
-      await store.writeSetting(
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({
           'access_token': 'nearly-gone',
@@ -481,11 +482,11 @@ void main() {
       // takes it once; the tab that lost goes on with what the other wrote down
       // rather than throwing it away and sending both to sign in.
       final host = _nextHost();
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final expired =
           DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
               1000;
-      await store.writeSetting(
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({
           'access_token': 'stale',
@@ -502,7 +503,7 @@ void main() {
               headers: {'content-type': 'application/json'});
         }
         // The other tab's refresh lands first, and is written down...
-        await store.writeSetting(
+        await store.auth.write(
           'auth_token_response',
           jsonEncode({
             'access_token': 'the-other-tabs',
@@ -520,14 +521,14 @@ void main() {
             headers: {'content-type': 'application/json'});
       });
       final authorizer = _Obliging();
-      final api = OidcApi(config: _config(host), store: store,
+      final api = OidcApi(config: _config(host), store: store.auth,
           client: client, authorizer: authorizer);
 
       expect(await api.getActiveAccessToken(), 'the-other-tabs');
       expect(authorizer.sentTo, isNull,
           reason: 'a tab that lost a race was sent to sign in');
       final kept =
-          jsonDecode((await store.readSetting('auth_token_response'))!) as Map;
+          jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
       expect(kept['refresh_token'], 'the-other-tabs-refresh-token');
     });
 
@@ -536,11 +537,11 @@ void main() {
       // On the web the other tab's write reaches this tab's store a moment
       // after it was made — often after the refusal of the race it won.
       final host = _nextHost();
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
       final expired =
           DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
               1000;
-      await store.writeSetting(
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({
           'access_token': 'stale',
@@ -558,7 +559,7 @@ void main() {
         }
         // Refused at once; the other tab's token arrives a little later.
         Future<void>.delayed(const Duration(milliseconds: 300), () {
-          return store.writeSetting(
+          return store.auth.write(
             'auth_token_response',
             jsonEncode({
               'access_token': 'the-other-tabs',
@@ -576,7 +577,7 @@ void main() {
             headers: {'content-type': 'application/json'});
       });
       final authorizer = _Obliging();
-      final api = OidcApi(config: _config(host), store: store,
+      final api = OidcApi(config: _config(host), store: store.auth,
           client: client,
           authorizer: authorizer,
           otherTabsGrace: const Duration(seconds: 2));
@@ -585,7 +586,7 @@ void main() {
       expect(authorizer.sentTo, isNull,
           reason: 'a tab that lost a race was sent to sign in');
       final kept =
-          jsonDecode((await store.readSetting('auth_token_response'))!) as Map;
+          jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
       expect(kept['refresh_token'], 'the-other-tabs-refresh-token',
           reason: 'the token the other tab won was thrown away');
     });
@@ -593,7 +594,7 @@ void main() {
     test('keeps its refresh token when the provider sends no new one', () async {
       final provider =
           _Provider(host: _nextHost(), reissuesRefreshTokens: false);
-      final store = await LocalStore.inMemory();
+      final store = await Stores.inMemory();
 
       final (first, _) = await _api(provider, store: store);
       await first.getActiveAccessToken();
@@ -601,11 +602,11 @@ void main() {
       // Run it out, and refresh again. The second refresh has to use the token
       // from the first exchange, because the provider never sent another.
       final kept =
-          jsonDecode((await store.readSetting('auth_token_response'))!) as Map;
+          jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
       kept['expires_at'] =
           DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
               1000;
-      await store.writeSetting('auth_token_response', jsonEncode(kept));
+      await store.auth.write('auth_token_response', jsonEncode(kept));
 
       final (second, _) = await _api(
         _Provider(host: provider.host, reissuesRefreshTokens: false),
@@ -614,7 +615,7 @@ void main() {
       expect(await second.getActiveAccessToken(), isNotNull);
 
       final after =
-          jsonDecode((await store.readSetting('auth_token_response'))!) as Map;
+          jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
       expect(after['refresh_token'], 'refresh-1',
           reason: 'the only refresh token this device had was thrown away');
     });
@@ -677,8 +678,8 @@ void main() {
         claims: const {'sub': 'user-1', 'name': 'A Player'},
         refused: const {'revoked'},
       );
-      final store = await LocalStore.inMemory();
-      await store.writeSetting(
+      final store = await Stores.inMemory();
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({
           'access_token': 'revoked',
@@ -710,8 +711,8 @@ void main() {
         claims: const {'sub': 'user-1'},
         refused: const {'revoked'},
       );
-      final store = await LocalStore.inMemory();
-      await store.writeSetting(
+      final store = await Stores.inMemory();
+      await store.auth.write(
         'auth_token_response',
         jsonEncode({
           'access_token': 'revoked',
@@ -737,8 +738,8 @@ void main() {
       await api.getUserInfo();
       await api.forgetUser();
 
-      expect(await store.readSetting('auth_token_response'), isNull);
-      expect(await store.readSetting('app_user_info'), isNull);
+      expect(await store.auth.read('auth_token_response'), isNull);
+      expect(await store.auth.read('app_user_info'), isNull);
       expect(await api.keptUserInfo(), isNull);
     });
 
@@ -753,13 +754,13 @@ void main() {
 
       await api.signOut();
 
-      expect(await store.readSetting('auth_token_response'), isNull);
+      expect(await store.auth.read('auth_token_response'), isNull);
       expect(await api.keptUserInfo(), isNull);
-      expect(await store.readSetting('auth_signed_out'), isNotNull);
+      expect(await store.auth.read('auth_signed_out'), isNotNull);
 
       expect(await api.getActiveAccessToken(), isNotNull);
       expect(authorizer.sentTo!.queryParameters['prompt'], 'login');
-      expect(await store.readSetting('auth_signed_out'), isNull,
+      expect(await store.auth.read('auth_signed_out'), isNull,
           reason: 'once somebody has signed in, it has been asked');
 
       // So the sign-in after that is waved through as usual.

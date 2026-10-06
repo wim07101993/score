@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/authorizer.dart';
+import 'package:score/features/auth/storage/authorizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_to_front/window_to_front.dart';
 

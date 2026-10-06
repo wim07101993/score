@@ -1,5 +1,5 @@
-import 'package:score/features/auth/tab_lock_native.dart'
-    if (dart.library.js_interop) 'package:score/features/auth/tab_lock_web.dart';
+import 'package:score/features/auth/storage/tab_lock_native.dart'
+    if (dart.library.js_interop) 'package:score/features/auth/storage/tab_lock_web.dart';
 
 /// Runs [body] while no other tab of the app runs anything under [name].
 ///

@@ -1,16 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/background.dart';
+import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/app_update/new_version_bar.dart';
-import 'package:score/features/auth/auth.dart';
+import 'package:score/features/auth/behaviours/go_on_as_kept_user.dart';
+import 'package:score/features/auth/behaviours/update_auth.dart';
 import 'package:score/features/observability/errors.dart';
 import 'package:score/features/observability/get_it.dart';
-import 'package:score/features/settings/settings.dart';
-import 'package:score/features/settings/theme_hint.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/settings/notifiers/settings_notifier.dart';
+import 'package:score/features/settings/storage/theme_hint.dart';
+import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
+import 'package:score/get_it.dart';
 import 'package:score/router.dart';
 import 'package:score/theme.dart';
 import 'package:score/widgets/starting.dart';
@@ -31,7 +35,10 @@ void run() {
   // Build LogsController before it is asked. Otherwise, it won't collect logs
   // until the logs-page is opened.
   final _ = GetIt.I.get<LogsController>();
-  catchUncaughtErrors();
+  catchUncaughtErrors(
+    flutterErrors: GetIt.I.logger('flutter-error'),
+    platformErrors: GetIt.I.logger('platform-error'),
+  );
 
   GetIt.I.logger('run').info('starting app');
 
@@ -47,24 +54,26 @@ class const ScoreApp({
 }
 
 class _ScoreAppState extends State<ScoreApp> {
-  late final Future<Settings> _started = _start();
+  late final Future<SettingsNotifier> _started = _start();
 
   /// Builds what the first page needs, and works out who it is for.
   ///
-  /// The repositories are built before anything is shown and the syncs are
-  /// started after: what is on this device is on screen straight away, and
-  /// whatever the server has to add arrives when it arrives.
-  Future<Settings> _start() async {
+  /// What is on this device is read before anything is shown and the syncs
+  /// are started after: what is here is on screen straight away, and whatever
+  /// the server has to add arrives when it arrives.
+  Future<SettingsNotifier> _start() async {
     final getIt = GetIt.I;
-    final settings = await getIt.getAsync<Settings>();
-    final auth = await getIt.getAsync<Auth>();
-    final sync = await getIt.getAsync<Sync>();
-    if (await auth.goOnAsKeptUser()) {
-      inTheBackground(sync.updateAuthAndCatchUp());
+    await getIt.resolveDependencies();
+    if ((await getIt<GoOnAsKeptUser>()()).orThrow()) {
+      // Not waited for: the pages are drawn from what this device knows, and
+      // the provider is asked behind them. A behaviour never throws.
+      unawaited(
+        Future.value(getIt<UpdateAuthAndCatchUp>()(const UpdateAuthParams())),
+      );
     } else {
-      await auth.updateAuth();
+      (await getIt<UpdateAuth>()(const UpdateAuthParams())).orThrow();
     }
-    return settings;
+    return getIt<SettingsNotifier>();
   }
 
   /// The screen shown until there is an app to show. It cannot ask what this
@@ -90,7 +99,7 @@ class _ScoreAppState extends State<ScoreApp> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Settings>(
+    return FutureBuilder<SettingsNotifier>(
       future: _started,
       builder: (context, snapshot) {
         if (snapshot.hasError) {

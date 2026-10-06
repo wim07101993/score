@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/settings/theme_hint_native.dart'
-    if (dart.library.js_interop) 'package:score/features/settings/theme_hint_web.dart';
+import 'package:score/features/settings/storage/theme_hint_native.dart'
+    if (dart.library.js_interop) 'package:score/features/settings/storage/theme_hint_web.dart';
 
 /// Light or dark, as this device was last told, from where it can be read
 /// before anything else is.

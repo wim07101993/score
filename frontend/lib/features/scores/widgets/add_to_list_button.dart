@@ -1,8 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/collections/repository.dart';
-import 'package:score/features/sets/repository.dart';
+import 'package:score/behaviours/exception_or.dart';
+import 'package:score/features/collections/behaviours/save_collection.dart';
+import 'package:score/features/collections/behaviours/save_collection_entry.dart';
+import 'package:score/features/collections/models.dart';
+import 'package:score/features/collections/notifiers/collections_notifier.dart';
+import 'package:score/features/sets/behaviours/save_set.dart';
+import 'package:score/features/sets/behaviours/save_set_entry.dart';
+import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/error_snack_bar.dart';
 
@@ -38,8 +44,8 @@ class const AddToListButtons({
   }
 
   Future<void> _addTo(BuildContext context, _Kind kind) async {
-    final sets = GetIt.I<SetsRepository>();
-    final collections = GetIt.I<CollectionsRepository>();
+    final sets = GetIt.I<SetsNotifier>();
+    final collections = GetIt.I<CollectionsNotifier>();
     final messenger = ScaffoldMessenger.of(context);
     final router = context.router;
     final isSet = kind == _Kind.set;
@@ -87,8 +93,14 @@ class const AddToListButtons({
       if (title == null) return;
       try {
         final id = isSet
-            ? (await sets.saveSet(title: title)).id
-            : (await collections.saveCollection(title: title)).id;
+            ? (await GetIt.I<SaveSet>()(SaveSetParams(title: title)))
+                .orThrow()
+                .id
+            : (await GetIt.I<SaveCollection>()(
+                SaveCollectionParams(title: title),
+              ))
+                .orThrow()
+                .id;
         target = _Pick(id: id, title: title);
       } catch (error) {
         messenger.showSnackBar(errorSnackBar(
@@ -107,9 +119,15 @@ class const AddToListButtons({
 
     try {
       if (isSet) {
-        await sets.saveEntry(id, scoreId: scoreId);
+        (await GetIt.I<SaveSetEntry>()(
+          SaveSetEntryParams(setId: id, scoreId: scoreId),
+        ))
+            .orThrow();
       } else {
-        await collections.saveEntry(id, scoreId: scoreId);
+        (await GetIt.I<SaveCollectionEntry>()(
+          SaveCollectionEntryParams(collectionId: id, scoreId: scoreId),
+        ))
+            .orThrow();
       }
       messenger.showSnackBar(SnackBar(
         content: Text('Added to "${target.title}".'),

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
 import 'package:score/features/observability/widgets/logs_button.dart';
-import 'package:score/features/settings/settings.dart';
+import 'package:score/features/settings/behaviours/set_page_look.dart';
+import 'package:score/features/settings/behaviours/set_theme_mode.dart';
+import 'package:score/features/settings/models.dart';
+import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/widgets/look_slider.dart';
 import 'package:score/features/settings/widgets/reset_look_button.dart';
 
@@ -16,11 +19,31 @@ import 'package:score/features/settings/widgets/reset_look_button.dart';
 @RoutePage()
 class const SettingsPage({
   super.key,
-}) extends StatelessWidget {
+}) extends StatefulWidget {
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final _settings = GetIt.I<SettingsNotifier>();
+
+  /// Where a drag on the lamp has got to, for the page it is lighting, while
+  /// it has not let go. Shown rather than stored: see [SetPageLook].
+  final Map<Brightness, PageLook> _dragging = {};
+
+  void _drag(Brightness brightness, PageLook look) =>
+      setState(() => _dragging[brightness] = readable(look));
+
+  Future<void> _keep(Brightness brightness, PageLook? look) async {
+    await GetIt.I<SetPageLook>()(
+      SetPageLookParams(brightness: brightness, look: look),
+    );
+    // The store has it by now, and the page follows the store again.
+    if (mounted) setState(() => _dragging.remove(brightness));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final settings = GetIt.I<Settings>();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -31,21 +54,20 @@ class const SettingsPage({
       // control that did not move until something else happened to redraw the
       // page would be the app disagreeing with what it had just been told.
       body: ListenableBuilder(
-        listenable: settings,
+        listenable: _settings,
         builder: (context, _) {
           final brightness = Theme.of(context).brightness;
           return Appearance(
-            mode: settings.themeMode,
-            onModeChanged: settings.setThemeMode,
+            mode: _settings.themeMode,
+            onModeChanged: (mode) => GetIt.I<SetThemeMode>()(mode),
             brightness: brightness,
-            look: settings.pageLook(brightness),
-            onLookChanged: (look) =>
-                settings.previewPageLook(brightness, look),
-            onLookCommitted: (look) =>
-                settings.setPageLook(brightness, look),
-            onLookReset: settings.isPageLookDefault(brightness)
+            look: _dragging[brightness] ?? _settings.pageLook(brightness),
+            onLookChanged: (look) => _drag(brightness, look),
+            onLookCommitted: (look) => _keep(brightness, look),
+            onLookReset: _settings.isPageLookDefault(brightness) &&
+                    !_dragging.containsKey(brightness)
                 ? null
-                : () => settings.resetPageLook(brightness),
+                : () => _keep(brightness, null),
           );
         },
       ),

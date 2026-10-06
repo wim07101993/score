@@ -12,6 +12,7 @@ library;
 // so it is said there and not here: a set that stored a key the score could not
 // be shown in would be a set nobody could play.
 import 'package:score/features/notation/view/score_view.dart';
+import 'package:score/features/sets/storage/sets_api.dart';
 import 'package:score/json.dart';
 
 /// How far back each sync asks for changes before the end of the last one.
@@ -542,3 +543,14 @@ List<String> addressesOf(Iterable<String> addresses) {
 /// them.
 List<String> addressesIn(String text) =>
     addressesOf(text.split(RegExp(r'[\n,;]')));
+
+/// An edit the server refused, which this app has taken back.
+///
+/// Giving up on an edit is the one thing the app does behind the player's back,
+/// so it says so when it happens.
+class const SyncProblem({
+  required final String setId,
+  required final String title,
+  required final String action,
+  required final SetsApiException error,
+});

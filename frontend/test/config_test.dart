@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
 import 'package:score/config.dart';
 
+/// Where what is wrong with a config is said.
+final _log = Logger('Config');
+
 void main() {
   Map<String, dynamic> oidc([Map<String, dynamic> more = const {}]) => {
         'clientId': 'web-client',
@@ -31,7 +34,10 @@ void main() {
       () {
     late OidcConfig config;
     final lines = printed(
-      () => config = OidcConfig.fromJson(json: oidc({'nativeClientId': 'native'})),
+      () => config = OidcConfig.fromJson(
+        logger: _log,
+        json: oidc({'nativeClientId': 'native'}),
+      ),
     );
 
     expect(config.clientId, 'web-client');
@@ -43,7 +49,9 @@ void main() {
 
   test('and as the web client when there is not, saying so', () {
     late OidcConfig config;
-    final lines = printed(() => config = OidcConfig.fromJson(json: oidc()));
+    final lines = printed(
+      () => config = OidcConfig.fromJson(logger: _log, json: oidc()),
+    );
 
     expect(config.nativeClientId, 'web-client');
     expect(config.clientIdHere, 'web-client');
@@ -53,7 +61,10 @@ void main() {
   test('an empty native client counts as none', () {
     late OidcConfig config;
     final lines = printed(
-      () => config = OidcConfig.fromJson(json: oidc({'nativeClientId': ''})),
+      () => config = OidcConfig.fromJson(
+        logger: _log,
+        json: oidc({'nativeClientId': ''}),
+      ),
     );
 
     expect(config.nativeClientId, 'web-client');

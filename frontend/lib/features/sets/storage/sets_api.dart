@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:score/api.dart';
 import 'package:score/config.dart';
+import 'package:score/storage/api.dart';
 
 /// The sets endpoints of the API.
 ///

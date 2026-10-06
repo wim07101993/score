@@ -1,11 +1,13 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/auth.dart';
-import 'package:score/features/sets/api.dart';
+import 'package:score/behaviours/exception_or.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sets/repository.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/sets/notifiers/sets_notifier.dart';
+import 'package:score/features/sync/behaviours/check_connection.dart';
+import 'package:score/features/sync/behaviours/update_scores.dart';
+import 'package:score/features/sync/behaviours/update_sets.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/offline_notice.dart';
 import 'package:score/widgets/sync_button.dart';
@@ -23,8 +25,8 @@ class const SetsPage({
 }
 
 class _SetsPageState extends State<SetsPage> {
-  final _auth = GetIt.I<Auth>();
-  final _sets = GetIt.I<SetsRepository>();
+  final _auth = GetIt.I<AuthNotifier>();
+  final _sets = GetIt.I<SetsNotifier>();
 
   bool _offline = false;
 
@@ -35,15 +37,15 @@ class _SetsPageState extends State<SetsPage> {
   }
 
   Future<void> _sync() async {
-    final sync = GetIt.I<Sync>();
     if (_auth.user?.isScoreViewer != true) return;
 
-    await sync.updateSets();
+    await GetIt.I<UpdateSets>()();
     // The scores are what a set is built out of, so a set that was written on
     // another device is only readable here once its scores are.
-    await sync.updateScores();
+    await GetIt.I<UpdateScores>()();
 
-    final reachable = await GetIt.I<SetsApi>().canBeReached();
+    final reachable =
+        (await GetIt.I<CheckConnection>()()).valueOrNull?.server ?? false;
     if (mounted) {
       setState(() => _offline = !reachable);
     }

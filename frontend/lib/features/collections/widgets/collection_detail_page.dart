@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/auth.dart';
-import 'package:score/features/collections/api.dart';
+import 'package:score/behaviours/exception_or.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/collections/behaviours/delete_collection.dart';
+import 'package:score/features/collections/behaviours/delete_collection_entry.dart';
+import 'package:score/features/collections/behaviours/save_collection.dart';
+import 'package:score/features/collections/behaviours/save_collection_entry.dart';
+import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
 import 'package:score/features/collections/models.dart';
-import 'package:score/features/collections/repository.dart';
+import 'package:score/features/collections/notifiers/collections_notifier.dart';
 import 'package:score/features/collections/widgets/add_score_to_collection_chip.dart';
 import 'package:score/features/collections/widgets/collection_description_field.dart';
 import 'package:score/features/collections/widgets/collection_entry_description_field.dart';
@@ -15,11 +20,12 @@ import 'package:score/features/collections/widgets/delete_collection_button.dart
 import 'package:score/features/collections/widgets/open_collection_entry_button.dart';
 import 'package:score/features/collections/widgets/remove_collection_entry_button.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/repository.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 import 'package:score/features/scores/widgets/scores_page.dart';
-import 'package:score/features/sync/sync.dart';
+import 'package:score/features/sync/behaviours/update_collections.dart';
+import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
@@ -57,10 +63,9 @@ class const CollectionDetailPage({
 }
 
 class _CollectionDetailPageState extends State<CollectionDetailPage> {
-  final _auth = GetIt.I<Auth>();
-  final _sync = GetIt.I<Sync>();
-  final _scores = GetIt.I<ScoresRepository>();
-  final _collections = GetIt.I<CollectionsRepository>();
+  final _auth = GetIt.I<AuthNotifier>();
+  final _scores = GetIt.I<ScoresNotifier>();
+  final _collections = GetIt.I<CollectionsNotifier>();
 
   static const _uuid = Uuid();
   final _title = TextEditingController();
@@ -94,7 +99,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   String? _pointedAt;
   Timer? _pointing;
 
-  void Function(CollectionSyncProblem)? _problemListener;
+  StreamSubscription<CollectionSyncProblem>? _problems;
 
   @override
   void initState() {
@@ -106,12 +111,8 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   @override
   void dispose() {
-    final listener = _problemListener;
-    if (listener != null) {
-      _collections
-        ..removeSyncProblemListener(listener)
-        ..removeListener(_takeStoredChanges);
-    }
+    unawaited(_problems?.cancel());
+    _collections.removeListener(_takeStoredChanges);
     _pointing?.cancel();
     _title.dispose();
     _description.dispose();
@@ -130,7 +131,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     // is stored under that id.
     if (widget.collectionId != 'new' &&
         _collections.getCollection(_collectionId) == null) {
-      await _sync.updateCollections();
+      await GetIt.I<UpdateCollections>()();
     }
 
     if (!mounted) return;
@@ -144,7 +145,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
     // Giving up on an edit is the one thing this app does behind the player's
     // back, so it says so when it happens.
-    _problemListener = (problem) {
+    _problems = _collections.problems.listen((problem) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(
         '"${problem.title.isEmpty ? 'A collection' : problem.title}" could'
@@ -155,17 +156,15 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         _readFromStored();
         setState(() {});
       }
-    };
-    _collections
-      ..addSyncProblemListener(_problemListener!)
-      ..addListener(_takeStoredChanges);
+    });
+    _collections.addListener(_takeStoredChanges);
 
     // The scores are what the pieces are called by, and they may bring in ones
     // this collection names; and, when nothing is being typed, the sync may
     // bring in a newer version of the collection itself.
-    await _sync.updateScores();
+    await GetIt.I<UpdateScores>()();
     if (widget.collectionId != 'new') {
-      await _sync.updateCollections();
+      await GetIt.I<UpdateCollections>()();
     }
     if (mounted && !_dirty) {
       _readFromStored();
@@ -177,7 +176,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   /// not here.
   Future<void> _retry() async {
     setState(() => _loading = true);
-    await _sync.updateCollections();
+    await GetIt.I<UpdateCollections>()();
     if (!mounted) return;
     setState(() {
       _readFromStored();
@@ -224,12 +223,15 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     final description = _description.text;
     final sharedWith = _sharedWith.text;
     try {
-      await _collections.saveCollection(
-        id: _collectionId,
-        title: title,
-        description: description,
-        sharedWith: addressesIn(sharedWith),
-      );
+      (await GetIt.I<SaveCollection>()(
+        SaveCollectionParams(
+          id: _collectionId,
+          title: title,
+          description: description,
+          sharedWith: addressesIn(sharedWith),
+        ),
+      ))
+          .orThrow();
       if (!mounted) return;
       // Only what was sent is saved. Whatever was typed while the write was
       // out is still to be saved; and when nothing was, the fields show what
@@ -240,10 +242,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         setState(_readFromStored);
       }
       // Only once nothing typed is left unsaved: the page at the new address
-      // reads what is stored, and would drop it.
-      if (widget.collectionId == 'new' &&
-          !_dirty &&
-          _collections.getCollection(_collectionId) != null) {
+      // reads what is stored, and would drop it. What was saved is stored by
+      // now, whether or not this page has heard so yet.
+      if (widget.collectionId == 'new' && !_dirty) {
         // Saved, it is a collection like any other and is at its own address,
         // so that reloading it or keeping it opens this collection rather than
         // a new empty one.
@@ -298,7 +299,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     if (confirmed != true || !mounted) return;
 
     try {
-      await _collections.deleteCollection(_collectionId);
+      (await GetIt.I<DeleteCollection>()(_collectionId)).orThrow();
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) _say('The collection could not be deleted: $error');
@@ -320,14 +321,17 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     int? transposition,
   }) async {
     try {
-      await _collections.saveEntry(
-            _collectionId,
-            id: id,
-            scoreId: scoreId,
-            onPaper: onPaper,
-            description: description,
-            transposition: transposition,
-          );
+      (await GetIt.I<SaveCollectionEntry>()(
+        SaveCollectionEntryParams(
+          collectionId: _collectionId,
+          id: id,
+          scoreId: scoreId,
+          onPaper: onPaper,
+          description: description,
+          transposition: transposition,
+        ),
+      ))
+          .orThrow();
     } on ScoreAlreadyInCollectionException catch (already) {
       // Adding a piece that is here is being shown where it is. Changing one
       // that is here twice is not something scrolling answers: what was typed
@@ -459,7 +463,13 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                   _writeEntry(id: entry.id, transposition: semitones),
               onRemove: () async {
                 try {
-                  await _collections.deleteEntry(_collectionId, entry.id);
+                  (await GetIt.I<DeleteCollectionEntry>()(
+                    DeleteCollectionEntryParams(
+                      collectionId: _collectionId,
+                      entryId: entry.id,
+                    ),
+                  ))
+                      .orThrow();
                 } catch (error) {
                   if (mounted) {
                     _say('That piece could not be taken out of the'
@@ -617,8 +627,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                   label: _stateOf(collection),
                   unsynced: collection?.owesAnything == true && !_dirty,
                   whyNotSynced: () => _collections.whyNotSynced(_collectionId),
-                  apiCanBeReached: GetIt.I<CollectionsApi>().canBeReached,
-                  sync: _sync.updateCollections,
+                  sync: () async => GetIt.I<UpdateCollections>()(),
                 ),
               ),
               if (editing) SaveButton(onPressed: _dirty ? _save : null),
@@ -851,19 +860,22 @@ class const _EntryCard({
   required final Future<void> Function() onRemove,
 }) extends StatelessWidget {
   /// Stores how this player reads the piece. What is not said is kept as it
-  /// is: the repository writes a view whole, filling in what was left out.
+  /// is: [SaveCollectionEntryView] writes a view whole, filling in what was left out.
   Future<void> _saveMyView(
     BuildContext context, {
     int? transposition,
     List<String>? hiddenParts,
   }) async {
     try {
-      await GetIt.I<CollectionsRepository>().saveEntryView(
-            collectionId,
-            entry.id,
-            transposition: transposition,
-            hiddenParts: hiddenParts,
-          );
+      (await GetIt.I<SaveCollectionEntryView>()(
+        SaveCollectionEntryViewParams(
+          collectionId: collectionId,
+          entryId: entry.id,
+          transposition: transposition,
+          hiddenParts: hiddenParts,
+        ),
+      ))
+          .orThrow();
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

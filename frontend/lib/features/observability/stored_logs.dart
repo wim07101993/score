@@ -1,5 +1,5 @@
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
-import 'package:score/features/sembast/local_store.dart';
+import 'package:score/features/observability/storage/logs_store.dart';
 
 /// Keeps what is logged in the local store, so that what led up to a crash can
 /// still be read once the app is started again.
@@ -12,14 +12,14 @@ import 'package:score/features/sembast/local_store.dart';
 /// front of what this one has logged so far in [logs], which is what the logs
 /// page shows.
 class StoredLogSink({
-  required Future<LocalStore> store,
+  required Future<LogsStore> store,
   required LogsController logs,
 }) with LogSinkMixin {
   this {
     _written = restored = store.then((store) async {
       _store = store;
-      await store.keepLastLogs(keptCount);
-      final earlier = await store.readLogs();
+      await store.keepLast(keptCount);
+      final earlier = await store.readAll();
       logs.value = [...earlier.map(_fromJson), ...logs.value];
     });
   }
@@ -33,7 +33,7 @@ class StoredLogSink({
   @override
   LogFilter get filter => const LogFilter.none();
 
-  late LocalStore _store;
+  late LogsStore _store;
 
   /// The last write, which the next one waits for, so that the records are
   /// stored in the order they were logged.
@@ -45,12 +45,12 @@ class StoredLogSink({
   Future<void> write(LogRecord logRecord) {
     final json = _toJson(logRecord);
     return _written = _written.then((_) async {
-      await _store.writeLog(json);
+      await _store.write(json);
       // Trimmed now and then rather than at every write: the store holds
       // somewhere between one and two pages of logs, and a write is a write.
       if (++_writtenSinceTrimmed >= keptCount) {
         _writtenSinceTrimmed = 0;
-        await _store.keepLastLogs(keptCount);
+        await _store.keepLast(keptCount);
       }
     });
   }
