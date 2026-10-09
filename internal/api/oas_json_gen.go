@@ -2235,6 +2235,41 @@ func (s *OptFloat64) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes uuid.UUID as json.
+func (o OptUUID) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	json.EncodeUUID(e, o.Value)
+}
+
+// Decode decodes uuid.UUID from json.
+func (o *OptUUID) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUUID to nil")
+	}
+	o.Set = true
+	v, err := json.DecodeUUID(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUUID) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUUID) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *ProblemDetails) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -2268,6 +2303,12 @@ func (s *ProblemDetails) encodeFields(e *jx.Encoder) {
 		e.FieldStart("errorCode")
 		s.ErrorCode.Encode(e)
 	}
+	{
+		if s.EntryId.Set {
+			e.FieldStart("entryId")
+			s.EntryId.Encode(e)
+		}
+	}
 	for k, elem := range s.AdditionalProps {
 		e.FieldStart(k)
 
@@ -2277,13 +2318,14 @@ func (s *ProblemDetails) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfProblemDetails = [6]string{
+var jsonFieldsNameOfProblemDetails = [7]string{
 	0: "type",
 	1: "title",
 	2: "status",
 	3: "detail",
 	4: "instance",
 	5: "errorCode",
+	6: "entryId",
 }
 
 // Decode decodes ProblemDetails from json.
@@ -2365,6 +2407,16 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"errorCode\"")
+			}
+		case "entryId":
+			if err := func() error {
+				s.EntryId.Reset()
+				if err := s.EntryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
 			}
 		default:
 			var elem jx.Raw

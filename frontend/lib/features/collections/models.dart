@@ -15,7 +15,6 @@ library;
 // so it is said there and not here, and the same goes for the set's rules about
 // keys and addresses: a collection reads the same music the same way, so it
 // takes them as they are rather than keeping a second copy that could drift.
-import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/sets/models.dart'
     show
@@ -26,7 +25,9 @@ import 'package:score/features/sets/models.dart'
         SyncedRecord,
         scoreIdOf,
         transpositionOf;
-import 'package:score/json.dart';
+import 'package:score/json_map_extensions.dart';
+import 'package:score/storage/api_exception.dart';
+import 'package:score/storage/clients.dart';
 
 export 'package:score/features/sets/models.dart'
     show
@@ -96,62 +97,33 @@ class const Collection({
   /// rather than the whole book.
   @override final List<PendingEntry> pendingEntries = const [],
 }) implements SyncedRecord<Collection, CollectionEntry> {
-  /// A collection the way the API hands it over, as one this app keeps: the
-  /// moments as dates rather than as the strings they arrive as, and nothing
-  /// owed.
-  factory Collection.fromApi({
-    required Map<String, dynamic> json,
-    required DateTime syncedAt,
-  }) =>
-      Collection(
-        id: '${json['id']}',
-        title: '${json['title'] ?? ''}',
-        description: '${json['description'] ?? ''}',
-        entries: [
-          for (final entry in (json['entries'] as List? ?? []))
-            CollectionEntry.fromApi(json: (entry as Map).cast<String, dynamic>()),
-        ],
-        sharedWith: [
-          for (final address in (json['shared_with'] as List? ?? [])) '$address',
-        ],
-        isOwner: json['is_owner'] == true,
-        lastChangedAt:
-            dateOf(json['last_changed_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: dateOf(json['deleted_at']),
-        lastSyncedAt: syncedAt,
-      );
-
   /// A collection as this device stored it — which is also how the app that was
   /// there before this one stored it, so what it left behind in a browser is
   /// read by this and nothing else.
-  factory Collection.fromJson({
-    required Map<String, Object?> json,
-  }) =>
-      Collection(
-        id: '${json['id']}',
-        title: '${json['title'] ?? ''}',
-        description: '${json['description'] ?? ''}',
-        entries: [
-          for (final entry in (json['entries'] as List? ?? []))
-            CollectionEntry.fromJson(json: (entry as Map).cast<String, Object?>()),
-        ],
-        sharedWith: [
-          for (final address in (json['shared_with'] as List? ?? [])) '$address',
-        ],
-        isOwner: json['is_owner'] != false,
-        lastChangedAt: dateOf(json['last_changed_at']) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: dateOf(json['deleted_at']),
-        lastSyncedAt: dateOf(json['last_synced_at']),
-        pendingChange: json['pending_change'] as String?,
-        pendingViews: [
-          for (final id in (json['pending_views'] as List? ?? [])) '$id',
-        ],
-        pendingEntries: [
-          for (final owed in (json['pending_entries'] as List? ?? []))
-            PendingEntry.fromJson(json: (owed as Map).cast<String, Object?>()),
-        ],
-      );
+  factory Collection.fromJson(Map json) {
+    return Collection(
+      id: '${json['id']}',
+      title: json.get<String>('title') ?? '',
+      description: json.get<String>('description') ?? '',
+      entries: json
+          .getList<Map>('entries')
+          .map(CollectionEntry.fromJson)
+          .toList(growable: false),
+      sharedWith: json.getList('shared_with'),
+      isOwner: json.get<bool>('is_owner') ?? true,
+      lastChangedAt:
+          json.get('last_changed_at', parser: DateTime.tryParse) ??
+          beginningOfTime,
+      deletedAt: json.get('deleted_at', parser: DateTime.tryParse),
+      lastSyncedAt: json.get('last_synced_at', parser: DateTime.tryParse),
+      pendingChange: json.get<String>('pending_change'),
+      pendingViews: json.getList('pending_views'),
+      pendingEntries: json
+          .getList<Map>('pending_entries')
+          .map(PendingEntry.fromJson)
+          .toList(growable: false),
+    );
+  }
 
   @override
   bool get owesAnything =>
@@ -181,40 +153,42 @@ class const Collection({
     List<PendingEntry>? pendingEntries,
     bool clearPendingChange = false,
     bool clearDeletedAt = false,
-  }) =>
-      Collection(
-        id: id,
-        title: title ?? this.title,
-        description: description ?? this.description,
-        entries: entries ?? this.entries,
-        sharedWith: sharedWith ?? this.sharedWith,
-        isOwner: isOwner ?? this.isOwner,
-        lastChangedAt: lastChangedAt ?? this.lastChangedAt,
-        deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
-        lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
-        pendingChange:
-            clearPendingChange ? null : (pendingChange ?? this.pendingChange),
-        pendingViews: pendingViews ?? this.pendingViews,
-        pendingEntries: pendingEntries ?? this.pendingEntries,
-      );
+  }) => Collection(
+    id: id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    entries: entries ?? this.entries,
+    sharedWith: sharedWith ?? this.sharedWith,
+    isOwner: isOwner ?? this.isOwner,
+    lastChangedAt: lastChangedAt ?? this.lastChangedAt,
+    deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+    lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    pendingChange: clearPendingChange
+        ? null
+        : (pendingChange ?? this.pendingChange),
+    pendingViews: pendingViews ?? this.pendingViews,
+    pendingEntries: pendingEntries ?? this.pendingEntries,
+  );
 
   @override
   Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'entries': [for (final entry in entries) entry.toJson()],
-        'shared_with': sharedWith,
-        'is_owner': isOwner,
-        // In UTC, for the reason a set's are (see ScoreSet.toJson): a local
-        // moment is read back in whatever zone the device is in by then.
-        'last_changed_at': lastChangedAt.toUtc().toIso8601String(),
-        'deleted_at': deletedAt?.toUtc().toIso8601String(),
-        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
-        'pending_change': pendingChange,
-        'pending_views': pendingViews,
-        'pending_entries': [for (final owed in pendingEntries) owed.toJson()],
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'entries': entries.map((entry) => entry.toJson()).toList(growable: false),
+    'shared_with': sharedWith,
+    'is_owner': isOwner,
+    // In UTC, for the reason a set's are (see ScoreSet.toJson): a local
+    // moment is read back in whatever zone the device is in by then.
+    'last_changed_at': lastChangedAt.toUtc().toIso8601String(),
+    'deleted_at': deletedAt?.toUtc().toIso8601String(),
+    'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
+    'pending_change': pendingChange,
+    'pending_views': pendingViews,
+    'pending_entries': pendingEntries
+        .map((owed) => owed.toJson())
+        .toList(growable: false),
+  };
 }
 
 /// One piece in a collection.
@@ -256,30 +230,18 @@ class const CollectionEntry({
   /// is no row there to remove.
   @override final bool synced = false,
 }) implements SyncedEntry<CollectionEntry> {
-  factory CollectionEntry.fromApi({
-    required Map<String, dynamic> json,
-  }) =>
-      CollectionEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: CollectionEntryView.fromJson(json: json['view']),
-        // Everything the API hands over is on the server by definition.
-        synced: true,
-      );
-
-  factory CollectionEntry.fromJson({
-    required Map<String, Object?> json,
-  }) =>
-      CollectionEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: CollectionEntryView.fromJson(json: json['view']),
-        synced: json['synced'] == true,
-      );
+  factory CollectionEntry.fromJson(Map json) {
+    return CollectionEntry(
+      id: '${json['id']}',
+      scoreId: scoreIdOf(json['score_id']),
+      description: json.get<String>('description') ?? '',
+      transposition: transpositionOf(json['transposition']),
+      view:
+          json.getObject('view', CollectionEntryView.fromJson) ??
+          const CollectionEntryView(),
+      synced: json.get<bool>('synced') ?? false,
+    );
+  }
 
   /// Whether this is a piece that has yet to be scanned: in the book, and not
   /// in here.
@@ -291,8 +253,10 @@ class const CollectionEntry({
   /// The two are added rather than one replacing the other, and the sum is held
   /// to the range the player offers — an octave either way is as far as the
   /// control goes, whatever the two of them add up to.
-  int get readAt => (transposition + view.transposition)
-      .clamp(minTransposition, maxTransposition);
+  int get readAt => (transposition + view.transposition).clamp(
+    minTransposition,
+    maxTransposition,
+  );
 
   /// Which piece it is, as somebody looking down the list reads it: the title
   /// of its score, and what is written next to it when there is no score to
@@ -324,27 +288,26 @@ class const CollectionEntry({
     CollectionEntryView? view,
     bool? synced,
     bool clearScoreId = false,
-  }) =>
-      CollectionEntry(
-        id: id,
-        scoreId: clearScoreId ? null : (scoreId ?? this.scoreId),
-        description: description ?? this.description,
-        transposition: transposition ?? this.transposition,
-        view: view ?? this.view,
-        synced: synced ?? this.synced,
-      );
+  }) => CollectionEntry(
+    id: id,
+    scoreId: clearScoreId ? null : (scoreId ?? this.scoreId),
+    description: description ?? this.description,
+    transposition: transposition ?? this.transposition,
+    view: view ?? this.view,
+    synced: synced ?? this.synced,
+  );
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        // Null rather than left out, and never written as text: an entry read
-        // back with a score called `null` would be sent to the server as a
-        // score that does not exist, and would stop being a piece on paper.
-        'score_id': scoreId,
-        'description': description,
-        'transposition': transposition,
-        'view': view.toJson(),
-        'synced': synced,
-      };
+    'id': id,
+    // Null rather than left out, and never written as text: an entry read
+    // back with a score called `null` would be sent to the server as a
+    // score that does not exist, and would stop being a piece on paper.
+    'score_id': scoreId,
+    'description': description,
+    'transposition': transposition,
+    'view': view.toJson(),
+    'synced': synced,
+  };
 }
 
 /// How one player looks at one entry of a collection: the same thing, read the
@@ -364,15 +327,14 @@ List<CollectionEntry> entriesByTitle(
   Iterable<CollectionEntry> entries,
   String? Function(String scoreId) titleOf,
 ) {
-  String keyOf(CollectionEntry entry) =>
-      entry.nameWith(titleOf).toLowerCase();
+  String keyOf(CollectionEntry entry) => entry.nameWith(titleOf).toLowerCase();
 
   return [...entries]..sort((a, b) {
-      final byName = keyOf(a).compareTo(keyOf(b));
-      // Two pieces that are called the same are still two pieces, and which of
-      // them comes first must not change every time the list is drawn.
-      return byName != 0 ? byName : a.id.compareTo(b.id);
-    });
+    final byName = keyOf(a).compareTo(keyOf(b));
+    // Two pieces that are called the same are still two pieces, and which of
+    // them comes first must not change every time the list is drawn.
+    return byName != 0 ? byName : a.id.compareTo(b.id);
+  });
 }
 
 /// The piece is already in the collection.
@@ -399,7 +361,7 @@ class const CollectionSyncProblem({
   required final String collectionId,
   required final String title,
   required final String action,
-  required final CollectionsApiException error,
+  required final ApiException error,
 });
 
 /// A piece with no score has nothing to be called by but what is written next
@@ -407,6 +369,7 @@ class const CollectionSyncProblem({
 /// next one.
 class const UnnamedPieceException() implements Exception {
   @override
-  String toString() => 'A piece with no score has nothing to be called by but'
+  String toString() =>
+      'A piece with no score has nothing to be called by but'
       ' what is written next to it.';
 }

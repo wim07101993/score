@@ -64,7 +64,8 @@ class _SettingsPageState extends State<SettingsPage> {
             look: _dragging[brightness] ?? _settings.pageLook(brightness),
             onLookChanged: (look) => _drag(brightness, look),
             onLookCommitted: (look) => _keep(brightness, look),
-            onLookReset: _settings.isPageLookDefault(brightness) &&
+            onLookReset:
+                _settings.isPageLookDefault(brightness) &&
                     !_dragging.containsKey(brightness)
                 ? null
                 : () => _keep(brightness, null),
@@ -199,8 +200,10 @@ class const Appearance({
                       onLookChanged((brightness: value, warmth: look.warmth)),
                   onChangeEnd: onLookCommitted == null
                       ? null
-                      : (value) => onLookCommitted!(
-                          (brightness: value, warmth: look.warmth)),
+                      : (value) => onLookCommitted!((
+                          brightness: value,
+                          warmth: look.warmth,
+                        )),
                 ),
                 _Dial(
                   label: 'Warmth',
@@ -212,20 +215,24 @@ class const Appearance({
                       : '${(look.warmth * 100).round()}%',
                   low: Icons.ac_unit_outlined,
                   high: Icons.local_fire_department_outlined,
-                  onChanged: (value) => onLookChanged(
-                      (brightness: look.brightness, warmth: value)),
+                  onChanged: (value) => onLookChanged((
+                    brightness: look.brightness,
+                    warmth: value,
+                  )),
                   onChangeEnd: onLookCommitted == null
                       ? null
-                      : (value) => onLookCommitted!(
-                          (brightness: look.brightness, warmth: value)),
+                      : (value) => onLookCommitted!((
+                          brightness: look.brightness,
+                          warmth: value,
+                        )),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   brightness == Brightness.dark
                       ? 'The light page is set separately — switch to Light'
-                          ' above to set it.'
+                            ' above to set it.'
                       : 'The dark page is set separately — switch to Dark above'
-                          ' to set it.',
+                            ' to set it.',
                   style: theme.textTheme.bodySmall,
                 ),
               ],

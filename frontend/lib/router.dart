@@ -26,23 +26,23 @@ part 'router.gr.dart';
 class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
-        AutoRoute(page: ScoresRoute.page, path: '/', initial: true),
-        RedirectRoute(path: '/scores', redirectTo: '/'),
-        // Before the score's own address, which would otherwise be taken for
-        // the start of this one.
-        _detail(PerformScoreRoute.page, '/scores/:scoreId/perform'),
-        _detail(ScoreRoute.page, '/scores/:scoreId'),
-        AutoRoute(page: SetsRoute.page, path: '/sets'),
-        _detail(SetDetailRoute.page, '/sets/:setId'),
-        AutoRoute(page: CollectionsRoute.page, path: '/collections'),
-        _detail(CollectionDetailRoute.page, '/collections/:collectionId'),
-        AutoRoute(page: ProfileRoute.page, path: '/profile'),
-        AutoRoute(page: SettingsRoute.page, path: '/settings'),
-        AutoRoute(page: LogsRoute.page, path: '/settings/logs'),
-        // Anything unrecognised is the list of scores, which is where the app
-        // starts.
-        RedirectRoute(path: '*', redirectTo: '/'),
-      ];
+    AutoRoute(page: ScoresRoute.page, path: '/', initial: true),
+    RedirectRoute(path: '/scores', redirectTo: '/'),
+    // Before the score's own address, which would otherwise be taken for
+    // the start of this one.
+    _detail(PerformScoreRoute.page, '/scores/:scoreId/perform'),
+    _detail(ScoreRoute.page, '/scores/:scoreId'),
+    AutoRoute(page: SetsRoute.page, path: '/sets'),
+    _detail(SetDetailRoute.page, '/sets/:setId'),
+    AutoRoute(page: CollectionsRoute.page, path: '/collections'),
+    _detail(CollectionDetailRoute.page, '/collections/:collectionId'),
+    AutoRoute(page: ProfileRoute.page, path: '/profile'),
+    AutoRoute(page: SettingsRoute.page, path: '/settings'),
+    AutoRoute(page: LogsRoute.page, path: '/settings/logs'),
+    // Anything unrecognised is the list of scores, which is where the app
+    // starts.
+    RedirectRoute(path: '*', redirectTo: '/'),
+  ];
 
   /// A page that is one of many at the same kind of address — a score, a set
   /// or a collection. Each address is a page of its own: the next song of a
@@ -104,33 +104,33 @@ class AppRouter extends RootStackRouter {
       SetsRoute.name || CollectionsRoute.name => [const ScoresRoute(), target],
       SetDetailRoute.name => [const ScoresRoute(), const SetsRoute(), target],
       CollectionDetailRoute.name => [
-          const ScoresRoute(),
-          const CollectionsRoute(),
-          target,
-        ],
+        const ScoresRoute(),
+        const CollectionsRoute(),
+        target,
+      ],
       // A score opened out of a set: the set goes behind it, so leaving the
       // score arrives back at the running order it was being played from
       // rather than skipping past it to the list of every score there is.
       ScoreRoute.name || PerformScoreRoute.name when setId != null => [
-          const ScoresRoute(),
-          const SetsRoute(),
-          SetDetailRoute(setId: setId),
-          target,
-        ],
+        const ScoresRoute(),
+        const SetsRoute(),
+        SetDetailRoute(setId: setId),
+        target,
+      ],
       // And one opened out of a collection goes back through the collection.
       ScoreRoute.name || PerformScoreRoute.name when collectionId != null => [
-          const ScoresRoute(),
-          const CollectionsRoute(),
-          CollectionDetailRoute(collectionId: collectionId),
-          target,
-        ],
+        const ScoresRoute(),
+        const CollectionsRoute(),
+        CollectionDetailRoute(collectionId: collectionId),
+        target,
+      ],
       // A score played on its own is left for its details, which is where it
       // was played from.
       PerformScoreRoute.name => [
-          const ScoresRoute(),
-          ScoreRoute(scoreId: target.rawPathParams['scoreId'] as String),
-          target,
-        ],
+        const ScoresRoute(),
+        ScoreRoute(scoreId: target.rawPathParams['scoreId'] as String),
+        target,
+      ],
       _ => [const ScoresRoute(), target],
     };
   }
@@ -144,13 +144,12 @@ PerformScoreRoute paperRoute({
   String? setId,
   String? collectionId,
   required String entryId,
-}) =>
-    PerformScoreRoute(
-      scoreId: ScoreDetailPage.paper,
-      setId: setId,
-      collectionId: collectionId,
-      entryId: entryId,
-    );
+}) => PerformScoreRoute(
+  scoreId: ScoreDetailPage.paper,
+  setId: setId,
+  collectionId: collectionId,
+  entryId: entryId,
+);
 
 /// A score's details, or the score on the stand when [performing].
 PageRouteInfo scoreRoute(
@@ -159,17 +158,16 @@ PageRouteInfo scoreRoute(
   String? collectionId,
   String? entryId,
   bool performing = false,
-}) =>
-    performing
-        ? PerformScoreRoute(
-            scoreId: scoreId,
-            setId: setId,
-            collectionId: collectionId,
-            entryId: entryId,
-          )
-        : ScoreRoute(
-            scoreId: scoreId,
-            setId: setId,
-            collectionId: collectionId,
-            entryId: entryId,
-          );
+}) => performing
+    ? PerformScoreRoute(
+        scoreId: scoreId,
+        setId: setId,
+        collectionId: collectionId,
+        entryId: entryId,
+      )
+    : ScoreRoute(
+        scoreId: scoreId,
+        setId: setId,
+        collectionId: collectionId,
+        entryId: entryId,
+      );

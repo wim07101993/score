@@ -12,8 +12,9 @@ class const EntryDescriptionField({
 }
 
 class _EntryDescriptionFieldState extends State<EntryDescriptionField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initialValue);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialValue,
+  );
 
   /// The note as it read when this field last took it from the set, which is
   /// what the text is compared with to tell whether the player changed it.

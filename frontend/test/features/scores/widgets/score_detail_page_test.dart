@@ -18,20 +18,23 @@ const _viewer = UserInfo(
 
 /// The app opened at [route] alone, as [router] has it.
 Widget _app(AppRouter router, PageRouteInfo route) => MaterialApp.router(
-      routerConfig: router.config(deepLinkBuilder: (_) => DeepLink([route])),
-    );
+  routerConfig: router.config(deepLinkBuilder: (_) => DeepLink([route])),
+);
 
 void main() {
   tearDown(() => GetIt.I.popScope());
 
-  testWidgets('an editor who may not read scores can still upload one',
-      (tester) async {
-    await tester.runAsync(() => GetIt.I.registerForTesting(
-          user: const UserInfo(
-            subject: 'librarian',
-            roles: {'score_editor': <String, dynamic>{}},
-          ),
-        ));
+  testWidgets('an editor who may not read scores can still upload one', (
+    tester,
+  ) async {
+    await tester.runAsync(
+      () => GetIt.I.registerForTesting(
+        user: const UserInfo(
+          subject: 'librarian',
+          roles: {'score_editor': <String, dynamic>{}},
+        ),
+      ),
+    );
 
     await tester.pumpWidget(_app(AppRouter(), ScoreRoute(scoreId: 'new')));
     await tester.pump();
@@ -48,8 +51,10 @@ void main() {
     Future<void> openPaperEntry(WidgetTester tester) async {
       await tester.runAsync(() => GetIt.I.registerForTesting(user: _viewer));
       await tester.runAsync(() async {
-        final set = await GetIt.I<SaveSet>()
-            .action(const SaveSetParams(title: 'Friday'), null);
+        final set = await GetIt.I<SaveSet>().action(
+          const SaveSetParams(title: 'Friday'),
+          null,
+        );
         final withEntry = await GetIt.I<SaveSetEntry>().action(
           SaveSetEntryParams(setId: set.id, description: 'Happy birthday'),
           null,
@@ -69,8 +74,9 @@ void main() {
       expect(find.text('This one is played from paper.'), findsOneWidget);
     }
 
-    testWidgets('taken out of the set is no longer shown as in it',
-        (tester) async {
+    testWidgets('taken out of the set is no longer shown as in it', (
+      tester,
+    ) async {
       await openPaperEntry(tester);
 
       await tester.runAsync(() async {
@@ -86,8 +92,9 @@ void main() {
       expect(find.text('This song is no longer in there.'), findsOneWidget);
     });
 
-    testWidgets('scanned while it is open is opened as its score, in the set',
-        (tester) async {
+    testWidgets('scanned while it is open is opened as its score, in the set', (
+      tester,
+    ) async {
       await openPaperEntry(tester);
 
       await tester.runAsync(() async {

@@ -8,8 +8,7 @@ final ValueNotifier<bool> _ready = () {
   // Set by the bootstrap, which may have seen the new version take over before
   // this was first asked.
   final ready = ValueNotifier(
-    web.window.getProperty<JSBoolean?>('scoreAppUpdated'.toJS)?.toDart ??
-        false,
+    web.window.getProperty<JSBoolean?>('scoreAppUpdated'.toJS)?.toDart ?? false,
   );
   web.window.addEventListener(
     'score-app-updated',

@@ -47,21 +47,21 @@ class const SheetPalette({
     final grey = _greyGiving(lamp);
 
     Color shift(double r, double g, double b) => Color.fromARGB(
-          255,
-          (grey + r * warm).round().clamp(0, 255),
-          (grey + g * warm).round().clamp(0, 255),
-          (grey + b * warm).round().clamp(0, 255),
-        );
+      255,
+      (grey + r * warm).round().clamp(0, 255),
+      (grey + g * warm).round().clamp(0, 255),
+      (grey + b * warm).round().clamp(0, 255),
+    );
 
     // Held at a near-black rather than black, and let all the way down to black
     // only as the page comes up to full: ink darker than the darkest thing a
     // dimmed screen can show is ink nobody gains anything from.
     Color inkAt(double r, double g, double b) => Color.fromARGB(
-          255,
-          ((r + 9 * warm) * (1 - lamp)).round().clamp(0, 255),
-          ((g + 3 * warm) * (1 - lamp)).round().clamp(0, 255),
-          ((b - 11 * warm) * (1 - lamp)).round().clamp(0, 255),
-        );
+      255,
+      ((r + 9 * warm) * (1 - lamp)).round().clamp(0, 255),
+      ((g + 3 * warm) * (1 - lamp)).round().clamp(0, 255),
+      ((b - 11 * warm) * (1 - lamp)).round().clamp(0, 255),
+    );
 
     final ink = inkAt(17, 19, 22);
     return SheetPalette(
@@ -125,8 +125,7 @@ class const SheetPalette({
   /// This is only where the lamp *starts* in the dark. Where it ends up is the
   /// reader's, in the settings, because how dim a page wants to be is a question
   /// about a room and not about an app.
-  static final dark =
-      SheetPalette.lamp(brightness: night, warmth: nightWarmth);
+  static final dark = SheetPalette.lamp(brightness: night, warmth: nightWarmth);
 
   /// The sRGB grey that gives off [luminance] of what white gives off.
   static double _greyGiving(double luminance) {

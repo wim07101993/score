@@ -82,6 +82,9 @@
       <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/window_to_front/example/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/window_to_front/example/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/window_to_front/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/packages/score_api/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/packages/score_api/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/packages/score_api/build" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/desktop_webview_window/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/desktop_webview_window/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/desktop_webview_window/build" />

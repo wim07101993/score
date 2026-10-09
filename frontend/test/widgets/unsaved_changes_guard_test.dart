@@ -5,19 +5,23 @@ import 'package:score/widgets/unsaved_changes_guard.dart';
 /// A page with edits that are not saved asks before it is left.
 void main() {
   Future<void> openPage(WidgetTester tester, {required bool unsaved}) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => TextButton(
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => UnsavedChangesGuard(
-              unsaved: unsaved,
-              child: const Scaffold(body: Text('the set')),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => UnsavedChangesGuard(
+                  unsaved: unsaved,
+                  child: const Scaffold(body: Text('the set')),
+                ),
+              ),
             ),
-          )),
-          child: const Text('open'),
+            child: const Text('open'),
+          ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }

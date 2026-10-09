@@ -97,7 +97,8 @@ class _ProfilePageState extends State<ProfilePage> {
   /// What has not been sent yet goes with them, so that is asked about first.
   Future<void> _signOut() async {
     final router = context.router;
-    final unsent = _sets.hasPendingChanges ||
+    final unsent =
+        _sets.hasPendingChanges ||
         GetIt.I<CollectionsNotifier>().hasPendingChanges;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -106,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
         content: Text(
           'Your sets and collections are taken off this device; the scores'
           ' stay.${unsent ? ' Some of your changes have not reached the'
-              ' server yet, and they will be lost.' : ''}',
+                    ' server yet, and they will be lost.' : ''}',
         ),
         actions: [
           TextButton(
@@ -126,13 +127,16 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String? _rolesExplanation(
-      Map<String, dynamic>? roles, Map<String, dynamic>? claims, String key) {
+    Map<String, dynamic>? roles,
+    Map<String, dynamic>? claims,
+    String key,
+  ) {
     if (roles == null) {
       final sent = claims?.keys.toList() ?? const [];
       return sent.isEmpty
           ? 'The provider sent no claims this app could read.'
           : 'The roles are read out of the claim named "$key", and the answer'
-              ' does not have one. What it does have: ${sent.join(', ')}.';
+                ' does not have one. What it does have: ${sent.join(', ')}.';
     }
     if (roles['score_viewer'] != null) {
       return null;
@@ -170,16 +174,17 @@ class _ProfilePageState extends State<ProfilePage> {
             footer: user == null
                 ? 'Nobody is signed in on this device.'
                 : _auth.userIsFromThisDevice
-                    ? 'The provider could not be reached, so this is the copy'
-                        ' this device kept the last time it could ask. Your'
-                        ' roles may have changed since.'
-                    : 'Asked of the provider just now.',
+                ? 'The provider could not be reached, so this is the copy'
+                      ' this device kept the last time it could ask. Your'
+                      ' roles may have changed since.'
+                : 'Asked of the provider just now.',
           ),
           if (_auth.authProblem != null)
             _Section(
               title: 'Signing in did not finish',
               rows: [('What went wrong', '${_auth.authProblem}')],
-              footer: 'Nothing will send you to the provider again on its own.'
+              footer:
+                  'Nothing will send you to the provider again on its own.'
                   ' Ask the provider again to try once more.',
             ),
           _Section(
@@ -190,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ('Roles claim', rolesKey),
               (
                 'Roles found',
-                user?.roles == null ? null : user!.roles!.keys.join(', ')
+                user?.roles == null ? null : user!.roles!.keys.join(', '),
               ),
             ],
             footer: _rolesExplanation(user?.roles, user?.claims, rolesKey),
@@ -210,8 +215,9 @@ class _ProfilePageState extends State<ProfilePage> {
           ListenableBuilder(
             listenable: Listenable.merge([_scores, _sets]),
             builder: (context, _) {
-              final owing =
-                  _sets.sets.where((set) => set.owesAnything).toList();
+              final owing = _sets.sets
+                  .where((set) => set.owesAnything)
+                  .toList();
               return _Section(
                 title: 'On this device',
                 rows: [
@@ -222,7 +228,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     owing.isEmpty
                         ? 'none'
                         : '${owing.length}: '
-                            '${owing.map((set) => set.displayTitle).join(', ')}'
+                              '${owing.map((set) => set.displayTitle).join(', ')}',
                   ),
                 ],
               );
@@ -236,7 +242,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   padding: const EdgeInsets.all(12),
                   child: SelectableText(
                     const JsonEncoder.withIndent('  ').convert(user!.claims),
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],

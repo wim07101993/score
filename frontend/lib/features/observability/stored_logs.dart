@@ -56,14 +56,14 @@ class StoredLogSink({
   }
 
   static Map<String, Object?> _toJson(LogRecord record) => {
-        'time': record.time.toIso8601String(),
-        'level': record.level.name,
-        'levelValue': record.level.value,
-        'logger': record.loggerName,
-        'message': record.message,
-        'error': ?record.error?.toString(),
-        'stackTrace': ?record.stackTrace?.toString(),
-      };
+    'time': record.time.toIso8601String(),
+    'level': record.level.name,
+    'levelValue': record.level.value,
+    'logger': record.loggerName,
+    'message': record.message,
+    'error': ?record.error?.toString(),
+    'stackTrace': ?record.stackTrace?.toString(),
+  };
 
   static LogRecord _fromJson(Map<String, Object?> json) {
     final name = json['level']! as String;

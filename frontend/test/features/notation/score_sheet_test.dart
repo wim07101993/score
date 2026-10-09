@@ -26,11 +26,11 @@ const _examples = '../test/example_data';
 String _read(String name) => File('$_examples/$name').readAsStringSync();
 
 ThemeData _themeOf(Brightness brightness) => ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF3B5BA5),
-        brightness: brightness,
-      ),
-    );
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: const Color(0xFF3B5BA5),
+    brightness: brightness,
+  ),
+);
 
 /// The contrast between two opaque colours, the way the accessibility
 /// guidelines reckon it: 21 for black on white, 1 for a colour on itself.
@@ -87,8 +87,9 @@ void main() {
   group('the music on the page', _smoke);
 
   group('the page and the ink on it', () {
-    testWidgets('are far enough apart to read, on either theme',
-        (tester) async {
+    testWidgets('are far enough apart to read, on either theme', (
+      tester,
+    ) async {
       for (final brightness in Brightness.values) {
         final drawn = await _sheet(tester, brightness);
 
@@ -116,7 +117,9 @@ void main() {
       }
     });
 
-    testWidgets('are the pair the theme calls for, both of them', (tester) async {
+    testWidgets('are the pair the theme calls for, both of them', (
+      tester,
+    ) async {
       final light = await _sheet(tester, Brightness.light);
       final dark = await _sheet(tester, Brightness.dark);
 
@@ -137,17 +140,23 @@ void main() {
       // opens up and anything bright on the screen blooms — and a white
       // notehead is both the bright thing and the thing being read. Dark marks
       // have no light to bloom with.
-      expect(SheetPalette.dark.ink.computeLuminance(),
-          lessThan(SheetPalette.dark.paper.computeLuminance()));
-      expect(SheetPalette.light.ink.computeLuminance(),
-          lessThan(SheetPalette.light.paper.computeLuminance()));
+      expect(
+        SheetPalette.dark.ink.computeLuminance(),
+        lessThan(SheetPalette.dark.paper.computeLuminance()),
+      );
+      expect(
+        SheetPalette.light.ink.computeLuminance(),
+        lessThan(SheetPalette.light.paper.computeLuminance()),
+      );
     });
 
     test('throws a fraction of the light a white page does', () {
       // Which is the whole of what "dark" buys, and the thing to keep hold of:
       // it is a page with the lamp turned down, and it has to stay turned down.
-      expect(SheetPalette.dark.paper.computeLuminance(),
-          lessThan(SheetPalette.light.paper.computeLuminance() / 2));
+      expect(
+        SheetPalette.dark.paper.computeLuminance(),
+        lessThan(SheetPalette.light.paper.computeLuminance() / 2),
+      );
     });
 
     test('is nearer together than paper, having less room to work in', () {
@@ -160,8 +169,10 @@ void main() {
 
     test('fades a grace note less than paper does', () {
       // There is less contrast to spend, so less of it is spent.
-      expect(SheetPalette.dark.fadedInk.a,
-          greaterThan(SheetPalette.light.fadedInk.a));
+      expect(
+        SheetPalette.dark.fadedInk.a,
+        greaterThan(SheetPalette.light.fadedInk.a),
+      );
     });
   });
 
@@ -185,7 +196,8 @@ void main() {
       // light — a grey nearer #BCBCBC than the halfway #808080 — and a reader
       // dragging it feels an even dimming rather than a cliff at one end.
       for (final asked in [0.25, 0.5, 0.75, 1.0]) {
-        final given = SheetPalette.lamp(brightness: asked).paper.computeLuminance();
+        final given = SheetPalette.lamp(brightness: asked).paper
+            .computeLuminance();
 
         expect(given, closeTo(asked, 0.02), reason: 'asked for $asked');
       }
@@ -194,10 +206,11 @@ void main() {
     test('turns down evenly, and never turns itself back up', () {
       var last = 0.0;
       for (var step = 0; step <= 20; step++) {
-        final lamp = SheetPalette.dimmest +
+        final lamp =
+            SheetPalette.dimmest +
             step * (SheetPalette.full - SheetPalette.dimmest) / 20;
-        final given =
-            SheetPalette.lamp(brightness: lamp).paper.computeLuminance();
+        final given = SheetPalette.lamp(brightness: lamp).paper
+            .computeLuminance();
 
         expect(given, greaterThan(last), reason: 'at $lamp');
         last = given;
@@ -206,15 +219,21 @@ void main() {
 
     test('is ink on paper at every setting, and readable at all of them', () {
       for (var step = 0; step <= 10; step++) {
-        final lamp = SheetPalette.dimmest +
+        final lamp =
+            SheetPalette.dimmest +
             step * (SheetPalette.full - SheetPalette.dimmest) / 10;
         final page = SheetPalette.lamp(brightness: lamp, warmth: 0.5);
 
-        expect(page.ink.computeLuminance(),
-            lessThan(page.paper.computeLuminance()),
-            reason: 'ink on paper at $lamp');
-        expect(_contrast(page.ink, page.paper), greaterThan(4),
-            reason: 'readable at $lamp');
+        expect(
+          page.ink.computeLuminance(),
+          lessThan(page.paper.computeLuminance()),
+          reason: 'ink on paper at $lamp',
+        );
+        expect(
+          _contrast(page.ink, page.paper),
+          greaterThan(4),
+          reason: 'readable at $lamp',
+        );
       }
     });
 
@@ -234,8 +253,10 @@ void main() {
       expect(warm.paper.r, greaterThan(cool.paper.r));
       // The lamp is still where it was left: warmth is a separate dial, and one
       // that moved the other would be a dial nobody could set.
-      expect(warm.paper.computeLuminance(),
-          closeTo(cool.paper.computeLuminance(), 0.02));
+      expect(
+        warm.paper.computeLuminance(),
+        closeTo(cool.paper.computeLuminance(), 0.02),
+      );
     });
 
     test('a warm page is not written on in blue-black', () {
@@ -274,12 +295,15 @@ void _smoke() {
   testWidgets('leaves a hidden part off the page', (tester) async {
     final musicXml = _read('BeetAnGeSample.musicxml');
     final parts = readParts(parseMusicXml(musicXml));
-    final view = ScoreView.forParts(partIds: [for (final part in parts) part.id])
-        .withPartVisible(parts.first.id, false);
+    final view = ScoreView.forParts(
+      partIds: [for (final part in parts) part.id],
+    ).withPartVisible(parts.first.id, false);
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: ScoreSheet(musicXml: musicXml, view: view)),
+        home: Scaffold(
+          body: ScoreSheet(musicXml: musicXml, view: view),
+        ),
       ),
     );
     await tester.pump();
@@ -297,7 +321,9 @@ void _smoke() {
   testWidgets('reads the score in the key the view asks for', (tester) async {
     final musicXml = _read('BeetAnGeSample.musicxml');
     final parts = readParts(parseMusicXml(musicXml));
-    final view = ScoreView.forParts(partIds: [for (final part in parts) part.id]);
+    final view = ScoreView.forParts(
+      partIds: [for (final part in parts) part.id],
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -334,21 +360,22 @@ void _smoke() {
     expect(controller.transposition.chromaticSemitones, -2);
   });
 
-  testWidgets('says how far it was pinched, and not what the page set',
-      (tester) async {
+  testWidgets('says how far it was pinched, and not what the page set', (
+    tester,
+  ) async {
     // A pinch — or ctrl and the scroll wheel — zooms the engraving itself. A
     // page that saves how big the score is read has to hear about that, and
     // only that: the size it set itself is already its own.
     final pinches = <double>[];
     Widget sheet(double space) => MaterialApp(
-          home: Scaffold(
-            body: ScoreSheet(
-              musicXml: _read('BeetAnGeSample.musicxml'),
-              space: space,
-              onPinched: pinches.add,
-            ),
-          ),
-        );
+      home: Scaffold(
+        body: ScoreSheet(
+          musicXml: _read('BeetAnGeSample.musicxml'),
+          space: space,
+          onPinched: pinches.add,
+        ),
+      ),
+    );
     await tester.pumpWidget(sheet(7.5));
     await tester.pump();
 
@@ -357,10 +384,12 @@ void _smoke() {
     expect(pinches, isEmpty, reason: 'a size the page set is not a pinch');
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-    tester.binding.handlePointerEvent(PointerScrollEvent(
-      position: tester.getCenter(find.byType(MusicScoreView)),
-      scrollDelta: const Offset(0, -20),
-    ));
+    tester.binding.handlePointerEvent(
+      PointerScrollEvent(
+        position: tester.getCenter(find.byType(MusicScoreView)),
+        scrollDelta: const Offset(0, -20),
+      ),
+    );
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
 

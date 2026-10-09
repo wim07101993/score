@@ -11,6 +11,7 @@ import 'package:score/features/auth/behaviours/go_on_as_kept_user.dart';
 import 'package:score/features/auth/behaviours/update_auth.dart';
 import 'package:score/features/observability/errors.dart';
 import 'package:score/features/observability/get_it.dart';
+import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/storage/theme_hint.dart';
 import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
@@ -64,6 +65,9 @@ class _ScoreAppState extends State<ScoreApp> {
   Future<SettingsNotifier> _start() async {
     final getIt = GetIt.I;
     await getIt.resolveDependencies();
+    // Before anything is fetched or uploaded, which would write documents of
+    // their own. A behaviour never throws, so one that fails holds nothing up.
+    await getIt<ForgetUnreferencedDocuments>()();
     if ((await getIt<GoOnAsKeptUser>()()).orThrow()) {
       // Not waited for: the pages are drawn from what this device knows, and
       // the provider is asked behind them. A behaviour never throws.

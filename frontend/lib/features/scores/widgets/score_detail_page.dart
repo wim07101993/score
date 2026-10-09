@@ -6,7 +6,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/background.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
@@ -181,7 +180,6 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   final _sets = GetIt.I<SetsNotifier>();
   final _collections = GetIt.I<CollectionsNotifier>();
   final _scores = GetIt.I<ScoresNotifier>();
-  final _background = GetIt.I<Background>();
 
   /// Waits for the player to stop changing how they read the score before it
   /// is kept: see [_keepReading].
@@ -429,14 +427,14 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     try {
       await _readSetContext();
       await _readCollectionContext();
-      final musicXml =
-          (await GetIt.I<GetMusicXml>()(widget.scoreId)).orThrow();
+      final musicXml = (await GetIt.I<GetMusicXml>()(widget.scoreId)).orThrow();
       if (!mounted) return;
 
       if (musicXml == null) {
         setState(() {
           _loading = false;
-          _failure = 'This score is not on this device, and the server could'
+          _failure =
+              'This score is not on this device, and the server could'
               ' not be reached to fetch it.';
         });
         return;
@@ -457,9 +455,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // it there: failing to say when the score was last opened — its details
     // could not be fetched, say — must not take the score off the screen.
     if (_musicXml != null) {
-      _background(GetIt.I<MarkScoreViewed>()(widget.scoreId));
+      unawaited(Future(() => GetIt.I<MarkScoreViewed>()(widget.scoreId)));
     }
-    _background(GetIt.I<UpdateScores>()());
+    unawaited(Future(() => GetIt.I<UpdateScores>()()));
   }
 
   /// Reads a score and starts it off being looked at the way the set says it is
@@ -511,10 +509,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // take what was changed there in the moment before the stand was opened.
     final handover = widget.handover;
     if (handover != null) {
-      view = view.withTransposition(handover.view.transposition).withHiddenParts([
-        for (final part in parts)
-          if (handover.view.isHidden(part.id)) part.id,
-      ]);
+      view = view
+          .withTransposition(handover.view.transposition)
+          .withHiddenParts([
+            for (final part in parts)
+              if (handover.view.isHidden(part.id)) part.id,
+          ]);
       _space = _spaceFor(handover.zoom);
     }
 
@@ -568,8 +568,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
-    final collection =
-        (await GetIt.I<EnsureCollection>()(collectionId)).valueOrNull;
+    final collection = (await GetIt.I<EnsureCollection>()(collectionId))
+        .valueOrNull;
     if (collection == null) return;
 
     final entry = collection.entries
@@ -629,9 +629,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     waiting.cancel();
     if (!_canSaveView) return;
     if (_set != null) {
-      _background(_saveViewToSet());
+      unawaited(_saveViewToSet());
     } else if (_collection != null) {
-      _background(_saveViewToCollection());
+      unawaited(_saveViewToCollection());
     }
   }
 
@@ -688,13 +688,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           hiddenParts: [...view.hiddenPartIds],
           zoom: _zoom,
         ),
-      ))
-          .orThrow();
+      )).orThrow();
       // Where the entry comes in the set is read again rather than kept: a sync
       // can have reordered the gig while this was being written, and taking the
       // place it used to be at would put somebody else's song on the screen.
-      final moved =
-          saved.entries.indexWhere((entry) => entry.id == context.entry.id);
+      final moved = saved.entries.indexWhere(
+        (entry) => entry.id == context.entry.id,
+      );
       if (!mounted) return;
       // Nor is the entry taken back once it has been let go of: a sync that
       // wrote it to play another score while this was on its way has already
@@ -774,11 +774,11 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           hiddenParts: [...view.hiddenPartIds],
           zoom: _zoom,
         ),
-      ))
-          .orThrow();
+      )).orThrow();
       if (!mounted) return;
-      final piece =
-          saved.entries.where((piece) => piece.id == entry.id).firstOrNull;
+      final piece = saved.entries
+          .where((piece) => piece.id == entry.id)
+          .firstOrNull;
       // See the same in [_saveViewToSet].
       if (_collection == null ||
           (piece != null && piece.scoreId != _entryScoreId)) {
@@ -811,7 +811,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final musicXml = _musicXml;
     final scoreId = _scoreId;
     if (musicXml == null || scoreId == null) {
-      _say('This score cannot be downloaded because it has not been saved yet.');
+      _say(
+        'This score cannot be downloaded because it has not been saved yet.',
+      );
       return;
     }
 
@@ -828,7 +830,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     final musicXml = _musicXml;
     final scoreId = _scoreId;
     if (musicXml == null || scoreId == null) {
-      _say('This score cannot be downloaded because it has not been saved yet.');
+      _say(
+        'This score cannot be downloaded because it has not been saved yet.',
+      );
       return;
     }
 
@@ -889,9 +893,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
     try {
       (await GetIt.I<UploadScore>()(
-        UploadScoreParams(scoreId: scoreId, musicXml: musicXml),
-      ))
-          .orThrow();
+        (scoreId, musicXml),
+      )).orThrow();
       if (!mounted) return;
       if (_isNew && _auth.user?.isScoreViewer != true) {
         // Its own address would only say this account may not read it. The
@@ -904,7 +907,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         // that reloading it or keeping it opens this score rather than another
         // empty upload page. The file is on this device by now, so the page at
         // that address opens straight onto it.
-        _background(GetIt.I<UpdateScores>()());
+        unawaited(Future(() => GetIt.I<UpdateScores>()()));
         context.router.replace(ScoreRoute(scoreId: scoreId));
         return;
       }
@@ -966,46 +969,48 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// The key and the parts, over the stand: the score stays where it is under
   /// it, and changes as they are changed.
   Future<void> _openReadingDialog() => showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            final view = _view;
-            return AlertDialog(
-              title: const Text('How you read it'),
-              content: view == null
-                  ? const SizedBox.shrink()
-                  : SingleChildScrollView(
-                      child: _ViewSettings(
-                        view: view,
-                        parts: _parts,
-                        keptAsYourReading: _set != null || _collection != null,
-                        onChange: (change) {
-                          _changeView(change);
-                          setDialogState(() {});
-                        },
-                      ),
-                    ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Done'),
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setDialogState) {
+        final view = _view;
+        return AlertDialog(
+          title: const Text('How you read it'),
+          content: view == null
+              ? const SizedBox.shrink()
+              : SingleChildScrollView(
+                  child: _ViewSettings(
+                    view: view,
+                    parts: _parts,
+                    keptAsYourReading: _set != null || _collection != null,
+                    onChange: (change) {
+                      _changeView(change);
+                      setDialogState(() {});
+                    },
+                  ),
                 ),
-              ],
-            );
-          },
-        ),
-      );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Done'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
 
   void _say(String message, {bool briefly = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(message),
-        duration: briefly
-            ? const Duration(milliseconds: 2500)
-            : const Duration(seconds: 4),
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: briefly
+              ? const Duration(milliseconds: 2500)
+              : const Duration(seconds: 4),
+        ),
+      );
   }
 
   Widget _sheet() {
@@ -1030,8 +1035,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
             _set == null && _collection == null
                 ? 'This song is no longer in there.'
                 : _set != null
-                    ? 'This one is played from paper.'
-                    : 'This one has not been scanned yet.',
+                ? 'This one is played from paper.'
+                : 'This one has not been scanned yet.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium,
           ),
@@ -1108,9 +1113,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         body: const Center(child: Text('Scores are for score viewers.')),
       );
     }
-    return widget.performing
-        ? _stand(title)
-        : _details(title, score);
+    return widget.performing ? _stand(title) : _details(title, score);
   }
 
   /// The way through the set or the collection this is played from, if it is.
@@ -1196,8 +1199,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
                       borderRadius: BorderRadius.circular(8),
                       onTap: () => context.router.push(way.route),
                       child: Tooltip(
-                        message:
-                            way.isSet ? 'Open the set' : 'Open the collection',
+                        message: way.isSet
+                            ? 'Open the set'
+                            : 'Open the collection',
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: Column(
@@ -1277,8 +1281,9 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           // Only offered once there is a difference to offer: a score nobody
           // has changed the look of is the file it was uploaded as, and two
           // ways of downloading the same bytes is one too many.
-          onDownloadAsOnScreen:
-              _view == null || _view!.isPristine ? null : _downloadAsOnScreen,
+          onDownloadAsOnScreen: _view == null || _view!.isPristine
+              ? null
+              : _downloadAsOnScreen,
         ),
       if (mayEdit && !_isPaper)
         UploadScoreButton(
@@ -1299,8 +1304,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       ],
       if (_view != null) ...[
         const SizedBox(height: 16),
-        Text('How you read it',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('How you read it', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         _ViewSettings(
           view: _view!,
@@ -1336,8 +1340,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
                 // score both, and a phone held upright has room for neither
                 // beside the other.
                 if (constraints.maxWidth > constraints.maxHeight) {
-                  final panel =
-                      (constraints.maxWidth * 0.38).clamp(280.0, 440.0);
+                  final panel = (constraints.maxWidth * 0.38).clamp(
+                    280.0,
+                    440.0,
+                  );
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -1484,7 +1490,6 @@ class const _WayThrough({
       note: entries[index].description.trim(),
     );
   }
-
 }
 
 /// The way through the set or the collection, as a bar of its own under the
@@ -1588,8 +1593,7 @@ class const _ScoreFacts({
         ('Movement', movement.title!.trim()),
       if (score.instruments.isNotEmpty)
         ('Played by', score.instruments.map(instrumentName).join(', ')),
-      if (score.languages.isNotEmpty)
-        ('Sung in', score.languages.join(', ')),
+      if (score.languages.isNotEmpty) ('Sung in', score.languages.join(', ')),
     ];
 
     return Column(
@@ -1603,9 +1607,12 @@ class const _ScoreFacts({
               children: [
                 SizedBox(
                   width: 110,
-                  child: Text(label,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.outline)),
+                  child: Text(
+                    label,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
                 ),
                 Expanded(child: Text(value)),
               ],
@@ -1654,19 +1661,23 @@ class const _ViewSettings({
             const Spacer(),
             TransposeDownButton(
               onPressed: semitones > minTransposition
-                  ? () =>
-                      onChange((view) => view.withTransposition(semitones - 1))
+                  ? () => onChange(
+                      (view) => view.withTransposition(semitones - 1),
+                    )
                   : null,
             ),
             SizedBox(
               width: 36,
-              child: Text('${semitones > 0 ? '+' : ''}$semitones',
-                  textAlign: TextAlign.center),
+              child: Text(
+                '${semitones > 0 ? '+' : ''}$semitones',
+                textAlign: TextAlign.center,
+              ),
             ),
             TransposeUpButton(
               onPressed: semitones < maxTransposition
-                  ? () =>
-                      onChange((view) => view.withTransposition(semitones + 1))
+                  ? () => onChange(
+                      (view) => view.withTransposition(semitones + 1),
+                    )
                   : null,
             ),
           ],
@@ -1684,7 +1695,8 @@ class const _ViewSettings({
                   name: part.name,
                   visible: !view.isHidden(part.id),
                   onSelected: (visible) => onChange(
-                      (view) => view.withPartVisible(part.id, visible)),
+                    (view) => view.withPartVisible(part.id, visible),
+                  ),
                 ),
             ],
           ),
@@ -1695,12 +1707,14 @@ class const _ViewSettings({
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             ShowAsWrittenButton(
-              onPressed:
-                  view.isPristine ? null : () => onChange((view) => view.reset()),
+              onPressed: view.isPristine
+                  ? null
+                  : () => onChange((view) => view.reset()),
             ),
             if (keptAsYourReading)
               Tooltip(
-                message: "Only you see this. What the band plays is the"
+                message:
+                    "Only you see this. What the band plays is the"
                     " owner's to say.",
                 child: Text(
                   'Kept as how you read it',
@@ -1729,13 +1743,19 @@ class _Reading._({
 }) {
   _Reading.ofSong({
     required SetEntry entry,
-  })
-      : this._(band: entry.transposition, view: entry.view, readAt: entry.readAt);
+  }) : this._(
+         band: entry.transposition,
+         view: entry.view,
+         readAt: entry.readAt,
+       );
 
   _Reading.ofPiece({
     required CollectionEntry entry,
-  })
-      : this._(band: entry.transposition, view: entry.view, readAt: entry.readAt);
+  }) : this._(
+         band: entry.transposition,
+         view: entry.view,
+         readAt: entry.readAt,
+       );
 
   this
     : saved = view.transposition,
@@ -1757,8 +1777,13 @@ class _Reading._({
       other.hiddenParts.every(hiddenParts.contains);
 
   @override
-  int get hashCode => Object.hash(band, saved, readAt, zoom,
-      Object.hashAllUnordered(hiddenParts));
+  int get hashCode => Object.hash(
+    band,
+    saved,
+    readAt,
+    zoom,
+    Object.hashAllUnordered(hiddenParts),
+  );
 }
 
 /// How far from the key the band plays it in ([band]) a player reads a score,

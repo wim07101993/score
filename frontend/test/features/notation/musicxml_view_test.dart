@@ -20,7 +20,9 @@ String _read(String name) => File('$_examples/$name').readAsStringSync();
 void main() {
   final musicXml = _read('BeetAnGeSample.musicxml');
   final parts = readParts(parseMusicXml(musicXml));
-  final pristine = ScoreView.forParts(partIds: [for (final part in parts) part.id]);
+  final pristine = ScoreView.forParts(
+    partIds: [for (final part in parts) part.id],
+  );
 
   test('a score nobody has touched is the file that was uploaded', () {
     // Byte for byte, not "the same music": an editor who uploaded a file and
@@ -58,7 +60,9 @@ void main() {
     }
 
     expect(view.visiblePartIds, isNotEmpty);
-    expect(readParts(parseMusicXml(musicXmlForView(musicXml, view))),
-        isNotEmpty);
+    expect(
+      readParts(parseMusicXml(musicXmlForView(musicXml, view))),
+      isNotEmpty,
+    );
   });
 }

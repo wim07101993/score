@@ -9,14 +9,14 @@ import 'package:flutter/services.dart';
 /// whoever can do something about it. So it can also be copied, to be pasted
 /// to them as it is. It can be closed sooner.
 SnackBar errorSnackBar(String message) => SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 10),
-      // A snack bar with an action stays until it is closed, unless told not
-      // to; this one goes after its time like any other.
-      persist: false,
-      showCloseIcon: true,
-      action: SnackBarAction(
-        label: 'Copy',
-        onPressed: () => Clipboard.setData(ClipboardData(text: message)),
-      ),
-    );
+  content: Text(message),
+  duration: const Duration(seconds: 10),
+  // A snack bar with an action stays until it is closed, unless told not
+  // to; this one goes after its time like any other.
+  persist: false,
+  showCloseIcon: true,
+  action: SnackBarAction(
+    label: 'Copy',
+    onPressed: () => Clipboard.setData(ClipboardData(text: message)),
+  ),
+);

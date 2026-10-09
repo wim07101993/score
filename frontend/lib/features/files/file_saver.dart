@@ -16,5 +16,4 @@ Future<bool> saveFile({
   required String filename,
   required Uint8List bytes,
   required String mimeType,
-}) =>
-    savePlatformFile(filename: filename, bytes: bytes, mimeType: mimeType);
+}) => savePlatformFile(filename: filename, bytes: bytes, mimeType: mimeType);

@@ -13,6 +13,7 @@ final _items = <_Item>[
         id: '$i',
         work: Work(title: 'Piece $i'),
         creators: Creators(composers: ['Composer ${i % 9}']),
+        lastChangedAt: Score.defaultLastChangedAt,
       ),
       note: '',
     ),
@@ -23,23 +24,25 @@ Future<void> _show(WidgetTester tester, Size size) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(MaterialApp(
-    home: Scaffold(
-      body: ScoreLibrary<_Item>(
-        items: _items,
-        scoreOf: (item) => item.score,
-        textOf: (item) => item.note,
-        itemBuilder: (context, item) =>
-            Text(item.score?.title ?? item.note),
-        empty: 'Nothing at all.',
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: ScoreLibrary<_Item>(
+          items: _items,
+          scoreOf: (item) => item.score,
+          textOf: (item) => item.note,
+          itemBuilder: (context, item) => Text(item.score?.title ?? item.note),
+          empty: 'Nothing at all.',
+        ),
       ),
     ),
-  ));
+  );
 }
 
 void main() {
-  testWidgets('the filters are beside the list where there is room',
-      (tester) async {
+  testWidgets('the filters are beside the list where there is room', (
+    tester,
+  ) async {
     await _show(tester, const Size(1200, 900));
 
     expect(find.text('Filters'), findsOneWidget);
@@ -61,8 +64,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the filters fold away above the list where there is not',
-      (tester) async {
+  testWidgets('the filters fold away above the list where there is not', (
+    tester,
+  ) async {
     await _show(tester, const Size(400, 900));
 
     expect(find.text('Composer 0'), findsNothing);
@@ -72,8 +76,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('something without a score is found by what it says',
-      (tester) async {
+  testWidgets('something without a score is found by what it says', (
+    tester,
+  ) async {
     await _show(tester, const Size(1200, 900));
 
     await tester.enterText(find.byType(TextField), 'scanned');

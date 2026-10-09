@@ -15,13 +15,12 @@ Future<T> platformUnderTabLock<T>(
 
   final done = Completer<T>();
   JSPromise<JSAny?> granted(web.Lock? _) => () async {
-        try {
-          done.complete(await body());
-        } catch (error, stackTrace) {
-          done.completeError(error, stackTrace);
-        }
-      }()
-          .toJS;
+    try {
+      done.complete(await body());
+    } catch (error, stackTrace) {
+      done.completeError(error, stackTrace);
+    }
+  }().toJS;
   try {
     await web.window.navigator.locks.request(name, granted.toJS).toDart;
   } catch (_) {

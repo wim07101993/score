@@ -17,29 +17,33 @@ import 'package:score/widgets/starting.dart';
 /// replaces this one, which is what made it easy to leave alone.
 
 Widget _starting({Object? failure}) => Starting(
-      theme: appTheme(Brightness.light),
-      darkTheme: appTheme(Brightness.dark),
-      failure: failure,
-    );
+  theme: appTheme(Brightness.light),
+  darkTheme: appTheme(Brightness.dark),
+  failure: failure,
+);
 
 void main() {
   /// The address the app was opened at, as the browser reports it.
   void openedAt(WidgetTester tester, String address) {
     tester.binding.platformDispatcher.defaultRouteNameTestValue = address;
-    addTearDown(tester.binding.platformDispatcher.clearDefaultRouteNameTestValue);
+    addTearDown(
+      tester.binding.platformDispatcher.clearDefaultRouteNameTestValue,
+    );
   }
 
-  testWidgets('a link straight into a score is not something to complain about',
-      (tester) async {
-    // Every complaint this screen makes is a test failure here, which is the
-    // point: the error being fixed was reported rather than thrown, so it cost
-    // nothing but noise and could sit there for as long as nobody minded it.
-    openedAt(tester, '/scores/abc?set=def&entry=ghi');
+  testWidgets(
+    'a link straight into a score is not something to complain about',
+    (tester) async {
+      // Every complaint this screen makes is a test failure here, which is the
+      // point: the error being fixed was reported rather than thrown, so it cost
+      // nothing but noise and could sit there for as long as nobody minded it.
+      openedAt(tester, '/scores/abc?set=def&entry=ghi');
 
-    await tester.pumpWidget(_starting());
+      await tester.pumpWidget(_starting());
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-  });
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    },
+  );
 
   testWidgets('nor is a link to a set, or to any other page', (tester) async {
     for (final address in ['/sets/abc', '/settings', '/profile', '/nowhere']) {
@@ -60,8 +64,9 @@ void main() {
     expect(find.byType(Scaffold), findsOneWidget);
   });
 
-  testWidgets('an app that could not start says so instead of spinning',
-      (tester) async {
+  testWidgets('an app that could not start says so instead of spinning', (
+    tester,
+  ) async {
     openedAt(tester, '/scores/abc');
 
     await tester.pumpWidget(_starting(failure: 'no database'));

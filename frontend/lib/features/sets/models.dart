@@ -12,8 +12,9 @@ library;
 // so it is said there and not here: a set that stored a key the score could not
 // be shown in would be a set nobody could play.
 import 'package:score/features/notation/view/score_view.dart';
-import 'package:score/features/sets/storage/sets_api.dart';
-import 'package:score/json.dart';
+import 'package:score/json_map_extensions.dart';
+import 'package:score/storage/api_exception.dart';
+import 'package:score/storage/clients.dart';
 
 /// How far back each sync asks for changes before the end of the last one.
 ///
@@ -33,13 +34,10 @@ const Duration pullOverlap = Duration(minutes: 15);
 /// after changes the server has not made yet, and the next pull would start
 /// past them. [asked] is what it falls back on for an answer that says when
 /// nothing changed.
-DateTime watermarkOf(List<Map<String, dynamic>> answer, DateTime asked) {
+DateTime watermarkOf(List<SyncedRecord> answer, DateTime asked) {
   DateTime? newest;
-  for (final json in answer) {
-    for (final at in [
-      dateOf(json['last_changed_at']),
-      dateOf(json['deleted_at']),
-    ]) {
+  for (final record in answer) {
+    for (final at in [record.lastChangedAt, record.deletedAt]) {
       if (at != null && (newest == null || at.isAfter(newest))) newest = at;
     }
   }
@@ -104,57 +102,30 @@ class const ScoreSet({
   /// the set in the meantime.
   @override final List<PendingEntry> pendingEntries = const [],
 }) implements SyncedRecord<ScoreSet, SetEntry> {
-  /// A set the way the API hands it over, as one this app keeps: the moments as
-  /// dates rather than as the strings they arrive as, and nothing owed.
-  factory ScoreSet.fromApi({
-    required Map<String, dynamic> json,
-    required DateTime syncedAt,
-  }) =>
-      ScoreSet(
-        id: '${json['id']}',
-        title: '${json['title'] ?? ''}',
-        description: '${json['description'] ?? ''}',
-        entries: [
-          for (final entry in (json['entries'] as List? ?? []))
-            SetEntry.fromApi(json: (entry as Map).cast<String, dynamic>()),
-        ],
-        sharedWith: [
-          for (final address in (json['shared_with'] as List? ?? [])) '$address',
-        ],
-        isOwner: json['is_owner'] == true,
-        lastChangedAt:
-            dateOf(json['last_changed_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: dateOf(json['deleted_at']),
-        lastSyncedAt: syncedAt,
-      );
-
-  factory ScoreSet.fromJson({
-    required Map<String, Object?> json,
-  }) => ScoreSet(
-        id: '${json['id']}',
-        title: '${json['title'] ?? ''}',
-        description: '${json['description'] ?? ''}',
-        entries: [
-          for (final entry in (json['entries'] as List? ?? []))
-            SetEntry.fromJson(json: (entry as Map).cast<String, Object?>()),
-        ],
-        sharedWith: [
-          for (final address in (json['shared_with'] as List? ?? [])) '$address',
-        ],
-        isOwner: json['is_owner'] != false,
-        lastChangedAt: dateOf(json['last_changed_at']) ??
-            DateTime.fromMillisecondsSinceEpoch(0),
-        deletedAt: dateOf(json['deleted_at']),
-        lastSyncedAt: dateOf(json['last_synced_at']),
-        pendingChange: json['pending_change'] as String?,
-        pendingViews: [
-          for (final id in (json['pending_views'] as List? ?? [])) '$id',
-        ],
-        pendingEntries: [
-          for (final owed in (json['pending_entries'] as List? ?? []))
-            PendingEntry.fromJson(json: (owed as Map).cast<String, Object?>()),
-        ],
-      );
+  factory ScoreSet.fromJson(Map json) {
+    return ScoreSet(
+      id: '${json['id']}',
+      title: json.get<String>('title') ?? '',
+      description: json.get<String>('description') ?? '',
+      entries: json
+          .getList<Map>('entries')
+          .map(SetEntry.fromJson)
+          .toList(growable: false),
+      sharedWith: json.getList('shared_with'),
+      isOwner: json.get<bool>('is_owner') ?? true,
+      lastChangedAt:
+          json.get('last_changed_at', parser: DateTime.tryParse) ??
+          beginningOfTime,
+      deletedAt: json.get('deleted_at', parser: DateTime.tryParse),
+      lastSyncedAt: json.get('last_synced_at', parser: DateTime.tryParse),
+      pendingChange: json.get<String>('pending_change'),
+      pendingViews: json.getList('pending_views'),
+      pendingEntries: json
+          .getList<Map>('pending_entries')
+          .map(PendingEntry.fromJson)
+          .toList(growable: false),
+    );
+  }
 
   @override
   bool get owesAnything =>
@@ -179,42 +150,44 @@ class const ScoreSet({
     List<PendingEntry>? pendingEntries,
     bool clearPendingChange = false,
     bool clearDeletedAt = false,
-  }) =>
-      ScoreSet(
-        id: id,
-        title: title ?? this.title,
-        description: description ?? this.description,
-        entries: entries ?? this.entries,
-        sharedWith: sharedWith ?? this.sharedWith,
-        isOwner: isOwner ?? this.isOwner,
-        lastChangedAt: lastChangedAt ?? this.lastChangedAt,
-        deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
-        lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
-        pendingChange:
-            clearPendingChange ? null : (pendingChange ?? this.pendingChange),
-        pendingViews: pendingViews ?? this.pendingViews,
-        pendingEntries: pendingEntries ?? this.pendingEntries,
-      );
+  }) => ScoreSet(
+    id: id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    entries: entries ?? this.entries,
+    sharedWith: sharedWith ?? this.sharedWith,
+    isOwner: isOwner ?? this.isOwner,
+    lastChangedAt: lastChangedAt ?? this.lastChangedAt,
+    deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+    lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    pendingChange: clearPendingChange
+        ? null
+        : (pendingChange ?? this.pendingChange),
+    pendingViews: pendingViews ?? this.pendingViews,
+    pendingEntries: pendingEntries ?? this.pendingEntries,
+  );
 
   @override
   Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'entries': [for (final entry in entries) entry.toJson()],
-        'shared_with': sharedWith,
-        'is_owner': isOwner,
-        // In UTC: a moment written out as this device's local time carries no
-        // offset, and is read back as local time in whatever zone the device
-        // is in by then — hours off after a flight, which moves the sync
-        // watermark past changes it never asked for.
-        'last_changed_at': lastChangedAt.toUtc().toIso8601String(),
-        'deleted_at': deletedAt?.toUtc().toIso8601String(),
-        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
-        'pending_change': pendingChange,
-        'pending_views': pendingViews,
-        'pending_entries': [for (final owed in pendingEntries) owed.toJson()],
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'entries': entries.map((entry) => entry.toJson()).toList(growable: false),
+    'shared_with': sharedWith,
+    'is_owner': isOwner,
+    // In UTC: a moment written out as this device's local time carries no
+    // offset, and is read back as local time in whatever zone the device
+    // is in by then — hours off after a flight, which moves the sync
+    // watermark past changes it never asked for.
+    'last_changed_at': lastChangedAt.toUtc().toIso8601String(),
+    'deleted_at': deletedAt?.toUtc().toIso8601String(),
+    'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
+    'pending_change': pendingChange,
+    'pending_views': pendingViews,
+    'pending_entries': pendingEntries
+        .map((owed) => owed.toJson())
+        .toList(growable: false),
+  };
 }
 
 /// The score an entry plays, and null for one that has none — a song played
@@ -264,28 +237,16 @@ class const SetEntry({
   /// is no row there to remove.
   @override final bool synced = false,
 }) implements SyncedEntry<SetEntry> {
-  factory SetEntry.fromApi({
-    required Map<String, dynamic> json,
-  }) => SetEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: EntryView.fromJson(json: json['view']),
-        // Everything the API hands over is on the server by definition.
-        synced: true,
-      );
-
-  factory SetEntry.fromJson({
-    required Map<String, Object?> json,
-  }) => SetEntry(
-        id: '${json['id']}',
-        scoreId: scoreIdOf(json['score_id']),
-        description: '${json['description'] ?? ''}',
-        transposition: transpositionOf(json['transposition']),
-        view: EntryView.fromJson(json: json['view']),
-        synced: json['synced'] == true,
-      );
+  factory SetEntry.fromJson(Map json) {
+    return SetEntry(
+      id: '${json['id']}',
+      scoreId: scoreIdOf(json['score_id']),
+      description: json.get<String>('description') ?? '',
+      transposition: transpositionOf(json['transposition']),
+      view: json.getObject('view', EntryView.fromJson) ?? const EntryView(),
+      synced: json.get<bool>('synced') ?? false,
+    );
+  }
 
   /// How far the score is read from where it is written: the key the band plays
   /// it in, plus how far this player reads it from there.
@@ -293,8 +254,10 @@ class const SetEntry({
   /// The two are added rather than one replacing the other, and the sum is held
   /// to the range the player offers — an octave either way is as far as the
   /// control goes, whatever the two of them add up to.
-  int get readAt =>
-      (transposition + view.transposition).clamp(minTransposition, maxTransposition);
+  int get readAt => (transposition + view.transposition).clamp(
+    minTransposition,
+    maxTransposition,
+  );
 
   @override
   SetEntry copyWith({
@@ -303,24 +266,23 @@ class const SetEntry({
     int? transposition,
     EntryView? view,
     bool? synced,
-  }) =>
-      SetEntry(
-        id: id,
-        scoreId: scoreId ?? this.scoreId,
-        description: description ?? this.description,
-        transposition: transposition ?? this.transposition,
-        view: view ?? this.view,
-        synced: synced ?? this.synced,
-      );
+  }) => SetEntry(
+    id: id,
+    scoreId: scoreId ?? this.scoreId,
+    description: description ?? this.description,
+    transposition: transposition ?? this.transposition,
+    view: view ?? this.view,
+    synced: synced ?? this.synced,
+  );
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'score_id': scoreId,
-        'description': description,
-        'transposition': transposition,
-        'view': view.toJson(),
-        'synced': synced,
-      };
+    'id': id,
+    'score_id': scoreId,
+    'description': description,
+    'transposition': transposition,
+    'view': view.toJson(),
+    'synced': synced,
+  };
 }
 
 /// How one player looks at one entry: on top of the key the band plays it in,
@@ -343,24 +305,19 @@ class const EntryView({
   /// whatever size the player had.
   final double zoom = 1,
 }) {
-  factory EntryView.fromJson({
-    required Object? json,
-  }) {
-    if (json is! Map) return const EntryView();
+  factory EntryView.fromJson(Map json) {
     return EntryView(
       transposition: transpositionOf(json['transposition']),
-      hiddenParts: [
-        for (final part in (json['hidden_parts'] as List? ?? [])) '$part',
-      ],
+      hiddenParts: json.getList('hidden_parts'),
       zoom: zoomOf(json['zoom']),
     );
   }
 
   Map<String, Object?> toJson() => {
-        'transposition': transposition,
-        'hidden_parts': hiddenParts,
-        'zoom': zoom,
-      };
+    'transposition': transposition,
+    'hidden_parts': hiddenParts,
+    'zoom': zoom,
+  };
 }
 
 /// The smallest a player may draw a score, where 1 is the size it is written
@@ -440,10 +397,9 @@ class const PendingEntry({
   /// One of [PendingChange].
   required final String action,
 }) {
-  factory PendingEntry.fromJson({
-    required Map<String, Object?> json,
-  }) =>
-      PendingEntry(id: '${json['id']}', action: '${json['action']}');
+  factory PendingEntry.fromJson(Map json) {
+    return PendingEntry(id: '${json['id']}', action: '${json['action']}');
+  }
 
   Map<String, Object?> toJson() => {'id': id, 'action': action};
 }
@@ -458,8 +414,7 @@ List<PendingEntry> owing(
   List<PendingEntry> owed,
   String entryId,
   String action,
-) =>
-    [...withoutOwed(owed, entryId), PendingEntry(id: entryId, action: action)];
+) => [...withoutOwed(owed, entryId), PendingEntry(id: entryId, action: action)];
 
 /// What is owed about the entries of a set or a collection, with nothing owed
 /// about [entryId] any more.
@@ -552,5 +507,5 @@ class const SyncProblem({
   required final String setId,
   required final String title,
   required final String action,
-  required final SetsApiException error,
+  required final ApiException error,
 });

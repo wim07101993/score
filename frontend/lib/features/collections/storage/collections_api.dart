@@ -1,8 +1,9 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
-import 'package:score/config.dart';
-import 'package:score/storage/api.dart';
+import 'package:score/features/collections/models.dart';
+import 'package:score/storage/api_exception.dart';
+import 'package:score/storage/clients.dart';
+import 'package:score/storage/error_extensions.dart';
+import 'package:score_api/score_api.dart' as api;
+import 'package:tonik_util/tonik_util.dart';
 
 /// The collections endpoints of the API.
 ///
@@ -10,201 +11,280 @@ import 'package:score/storage/api.dart';
 /// the same reason: a write is made from an edit that was already accepted and
 /// stored on this device, so a failure has to say more than that it failed.
 /// Whether the write is worth trying again decides between keeping the edit
-/// queued and giving it up, and that is what [CollectionsApiException] carries.
-
-/// A call to the collections endpoints that did not come back with what was
-/// asked for; see [ApiException].
-class CollectionsApiException({
-  required super.message,
-  required super.status,
-  super.problem,
-}) extends ApiException {
-  /// The collection belongs to someone else, and waiting does not change whose
-  /// it is.
-  @override
-  String get notTheOwnersCode => 'not_collection_owner';
-
-  /// Whether this is the collection saying it already holds the piece.
-  ///
-  /// It is the one refusal a set has no equivalent of, and the only one that
-  /// is worth acting on rather than reporting: the piece the client was trying
-  /// to add is in the collection, which is what it wanted.
-  bool get isAlreadyInTheCollection =>
-      errorCode == 'score_already_in_collection';
-}
-
-class CollectionsApi({
-  required final ApiConfig config,
-  http.Client? client,
+/// queued and giving it up, and that is what [ApiException.isWorthRetrying]
+/// says.
+class const CollectionsApi({
+  required final ApiClientFactory clientFactory,
 }) {
-  this : client = client ?? http.Client();
-
-  final http.Client client;
+  /// The generated client, sending the token of the moment.
+  api.CollectionsApi get _api => clientFactory.build(api.CollectionsApi.new);
 
   /// The collections that changed within the window, the caller's own and the
   /// ones shared with them. Collections that were deleted within it come back
   /// too, with `deleted_at` filled in.
-  Future<List<Map<String, dynamic>>> listCollections(
+  Future<List<Collection>> listCollections(
     DateTime? changesSince,
     DateTime? changesUntil,
-    String authToken,
   ) async {
-    const what = 'list the collections';
-    final response = await callTheApi(
-      () => client.get(
-        config.path('collections', {
-          'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
-          'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
-        }),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Accept': 'application/json',
-        },
-      ),
-      what,
-      CollectionsApiException.new,
+    final result = await _api.listCollections(
+      changesSince: changesSince ?? DateTime.utc(1970),
+      changesUntil: changesUntil ?? DateTime.now(),
     );
-    throwUnlessOk(response, what, CollectionsApiException.new);
-    return objectsIn(response, what, CollectionsApiException.new);
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.ListCollectionsResponse200(:final body) =>
+          body.map((el) => el.toCollection()).toList(growable: false),
+        api.ListCollectionsResponse400(:final body) =>
+          throw body.toApiException(),
+        api.ListCollectionsResponse401(:final body) =>
+          throw body.toApiException(),
+        api.ListCollectionsResponse403(:final body) =>
+          throw body.toApiException(),
+        api.ListCollectionsResponseDefault(:final body) =>
+          throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
   }
 
   /// One collection, asked for by id. `null` when there is no such collection,
   /// or when it is neither the caller's nor shared with them.
-  ///
-  /// A listing only ever answers with what changed inside a window, so this is
-  /// the only way to get hold of a collection that is older than the window a
-  /// client has left to ask about.
-  Future<Map<String, dynamic>?> getCollection(
+  Future<Collection?> getCollection(
     String collectionId,
-    String authToken,
   ) async {
-    const what = 'fetch the collection';
-    final response = await callTheApi(
-      () => client.get(
-        config.path('collections/$collectionId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Accept': 'application/json',
-        },
-      ),
-      what,
-      CollectionsApiException.new,
-    );
-    if (isNotThere(
-      response,
-      const {'collection_not_found'},
-      what,
-      CollectionsApiException.new,
-    )) {
-      return null;
-    }
-    throwUnlessOk(response, what, CollectionsApiException.new);
-    return objectIn(response, what, CollectionsApiException.new);
+    final result = await _api.getCollection(collectionId: collectionId);
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.GetCollectionResponse200(:final body) => body.toCollection(),
+        api.GetCollectionResponse404(:final body)
+            when body.errorCode == ErrorCode.collectionNotFound =>
+          null,
+        api.GetCollectionResponse400(:final body) =>
+          throw body.toApiException(),
+        api.GetCollectionResponse401(:final body) =>
+          throw body.toApiException(),
+        api.GetCollectionResponse403(:final body) =>
+          throw body.toApiException(),
+        api.GetCollectionResponse404(:final body) =>
+          throw body.toApiException(),
+        api.GetCollectionResponseDefault(:final body) =>
+          throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
   }
 
-  /// Stores what the collection is — the group of pieces, and who may read it
-  /// — under the given id, and hands back the collection as it now reads.
-  ///
-  /// What is in it is not written here and is not touched by writing here: an
-  /// entry is a resource of its own, put into the collection and taken out
-  /// again one at a time.
-  Future<Map<String, dynamic>> putCollection(
+  /// Stores what the collection is — the group of pieces, and who may read it —
+  /// and hands back the collection as it now reads. What is in it is written
+  /// one piece at a time, the same way a set's songs are.
+  Future<Collection> putCollection(
     String collectionId,
-    String authToken,
     Map<String, Object?> writeCollection,
-  ) =>
-      _write('collections/$collectionId', authToken, writeCollection,
-          'save the collection');
+  ) async {
+    final result = await _api.putCollection(
+      collectionId: collectionId,
+      body: api.WriteCollection.fromJson(writeCollection),
+    );
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.PutCollectionResponse200(:final body) => body.toCollection(),
+        api.PutCollectionResponse400(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionResponse401(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionResponse403(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionResponse413(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionResponse415(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionResponseDefault(:final body) =>
+          throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
+  }
 
   /// Puts one piece into a collection, or changes what the group does with it,
   /// and hands the entry back as it now reads.
-  ///
-  /// A collection holds a piece once: an entry naming a score that is already
-  /// in it under another entry comes back as a
-  /// [CollectionsApiException.isAlreadyInTheCollection] refusal, carrying the
-  /// entry it is already in.
-  Future<Map<String, dynamic>> putEntry(
+  Future<CollectionEntry> putEntry(
     String collectionId,
     String entryId,
-    String authToken,
     Map<String, Object?> writeEntry,
-  ) =>
-      _write('collections/$collectionId/entries/$entryId', authToken,
-          writeEntry, 'save the entry');
+  ) async {
+    final result = await _api.putCollectionEntry(
+      collectionId: collectionId,
+      entryId: entryId,
+      body: api.WriteCollectionEntry.fromJson(writeEntry),
+    );
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.PutCollectionEntryResponse200(:final body) =>
+          body.toCollectionEntry(),
+        api.PutCollectionEntryResponse400(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponse401(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponse403(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponse404(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponse409(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponse413(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponse415(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryResponseDefault(:final body) =>
+          throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
+  }
 
-  /// Takes one piece out of a collection. An entry that is already gone is not
-  /// an error: what was asked for is the state it is now in.
+  /// Takes one piece out of a collection. One that is already gone is not an
+  /// error: what was asked for is the state it is now in.
   Future<void> deleteEntry(
     String collectionId,
     String entryId,
-    String authToken,
-  ) =>
-      _delete('collections/$collectionId/entries/$entryId', authToken,
-          'delete the entry');
+  ) async {
+    final result = await _api.deleteCollectionEntry(
+      collectionId: collectionId,
+      entryId: entryId,
+    );
+    switch (result) {
+      case TonikSuccess(:final value):
+        switch (value) {
+          case api.DeleteCollectionEntryResponse204():
+            return;
+          // Gone already: what was asked for is the state it is now in.
+          case api.DeleteCollectionEntryResponse404(:final body)
+              when body.errorCode == ErrorCode.collectionNotFound ||
+                  body.errorCode == ErrorCode.collectionEntryNotFound:
+            return;
+          case api.DeleteCollectionEntryResponse400(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionEntryResponse401(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionEntryResponse403(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionEntryResponse404(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionEntryResponseDefault(:final body):
+            throw body.toApiException();
+        }
+      case TonikError():
+        throw result.toApiException();
+    }
+  }
 
-  /// Stores how the caller looks at one entry of a collection, and hands it
-  /// back as it now reads.
+  /// Stores how the caller looks at one entry of a collection.
   ///
   /// Anyone who can read the collection can write their own view of its
   /// entries: it says nothing about the collection and changes nothing anybody
   /// else sees, so a player who cannot add a piece to the book can still say
   /// how they read one that is in it.
-  Future<Map<String, dynamic>> putEntryView(
+  Future<EntryView> putEntryView(
     String collectionId,
     String entryId,
-    String authToken,
     Map<String, Object?> writeView,
-  ) =>
-      _write('collections/$collectionId/entries/$entryId/view', authToken,
-          writeView, 'save the view');
+  ) async {
+    final result = await _api.putCollectionEntryView(
+      collectionId: collectionId,
+      entryId: entryId,
+      body: api.WriteEntryView.fromJson(writeView),
+    );
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.PutCollectionEntryViewResponse200(:final body) =>
+          body.toEntryView(),
+        api.PutCollectionEntryViewResponse400(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryViewResponse401(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryViewResponse403(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryViewResponse404(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryViewResponse413(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryViewResponse415(:final body) =>
+          throw body.toApiException(),
+        api.PutCollectionEntryViewResponseDefault(:final body) =>
+          throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
+  }
 
   /// Marks the collection as deleted. One that was already gone is not an
   /// error: what was asked for is the state it is now in.
-  Future<void> deleteCollection(String collectionId, String authToken) =>
-      _delete('collections/$collectionId', authToken, 'delete the collection');
-
-  Future<bool> canBeReached() => apiCanBeReached(client, config);
-
-  Future<Map<String, dynamic>> _write(
-    String path,
-    String authToken,
-    Map<String, Object?> body,
-    String what,
-  ) async {
-    final response = await callTheApi(
-      () => client.put(
-        config.path(path),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(body),
-      ),
-      what,
-      CollectionsApiException.new,
+  Future<void> deleteCollection(String collectionId) async {
+    final result = await _api.deleteCollection(
+      collectionId: collectionId,
     );
-    throwUnlessOk(response, what, CollectionsApiException.new);
-    return objectIn(response, what, CollectionsApiException.new);
-  }
-
-  Future<void> _delete(String path, String authToken, String what) async {
-    final response = await callTheApi(
-      () => client.delete(
-        config.path(path),
-        headers: {'Authorization': 'Bearer $authToken'},
-      ),
-      what,
-      CollectionsApiException.new,
-    );
-    if (isNotThere(
-      response,
-      const {'collection_not_found', 'collection_entry_not_found'},
-      what,
-      CollectionsApiException.new,
-    )) {
-      return;
+    switch (result) {
+      case TonikSuccess(:final value):
+        switch (value) {
+          case api.DeleteCollectionResponse204():
+            return;
+          // Gone already: what was asked for is the state it is now in.
+          case api.DeleteCollectionResponse404(:final body)
+              when body.errorCode == ErrorCode.collectionNotFound ||
+                  body.errorCode == ErrorCode.collectionEntryNotFound:
+            return;
+          case api.DeleteCollectionResponse400(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionResponse401(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionResponse403(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionResponse404(:final body):
+            throw body.toApiException();
+          case api.DeleteCollectionResponseDefault(:final body):
+            throw body.toApiException();
+        }
+      case TonikError():
+        throw result.toApiException();
     }
-    throwUnlessOk(response, what, CollectionsApiException.new);
   }
+
+  Future<bool> canBeReached() => clientFactory.canBeReached();
+}
+
+extension on api.Collection {
+  /// This collection as this app knows one, with nothing owed and nothing said
+  /// yet about when this device heard of it.
+  Collection toCollection() => Collection(
+    id: id,
+    title: title,
+    description: description,
+    entries: entries
+        .map((el) => el.toCollectionEntry())
+        .toList(growable: false),
+    sharedWith: sharedWith,
+    isOwner: isOwner,
+    lastChangedAt: lastChangedAt,
+    deletedAt: deletedAt,
+  );
+}
+
+extension on api.CollectionEntry {
+  CollectionEntry toCollectionEntry() => CollectionEntry(
+    id: id,
+    scoreId: scoreIdOf(scoreId),
+    description: description,
+    transposition: transpositionOf(transposition),
+    view: view.toEntryView(),
+    // Everything the API hands over is on the server by definition.
+    synced: true,
+  );
+}
+
+extension on api.EntryView {
+  EntryView toEntryView() => EntryView(
+    transposition: transpositionOf(transposition),
+    hiddenParts: hiddenParts,
+    zoom: zoomOf(zoom),
+  );
 }

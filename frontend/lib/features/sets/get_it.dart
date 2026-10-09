@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:score/config.dart';
 import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
@@ -14,16 +13,17 @@ import 'package:score/features/sets/storage/sets_api.dart';
 import 'package:score/features/sets/storage/sets_store.dart';
 import 'package:score/features/sync/storage/sync_holds_store.dart';
 import 'package:score/notifiers/get_it.dart';
+import 'package:score/storage/clients.dart';
 import 'package:score/storage/databases.dart';
 
 extension SetsGetItExtensions on GetIt {
   void registerSets() {
     registerLazySingletonAsync<SetsApi>(
-      () async => SetsApi(config: (await getAsync<Config>()).api, client: get()),
+      () async => SetsApi(clientFactory: await getAsync<ApiClientFactory>()),
     );
 
     registerLazySingletonAsync(
-      () async => SetsStore(database: (await getAsync<Databases>()).data),
+      () async => SetsStore(client: (await getAsync<Databases>()).data),
     );
 
     registerLazySingletonAsync<SetsEngine>(() async {

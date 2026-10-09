@@ -91,8 +91,9 @@ class _ScoreLibraryState<T> extends State<ScoreLibrary<T>> {
     // Said in the title because on a phone the title may be all there is to
     // see: a list narrowed by something folded away looks like a list that has
     // lost half of what is in it.
-    final filtersTitle =
-        _filters.count == 0 ? 'Filters' : 'Filters (${_filters.count})';
+    final filtersTitle = _filters.count == 0
+        ? 'Filters'
+        : 'Filters (${_filters.count})';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -169,11 +170,11 @@ class _ScoreLibraryState<T> extends State<ScoreLibrary<T>> {
   }
 
   Widget _nothing(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 16),
-        child: Text(
-          widget.items.isEmpty ? widget.empty : 'Nothing here matches that.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 16),
+    child: Text(
+      widget.items.isEmpty ? widget.empty : 'Nothing here matches that.',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.bodyMedium,
+    ),
+  );
 }

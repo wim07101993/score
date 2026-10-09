@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:score/storage/api.dart';
+import 'package:score/config.dart';
+import 'package:score/features/sets/storage/sets_api.dart';
+import 'package:score/storage/api_exception.dart';
+import 'package:score/storage/clients.dart';
 
-/// A request that stops answering is given up on rather than waited for: the
-/// health checks passing says nothing about the request after them.
+/// What every call to the API has in common: a request that stops answering is
+/// given up on rather than waited for, and whatever comes back that is not the
+/// answer asked for is a failure that says whether it is worth trying again.
 void main() {
   const patience = Duration(milliseconds: 50);
 
@@ -37,94 +42,128 @@ void main() {
     final hangs = MockClient((_) => Completer<http.Response>().future);
     final client = TimingOutClient(inner: hangs, patience: patience);
 
+    final sets = SetsApi(
+      clientFactory: ApiClientFactory(
+        config: ApiConfig(baseUrl: Uri.parse('https://api.test/')),
+        inner: client,
+        authToken: () async => 'a-token',
+      ),
+    );
+
     try {
-      await callTheApi(
-        () => client.get(Uri.parse('https://api.test/sets')),
-        'list the sets',
-        ApiException.new,
-      );
+      await sets.listSets(null, null);
       fail('it waited');
     } on ApiException catch (error) {
-      expect(error.status, isNull);
+      expect(error.statusCode, isNull);
       expect(error.isWorthRetrying, isTrue);
     }
   });
 
-  group('a 404', () {
-    http.Response notFound(String body) => http.Response(body, 404);
-
-    test("with the API's own code is the thing not being there", () {
-      expect(
-        isNotThere(
-          notFound('{"errorCode":"set_not_found","detail":"no such set"}'),
-          const {'set_not_found'},
-          'read the set',
-          ApiException.new,
+  group('a failure', () {
+    /// What listing the sets fails with when the server answers [body].
+    Future<ApiException> failureOn(
+      int status,
+      String body, {
+      String contentType = 'application/problem+json',
+    }) async {
+      final sets = SetsApi(
+        clientFactory: ApiClientFactory(
+          config: ApiConfig(baseUrl: Uri.parse('https://api.test/')),
+          inner: MockClient(
+            (_) async => http.Response(
+              body,
+              status,
+              headers: {'content-type': contentType},
+            ),
+          ),
+          authToken: () async => 'a-token',
         ),
-        isTrue,
       );
+      try {
+        await sets.listSets(null, null);
+      } on ApiException catch (error) {
+        return error;
+      }
+      fail('it did not fail');
+    }
+
+    test("in the API's own words is what it says", () async {
+      final error = await failureOn(404, _problem('set_entry_not_found', 404));
+
+      expect(error.statusCode, 404);
+      expect(error.errorCode, ErrorCode.setEntryNotFound);
+      expect(error.isWorthRetrying, isFalse);
     });
 
-    test('from anything else is worth trying again', () {
-      for (final body in ['<html>Not Found</html>', '{"message":"nope"}']) {
-        expect(
-          () => isNotThere(
-            notFound(body),
-            const {'set_not_found'},
-            'delete the set',
-            ApiException.new,
-          ),
-          throwsA(isA<ApiException>()
-              .having((error) => error.status, 'status', isNull)
-              .having((error) => error.isWorthRetrying, 'retried', isTrue)),
-        );
+    test("that is not the API's is worth trying again", () async {
+      // A proxy's page, or a server halfway through a deploy.
+      for (final (body, contentType) in [
+        ('<html>Not Found</html>', 'text/html'),
+        ('{"message":"nope"}', 'application/json'),
+        // Not the whole of what the API says about a failure.
+        ('{"errorCode":"set_not_found"}', 'application/problem+json'),
+      ]) {
+        final error = await failureOn(404, body, contentType: contentType);
+
+        expect(error.isWorthRetrying, isTrue, reason: body);
       }
     });
 
-    test('from anything else is not a write refused', () {
-      expect(
-        () => throwUnlessOk(
-            notFound('<html>Not Found</html>'), 'save the set', ApiException.new),
-        throwsA(isA<ApiException>()
-            .having((error) => error.isWorthRetrying, 'retried', isTrue)),
-      );
-      expect(
-        () => throwUnlessOk(
-          notFound('{"errorCode":"set_entry_not_found"}'),
-          'save the view',
-          ApiException.new,
-        ),
-        throwsA(isA<ApiException>()
-            .having((error) => error.status, 'status', 404)
-            .having((error) => error.isWorthRetrying, 'retried', isFalse)),
-      );
-    });
-  });
+    test('from a server without the endpoint has not refused anything', () async {
+      // A backend older than the app, during a deploy or after a rollback: its
+      // own router answers, in the API's own words, that there is no such
+      // route.
+      for (final (status, code) in [
+        (404, 'endpoint_not_found'),
+        (405, 'method_not_allowed'),
+      ]) {
+        final error = await failureOn(status, _problem(code, status));
 
-  test('a server without the endpoint has not refused anything', () {
-    // A backend older than the app, during a deploy or after a rollback: its
-    // own router answers, in the API's own words, that there is no such route.
-    for (final response in [
-      http.Response('{"errorCode":"endpoint_not_found"}', 404),
-      http.Response('{"errorCode":"method_not_allowed"}', 405),
-    ]) {
-      expect(
-        () => throwUnlessOk(response, 'save the view', ApiException.new),
-        throwsA(isA<ApiException>()
-            .having((error) => error.status, 'status', isNull)
-            .having((error) => error.isWorthRetrying, 'retried', isTrue)),
+        expect(error.isWorthRetrying, isTrue, reason: code);
+      }
+    });
+
+    test('with an error code newer than the app is its status alone', () async {
+      // The codes only ever grow: a server that has learned a new one still
+      // fails the request by its status, and the app has no code to act on.
+      final error = await failureOn(
+        409,
+        _problem('a_code_from_the_future', 409),
       );
-    }
-    expect(
-      () => isNotThere(
-        http.Response('{"errorCode":"endpoint_not_found"}', 404),
-        const {'set_not_found', 'endpoint_not_found'},
-        'read the set',
-        ApiException.new,
-      ),
-      throwsA(isA<ApiException>()
-          .having((error) => error.isWorthRetrying, 'retried', isTrue)),
-    );
+
+      expect(error.statusCode, 409);
+      expect(error.problem, isNull);
+      expect(error.isWorthRetrying, isFalse);
+    });
+
+    test('of a yes the API does not give is worth trying again', () async {
+      // A page where the answer was expected: whatever said yes, it was not
+      // the API.
+      final error = await failureOn(
+        200,
+        '<html>Welcome</html>',
+        contentType: 'text/html',
+      );
+
+      expect(error.isWorthRetrying, isTrue);
+    });
+
+    test("over somebody else's set is not worth asking about again", () async {
+      final error = await failureOn(403, _problem('not_set_owner', 403));
+
+      expect(error.isNotTheOwners, isTrue);
+      expect(error.isWorthRetrying, isFalse);
+    });
+
+    test('over a piece already in the collection says where it is', () async {
+      final error = await failureOn(
+        409,
+        _problem('score_already_in_collection', 409, entryId: 'the-entry'),
+      );
+
+      expect(error.isAlreadyInTheCollection, isTrue);
+      expect(error.problem?.entryId, 'the-entry');
+    });
   });
 
   test('passes an answer that comes through', () async {
@@ -135,3 +174,14 @@ void main() {
     expect(response.body, '[]');
   });
 }
+
+/// A failure the way the API words one.
+String _problem(String errorCode, int status, {String? entryId}) => jsonEncode({
+  'type': 'about:blank',
+  'title': '',
+  'status': status,
+  'detail': errorCode.replaceAll('_', ' '),
+  'instance': 'urn:uuid:00000000-0000-0000-0000-000000000000',
+  'errorCode': errorCode,
+  'entryId': ?entryId,
+});

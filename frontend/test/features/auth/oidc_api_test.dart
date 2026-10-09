@@ -28,27 +28,27 @@ int _hosts = 0;
 String _nextHost() => 'provider${_hosts++}.test';
 
 OidcConfig _config(String host) => OidcConfig(
-      clientId: 'score-app',
-      issuer: Uri.parse('https://$host'),
-      redirectUri: Uri.parse('http://localhost:3000/'),
-      nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
-      desktopRedirectUri: Uri.parse('http://localhost:7005/'),
-      authorizationEndpoint: Uri.parse('https://$host/fallback/authorize'),
-      tokenEndpoint: Uri.parse('https://$host/fallback/token'),
-      userInfoEndpoint: Uri.parse('https://$host/fallback/userinfo'),
-      healthzEndpoint: Uri.parse('https://$host/healthz'),
-      rolesKey: 'urn:zitadel:iam:org:project:roles',
-    );
+  clientId: 'score-app',
+  issuer: Uri.parse('https://$host'),
+  redirectUri: Uri.parse('http://localhost:3000/'),
+  nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
+  desktopRedirectUri: Uri.parse('http://localhost:7005/'),
+  authorizationEndpoint: Uri.parse('https://$host/fallback/authorize'),
+  tokenEndpoint: Uri.parse('https://$host/fallback/token'),
+  userInfoEndpoint: Uri.parse('https://$host/fallback/userinfo'),
+  healthzEndpoint: Uri.parse('https://$host/healthz'),
+  rolesKey: 'urn:zitadel:iam:org:project:roles',
+);
 
 Map<String, dynamic> _metadata(String host) => {
-      'issuer': 'https://$host',
-      'authorization_endpoint': 'https://$host/oauth/v2/authorize',
-      'token_endpoint': 'https://$host/oauth/v2/token',
-      'userinfo_endpoint': 'https://$host/oidc/v1/userinfo',
-      'response_types_supported': ['code'],
-      'scopes_supported': ['openid', 'email', 'profile', 'offline_access'],
-      'grant_types_supported': ['authorization_code', 'refresh_token'],
-    };
+  'issuer': 'https://$host',
+  'authorization_endpoint': 'https://$host/oauth/v2/authorize',
+  'token_endpoint': 'https://$host/oauth/v2/token',
+  'userinfo_endpoint': 'https://$host/oidc/v1/userinfo',
+  'response_types_supported': ['code'],
+  'scopes_supported': ['openid', 'email', 'profile', 'offline_access'],
+  'grant_types_supported': ['authorization_code', 'refresh_token'],
+};
 
 /// The user, played by something that answers instantly.
 ///
@@ -154,55 +154,60 @@ class _Provider({
   /// logging every response — so a reply without it fails with a null check
   /// deep inside the package rather than anywhere near here.
   http.Client get client => MockClient((request) async {
-        final path = request.url.path;
+    final path = request.url.path;
 
-        if (path.endsWith('/.well-known/openid-configuration')) {
-          discoveries++;
-          if (!discoverable) {
-            return http.Response('no', 500, request: request);
-          }
-          return http.Response(jsonEncode(_metadata(host)), 200,
-              request: request,
-              headers: {'content-type': 'application/json'});
-        }
+    if (path.endsWith('/.well-known/openid-configuration')) {
+      discoveries++;
+      if (!discoverable) {
+        return http.Response('no', 500, request: request);
+      }
+      return http.Response(
+        jsonEncode(_metadata(host)),
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
+    }
 
-        if (path.endsWith('/token')) {
-          final body = Uri.splitQueryString(request.body);
-          tokenRequests.add(body);
-          issued++;
-          return http.Response(
-            jsonEncode({
-              'access_token': 'access-$issued',
-              'token_type': 'Bearer',
-              'expires_in': 3600,
-              if (body['grant_type'] == 'authorization_code' ||
-                  reissuesRefreshTokens)
-                'refresh_token': 'refresh-$issued',
-            }),
-            200,
-            request: request,
-            headers: {'content-type': 'application/json'},
-          );
-        }
+    if (path.endsWith('/token')) {
+      final body = Uri.splitQueryString(request.body);
+      tokenRequests.add(body);
+      issued++;
+      return http.Response(
+        jsonEncode({
+          'access_token': 'access-$issued',
+          'token_type': 'Bearer',
+          'expires_in': 3600,
+          if (body['grant_type'] == 'authorization_code' ||
+              reissuesRefreshTokens)
+            'refresh_token': 'refresh-$issued',
+        }),
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
+    }
 
-        if (path.endsWith('/userinfo')) {
-          final bearer = request.headers['Authorization']?.substring(7);
-          userInfoAskedWith.add(bearer);
-          if (refused.contains(bearer)) {
-            return http.Response('revoked', 401, request: request);
-          }
-          return http.Response(jsonEncode(claims), 200,
-              request: request,
-              headers: {'content-type': 'application/json'});
-        }
+    if (path.endsWith('/userinfo')) {
+      final bearer = request.headers['Authorization']?.substring(7);
+      userInfoAskedWith.add(bearer);
+      if (refused.contains(bearer)) {
+        return http.Response('revoked', 401, request: request);
+      }
+      return http.Response(
+        jsonEncode(claims),
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
+    }
 
-        if (path.endsWith('/healthz')) {
-          return http.Response('ok', 200, request: request);
-        }
+    if (path.endsWith('/healthz')) {
+      return http.Response('ok', 200, request: request);
+    }
 
-        return http.Response('not found: ${request.url}', 404,
-            request: request);
-      });
+    return http.Response('not found: ${request.url}', 404, request: request);
+  });
 }
 
 Future<(OidcApi, Stores)> _api(
@@ -282,13 +287,16 @@ void main() {
       // The web: the flow starts and the page navigates away, so this app gets
       // no answer at all — it stops running.
       final leaving = _GoesAway();
-      final (first, _) = await _api(provider, authorizer: leaving, store: store);
+      final (first, _) = await _api(
+        provider,
+        authorizer: leaving,
+        store: store,
+      );
       expect(await first.getActiveAccessToken(), isNull);
       final state = leaving.sentTo!.queryParameters['state']!;
 
       // ...and starts again with the answer in its own address.
-      final restarted = _Obliging()
-        ..pending = (code: 'the-code', state: state);
+      final restarted = _Obliging()..pending = (code: 'the-code', state: state);
       final (second, _) = await _api(
         _Provider(host: provider.host),
         authorizer: restarted,
@@ -296,10 +304,16 @@ void main() {
       );
 
       expect(await second.getActiveAccessToken(), isNotNull);
-      expect(restarted.cleared, 1,
-          reason: 'a code left in the address would be spent twice on reload');
-      expect(restarted.sentTo, isNull,
-          reason: 'it had an answer already; it should not have asked again');
+      expect(
+        restarted.cleared,
+        1,
+        reason: 'a code left in the address would be spent twice on reload',
+      );
+      expect(
+        restarted.sentTo,
+        isNull,
+        reason: 'it had an answer already; it should not have asked again',
+      );
     });
 
     test("is not done for work running behind the user's back", () async {
@@ -323,15 +337,17 @@ void main() {
         jsonEncode({'token_type': 'Bearer', 'refresh_token': 'the-refresh'}),
       );
       final authorizer = _Obliging();
-      final (api, _) =
-          await _api(provider, authorizer: authorizer, store: store);
+      final (api, _) = await _api(
+        provider,
+        authorizer: authorizer,
+        store: store,
+      );
 
       expect(await api.getActiveAccessToken(signIn: false), 'access-1');
       expect(authorizer.sentTo, isNull);
     });
 
-    test('two tabs sent to sign in at once each keep their own sign-in',
-        () async {
+    test('two tabs sent to sign in at once each keep their own sign-in', () async {
       // Every tab of the web app shares the one store. The sign-in the second
       // tab started must not be written over the first's, or the first to come
       // back is refused for a state that is not its own.
@@ -339,10 +355,16 @@ void main() {
       final store = await Stores.inMemory();
       final firstTab = _GoesAway();
       final secondTab = _GoesAway();
-      final (first, _) =
-          await _api(provider, authorizer: firstTab, store: store);
-      final (second, _) =
-          await _api(_Provider(host: provider.host), authorizer: secondTab, store: store);
+      final (first, _) = await _api(
+        provider,
+        authorizer: firstTab,
+        store: store,
+      );
+      final (second, _) = await _api(
+        _Provider(host: provider.host),
+        authorizer: secondTab,
+        store: store,
+      );
       await first.getActiveAccessToken();
       await second.getActiveAccessToken();
 
@@ -351,8 +373,11 @@ void main() {
           code: 'the-code',
           state: firstTab.sentTo!.queryParameters['state']!,
         );
-      final (firstAgain, _) =
-          await _api(_Provider(host: provider.host), authorizer: back, store: store);
+      final (firstAgain, _) = await _api(
+        _Provider(host: provider.host),
+        authorizer: back,
+        store: store,
+      );
 
       expect(await firstAgain.getActiveAccessToken(), isNotNull);
       expect(firstAgain.signInFailure, isNull);
@@ -372,10 +397,16 @@ void main() {
           code: 'the-code',
           state: leaving.sentTo!.queryParameters['state']!,
         );
-      final (again, _) =
-          await _api(_Provider(host: provider.host), authorizer: back, store: store);
-      expect(await again.getActiveAccessToken(), isNot('access-1'),
-          reason: 'a sign-in started before signing out was finished after it');
+      final (again, _) = await _api(
+        _Provider(host: provider.host),
+        authorizer: back,
+        store: store,
+      );
+      expect(
+        await again.getActiveAccessToken(),
+        isNot('access-1'),
+        reason: 'a sign-in started before signing out was finished after it',
+      );
     });
 
     test('puts the user back where the sign-in was started from', () async {
@@ -385,7 +416,11 @@ void main() {
 
       // A link to a score, opened in a tab with no token in it.
       final leaving = _GoesAway(here: link);
-      final (first, _) = await _api(provider, authorizer: leaving, store: store);
+      final (first, _) = await _api(
+        provider,
+        authorizer: leaving,
+        store: store,
+      );
       await first.getActiveAccessToken();
       final state = leaving.sentTo!.queryParameters['state']!;
 
@@ -420,8 +455,11 @@ void main() {
       );
 
       expect(await second.getActiveAccessToken(), 'access-1');
-      expect(authorizer.sentTo, isNull,
-          reason: 'the player was sent away holding a token that was fine');
+      expect(
+        authorizer.sentTo,
+        isNull,
+        reason: 'the player was sent away holding a token that was fine',
+      );
     });
 
     test('is refreshed once it has run out', () async {
@@ -435,20 +473,31 @@ void main() {
           'token_type': 'Bearer',
           'refresh_token': 'the-refresh-token',
           'expires_at':
-              DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
-                  1000,
+              DateTime.now()
+                  .subtract(const Duration(minutes: 1))
+                  .millisecondsSinceEpoch ~/
+              1000,
         }),
       );
 
       final authorizer = _Obliging();
-      final (api, _) = await _api(provider, authorizer: authorizer, store: store);
+      final (api, _) = await _api(
+        provider,
+        authorizer: authorizer,
+        store: store,
+      );
 
       expect(await api.getActiveAccessToken(), 'access-1');
       expect(provider.tokenRequests.single['grant_type'], 'refresh_token');
-      expect(provider.tokenRequests.single['refresh_token'],
-          'the-refresh-token');
-      expect(authorizer.sentTo, isNull,
-          reason: 'a refresh that worked should not disturb the player');
+      expect(
+        provider.tokenRequests.single['refresh_token'],
+        'the-refresh-token',
+      );
+      expect(
+        authorizer.sentTo,
+        isNull,
+        reason: 'a refresh that worked should not disturb the player',
+      );
     });
 
     test('is refreshed while it still has a moment left on it', () async {
@@ -464,8 +513,10 @@ void main() {
           'token_type': 'Bearer',
           'refresh_token': 'the-refresh-token',
           'expires_at':
-              DateTime.now().add(const Duration(seconds: 10)).millisecondsSinceEpoch ~/
-                  1000,
+              DateTime.now()
+                  .add(const Duration(seconds: 10))
+                  .millisecondsSinceEpoch ~/
+              1000,
         }),
       );
 
@@ -475,8 +526,7 @@ void main() {
       expect(provider.tokenRequests.single['grant_type'], 'refresh_token');
     });
 
-    test('is not thrown away when another tab spent its refresh token first',
-        () async {
+    test('is not thrown away when another tab spent its refresh token first', () async {
       // Two tabs opened again the next morning both find the token run out and
       // both refresh with the same refresh token. A provider that rotates them
       // takes it once; the tab that lost goes on with what the other wrote down
@@ -484,8 +534,10 @@ void main() {
       final host = _nextHost();
       final store = await Stores.inMemory();
       final expired =
-          DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
-              1000;
+          DateTime.now()
+              .subtract(const Duration(minutes: 1))
+              .millisecondsSinceEpoch ~/
+          1000;
       await store.auth.write(
         'auth_token_response',
         jsonEncode({
@@ -498,9 +550,12 @@ void main() {
 
       final client = MockClient((request) async {
         if (request.url.path.endsWith('/.well-known/openid-configuration')) {
-          return http.Response(jsonEncode(_metadata(host)), 200,
-              request: request,
-              headers: {'content-type': 'application/json'});
+          return http.Response(
+            jsonEncode(_metadata(host)),
+            200,
+            request: request,
+            headers: {'content-type': 'application/json'},
+          );
         }
         // The other tab's refresh lands first, and is written down...
         await store.auth.write(
@@ -509,91 +564,124 @@ void main() {
             'access_token': 'the-other-tabs',
             'token_type': 'Bearer',
             'refresh_token': 'the-other-tabs-refresh-token',
-            'expires_at': DateTime.now()
+            'expires_at':
+                DateTime.now()
                     .add(const Duration(hours: 1))
                     .millisecondsSinceEpoch ~/
                 1000,
           }),
         );
         // ...and this one is refused for spending the same token again.
-        return http.Response(jsonEncode({'error': 'invalid_grant'}), 400,
-            request: request,
-            headers: {'content-type': 'application/json'});
+        return http.Response(
+          jsonEncode({'error': 'invalid_grant'}),
+          400,
+          request: request,
+          headers: {'content-type': 'application/json'},
+        );
       });
       final authorizer = _Obliging();
-      final api = OidcApi(config: _config(host), store: store.auth,
-          client: client, authorizer: authorizer);
+      final api = OidcApi(
+        config: _config(host),
+        store: store.auth,
+        client: client,
+        authorizer: authorizer,
+      );
 
       expect(await api.getActiveAccessToken(), 'the-other-tabs');
-      expect(authorizer.sentTo, isNull,
-          reason: 'a tab that lost a race was sent to sign in');
+      expect(
+        authorizer.sentTo,
+        isNull,
+        reason: 'a tab that lost a race was sent to sign in',
+      );
       final kept =
           jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
       expect(kept['refresh_token'], 'the-other-tabs-refresh-token');
     });
 
-    test("waits a moment for the other tab's token to reach this one",
-        () async {
-      // On the web the other tab's write reaches this tab's store a moment
-      // after it was made — often after the refusal of the race it won.
-      final host = _nextHost();
-      final store = await Stores.inMemory();
-      final expired =
-          DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
-              1000;
-      await store.auth.write(
-        'auth_token_response',
-        jsonEncode({
-          'access_token': 'stale',
-          'token_type': 'Bearer',
-          'refresh_token': 'spent-by-the-other-tab',
-          'expires_at': expired,
-        }),
-      );
+    test(
+      "waits a moment for the other tab's token to reach this one",
+      () async {
+        // On the web the other tab's write reaches this tab's store a moment
+        // after it was made — often after the refusal of the race it won.
+        final host = _nextHost();
+        final store = await Stores.inMemory();
+        final expired =
+            DateTime.now()
+                .subtract(const Duration(minutes: 1))
+                .millisecondsSinceEpoch ~/
+            1000;
+        await store.auth.write(
+          'auth_token_response',
+          jsonEncode({
+            'access_token': 'stale',
+            'token_type': 'Bearer',
+            'refresh_token': 'spent-by-the-other-tab',
+            'expires_at': expired,
+          }),
+        );
 
-      final client = MockClient((request) async {
-        if (request.url.path.endsWith('/.well-known/openid-configuration')) {
-          return http.Response(jsonEncode(_metadata(host)), 200,
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/.well-known/openid-configuration')) {
+            return http.Response(
+              jsonEncode(_metadata(host)),
+              200,
               request: request,
-              headers: {'content-type': 'application/json'});
-        }
-        // Refused at once; the other tab's token arrives a little later.
-        Future<void>.delayed(const Duration(milliseconds: 300), () {
-          return store.auth.write(
-            'auth_token_response',
-            jsonEncode({
-              'access_token': 'the-other-tabs',
-              'token_type': 'Bearer',
-              'refresh_token': 'the-other-tabs-refresh-token',
-              'expires_at': DateTime.now()
-                      .add(const Duration(hours: 1))
-                      .millisecondsSinceEpoch ~/
-                  1000,
-            }),
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          // Refused at once; the other tab's token arrives a little later.
+          Future<void>.delayed(const Duration(milliseconds: 300), () {
+            return store.auth.write(
+              'auth_token_response',
+              jsonEncode({
+                'access_token': 'the-other-tabs',
+                'token_type': 'Bearer',
+                'refresh_token': 'the-other-tabs-refresh-token',
+                'expires_at':
+                    DateTime.now()
+                        .add(const Duration(hours: 1))
+                        .millisecondsSinceEpoch ~/
+                    1000,
+              }),
+            );
+          });
+          return http.Response(
+            jsonEncode({'error': 'invalid_grant'}),
+            400,
+            request: request,
+            headers: {'content-type': 'application/json'},
           );
         });
-        return http.Response(jsonEncode({'error': 'invalid_grant'}), 400,
-            request: request,
-            headers: {'content-type': 'application/json'});
-      });
-      final authorizer = _Obliging();
-      final api = OidcApi(config: _config(host), store: store.auth,
+        final authorizer = _Obliging();
+        final api = OidcApi(
+          config: _config(host),
+          store: store.auth,
           client: client,
           authorizer: authorizer,
-          otherTabsGrace: const Duration(seconds: 2));
+          otherTabsGrace: const Duration(seconds: 2),
+        );
 
-      expect(await api.getActiveAccessToken(), 'the-other-tabs');
-      expect(authorizer.sentTo, isNull,
-          reason: 'a tab that lost a race was sent to sign in');
-      final kept =
-          jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
-      expect(kept['refresh_token'], 'the-other-tabs-refresh-token',
-          reason: 'the token the other tab won was thrown away');
-    });
+        expect(await api.getActiveAccessToken(), 'the-other-tabs');
+        expect(
+          authorizer.sentTo,
+          isNull,
+          reason: 'a tab that lost a race was sent to sign in',
+        );
+        final kept =
+            jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
+        expect(
+          kept['refresh_token'],
+          'the-other-tabs-refresh-token',
+          reason: 'the token the other tab won was thrown away',
+        );
+      },
+    );
 
     test('keeps its refresh token when the provider sends no new one', () async {
-      final provider =
-          _Provider(host: _nextHost(), reissuesRefreshTokens: false);
+      final provider = _Provider(
+        host: _nextHost(),
+        reissuesRefreshTokens: false,
+      );
       final store = await Stores.inMemory();
 
       final (first, _) = await _api(provider, store: store);
@@ -604,8 +692,10 @@ void main() {
       final kept =
           jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
       kept['expires_at'] =
-          DateTime.now().subtract(const Duration(minutes: 1)).millisecondsSinceEpoch ~/
-              1000;
+          DateTime.now()
+              .subtract(const Duration(minutes: 1))
+              .millisecondsSinceEpoch ~/
+          1000;
       await store.auth.write('auth_token_response', jsonEncode(kept));
 
       final (second, _) = await _api(
@@ -616,8 +706,11 @@ void main() {
 
       final after =
           jsonDecode((await store.auth.read('auth_token_response'))!) as Map;
-      expect(after['refresh_token'], 'refresh-1',
-          reason: 'the only refresh token this device had was thrown away');
+      expect(
+        after['refresh_token'],
+        'refresh-1',
+        reason: 'the only refresh token this device had was thrown away',
+      );
     });
   });
 
@@ -686,53 +779,76 @@ void main() {
           'token_type': 'Bearer',
           'refresh_token': 'the-refresh-token',
           'expires_at':
-              DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
-                  1000,
+              DateTime.now()
+                  .add(const Duration(hours: 1))
+                  .millisecondsSinceEpoch ~/
+              1000,
         }),
       );
       final authorizer = _Obliging();
-      final (api, _) = await _api(provider, authorizer: authorizer, store: store);
+      final (api, _) = await _api(
+        provider,
+        authorizer: authorizer,
+        store: store,
+      );
 
       final user = await api.getUserInfo();
 
       expect(user?.name, 'A Player');
       expect(provider.userInfoAskedWith, ['revoked', 'access-1']);
       expect(provider.tokenRequests.single['grant_type'], 'refresh_token');
-      expect(authorizer.sentTo, isNull,
-          reason: 'a refresh that worked should not disturb the player');
-      expect(await api.getActiveAccessToken(), 'access-1',
-          reason: 'the refused token was kept');
+      expect(
+        authorizer.sentTo,
+        isNull,
+        reason: 'a refresh that worked should not disturb the player',
+      );
+      expect(
+        await api.getActiveAccessToken(),
+        'access-1',
+        reason: 'the refused token was kept',
+      );
     });
 
-    test('is signed in for again when a refused token cannot be refreshed',
-        () async {
+    test(
+      'is signed in for again when a refused token cannot be refreshed',
+      () async {
+        final provider = _Provider(
+          host: _nextHost(),
+          claims: const {'sub': 'user-1'},
+          refused: const {'revoked'},
+        );
+        final store = await Stores.inMemory();
+        await store.auth.write(
+          'auth_token_response',
+          jsonEncode({
+            'access_token': 'revoked',
+            'token_type': 'Bearer',
+            'expires_at':
+                DateTime.now()
+                    .add(const Duration(hours: 1))
+                    .millisecondsSinceEpoch ~/
+                1000,
+          }),
+        );
+        final authorizer = _Obliging();
+        final (api, _) = await _api(
+          provider,
+          authorizer: authorizer,
+          store: store,
+        );
+
+        await api.getUserInfo();
+
+        expect(authorizer.sentTo, isNotNull);
+        expect(provider.userInfoAskedWith.last, 'access-1');
+      },
+    );
+
+    test('is forgotten on the way out', () async {
       final provider = _Provider(
         host: _nextHost(),
         claims: const {'sub': 'user-1'},
-        refused: const {'revoked'},
       );
-      final store = await Stores.inMemory();
-      await store.auth.write(
-        'auth_token_response',
-        jsonEncode({
-          'access_token': 'revoked',
-          'token_type': 'Bearer',
-          'expires_at':
-              DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
-                  1000,
-        }),
-      );
-      final authorizer = _Obliging();
-      final (api, _) = await _api(provider, authorizer: authorizer, store: store);
-
-      await api.getUserInfo();
-
-      expect(authorizer.sentTo, isNotNull);
-      expect(provider.userInfoAskedWith.last, 'access-1');
-    });
-
-    test('is forgotten on the way out', () async {
-      final provider = _Provider(host: _nextHost(), claims: const {'sub': 'user-1'});
       final (api, store) = await _api(provider);
 
       await api.getUserInfo();
@@ -746,7 +862,10 @@ void main() {
     test('signing out has the next sign-in ask who it is', () async {
       // The provider keeps a session of its own, and would otherwise sign the
       // next person on this device in as the last one without asking.
-      final provider = _Provider(host: _nextHost(), claims: const {'sub': 'user-1'});
+      final provider = _Provider(
+        host: _nextHost(),
+        claims: const {'sub': 'user-1'},
+      );
       final authorizer = _Obliging();
       final (api, store) = await _api(provider, authorizer: authorizer);
       await api.getUserInfo();
@@ -760,8 +879,11 @@ void main() {
 
       expect(await api.getActiveAccessToken(), isNotNull);
       expect(authorizer.sentTo!.queryParameters['prompt'], 'login');
-      expect(await store.auth.read('auth_signed_out'), isNull,
-          reason: 'once somebody has signed in, it has been asked');
+      expect(
+        await store.auth.read('auth_signed_out'),
+        isNull,
+        reason: 'once somebody has signed in, it has been asked',
+      );
 
       // So the sign-in after that is waved through as usual.
       await api.forgetUser();
@@ -769,12 +891,15 @@ void main() {
       expect(authorizer.sentTo!.queryParameters.containsKey('prompt'), isFalse);
     });
 
-    test('is nobody when the provider will not talk and nothing is kept', () async {
-      final provider = _Provider(host: _nextHost(), discoverable: false);
-      final (api, _) = await _api(provider, authorizer: _GoesAway());
+    test(
+      'is nobody when the provider will not talk and nothing is kept',
+      () async {
+        final provider = _Provider(host: _nextHost(), discoverable: false);
+        final (api, _) = await _api(provider, authorizer: _GoesAway());
 
-      expect(await api.getUserInfo(), isNull);
-      expect(await api.keptUserInfo(), isNull);
-    });
+        expect(await api.getUserInfo(), isNull);
+        expect(await api.keptUserInfo(), isNull);
+      },
+    );
   });
 }

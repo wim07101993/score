@@ -1,0 +1,21 @@
+# Settings of the generator that turns api/openapi-spec.yaml into the client
+# package the app talks to the API through (packages/score_api). Run it with
+# scripts/generate-api-client.sh, which bundles the spec into the one document
+# the generator reads first.
+#
+# https://github.com/t-unit/tonik/blob/main/docs/configuration.md
+
+packageName: score_api
+outputDir: packages
+
+# The HTTP package the app already uses, so that the client the app hands it —
+# the one that gives up on a request that takes too long — is the one it sends
+# with.
+transport:
+  backend: http
+
+# A score is read and written as MusicXML, which is text: left to itself the
+# generator does not know the media type and hands it over as bytes.
+contentTypes:
+  application/vnd.recordare.musicxml: text
+  application/vnd.recordare.musicxml+xml: text

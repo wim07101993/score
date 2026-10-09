@@ -745,6 +745,52 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// NewOptUUID returns new OptUUID with value set to v.
+func NewOptUUID(v uuid.UUID) OptUUID {
+	return OptUUID{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUUID is optional uuid.UUID.
+type OptUUID struct {
+	Value uuid.UUID
+	Set   bool
+}
+
+// IsSet returns true if OptUUID was set.
+func (o OptUUID) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUUID) Reset() {
+	var v uuid.UUID
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUUID) SetTo(v uuid.UUID) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUUID) Get() (v uuid.UUID, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // What went wrong, in the shape [RFC 9457] gives a failure.
 //
 // [RFC 9457]: https://www.rfc-editor.org/rfc/rfc9457
@@ -773,7 +819,10 @@ type ProblemDetails struct {
 	// It is what a caller should branch on. `status` says how the request failed in the terms http has,
 	// and `detail` says it in the terms a developer reading a log has; neither is stable enough to switch
 	// on. This is: the set below only ever grows, and a code is never given a new meaning.
-	ErrorCode       ProblemDetailsErrorCode `json:"errorCode"`
+	ErrorCode ProblemDetailsErrorCode `json:"errorCode"`
+	// An extension member, only on `score_already_in_collection`: the entry the collection already holds
+	// the score in, so that a client can point at that one rather than put the score in again.
+	EntryId         OptUUID `json:"entryId"`
 	AdditionalProps ProblemDetailsAdditional
 }
 
@@ -805,6 +854,11 @@ func (s *ProblemDetails) GetInstance() string {
 // GetErrorCode returns the value of ErrorCode.
 func (s *ProblemDetails) GetErrorCode() ProblemDetailsErrorCode {
 	return s.ErrorCode
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *ProblemDetails) GetEntryId() OptUUID {
+	return s.EntryId
 }
 
 // GetAdditionalProps returns the value of AdditionalProps.
@@ -840,6 +894,11 @@ func (s *ProblemDetails) SetInstance(val string) {
 // SetErrorCode sets the value of ErrorCode.
 func (s *ProblemDetails) SetErrorCode(val ProblemDetailsErrorCode) {
 	s.ErrorCode = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *ProblemDetails) SetEntryId(val OptUUID) {
+	s.EntryId = val
 }
 
 // SetAdditionalProps sets the value of AdditionalProps.

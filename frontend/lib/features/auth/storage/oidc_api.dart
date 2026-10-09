@@ -8,58 +8,17 @@ import 'package:score/config.dart';
 import 'package:score/features/auth/storage/auth_key_value_store.dart';
 import 'package:score/features/auth/storage/authorizer.dart';
 import 'package:score/features/auth/storage/tab_lock.dart';
+import 'package:score/json_map_extensions.dart';
 
-/// Proving who the user is, and finding out what they may do.
-///
-/// The flow is an authorization code with PKCE, which is the one a client that
-/// cannot keep a secret is allowed to use — and a browser, a phone and a laptop
-/// are all clients that cannot keep a secret. What the app gets out of it is an
-/// access token to call the API with and a set of roles to decide what to show.
-///
-/// The protocol is `openid_client`'s: discovery, the code exchange, the
-/// refresh, the userinfo call. What is *not* its is getting the user to the
-/// provider and back — see [Authorizer]. That package has transports of its own
-/// for both, and they are the same shape as the ones here, but they are not
-/// wired to this app's two awkward cases: a desktop that must not have its
-/// sign-in cancelled the moment the window takes focus back, and a web app that
-/// refuses to start a flow it can see will not come back. Those are kept.
-///
-/// The tokens are kept where they survive a restart rather than only for as
-/// long as a tab is open. A device that is closed and opened again at the next
-/// rehearsal should not ask the player to sign in again, and a refresh token
-/// that lives no longer than a tab is a refresh token that never gets used.
-/// Signing out throws them away, which is what the profile page is for — and
-/// since they outlive the tab, a device somebody else will use next is only
-/// safe to walk away from once that has been done. See [signOut].
 const List<String> _scopes = ['openid', 'email', 'profile', 'offline_access'];
-
 const _tokenKey = 'auth_token_response';
 const _userInfoKey = 'app_user_info';
-
-/// Set when the user signed out, until the next sign-in finishes: see
-/// [OidcApi.signOut].
 const _signedOutKey = 'auth_signed_out';
-
-/// Whose sets and collections this device holds: see [OidcApi.dataOwner].
 const _dataOwnerKey = 'data_owner';
-
-/// Where what a sign-in has to remember while the user is away is kept: one
-/// record per sign-in, by its state.
-///
-/// Per sign-in, because on the web every tab of the app shares the one store
-/// but not the one program. Two tabs that each send the user to sign in would
-/// otherwise each write down their own flow over the other's, and whichever
-/// came back first would be refused for a state that is not its own — and
-/// throw the other's away on its way out.
 const _flowStatePrefix = 'auth_flow_state';
+
 String _flowStateKey(String state) => '$_flowStatePrefix:$state';
 
-/// How much of a token's life to leave unspent.
-///
-/// A token handed to a request that takes longer to arrive than the token has
-/// left is a token that arrives expired, and the request fails for a reason
-/// nothing on either end can see. So one this close to the end is treated as
-/// already gone.
 const Duration _slack = Duration(seconds: 30);
 
 class OidcApi({
@@ -90,10 +49,9 @@ class OidcApi({
   ///
   /// Worked out once and held: discovery is a request, and every call that
   /// wants a token would otherwise make it again.
-  Future<openid.Client> _client() =>
-      _clientFuture ??= _describeProvider().then(
-        (issuer) => openid.Client(issuer, config.clientIdHere, httpClient: client),
-      );
+  Future<openid.Client> _client() => _clientFuture ??= _describeProvider().then(
+    (issuer) => openid.Client(issuer, config.clientIdHere, httpClient: client),
+  );
 
   /// What the provider says about itself, or what the config says when it
   /// cannot be asked.
@@ -107,18 +65,20 @@ class OidcApi({
     try {
       return await openid.Issuer.discover(config.issuer, httpClient: client);
     } catch (_) {
-      return openid.Issuer(openid.OpenIdProviderMetadata.fromJson({
-        'issuer': config.issuer.toString(),
-        'authorization_endpoint': config.authorizationEndpoint.toString(),
-        'token_endpoint': config.tokenEndpoint.toString(),
-        'userinfo_endpoint': config.userInfoEndpoint.toString(),
-        'response_types_supported': ['code'],
-        // Not decoration. A flow keeps only the scopes the provider is known to
-        // support, so a metadata document that lists none asks for none — and
-        // an authorization request with no `openid` scope is not a sign-in at
-        // all. See [_flow].
-        'scopes_supported': _scopes,
-      }));
+      return openid.Issuer(
+        openid.OpenIdProviderMetadata.fromJson({
+          'issuer': config.issuer.toString(),
+          'authorization_endpoint': config.authorizationEndpoint.toString(),
+          'token_endpoint': config.tokenEndpoint.toString(),
+          'userinfo_endpoint': config.userInfoEndpoint.toString(),
+          'response_types_supported': ['code'],
+          // Not decoration. A flow keeps only the scopes the provider is known to
+          // support, so a metadata document that lists none asks for none — and
+          // an authorization request with no `openid` scope is not a sign-in at
+          // all. See [_flow].
+          'scopes_supported': _scopes,
+        }),
+      );
     }
   }
 
@@ -194,8 +154,9 @@ class OidcApi({
   /// with, the refresh token this device is holding, or — when [signIn] — by
   /// asking them.
   Future<String?> getFreshAccessToken({bool signIn = true}) async {
-    final finished = await (_finishing ??=
-        _finishPendingSignIn().whenComplete(() => _finishing = null));
+    final finished = await (_finishing ??= _finishPendingSignIn().whenComplete(
+      () => _finishing = null,
+    ));
     if (finished != null) {
       return finished;
     }
@@ -208,8 +169,9 @@ class OidcApi({
     if (!signIn || _signInFailure != null) {
       return null;
     }
-    return await (_signingIn ??=
-        _startFlow().whenComplete(() => _signingIn = null));
+    return await (_signingIn ??= _startFlow().whenComplete(
+      () => _signingIn = null,
+    ));
   }
 
   /// Exchanges the code the app was started with, if it was. `null` when it
@@ -265,9 +227,10 @@ class OidcApi({
   /// Other tabs of the web app are waited for too (see [underTabLock]): a tab
   /// that refreshes after another has finished reads back the token that one
   /// wrote down, rather than spending the same refresh token a second time.
-  Future<String?> _refresh() => _refreshing ??=
-      underTabLock('score-token-refresh', _refreshNow)
-          .whenComplete(() => _refreshing = null);
+  Future<String?> _refresh() => _refreshing ??= underTabLock(
+    'score-token-refresh',
+    _refreshNow,
+  ).whenComplete(() => _refreshing = null);
 
   /// Keeps whatever came back: a provider that rotates refresh tokens hands a
   /// new one out with every refresh, and a device that did not write it down
@@ -371,11 +334,11 @@ class OidcApi({
   /// Whether [error] is the token endpoint saying the refresh token is no good,
   /// as opposed to not having been reached, or having had a bad moment.
   static bool _refused(Object error) => switch (error) {
-        openid.OpenIdException(:final code) => code == 'invalid_grant',
-        openid.HttpRequestException(:final statusCode) =>
-          statusCode == 400 || statusCode == 401,
-        _ => false,
-      };
+    openid.OpenIdException(:final code) => code == 'invalid_grant',
+    openid.HttpRequestException(:final statusCode) =>
+      statusCode == 400 || statusCode == 401,
+    _ => false,
+  };
 
   /// Turns the code the user came back with into a token. Throws when there was
   /// no sign-in started here for it to belong to, or when the provider refused
@@ -479,8 +442,9 @@ class OidcApi({
     // refusing a code for no stated reason.
     if (!flow.scopes.contains('openid')) {
       throw OidcException(
-        message: 'the provider at ${config.issuer} does not offer the openid scope,'
-        ' so it cannot be signed in to',
+        message:
+            'the provider at ${config.issuer} does not offer the openid scope,'
+            ' so it cannot be signed in to',
       );
     }
 
@@ -547,8 +511,25 @@ class OidcApi({
   }
 
   /// Whether this device holds a token, or a refresh token to get one with.
-  Future<bool> holdsAToken() async =>
-      await store.read(_tokenKey) != null;
+  Future<bool> holdsAToken() async => await store.read(_tokenKey) != null;
+
+  /// Fires every time the tokens this device holds change: a sign-in, a
+  /// refresh, a sign-out, a token the API refused — in this tab or another.
+  Stream<void> watchTokens() => store.watch(_tokenKey);
+
+  /// Until when the access token this device holds may be spent, allowing for
+  /// the slack (see [_isSpent]). `null` when the provider did not say, which is
+  /// read as for as long as it is held.
+  Future<DateTime?> accessTokenGoodUntil() async {
+    final json = await store.read(_tokenKey);
+    if (json == null) return null;
+    try {
+      return _expiryOf(jsonDecode(json) as Map<String, dynamic>)
+          ?.subtract(_slack);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> _forgetTokens() async {
     await store.write(_tokenKey, null);
@@ -585,7 +566,8 @@ class OidcApi({
   /// sign-in — so that a sign-in that was out while the app was updated still
   /// finishes.
   Future<_FlowState?> _readFlowState(String state) async {
-    final json = await store.read(_flowStateKey(state)) ??
+    final json =
+        await store.read(_flowStateKey(state)) ??
         await store.read(_flowStatePrefix);
     if (json == null) {
       return null;
@@ -638,7 +620,8 @@ class OidcApi({
     }
     if (response.statusCode >= 400) {
       throw OidcException(
-        message: 'failed to get the user info: ${response.statusCode} ${response.body}',
+        message:
+            'failed to get the user info: ${response.statusCode} ${response.body}',
       );
     }
 
@@ -654,9 +637,9 @@ class OidcApi({
   }
 
   Future<http.Response> _askUserInfo(String token) => client.get(
-        config.userInfoEndpoint,
-        headers: {'Authorization': 'Bearer $token'},
-      );
+    config.userInfoEndpoint,
+    headers: {'Authorization': 'Bearer $token'},
+  );
 
   /// What the provider last said about the user, from before there was no
   /// network to ask over.
@@ -670,13 +653,13 @@ class OidcApi({
   /// Keeps [user] as who this device is for, or forgets who that was with
   /// null.
   Future<void> keepUserInfo(UserInfo? user) => store.write(
-        _userInfoKey,
-        user == null ? null : jsonEncode(user.toJson()),
-      );
+    _userInfoKey,
+    user == null ? null : jsonEncode(user.toJson()),
+  );
 
   static UserInfo? _userInfoOf(String? json) => json == null
       ? null
-      : UserInfo.fromJson(json: jsonDecode(json) as Map<String, dynamic>);
+      : UserInfo.fromJson(jsonDecode(json) as Map<String, dynamic>);
 
   /// Whether the provider is there to be asked.
   ///
@@ -828,27 +811,27 @@ class const UserInfo({
     );
   }
 
-  factory UserInfo.fromJson({
-    required Map<String, dynamic> json,
-  }) => UserInfo(
-        name: json['name'] as String?,
-        subject: json['subject'] as String?,
-        email: json['email'] as String?,
-        roles: (json['roles'] as Map?)?.cast<String, dynamic>(),
-        claims: (json['claims'] as Map?)?.cast<String, dynamic>(),
-        rolesKey: json['rolesKey'] as String?,
-      );
+  factory UserInfo.fromJson(Map json) {
+    return UserInfo(
+      name: json.get<String>('name'),
+      subject: json.get<String>('subject'),
+      email: json.get<String>('email'),
+      roles: json.get<Map>('roles')?.cast<String, dynamic>(),
+      claims: json.get<Map>('claims')?.cast<String, dynamic>(),
+      rolesKey: json.get<String>('rolesKey'),
+    );
+  }
 
   bool get isScoreEditor => roles?['score_editor'] != null;
 
   bool get isScoreViewer => roles?['score_viewer'] != null;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'subject': subject,
-        'email': email,
-        'roles': roles,
-        'claims': claims,
-        'rolesKey': rolesKey,
-      };
+    'name': name,
+    'subject': subject,
+    'email': email,
+    'roles': roles,
+    'claims': claims,
+    'rolesKey': rolesKey,
+  };
 }

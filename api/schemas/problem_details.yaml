@@ -88,3 +88,11 @@ properties:
       - request_body_too_large
       - internal_error
     examples: [score_not_found]
+  entryId:
+    type: string
+    format: uuid
+    description: |
+      An extension member, only on `score_already_in_collection`: the entry the
+      collection already holds the score in, so that a client can point at that
+      one rather than put the score in again.
+    examples: ['0b5c3a8e-2f4d-4e6a-9c1b-7d8e9f0a1b2c']

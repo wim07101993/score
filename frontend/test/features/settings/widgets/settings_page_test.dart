@@ -21,18 +21,20 @@ Future<void> _show(
   ValueChanged<PageLook>? onLookChanged,
   VoidCallback? onLookReset,
 }) async {
-  await tester.pumpWidget(MaterialApp(
-    home: Scaffold(
-      body: Appearance(
-        mode: mode,
-        onModeChanged: onModeChanged ?? (_) {},
-        brightness: brightness,
-        look: look,
-        onLookChanged: onLookChanged ?? (_) {},
-        onLookReset: onLookReset,
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Appearance(
+          mode: mode,
+          onModeChanged: onModeChanged ?? (_) {},
+          brightness: brightness,
+          look: look,
+          onLookChanged: onLookChanged ?? (_) {},
+          onLookReset: onLookReset,
+        ),
       ),
     ),
-  ));
+  );
   await tester.pumpAndSettle();
 }
 
@@ -71,8 +73,9 @@ void main() {
       expect(_isChosen(tester, 'Follow the system'), isFalse);
     });
 
-    testWidgets('touching an answer says so, once, with what was touched',
-        (tester) async {
+    testWidgets('touching an answer says so, once, with what was touched', (
+      tester,
+    ) async {
       final said = <ThemeMode>[];
       await _show(tester, onModeChanged: said.add);
 
@@ -101,8 +104,9 @@ void main() {
       expect(find.text('25%'), findsOneWidget);
     });
 
-    testWidgets('the brightness dial stops where a page stops being readable',
-        (tester) async {
+    testWidgets('the brightness dial stops where a page stops being readable', (
+      tester,
+    ) async {
       await _show(tester);
 
       final dial = _slider(tester, 'Brightness');
@@ -110,8 +114,9 @@ void main() {
       expect(dial.max, SheetPalette.full);
     });
 
-    testWidgets('moving one dial leaves the other where it was',
-        (tester) async {
+    testWidgets('moving one dial leaves the other where it was', (
+      tester,
+    ) async {
       final said = <PageLook>[];
       await _show(
         tester,
@@ -129,11 +134,14 @@ void main() {
       expect(said.single.brightness, 0.5, reason: 'the lamp was not touched');
     });
 
-    testWidgets('there is nothing to put back until something is changed',
-        (tester) async {
+    testWidgets('there is nothing to put back until something is changed', (
+      tester,
+    ) async {
       await _show(tester);
       expect(
-        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Reset')).onPressed,
+        tester
+            .widget<TextButton>(find.widgetWithText(TextButton, 'Reset'))
+            .onPressed,
         isNull,
       );
 
@@ -145,18 +153,19 @@ void main() {
       expect(reset, 1);
     });
 
-    testWidgets('the page it is describing is drawn in the palette it is set to',
-        (tester) async {
-      await _show(tester);
+    testWidgets(
+      'the page it is describing is drawn in the palette it is set to',
+      (tester) async {
+        await _show(tester);
 
-      final shown = tester
-          .widgetList<ColoredBox>(find.byType(ColoredBox))
-          .map((box) => box.color)
-          .toList();
-      final wanted =
-          SheetPalette.lamp(brightness: 0.29, warmth: 0.3).paper;
+        final shown = tester
+            .widgetList<ColoredBox>(find.byType(ColoredBox))
+            .map((box) => box.color)
+            .toList();
+        final wanted = SheetPalette.lamp(brightness: 0.29, warmth: 0.3).paper;
 
-      expect(shown, contains(wanted));
-    });
+        expect(shown, contains(wanted));
+      },
+    );
   });
 }

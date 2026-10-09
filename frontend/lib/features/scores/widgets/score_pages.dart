@@ -16,11 +16,11 @@ class const ScorePage({
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ScoreDetailPage(
-        scoreId: scoreId,
-        setId: setId,
-        collectionId: collectionId,
-        entryId: entryId,
-      );
+    scoreId: scoreId,
+    setId: setId,
+    collectionId: collectionId,
+    entryId: entryId,
+  );
 }
 
 /// A score on the whole screen, to be played from.
@@ -41,11 +41,11 @@ class const PerformScorePage({
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ScoreDetailPage(
-        scoreId: scoreId,
-        setId: setId,
-        collectionId: collectionId,
-        entryId: entryId,
-        performing: true,
-        handover: handover,
-      );
+    scoreId: scoreId,
+    setId: setId,
+    collectionId: collectionId,
+    entryId: entryId,
+    performing: true,
+    handover: handover,
+  );
 }

@@ -100,7 +100,8 @@ class _ScoresPageState extends State<ScoresPage> {
                       items: _scores.scores,
                       scoreOf: (score) => score,
                       itemBuilder: (context, score) => ScoreCard(score: score),
-                      empty: 'No scores on this device yet.\nThey arrive with'
+                      empty:
+                          'No scores on this device yet.\nThey arrive with'
                           ' the next sync.',
                       onRefresh: _sync,
                     ),
@@ -132,15 +133,14 @@ class const ScoreCard({
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final creators = score.creatorNames.join(', ');
-    final playedBy =
-        score.instruments.map(instrumentName).join(', ');
+    final playedBy = score.instruments.map(instrumentName).join(', ');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: onTap ??
-            () => context.router.push(ScoreRoute(scoreId: score.id)),
+        onTap:
+            onTap ?? () => context.router.push(ScoreRoute(scoreId: score.id)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
           // The buttons that put the score into a set or a collection are
@@ -207,8 +207,9 @@ class const _Line({
         Expanded(
           child: Text(
             text,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.outline),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
         ),
       ],
@@ -244,7 +245,7 @@ class const _NotAViewer({
               failed
                   ? 'Signing in did not finish.'
                   : 'This account has not been given the role that reads'
-                      ' scores.',
+                        ' scores.',
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium,
             ),

@@ -36,6 +36,10 @@ dependencies:
   # What is kept between visits. One database that works the same on a browser
   # (IndexedDB) and on a device (a file), so nothing above the stores ever asks
   # which one it is on.
+  # The client of the API, generated from api/openapi-spec.yaml by
+  # scripts/generate-api-client.sh.
+  score_api:
+    path: packages/score_api
   sembast: ^3.7.4
   # Exact, not a range: in debug builds lib/storage/database_factory_web.dart
   # recognises sembast_web's cross-tab channel by a name that is private to
@@ -52,6 +56,7 @@ dependencies:
   # listens on itself (lib/features/auth/storage/authorizer_native.dart), which
   # opens the provider in the browser with this and brings the app back to the
   # front with the next one.
+  tonik_util: ^0.10.0
   url_launcher: ^6.3.1
   uuid: ^4.5.1
   web: ^1.1.0
@@ -63,6 +68,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   lint: ^2.8.0
+  tonik: ^0.10.0
 
 flutter:
   uses-material-design: true

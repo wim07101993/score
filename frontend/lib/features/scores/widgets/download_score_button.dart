@@ -47,14 +47,16 @@ class const DownloadScoreButton({
           onPressed: onDownloadAsWritten,
           icon: Icons.description_outlined,
           title: 'Score file, as written (.musicxml)',
-          subtitle: 'The score itself, as it was uploaded. It opens in other'
+          subtitle:
+              'The score itself, as it was uploaded. It opens in other'
               ' music software and can be uploaded here again.',
         ),
         _Choice(
           onPressed: asOnScreen,
           icon: Icons.visibility_outlined,
           title: 'Score file, as on screen (.musicxml)',
-          subtitle: 'In the key you are reading it in, without the parts you'
+          subtitle:
+              'In the key you are reading it in, without the parts you'
               ' have hidden. Not the original: do not upload it over this'
               ' score.',
         ),

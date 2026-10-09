@@ -54,7 +54,9 @@ List<ScorePartRef> readParts(Score score) {
     taken.add(id);
 
     final name = part.name.trim();
-    parts.add(ScorePartRef(id: id, name: name.isEmpty ? 'Part ${index + 1}' : name));
+    parts.add(
+      ScorePartRef(id: id, name: name.isEmpty ? 'Part ${index + 1}' : name),
+    );
   }
 
   return parts;

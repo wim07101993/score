@@ -33,13 +33,12 @@ class _SyncButtonState extends State<SyncButton> {
       final problem = connection == null
           ? null
           : !connection.server
-              ? 'The server cannot be reached right now.'
-              : !connection.provider
-                  ? 'The sign-in provider cannot be reached right now.'
-                  : GetIt.I<AuthNotifier>().authProblem != null ||
-                          !connection.signedIn
-                      ? 'Not signed in; sign in again to sync.'
-                      : null;
+          ? 'The server cannot be reached right now.'
+          : !connection.provider
+          ? 'The sign-in provider cannot be reached right now.'
+          : GetIt.I<AuthNotifier>().authProblem != null || !connection.signedIn
+          ? 'Not signed in; sign in again to sync.'
+          : null;
       if (problem != null) {
         messenger.showSnackBar(errorSnackBar(problem));
       }

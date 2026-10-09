@@ -36,8 +36,7 @@ class ScoreView({
   /// written.
   factory ScoreView.forParts({
     required List<String> partIds,
-  }) =>
-      ScoreView(partIds: partIds, hiddenPartIds: const [], transposition: 0);
+  }) => ScoreView(partIds: partIds, hiddenPartIds: const [], transposition: 0);
 
   /// Every part of the score, in the order the score lists them.
   final List<String> partIds;
@@ -60,7 +59,11 @@ class ScoreView({
     if (clamped == transposition) {
       return this;
     }
-    return ScoreView(partIds: partIds, hiddenPartIds: hiddenPartIds, transposition: clamped);
+    return ScoreView(
+      partIds: partIds,
+      hiddenPartIds: hiddenPartIds,
+      transposition: clamped,
+    );
   }
 
   /// Takes a part off the screen or puts it back.
@@ -88,7 +91,11 @@ class ScoreView({
     if (visiblePartIds.length <= 1) {
       return this;
     }
-    return ScoreView(partIds: partIds, hiddenPartIds: [...hiddenPartIds, partId], transposition: transposition);
+    return ScoreView(
+      partIds: partIds,
+      hiddenPartIds: [...hiddenPartIds, partId],
+      transposition: transposition,
+    );
   }
 
   /// The same score with exactly these parts off the screen, whatever was off
@@ -111,7 +118,11 @@ class ScoreView({
         hidden.every(hiddenPartIds.contains)) {
       return this;
     }
-    return ScoreView(partIds: this.partIds, hiddenPartIds: hidden, transposition: transposition);
+    return ScoreView(
+      partIds: this.partIds,
+      hiddenPartIds: hidden,
+      transposition: transposition,
+    );
   }
 
   /// The same score, looked at the way it was written.
@@ -125,8 +136,11 @@ class ScoreView({
       listEquals(other.hiddenPartIds, hiddenPartIds);
 
   @override
-  int get hashCode =>
-      Object.hash(transposition, Object.hashAll(partIds), Object.hashAll(hiddenPartIds));
+  int get hashCode => Object.hash(
+    transposition,
+    Object.hashAll(partIds),
+    Object.hashAll(hiddenPartIds),
+  );
 
   @override
   String toString() =>

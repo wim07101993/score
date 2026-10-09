@@ -1,319 +1,301 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
-import 'package:score/background.dart';
-import 'package:score/behaviours/in_turn.dart';
-import 'package:score/config.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
-import 'package:score/features/scores/behaviours/ensure_score.dart';
-import 'package:score/features/scores/behaviours/forget_gone_scores.dart';
+import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
-import 'package:score/features/scores/behaviours/kept_scores.dart';
+import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
+import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/models.dart';
-import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
+import 'package:score/storage/api_exception.dart';
+import 'package:score/storage/clients.dart';
 
+import '../../test_api.dart';
 import '../../test_stores.dart';
 
-/// What a sync does with a document this device already holds.
-///
-/// A score changed within a window is in that window's answer and in no later
-/// one. So a document that could not be fetched when its window came round is
-/// only ever fetched again if the window is asked about again.
-
-final _oidcConfig = OidcConfig(
-  clientId: 'test',
-  issuer: Uri.parse('http://nowhere'),
-  redirectUri: Uri.parse('http://localhost/'),
-  nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
-  desktopRedirectUri: Uri.parse('http://localhost:7005/'),
-  authorizationEndpoint: Uri.parse('http://nowhere/authorize'),
-  tokenEndpoint: Uri.parse('http://nowhere/token'),
-  userInfoEndpoint: Uri.parse('http://nowhere/userinfo'),
-  healthzEndpoint: Uri.parse('http://nowhere/healthz'),
-  rolesKey: 'roles',
-);
-
-class _SignedIn({
-  required Stores store,
-}) extends OidcApi {
-  this : super(config: _oidcConfig, store: store.auth);
-
-  @override
-  Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
-}
-
-/// An API that lists what it is told to, and hands out documents until it is
-/// told to stop.
+/// An API that lists what it is told to, and hands out scores and documents.
 class _Api() extends ScoresApi {
-  this : super(config: ApiConfig(baseUrl: Uri.parse('http://nowhere/')));
+  this : super(clientFactory: testClientFactory());
 
-  List<Map<String, dynamic>> answers = [];
-  bool documentsFail = false;
+  /// What a listing answers with.
+  List<Score> answers = [];
 
-  /// The scores the server no longer has.
-  Set<String> gone = {};
+  /// What asking for a single score answers with, by id.
+  final Map<String, Score> scores = {};
+
+  /// Whether an upload gets through.
+  bool uploadsFail = false;
+
+  /// What was uploaded, by id.
+  final Map<String, String> uploaded = {};
+
+  /// The change windows that were asked about, in order.
+  final List<DateTime> since = [];
 
   @override
   Future<bool> canBeReached() async => true;
 
-  /// The change windows that were asked about, in order.
-  final List<DateTime?> since = [];
-  final List<DateTime?> until = [];
-
   @override
-  Future<List<Map<String, dynamic>>> listScores(
-      DateTime? changesSince, DateTime? changesUntil, String authToken) async {
-    since.add(changesSince);
-    until.add(changesUntil);
+  Future<List<Score>> listScores({
+    required DateTime since,
+    DateTime? until,
+  }) async {
+    this.since.add(since);
     return answers;
   }
 
   @override
-  Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
-    if (gone.contains(scoreId)) {
-      return null;
+  Future<Score?> getScore(String scoreId) async => scores[scoreId];
+
+  @override
+  Future<String?> getScoreMusicXml(String scoreId) async => '<new/>';
+
+  @override
+  Future<void> putScore(String scoreId, String musicXml) async {
+    if (uploadsFail) {
+      throw ApiException(
+        message: 'nothing answered',
+        statusCode: null,
+        problem: null,
+      );
     }
-    if (documentsFail) {
-      throw ScoresApiException(message: 'not now', status: null);
-    }
-    return '<new/>';
+    uploaded[scoreId] = musicXml;
   }
 }
 
-/// The scores behaviours over one store and one API, as the app wires them:
-/// a sync and the search for what is gone share one turn.
+/// The scores behaviours over one store and one API, as the app wires them.
 class _Scores({
   required final Stores store,
-  required final ScoresApi api,
+  required final _Api api,
 }) {
-  late final OidcApi _oidc = _SignedIn(store: store);
-  late final KeptScores _kept = KeptScores(
-    store: store.scores,
-    documents: store.documents,
+  late final _cacheScore = CacheScore(db: store.scores);
+  late final _cacheMusicXml = CacheMusicXml(files: store.documents);
+  late final _getScore = GetScore(
+    api: api,
+    db: store.scores,
+    cache: _cacheScore,
   );
-  late final InTurn _turn = InTurn();
-  late final EnsureScore _ensureScore =
-      EnsureScore(kept: _kept, api: api, oidc: _oidc);
 
-  Future<void> syncWithApi() =>
-      SyncScores(
-        logger: Logger('test'),
-        documents: store.documents,
-        kept: _kept,
-        api: api,
-        oidc: _oidc,
-        turn: _turn,
-      ).action(null);
+  Future<void> sync() => SyncScores(
+    logger: Logger('test'),
+    documents: store.documents,
+    db: store.scores,
+    api: api,
+    syncDates: store.syncDates,
+  ).action(null);
 
-  Future<void> forgetWhatTheServerNoLongerHas() =>
-      ForgetGoneScores(
-        logger: Logger('test'),
-        kept: _kept,
-        api: api,
-        oidc: _oidc,
-        turn: _turn,
-      ).action(null);
+  Future<Score?> getScore(String scoreId) => _getScore.action(scoreId, null);
 
   Future<String?> getMusicXml(String scoreId) => GetMusicXml(
-        logger: Logger('test'),
-        documents: store.documents,
-        kept: _kept,
-        api: api,
-        oidc: _oidc,
-        ensureScore: _ensureScore,
-        background: Background(logger: Logger('test')),
-      ).action(scoreId, null);
+    logger: Logger('test'),
+    files: store.documents,
+    api: api,
+    cache: _cacheMusicXml,
+  ).action(scoreId, null);
 
-  Future<void> markViewed(String scoreId) =>
-      MarkScoreViewed(store: store.scores, ensureScore: _ensureScore)
-          .action(scoreId, null);
+  Future<void> markViewed(String scoreId) => MarkScoreViewed(
+    store: store.scores,
+    getScore: _getScore,
+  ).action(scoreId, null);
 
-  Future<Score?> getScore(String scoreId) => _kept.get(scoreId);
+  Future<void> upload(String scoreId, String musicXml) => UploadScore(
+    logger: Logger('test'),
+    documents: store.documents,
+    db: store.scores,
+    api: api,
+    cacheScore: _cacheScore,
+    cacheMusicXml: _cacheMusicXml,
+  ).action((scoreId, musicXml), null);
 
-  Future<List<String>> ids() async => [...(await _kept.all()).keys];
+  Future<void> forgetUnreferencedDocuments() => ForgetUnreferencedDocuments(
+    db: store.scores,
+    files: store.documents,
+  ).action(null);
 }
+
+/// Lets what was left to run in the background — a score or a document being
+/// cached — finish.
+Future<void> _settle() async {
+  for (var i = 0; i < 10; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
+const _musicXml = '''
+<score-partwise version="4.0">
+  <work><work-title>Après un rêve</work-title></work>
+  <identification><creator type="composer">Gabriel Fauré</creator></identification>
+  <part-list>
+    <score-part id="P1"><part-name>Voice</part-name></score-part>
+  </part-list>
+  <part id="P1"><measure number="1"/></part>
+</score-partwise>
+''';
 
 void main() {
-  test('a stale document that could not be fetched is tried again', () async {
-    final store = await Stores.inMemory();
-    final fetched = DateTime.utc(2026);
-    await store.scores.writeAll([
-      Score(
-        id: 'abc',
-        lastChangedAt: fetched,
-        lastSyncedAt: fetched,
-        lastFetchedFileAt: fetched,
-      ).toJson(),
-    ]);
-    await store.documents.write('abc', '<old/>');
+  group('a sync', () {
+    test('keeps what only this device knows about a score', () async {
+      final store = await Stores.inMemory();
+      final viewed = DateTime.utc(2026, 3);
+      await store.scores.putAll([
+        Score(
+          id: 'abc',
+          lastChangedAt: DateTime.utc(2026),
+          lastViewedAt: viewed,
+        ),
+      ]);
+      final api = _Api()
+        ..answers = [Score(id: 'abc', lastChangedAt: DateTime.utc(2026, 2))];
 
-    final api = _Api()
-      ..documentsFail = true
-      ..answers = [
-        {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
-      ];
-    final scores = _Scores(store: store, api: api);
+      await _Scores(store: store, api: api).sync();
 
-    await scores.syncWithApi();
-    expect(await store.documents.read('abc'), '<old/>');
+      final kept = await store.scores.get('abc');
+      expect(kept!.lastChangedAt, DateTime.utc(2026, 2));
+      expect(kept.lastViewedAt, viewed);
+    });
 
-    // The window was not closed, so it is asked about again.
-    api.documentsFail = false;
-    await scores.syncWithApi();
-    final asked = fetched.subtract(SyncScores.syncOverlap);
-    expect(api.since, [asked, asked]);
-    expect(await store.documents.read('abc'), '<new/>');
+    test('starts where the newest change the last one heard of was', () async {
+      final store = await Stores.inMemory();
+      final api = _Api()
+        ..answers = [
+          Score(id: 'a', lastChangedAt: DateTime.utc(2026)),
+          Score(id: 'b', lastChangedAt: DateTime.utc(2026, 2)),
+        ];
+      final scores = _Scores(store: store, api: api);
 
-    // And now it is.
-    api.answers = [];
-    await scores.syncWithApi();
-    expect(api.since.last, isNot(asked));
+      await scores.sync();
+      api.answers = [];
+      await scores.sync();
+      await scores.sync();
+
+      const overlap = Duration(seconds: 2);
+      expect(api.since, [
+        beginningOfTime.subtract(overlap),
+        DateTime.utc(2026, 2).subtract(overlap),
+        DateTime.utc(2026, 2).subtract(overlap),
+      ]);
+    });
+
+    test('is not moved by a score stored on its own', () async {
+      // Opened by a link, or read back after an upload: newer than anything
+      // the last sync saw. Started after it, the next sync would skip whatever
+      // else changed in between.
+      final store = await Stores.inMemory();
+      final api = _Api()
+        ..answers = [Score(id: 'listed', lastChangedAt: DateTime.utc(2026))];
+      final scores = _Scores(store: store, api: api);
+      await scores.sync();
+
+      await store.scores.putAll([
+        Score(id: 'opened', lastChangedAt: DateTime.utc(2026, 6)),
+      ]);
+      api.answers = [];
+      await scores.sync();
+
+      expect(
+        api.since.last,
+        DateTime.utc(2026).subtract(const Duration(seconds: 2)),
+      );
+    });
   });
 
-  test('refreshing a document keeps when the score was last opened', () async {
-    // The download is on its way when the player opens the score, and the
-    // copy the refresh started from knows nothing about that.
-    final store = await Stores.inMemory();
-    final fetched = DateTime.utc(2026);
-    await store.scores.writeAll([
-      Score(id: 'abc', lastChangedAt: fetched, lastFetchedFileAt: fetched)
-          .toJson(),
-    ]);
-    await store.documents.write('abc', '<old/>');
-    late _Scores scores;
-    final api = _OpensWhileFetching(meanwhile: () => scores.markViewed('abc'))
-      ..answers = [
-        {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
-      ];
-    scores = _Scores(store: store, api: api);
+  group('a score that is not on this device', () {
+    test('is fetched, and kept for next time', () async {
+      final store = await Stores.inMemory();
+      final api = _Api()
+        ..scores['abc'] = Score(id: 'abc', lastChangedAt: DateTime.utc(2026));
 
-    await scores.syncWithApi();
+      expect(
+        (await _Scores(store: store, api: api).getScore('abc'))?.id,
+        'abc',
+      );
+      await _settle();
 
-    expect((await scores.getScore('abc'))!.lastViewedAt, isNotNull);
+      expect(await store.scores.get('abc'), isNotNull);
+    });
+
+    test('keeps when it was opened, however the caching lands', () async {
+      // Marked as viewed before the copy that was fetched is written down:
+      // the copy knows nothing about it.
+      final store = await Stores.inMemory();
+      final api = _Api()
+        ..scores['abc'] = Score(id: 'abc', lastChangedAt: DateTime.utc(2026));
+
+      await _Scores(store: store, api: api).markViewed('abc');
+      await _settle();
+
+      expect((await store.scores.get('abc'))!.lastViewedAt, isNotNull);
+    });
   });
 
-  test('a score the server no longer has is forgotten when opened', () async {
-    final store = await Stores.inMemory();
-    await store.scores.writeAll([const Score(id: 'abc').toJson()]);
-    final api = _Api()..gone = {'abc'};
-    final scores = _Scores(store: store, api: api);
+  group('a document', () {
+    test('that is on this device is read from it', () async {
+      final store = await Stores.inMemory();
+      await store.documents.write('abc', '<held/>');
 
-    await expectLater(
-      scores.getMusicXml('abc'),
-      throwsA(isA<ScoresApiException>()
-          .having((error) => error.status, 'status', 404)),
-    );
+      expect(
+        await _Scores(store: store, api: _Api()).getMusicXml('abc'),
+        '<held/>',
+      );
+    });
 
-    expect(await scores.getScore('abc'), isNull);
-    expect(await store.scores.readAll(), isEmpty);
+    test('that is not is fetched, and kept for next time', () async {
+      final store = await Stores.inMemory();
+
+      expect(
+        await _Scores(store: store, api: _Api()).getMusicXml('abc'),
+        '<new/>',
+      );
+      await _settle();
+
+      expect(await store.documents.read('abc'), '<new/>');
+    });
+
+    test('that no score refers to is forgotten', () async {
+      final store = await Stores.inMemory();
+      await store.scores.putAll([
+        Score(id: 'kept', lastChangedAt: DateTime.utc(2026)),
+      ]);
+      await store.documents.write('kept', '<kept/>');
+      await store.documents.write('gone', '<gone/>');
+
+      await _Scores(store: store, api: _Api()).forgetUnreferencedDocuments();
+
+      expect(await store.documents.ids(), ['kept']);
+    });
   });
 
-  test('the scores the server does not list are forgotten', () async {
-    final store = await Stores.inMemory();
-    await store.scores.writeAll([
-      const Score(id: 'kept').toJson(),
-      const Score(id: 'gone').toJson(),
-    ]);
-    await store.documents.write('gone', '<old/>');
-    final api = _Api()
-      ..answers = [
-        {'id': 'kept', 'last_changed_at': '2026-02-01T00:00:00Z'},
-      ];
-    final scores = _Scores(store: store, api: api);
+  group('an upload', () {
+    test('is read back the way the server has it', () async {
+      final store = await Stores.inMemory();
+      final api = _Api()
+        ..scores['abc'] = Score(
+          id: 'abc',
+          lastChangedAt: DateTime.utc(2026, 5),
+          work: const Work(title: 'As the server read it'),
+        );
 
-    await scores.forgetWhatTheServerNoLongerHas();
+      await _Scores(store: store, api: api).upload('abc', _musicXml);
+      await _settle();
 
-    expect(api.since, [null], reason: 'not every score was asked for');
-    // Not up to this device's now, which may be behind the server's.
-    expect(
-      api.until.single!.isAfter(DateTime.now().add(const Duration(days: 365))),
-      isTrue,
-    );
-    expect(await scores.ids(), ['kept']);
-    expect(await store.documents.has('gone'), isFalse);
+      expect(api.uploaded['abc'], _musicXml);
+      expect(await store.documents.read('abc'), _musicXml);
+      expect((await store.scores.get('abc'))!.title, 'As the server read it');
+    });
+
+    test('that does not get through is still on this device', () async {
+      final store = await Stores.inMemory();
+      final api = _Api()..uploadsFail = true;
+
+      await expectLater(
+        _Scores(store: store, api: api).upload('abc', _musicXml),
+        throwsA(isA<ApiException>()),
+      );
+      await _settle();
+
+      expect((await store.scores.get('abc'))!.title, 'Après un rêve');
+      expect(await store.documents.read('abc'), _musicXml);
+    });
   });
-
-  test('a score forgotten is not brought back by a sync asked for before',
-      () async {
-    // The sync is asked for first and its listing answers last: run side by
-    // side, it would write back the score the search for what is gone has
-    // just forgotten.
-    final store = await Stores.inMemory();
-    await store.scores.writeAll([const Score(id: 'gone').toJson()]);
-    final api = _SlowFirstListing()
-      ..answers = [
-        {'id': 'gone', 'last_changed_at': '2026-02-01T00:00:00Z'},
-      ];
-    final scores = _Scores(store: store, api: api);
-
-    final sync = scores.syncWithApi();
-    final search = scores.forgetWhatTheServerNoLongerHas();
-    // The sync has its answer; by the time the search asks, the server has
-    // lost the score.
-    await api.asked.future;
-    api.answers = [];
-    api.release.complete();
-    await Future.wait([sync, search]);
-
-    expect(await scores.getScore('gone'), isNull);
-    expect(api.since, [null, null]);
-  });
-
-  test('a sync that finds nothing new writes nothing', () async {
-    final store = await Stores.inMemory();
-    final api = _Api()
-      ..answers = [
-        {'id': 'abc', 'last_changed_at': '2026-02-01T00:00:00Z'},
-      ];
-    final scores = _Scores(store: store, api: api);
-    await scores.syncWithApi();
-
-    final notifier = ScoresNotifier(store: store.scores);
-    addTearDown(notifier.dispose);
-    await notifier.ready;
-    var told = 0;
-    notifier.addListener(() => told++);
-    // The window starts before the newest score, so it is read back again.
-    await scores.syncWithApi();
-    await Future<void>.delayed(Duration.zero);
-
-    expect(told, 0, reason: 'every page was redrawn for nothing');
-  });
-}
-
-/// An API whose first listing says it was [asked] and then waits for
-/// [release], answering with what it was told when it was asked.
-class _SlowFirstListing extends _Api {
-  final asked = Completer<void>();
-  final release = Completer<void>();
-  var _first = true;
-
-  @override
-  Future<List<Map<String, dynamic>>> listScores(
-      DateTime? changesSince, DateTime? changesUntil, String authToken) async {
-    final answer =
-        await super.listScores(changesSince, changesUntil, authToken);
-    if (_first) {
-      _first = false;
-      asked.complete();
-      await release.future;
-    }
-    return answer;
-  }
-}
-
-/// An API whose document download lets the player open the score while it is
-/// on its way.
-class _OpensWhileFetching({
-  required final Future<void> Function() meanwhile,
-}) extends _Api {
-  @override
-  Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
-    await meanwhile();
-    return super.getScoreMusicXml(scoreId, authToken);
-  }
 }

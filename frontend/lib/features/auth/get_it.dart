@@ -9,7 +9,9 @@ import 'package:score/features/auth/behaviours/update_auth.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/auth/storage/auth_key_value_store.dart';
 import 'package:score/features/auth/storage/auth_store.dart';
+import 'package:score/features/auth/storage/auth_tokens.dart';
 import 'package:score/features/auth/storage/oidc_api.dart';
+import 'package:score/features/auth/widgets/sign_in_prompt_dialog.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/notifiers/get_it.dart';
 import 'package:score/storage/databases.dart';
@@ -28,6 +30,20 @@ extension AuthGetItExtensions on GetIt {
       ),
     );
     registerFactory(() => AuthStore(store: get()));
+    registerLazySingletonAsync<AuthTokens>(
+      () async => AuthTokens(oidc: await getAsync<OidcApi>(), prompt: get()),
+      dispose: (tokens) => tokens.dispose(),
+    );
+    registerLazySingleton<SignInPrompt>(
+      () => SignInPromptDialog(
+        router: get(),
+        // Asked for when it is needed rather than now: signing in forgets the
+        // last user's sets, whose client is signed by the tokens this is for.
+        signIn: () async {
+          await get<UpdateAuth>()(const UpdateAuthParams(retry: true));
+        },
+      ),
+    );
 
     registerNotifier(
       () async => AuthNotifier(
@@ -65,7 +81,8 @@ extension AuthGetItExtensions on GetIt {
       ),
     );
     registerFactory(
-      () => SayIfNoLongerSignedIn(monitor: get(), oidc: get(), authStore: get()),
+      () =>
+          SayIfNoLongerSignedIn(monitor: get(), oidc: get(), authStore: get()),
     );
   }
 }

@@ -1,126 +1,149 @@
-import 'dart:convert';
+import 'dart:io';
 
-import 'package:http/http.dart' as http;
-import 'package:score/config.dart';
-import 'package:score/storage/api.dart';
+import 'package:http/http.dart';
+import 'package:score/features/scores/models.dart';
+import 'package:score/storage/api_exception.dart';
+import 'package:score/storage/clients.dart';
+import 'package:score/storage/error_extensions.dart';
+import 'package:score_api/score_api.dart' as api;
+import 'package:tonik_util/tonik_util.dart';
 
-/// The scores endpoints of the API.
-///
-/// A listing only ever answers with what changed inside a window, which is what
-/// keeps a sync small. The consequence is that a score older than the window a
-/// client has left to ask about is in no answer a listing will ever give: it
-/// has to be asked for by its id, which is what [getScore] is for.
-class ScoresApi({
-  required final ApiConfig config,
-  http.Client? client,
+class const ScoresApi({
+  required final ApiClientFactory clientFactory,
 }) {
-  this : client = client ?? http.Client();
+  api.ScoresApi get _api => clientFactory.build(api.ScoresApi.new);
 
-  final http.Client client;
-
-  /// The scores that changed within the window.
-  Future<List<Map<String, dynamic>>> listScores(
-    DateTime? changesSince,
-    DateTime? changesUntil,
-    String authToken,
-  ) async {
-    const what = 'list the scores';
-    final response = await callTheApi(
-      () => client.get(
-        config.path('scores', {
-          'Changes-Since': apiDate(changesSince ?? DateTime.utc(1970)),
-          'Changes-Until': apiDate(changesUntil ?? DateTime.now()),
-        }),
-        headers: {'Authorization': 'Bearer $authToken'},
-      ),
-      what,
-      ScoresApiException.new,
+  Future<List<Score>> listScores({
+    required DateTime since,
+    DateTime? until,
+  }) async {
+    final result = await _api.listScores(
+      changesSince: since,
+      changesUntil: until ?? endOfTime,
     );
-    throwUnlessOk(response, what, ScoresApiException.new);
-    return objectsIn(response, what, ScoresApiException.new);
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.ListScoresResponse200(:final body) =>
+          body.map((el) => el.toScore()).toList(growable: false),
+        api.ListScoresResponse400(:final body) => throw body.toApiException(),
+        api.ListScoresResponse401(:final body) => throw body.toApiException(),
+        api.ListScoresResponse403(:final body) => throw body.toApiException(),
+        api.ListScoresResponseDefault(:final body) =>
+          throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
   }
 
-  /// The metadata of one score, asked for by id. `null` when there is nothing
-  /// stored under it.
-  Future<Map<String, dynamic>?> getScore(String scoreId, String authToken) async {
-    const what = 'fetch the score';
-    final response = await callTheApi(
-      () => client.get(
-        config.path('scores/$scoreId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Accept': 'application/json',
-        },
-      ),
-      what,
-      ScoresApiException.new,
-    );
-    if (isNotThere(
-      response,
-      const {'score_not_found'},
-      what,
-      ScoresApiException.new,
-    )) {
-      return null;
-    }
-    throwUnlessOk(response, what, ScoresApiException.new);
-    return objectIn(response, what, ScoresApiException.new);
+  Future<Score?> getScore(
+    String scoreId,
+  ) async {
+    final result = await _api.getScore(scoreId: scoreId);
+    return switch (result) {
+      TonikSuccess(:final value) => switch (value) {
+        api.GetScoreResponse200(
+          body: api.ScoresScoreIdGet200ResponseJson(:final body),
+        ) =>
+          body.toScore(),
+        // Its document rather than its details: asked for with the details'
+        // `Accept`, that is not the API answering.
+        api.GetScoreResponse200() => throw ApiException.fromUnexpectedResponse(
+          response: result.response,
+        ),
+        api.GetScoreResponse404(:final body)
+            when body.errorCode == ErrorCode.scoreNotFound =>
+          null,
+        api.GetScoreResponse400(:final body) => throw body.toApiException(),
+        api.GetScoreResponse401(:final body) => throw body.toApiException(),
+        api.GetScoreResponse403(:final body) => throw body.toApiException(),
+        api.GetScoreResponse404(:final body) => throw body.toApiException(),
+        api.GetScoreResponseDefault(:final body) => throw body.toApiException(),
+      },
+      TonikError() => throw result.toApiException(),
+    };
   }
 
   /// The document itself. `null` when there is nothing stored under it.
-  Future<String?> getScoreMusicXml(String scoreId, String authToken) async {
-    const what = 'fetch the score';
-    final response = await callTheApi(
-      () => client.get(
-        config.path('scores/$scoreId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Accept': 'application/vnd.recordare.musicxml',
-        },
-      ),
-      what,
-      ScoresApiException.new,
-    );
-    if (isNotThere(
-      response,
-      const {'score_not_found'},
-      what,
-      ScoresApiException.new,
-    )) {
+  ///
+  /// The one call that is not made through the generated client. The server
+  /// answers the address of a score with its document only when that is the
+  /// one thing asked for, and asking is an `Accept` header — which a generated
+  /// client sets itself, to everything the address can answer with, since the
+  /// OpenAPI document cannot describe a header of that name as a parameter.
+  Future<String?> getScoreMusicXml(String scoreId) async {
+    const musicxmlContentType = 'application/vnd.recordare.musicxml';
+    final Response response;
+    try {
+      response = await clientFactory.get(
+        clientFactory.config.path('scores/$scoreId'),
+        headers: {HttpHeaders.acceptHeader: musicxmlContentType},
+      );
+    } catch (error) {
+      if (!isNetworkFailure(error)) rethrow;
+      throw ApiException.fromSendError(error: error);
+    }
+
+    if (response.statusCode == HttpStatus.notFound &&
+        response.problem?.errorCode == ErrorCode.scoreNotFound) {
       return null;
     }
-    throwUnlessOk(response, what, ScoresApiException.new);
-    // Read as utf-8 rather than as whatever the header happens to say: a
-    // MusicXML document says its own encoding, and a score with an umlaut in
-    // its title comes back mangled if the body is read as latin-1.
-    return utf8.decode(response.bodyBytes);
+
+    final contentType = response.headers[HttpHeaders.contentTypeHeader];
+    if (response.statusCode == HttpStatus.ok &&
+        contentType == musicxmlContentType) {
+      return response.body;
+    }
+
+    throw response.problem?.toApiException() ??
+        ApiException.fromUnexpectedResponse(response: response);
   }
 
   Future<void> putScore(
-      String scoreId, String authToken, String musicXml) async {
-    const what = 'save the score';
-    final response = await callTheApi(
-      () => client.put(
-        config.path('scores/$scoreId'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/vnd.recordare.musicxml',
-        },
-        body: utf8.encode(musicXml),
-      ),
-      what,
-      ScoresApiException.new,
+    String scoreId,
+    String musicXml,
+  ) async {
+    final result = await _api.putScore(
+      scoreId: scoreId,
+      body: api.ScoresScoreIdPutBodyRequestBodyVndRecordareMusicxml(musicXml),
     );
-    throwUnlessOk(response, what, ScoresApiException.new);
+    switch (result) {
+      case TonikSuccess(:final value):
+        switch (value) {
+          case api.PutScoreResponse200():
+            return;
+          case api.PutScoreResponse400(:final body):
+            throw body.toApiException();
+          case api.PutScoreResponse401(:final body):
+            throw body.toApiException();
+          case api.PutScoreResponse403(:final body):
+            throw body.toApiException();
+          case api.PutScoreResponse413(:final body):
+            throw body.toApiException();
+          case api.PutScoreResponse415(:final body):
+            throw body.toApiException();
+          case api.PutScoreResponseDefault(:final body):
+            throw body.toApiException();
+        }
+      case TonikError():
+        throw result.toApiException();
+    }
   }
 
-  Future<bool> canBeReached() => apiCanBeReached(client, config);
+  Future<bool> canBeReached() => clientFactory.canBeReached();
 }
 
-/// A call to the scores endpoints that did not come back with what was asked
-/// for; see [ApiException].
-class ScoresApiException({
-  required super.message,
-  required super.status,
-  super.problem,
-}) extends ApiException;
+extension on api.Score {
+  Score toScore() => Score(
+    id: id,
+    work: Work(title: work.title, number: work.number),
+    movement: Movement(title: movement.title, number: movement.number),
+    creators: Creators(
+      composers: creators.composers,
+      lyricists: creators.lyricists,
+    ),
+    languages: languages,
+    instruments: instruments,
+    lastChangedAt: lastChangedAt,
+    tags: tags,
+  );
+}

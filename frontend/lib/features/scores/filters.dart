@@ -39,7 +39,11 @@ class const ScoreField._({
     title: 'Languages',
     of: (score) => score.languages,
   );
-  static final tags = ScoreField._(key: 'tags', title: 'Tags', of: (score) => score.tags);
+  static final tags = ScoreField._(
+    key: 'tags',
+    title: 'Tags',
+    of: (score) => score.tags,
+  );
 
   static final all = [composers, lyricists, instruments, languages, tags];
 }
@@ -86,8 +90,11 @@ class ScoreFilters {
   /// be possible, and it would not be if the values were counted against a
   /// list the first composer had already narrowed.
   Iterable<Score> narrow(Iterable<Score> scores, {ScoreField? except}) =>
-      scores.where((score) => ScoreField.all
-          .every((field) => field == except || _passes(score, field)));
+      scores.where(
+        (score) => ScoreField.all.every(
+          (field) => field == except || _passes(score, field),
+        ),
+      );
 
   /// Whether something listed beside the scores passes: a score when it is
   /// one, and for something with no score to read — a piece of a collection
@@ -123,8 +130,8 @@ class ScoreFilters {
       for (final MapEntry(:key, :value) in counts.entries)
         (value: key, count: value),
     ]..sort((a, b) {
-        final byCount = b.count.compareTo(a.count);
-        return byCount != 0 ? byCount : a.value.compareTo(b.value);
-      });
+      final byCount = b.count.compareTo(a.count);
+      return byCount != 0 ? byCount : a.value.compareTo(b.value);
+    });
   }
 }

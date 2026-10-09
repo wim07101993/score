@@ -66,7 +66,9 @@ class PlatformAuthorizer({
     web.window.history.replaceState(
       null,
       '',
-      without.endsWith('?') ? without.substring(0, without.length - 1) : without,
+      without.endsWith('?')
+          ? without.substring(0, without.length - 1)
+          : without,
     );
   }
 

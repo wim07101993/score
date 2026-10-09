@@ -59,8 +59,9 @@ class _PageState extends State<_Page> {
 
 void main() {
   for (final collection in [false, true]) {
-    final field =
-        collection ? CollectionEntryDescriptionField : EntryDescriptionField;
+    final field = collection
+        ? CollectionEntryDescriptionField
+        : EntryDescriptionField;
 
     for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
       testWidgets('$field keeps what was typed when "done" is tapped on '
@@ -68,9 +69,11 @@ void main() {
         debugDefaultTargetPlatformOverride = platform;
         try {
           final submitted = <String>[];
-          await tester.pumpWidget(MaterialApp(
-            home: _Page(submitted: submitted, collection: collection),
-          ));
+          await tester.pumpWidget(
+            MaterialApp(
+              home: _Page(submitted: submitted, collection: collection),
+            ),
+          );
           await tester.tap(find.byType(field));
           await tester.enterText(find.byType(field), 'capo 2');
           await tester.pump();
@@ -87,12 +90,13 @@ void main() {
       });
     }
 
-    testWidgets('$field writes nothing when nothing was typed',
-        (tester) async {
+    testWidgets('$field writes nothing when nothing was typed', (tester) async {
       final submitted = <String>[];
-      await tester.pumpWidget(MaterialApp(
-        home: _Page(submitted: submitted, collection: collection),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: _Page(submitted: submitted, collection: collection),
+        ),
+      );
       await tester.tap(find.byTooltip('Done changing it'));
       await tester.pumpAndSettle();
 

@@ -36,53 +36,57 @@ class _SlowProvider({
   int issued = 0;
 
   http.Client get client => MockClient((request) async {
-        final path = request.url.path;
-        if (path.endsWith('/.well-known/openid-configuration')) {
-          return http.Response(
-            jsonEncode({
-              'issuer': 'https://$host',
-              'authorization_endpoint': 'https://$host/oauth/v2/authorize',
-              'token_endpoint': 'https://$host/oauth/v2/token',
-              'userinfo_endpoint': 'https://$host/oidc/v1/userinfo',
-              'response_types_supported': ['code'],
-              'scopes_supported': ['openid', 'email', 'profile', 'offline_access'],
-            }),
-            200,
-            request: request,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        if (path.endsWith('/healthz')) {
-          return http.Response('ok', 200, request: request);
-        }
-        if (path.endsWith('/token')) {
-          tokenRequests.add(Uri.splitQueryString(request.body));
-          if (!tokenRequested.isCompleted) tokenRequested.complete();
-          await releaseToken.future;
-          issued++;
-          return http.Response(
-            jsonEncode({
-              'access_token': 'access-new-$issued',
-              'token_type': 'Bearer',
-              'expires_in': 3600,
-              'refresh_token': 'refresh-new-$issued',
-            }),
-            200,
-            request: request,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        if (path.endsWith('/userinfo')) {
-          userInfoAskedWith.add(request.headers['Authorization']?.substring(7));
-          if (gateUserInfo) {
-            if (!userInfoRequested.isCompleted) userInfoRequested.complete();
-            await releaseUserInfo.future;
-          }
-          return http.Response(jsonEncode(_claimsA), 200,
-              request: request, headers: {'content-type': 'application/json'});
-        }
-        return http.Response('not found', 404, request: request);
-      });
+    final path = request.url.path;
+    if (path.endsWith('/.well-known/openid-configuration')) {
+      return http.Response(
+        jsonEncode({
+          'issuer': 'https://$host',
+          'authorization_endpoint': 'https://$host/oauth/v2/authorize',
+          'token_endpoint': 'https://$host/oauth/v2/token',
+          'userinfo_endpoint': 'https://$host/oidc/v1/userinfo',
+          'response_types_supported': ['code'],
+          'scopes_supported': ['openid', 'email', 'profile', 'offline_access'],
+        }),
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    if (path.endsWith('/healthz')) {
+      return http.Response('ok', 200, request: request);
+    }
+    if (path.endsWith('/token')) {
+      tokenRequests.add(Uri.splitQueryString(request.body));
+      if (!tokenRequested.isCompleted) tokenRequested.complete();
+      await releaseToken.future;
+      issued++;
+      return http.Response(
+        jsonEncode({
+          'access_token': 'access-new-$issued',
+          'token_type': 'Bearer',
+          'expires_in': 3600,
+          'refresh_token': 'refresh-new-$issued',
+        }),
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    if (path.endsWith('/userinfo')) {
+      userInfoAskedWith.add(request.headers['Authorization']?.substring(7));
+      if (gateUserInfo) {
+        if (!userInfoRequested.isCompleted) userInfoRequested.complete();
+        await releaseUserInfo.future;
+      }
+      return http.Response(
+        jsonEncode(_claimsA),
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+    return http.Response('not found', 404, request: request);
+  });
 }
 
 /// An authorizer that records whether the user was ever sent to sign in.
@@ -107,48 +111,56 @@ class _Recording implements Authorizer {
 }
 
 OidcConfig _config(String host) => OidcConfig(
-      clientId: 'score-app',
-      issuer: Uri.parse('https://$host'),
-      redirectUri: Uri.parse('http://localhost:3000/'),
-      nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
-      desktopRedirectUri: Uri.parse('http://localhost:7005/'),
-      authorizationEndpoint: Uri.parse('https://$host/fallback/authorize'),
-      tokenEndpoint: Uri.parse('https://$host/fallback/token'),
-      userInfoEndpoint: Uri.parse('https://$host/oidc/v1/userinfo'),
-      healthzEndpoint: Uri.parse('https://$host/healthz'),
-      rolesKey: _rolesKey,
-    );
+  clientId: 'score-app',
+  issuer: Uri.parse('https://$host'),
+  redirectUri: Uri.parse('http://localhost:3000/'),
+  nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
+  desktopRedirectUri: Uri.parse('http://localhost:7005/'),
+  authorizationEndpoint: Uri.parse('https://$host/fallback/authorize'),
+  tokenEndpoint: Uri.parse('https://$host/fallback/token'),
+  userInfoEndpoint: Uri.parse('https://$host/oidc/v1/userinfo'),
+  healthzEndpoint: Uri.parse('https://$host/healthz'),
+  rolesKey: _rolesKey,
+);
 
 String _expiredToken() => jsonEncode({
-      'access_token': 'stale',
-      'token_type': 'Bearer',
-      'refresh_token': 'the-refresh-token',
-      'expires_at': DateTime.now()
-              .subtract(const Duration(minutes: 1))
-              .millisecondsSinceEpoch ~/
-          1000,
-    });
+  'access_token': 'stale',
+  'token_type': 'Bearer',
+  'refresh_token': 'the-refresh-token',
+  'expires_at':
+      DateTime.now()
+          .subtract(const Duration(minutes: 1))
+          .millisecondsSinceEpoch ~/
+      1000,
+});
 
 String _validToken() => jsonEncode({
-      'access_token': 'still-good',
-      'token_type': 'Bearer',
-      'refresh_token': 'the-refresh-token',
-      'expires_at': DateTime.now()
-              .add(const Duration(hours: 1))
-              .millisecondsSinceEpoch ~/
-          1000,
-    });
+  'access_token': 'still-good',
+  'token_type': 'Bearer',
+  'refresh_token': 'the-refresh-token',
+  'expires_at':
+      DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
+      1000,
+});
 
 void main() {
   test('a refresh that answers after signing out is not kept', () async {
     final store = await Stores.inMemory();
     await store.auth.write('auth_token_response', _expiredToken());
-    await store.auth.write('app_user_info',
-        jsonEncode(UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson()));
+    await store.auth.write(
+      'app_user_info',
+      jsonEncode(
+        UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson(),
+      ),
+    );
 
     final provider = _SlowProvider(host: 'provider-a.test');
-    final api = OidcApi(config: _config(provider.host), store: store.auth,
-        client: provider.client, authorizer: _Recording());
+    final api = OidcApi(
+      config: _config(provider.host),
+      store: store.auth,
+      client: provider.client,
+      authorizer: _Recording(),
+    );
 
     // A sync asking for a token behind the user's back.
     final syncToken = api.getActiveAccessToken(signIn: false);
@@ -162,31 +174,49 @@ void main() {
 
     // And the next start asks who it is, rather than going on as them.
     final authorizer = _Recording();
-    final next = OidcApi(config: _config(provider.host), store: store.auth,
-        client: provider.client, authorizer: authorizer);
+    final next = OidcApi(
+      config: _config(provider.host),
+      store: store.auth,
+      client: provider.client,
+      authorizer: authorizer,
+    );
     expect(await next.getUserInfo(), isNull);
     expect(authorizer.sentTo, isNotNull);
   });
 
-  test('who the provider says it is, said after signing out, is not kept',
-      () async {
-    final store = await Stores.inMemory();
-    await store.auth.write('auth_token_response', _validToken());
-    await store.auth.write('app_user_info',
-        jsonEncode(UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson()));
+  test(
+    'who the provider says it is, said after signing out, is not kept',
+    () async {
+      final store = await Stores.inMemory();
+      await store.auth.write('auth_token_response', _validToken());
+      await store.auth.write(
+        'app_user_info',
+        jsonEncode(
+          UserInfo.fromClaims(claims: _claimsA, rolesKey: _rolesKey).toJson(),
+        ),
+      );
 
-    final provider = _SlowProvider(host: 'provider-b.test', gateUserInfo: true);
-    final api = OidcApi(config: _config(provider.host), store: store.auth,
-        client: provider.client, authorizer: _Recording());
+      final provider = _SlowProvider(
+        host: 'provider-b.test',
+        gateUserInfo: true,
+      );
+      final api = OidcApi(
+        config: _config(provider.host),
+        store: store.auth,
+        client: provider.client,
+        authorizer: _Recording(),
+      );
 
-    final asked = api.getUserInfo();
-    await provider.userInfoRequested.future
-        .timeout(const Duration(seconds: 10));
-    await api.signOut();
-    provider.releaseUserInfo.complete();
+      final asked = api.getUserInfo();
+      await provider.userInfoRequested.future.timeout(
+        const Duration(seconds: 10),
+      );
+      await api.signOut();
+      provider.releaseUserInfo.complete();
 
-    expect(await asked, isNull);
-    expect(await api.keptUserInfo(), isNull);
-    expect(await api.holdsAToken(), isFalse);
-  });
+      expect(await asked, isNull);
+      expect(await api.keptUserInfo(), isNull);
+      expect(await api.holdsAToken(), isFalse);
+    },
+  );
 }

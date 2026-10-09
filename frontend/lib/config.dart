@@ -21,12 +21,12 @@ class const Config({
     /// Where what is wrong with it is said: see [OidcConfig.fromJson].
     required Logger logger,
   }) => Config(
-        oidc: OidcConfig.fromJson(
-          json: json['oidc'] as Map<String, dynamic>,
-          logger: logger,
-        ),
-        api: ApiConfig.fromJson(json: json['api'] as Map<String, dynamic>),
-      );
+    oidc: OidcConfig.fromJson(
+      json: json['oidc'] as Map<String, dynamic>,
+      logger: logger,
+    ),
+    api: ApiConfig.fromJson(json: json['api'] as Map<String, dynamic>),
+  );
 
   static Future<Config> load({
     String asset = 'assets/config.json',
@@ -45,8 +45,7 @@ class const ApiConfig({
 }) {
   factory ApiConfig.fromJson({
     required Map<String, dynamic> json,
-  }) =>
-      ApiConfig(baseUrl: _uri(json['baseUrl']));
+  }) => ApiConfig(baseUrl: _uri(json['baseUrl']));
 
   /// The address of one of the API's paths. The base is written with a trailing
   /// slash or without one depending on who wrote the file, so it is not trusted
@@ -122,10 +121,12 @@ class const OidcConfig({
       // with a redirect_uri mismatch and nothing on the device says why, so it
       // is said here. A release does not even build without one (see
       // .github/workflows/release.yaml).
-      logger.warning('the config has no nativeClientId, so this device signs in'
-          ' as the web client ${json['clientId']}; the provider will refuse'
-          ' that unless the redirect addresses of a device are registered on'
-          ' it too');
+      logger.warning(
+        'the config has no nativeClientId, so this device signs in'
+        ' as the web client ${json['clientId']}; the provider will refuse'
+        ' that unless the redirect addresses of a device are registered on'
+        ' it too',
+      );
     }
     return OidcConfig(
       clientId: '${json['clientId']}',
@@ -164,7 +165,6 @@ class const OidcConfig({
 
   /// The client this build signs in as.
   String get clientIdHere => kIsWeb ? clientId : nativeClientId;
-
 }
 
 Uri _uri(Object? value) => Uri.parse('$value');

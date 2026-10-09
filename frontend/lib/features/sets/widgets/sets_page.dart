@@ -134,7 +134,9 @@ class const _SetCard({
   String get _state {
     if (!set.isOwner) return 'shared with you';
     if (set.owesAnything) return 'not synced yet';
-    if (set.sharedWith.isNotEmpty) return 'shared with ${set.sharedWith.length}';
+    if (set.sharedWith.isNotEmpty) {
+      return 'shared with ${set.sharedWith.length}';
+    }
     return '';
   }
 
@@ -161,8 +163,10 @@ class const _SetCard({
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Text('$count score${count == 1 ? '' : 's'}',
-                      style: theme.textTheme.labelMedium),
+                  Text(
+                    '$count score${count == 1 ? '' : 's'}',
+                    style: theme.textTheme.labelMedium,
+                  ),
                   if (_state.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     Chip(

@@ -70,8 +70,9 @@ class _CollectionsPageState extends State<CollectionsPage> {
       ),
       floatingActionButton: mayView
           ? FloatingActionButton.extended(
-              onPressed: () => context.router
-                  .push(CollectionDetailRoute(collectionId: 'new')),
+              onPressed: () => context.router.push(
+                CollectionDetailRoute(collectionId: 'new'),
+              ),
               icon: const Icon(Icons.add),
               label: const Text('New collection'),
             )
@@ -151,15 +152,15 @@ class const _CollectionCard({
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.router
-            .push(CollectionDetailRoute(collectionId: collection.id)),
+        onTap: () => context.router.push(
+          CollectionDetailRoute(collectionId: collection.id),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(collection.displayTitle,
-                  style: theme.textTheme.titleMedium),
+              Text(collection.displayTitle, style: theme.textTheme.titleMedium),
               if (collection.description.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(collection.description, style: theme.textTheme.bodySmall),
@@ -167,8 +168,10 @@ class const _CollectionCard({
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Text('$count piece${count == 1 ? '' : 's'}',
-                      style: theme.textTheme.labelMedium),
+                  Text(
+                    '$count piece${count == 1 ? '' : 's'}',
+                    style: theme.textTheme.labelMedium,
+                  ),
                   if (_state.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     Chip(

@@ -16,10 +16,9 @@ void main() {
 
   setUp(() {
     build = Directory.systemTemp.createTempSync('precache');
-    void write(String path, String content) =>
-        File(p.join(build.path, path))
-          ..createSync(recursive: true)
-          ..writeAsStringSync(content);
+    void write(String path, String content) => File(p.join(build.path, path))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(content);
 
     write('index.html', '<html></html>');
     write('main.dart.js', 'main();');
@@ -89,11 +88,15 @@ void main() {
     const after = "const RESOURCES = {};\nconst VERSION = '';\nkeepBetter();\n";
     final resources = resourcesOf(build);
 
-    expect(versionOf(resources, worker: after),
-        isNot(versionOf(resources, worker: before)));
+    expect(
+      versionOf(resources, worker: after),
+      isNot(versionOf(resources, worker: before)),
+    );
     // Filling it in does not change what it is a version of.
-    expect(versionOf(resources, worker: fillIn(before, resources)),
-        versionOf(resources, worker: before));
+    expect(
+      versionOf(resources, worker: fillIn(before, resources)),
+      versionOf(resources, worker: before),
+    );
   });
 
   test('refuses a build that draws with a renderer from the CDN', () {

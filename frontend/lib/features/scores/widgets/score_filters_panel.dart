@@ -97,8 +97,9 @@ class _ScoreFiltersPanelState extends State<ScoreFiltersPanel> {
           ),
           secondary: Text(
             '${one.count}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.outline),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.outline,
+            ),
           ),
         ),
       if (folded > 0)
@@ -109,13 +110,13 @@ class _ScoreFiltersPanelState extends State<ScoreFiltersPanel> {
   }
 
   Widget _foldButton(String label, VoidCallback change) => Padding(
-        padding: const EdgeInsets.only(left: 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: () => setState(change),
-            child: Text(label),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(left: 8),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        onPressed: () => setState(change),
+        child: Text(label),
+      ),
+    ),
+  );
 }

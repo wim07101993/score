@@ -6,7 +6,9 @@ import 'package:score/features/observability/storage/logs_store.dart';
 import 'package:score/features/observability/stored_logs.dart';
 import 'package:score/storage/databases.dart';
 
-enum LoggerName({required final String name}) {
+enum LoggerName({
+  required final String name,
+}) {
   root(name: 'root'),
   app(name: 'score'),
 }
@@ -39,8 +41,9 @@ extension ObservabilityGetItExtensions on GetIt {
   void registerLogStorage() {
     registerLazySingleton(
       () => StoredLogSink(
-        store: getAsync<Databases>()
-            .then((databases) => LogsStore(database: databases.data)),
+        store: getAsync<Databases>().then(
+          (databases) => LogsStore(database: databases.data),
+        ),
         logs: get<LogsController>(),
       ),
     );

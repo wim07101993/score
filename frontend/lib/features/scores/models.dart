@@ -7,69 +7,46 @@
 library;
 
 import 'package:score/features/scores/instruments.dart';
-import 'package:score/json.dart';
+import 'package:score/json_map_extensions.dart';
+import 'package:score/storage/clients.dart';
 
 class const Score({
   required final String id,
+  required final DateTime lastChangedAt,
   final Work? work,
   final Movement? movement,
   final Creators creators = const Creators(),
   final List<String> languages = const [],
   final List<String> instruments = const [],
-
-  /// When it last changed on the server.
-  final DateTime? lastChangedAt,
   final List<String> tags = const [],
-
-  /// When the server last said anything about it, which is where the next sync
-  /// window starts.
-  final DateTime? lastSyncedAt,
-
-  /// Which version of the document this device holds, as the moment the server
-  /// said the score last changed when it was fetched — the server's clock, so
-  /// that it can be compared with that moment later on. It is how the app
-  /// knows a score it is holding has been uploaded again since.
   final DateTime? lastFetchedFileAt,
-
-  /// When it was last opened on this device, which is what the list is sorted
-  /// by: what was played last is what is likely to be played next.
   final DateTime? lastViewedAt,
 }) {
-  /// A score the way the API hands it over, as one this app keeps: the moments
-  /// as dates rather than as the strings they arrive as, and whatever is only
-  /// known locally carried over from the score being replaced.
-  factory Score.fromApi({
-    required Map<String, dynamic> json,
-    Score? existing,
-  }) => Score(
-        id: '${json['id']}',
-        work: Work.fromJson(json['work']),
-        movement: Movement.fromJson(json['movement']),
-        creators: Creators.fromJson(json: json['creators']),
-        languages: stringsOf(json['languages']),
-        instruments: stringsOf(json['instruments']),
-        lastChangedAt: dateOf(json['last_changed_at']),
-        tags: stringsOf(json['tags']),
-        lastSyncedAt: existing?.lastSyncedAt,
-        lastFetchedFileAt: existing?.lastFetchedFileAt,
-        lastViewedAt: existing?.lastViewedAt,
-      );
+  factory Score.fromJson(Map json) {
+    return Score(
+      id: '${json[Score.idFieldKey]}',
+      work: json.getObject('work', Work.fromJson),
+      movement: json.getObject('movement', Movement.fromJson),
+      creators:
+          json.getObject('creators', Creators.fromJson) ?? const Creators(),
+      languages: json.getList('languages'),
+      instruments: json.getList('instruments'),
+      lastChangedAt:
+          json.get(Score.lastChangedAtFieldKey, parser: DateTime.tryParse) ??
+          Score.defaultLastChangedAt,
+      tags: json.getList('tags'),
+      lastFetchedFileAt: json.get(
+        'last_fetched_file_at',
+        parser: DateTime.tryParse,
+      ),
+      lastViewedAt: json.get('last_viewed_at', parser: DateTime.tryParse),
+    );
+  }
 
-  factory Score.fromJson({
-    required Map<String, Object?> json,
-  }) => Score(
-        id: '${json['id']}',
-        work: Work.fromJson(json['work']),
-        movement: Movement.fromJson(json['movement']),
-        creators: Creators.fromJson(json: json['creators']),
-        languages: stringsOf(json['languages']),
-        instruments: stringsOf(json['instruments']),
-        lastChangedAt: dateOf(json['last_changed_at']),
-        tags: stringsOf(json['tags']),
-        lastSyncedAt: dateOf(json['last_synced_at']),
-        lastFetchedFileAt: dateOf(json['last_fetched_file_at']),
-        lastViewedAt: dateOf(json['last_viewed_at']),
-      );
+  static const String lastChangedAtFieldKey = 'last_changed_at';
+  static const String idFieldKey = 'id';
+
+  static final DateTime defaultLastChangedAt = beginningOfTime;
 
   /// What to call it.
   ///
@@ -83,7 +60,10 @@ class const Score({
     return named.trim().isEmpty ? 'Untitled score' : named.trim();
   }
 
-  List<String> get creatorNames => [...creators.composers, ...creators.lyricists];
+  List<String> get creatorNames => [
+    ...creators.composers,
+    ...creators.lyricists,
+  ];
 
   /// Everything about it worth typing into a filter.
   ///
@@ -98,12 +78,12 @@ class const Score({
   /// [_searchTexts] rather than in a `late final` field of its own, because a
   /// class with one of those can no longer be built `const`, and scores are.
   String get searchText => _searchTexts[this] ??= [
-        title,
-        ...creatorNames,
-        ...tags,
-        ...instruments,
-        ...instruments.map(instrumentName),
-      ].map(forSearch).join(' ');
+    title,
+    ...creatorNames,
+    ...tags,
+    ...instruments,
+    ...instruments.map(instrumentName),
+  ].map(forSearch).join(' ');
 
   /// [searchText], for every score that has been asked for it. An [Expando]
   /// lets a score go when nothing else holds it, text and all.
@@ -127,48 +107,52 @@ class const Score({
     return words.every(text.contains);
   }
 
+  /// This score as the server has it, with whatever only this device knows
+  /// about it carried over from [existing], the score it replaces: the server
+  /// knows nothing of when it was synced, fetched or opened here.
+  Score copyLocalOnlyFields(Score existing) => copyWith(
+    lastFetchedFileAt: existing.lastFetchedFileAt,
+    lastViewedAt: existing.lastViewedAt,
+  );
+
   Score copyWith({
     DateTime? lastSyncedAt,
     DateTime? lastFetchedFileAt,
     DateTime? lastViewedAt,
-  }) =>
-      Score(
-        id: id,
-        work: work,
-        movement: movement,
-        creators: creators,
-        languages: languages,
-        instruments: instruments,
-        lastChangedAt: lastChangedAt,
-        tags: tags,
-        lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
-        lastFetchedFileAt: lastFetchedFileAt ?? this.lastFetchedFileAt,
-        lastViewedAt: lastViewedAt ?? this.lastViewedAt,
-      );
+  }) => Score(
+    id: id,
+    work: work,
+    movement: movement,
+    creators: creators,
+    languages: languages,
+    instruments: instruments,
+    lastChangedAt: lastChangedAt,
+    tags: tags,
+    lastFetchedFileAt: lastFetchedFileAt ?? this.lastFetchedFileAt,
+    lastViewedAt: lastViewedAt ?? this.lastViewedAt,
+  );
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'work': work?.toJson(),
-        'movement': movement?.toJson(),
-        'creators': creators.toJson(),
-        'languages': languages,
-        'instruments': instruments,
-        // In UTC: a local moment written without an offset is read back in
-        // whatever zone the device is in by then.
-        'last_changed_at': lastChangedAt?.toUtc().toIso8601String(),
-        'tags': tags,
-        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
-        'last_fetched_file_at': lastFetchedFileAt?.toUtc().toIso8601String(),
-        'last_viewed_at': lastViewedAt?.toUtc().toIso8601String(),
-      };
+    Score.idFieldKey: id,
+    'work': work?.toJson(),
+    'movement': movement?.toJson(),
+    'creators': creators.toJson(),
+    'languages': languages,
+    'instruments': instruments,
+    // In UTC: a local moment written without an offset is read back in
+    // whatever zone the device is in by then.
+    Score.lastChangedAtFieldKey: lastChangedAt.toUtc().toIso8601String(),
+    'tags': tags,
+    'last_fetched_file_at': lastFetchedFileAt?.toUtc().toIso8601String(),
+    'last_viewed_at': lastViewedAt?.toUtc().toIso8601String(),
+  };
 }
 
 class const Work({
   final String? title,
   final String? number,
 }) {
-  static Work? fromJson(Object? json) {
-    if (json is! Map) return null;
+  static Work? fromJson(Map json) {
     return Work(
       title: json['title'] as String?,
       number: json['number']?.toString(),
@@ -182,8 +166,7 @@ class const Movement({
   final String? title,
   final String? number,
 }) {
-  static Movement? fromJson(Object? json) {
-    if (json is! Map) return null;
+  static Movement? fromJson(Map json) {
     return Movement(
       title: json['title'] as String?,
       number: json['number']?.toString(),
@@ -197,27 +180,27 @@ class const Creators({
   final List<String> composers = const [],
   final List<String> lyricists = const [],
 }) {
-  factory Creators.fromJson({
-    required Object? json,
-  }) {
-    if (json is! Map) return const Creators();
+  factory Creators.fromJson(Map json) {
     return Creators(
-      composers: stringsOf(json['composers']),
-      lyricists: stringsOf(json['lyricists']),
+      composers: json.getList<String>('composers'),
+      lyricists: json.getList<String>('lyricists'),
     );
   }
 
-  Map<String, Object?> toJson() =>
-      {'composers': composers, 'lyricists': lyricists};
+  Map<String, Object?> toJson() => {
+    'composers': composers,
+    'lyricists': lyricists,
+  };
 }
 
 /// A query as the words [Score.matchesWords] looks for: each put through
 /// [forSearch], and none of them empty, so that a query of nothing but spaces
 /// is no words at all and matches everything.
-List<String> searchWords(String query) => forSearch(query)
-    .split(RegExp(r'\s+'))
-    .where((word) => word.isNotEmpty)
-    .toList();
+List<String> searchWords(String query) =>
+    forSearch(query)
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
 
 /// Text as a search compares it: in lower case and without its accents.
 ///
@@ -244,40 +227,250 @@ String forSearch(String text) {
 
 // Lower case only: the text is lowered before it is looked up.
 const _unaccented = {
-  'à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'å': 'a', 'ç': 'c',
-  'è': 'e', 'é': 'e', 'ê': 'e', 'ë': 'e', 'ì': 'i', 'í': 'i', 'î': 'i',
-  'ï': 'i', 'ñ': 'n', 'ò': 'o', 'ó': 'o', 'ô': 'o', 'õ': 'o', 'ö': 'o',
-  'ù': 'u', 'ú': 'u', 'û': 'u', 'ü': 'u', 'ý': 'y', 'ÿ': 'y', 'ā': 'a',
-  'ă': 'a', 'ą': 'a', 'ć': 'c', 'ĉ': 'c', 'ċ': 'c', 'č': 'c', 'ď': 'd',
-  'ē': 'e', 'ĕ': 'e', 'ė': 'e', 'ę': 'e', 'ě': 'e', 'ĝ': 'g', 'ğ': 'g',
-  'ġ': 'g', 'ģ': 'g', 'ĥ': 'h', 'ĩ': 'i', 'ī': 'i', 'ĭ': 'i', 'į': 'i',
-  'ĵ': 'j', 'ķ': 'k', 'ĺ': 'l', 'ļ': 'l', 'ľ': 'l', 'ń': 'n', 'ņ': 'n',
-  'ň': 'n', 'ō': 'o', 'ŏ': 'o', 'ő': 'o', 'ŕ': 'r', 'ŗ': 'r', 'ř': 'r',
-  'ś': 's', 'ŝ': 's', 'ş': 's', 'š': 's', 'ţ': 't', 'ť': 't', 'ũ': 'u',
-  'ū': 'u', 'ŭ': 'u', 'ů': 'u', 'ű': 'u', 'ų': 'u', 'ŵ': 'w', 'ŷ': 'y',
-  'ź': 'z', 'ż': 'z', 'ž': 'z', 'ơ': 'o', 'ư': 'u', 'ǎ': 'a', 'ǐ': 'i',
-  'ǒ': 'o', 'ǔ': 'u', 'ǖ': 'u', 'ǘ': 'u', 'ǚ': 'u', 'ǜ': 'u', 'ǟ': 'a',
-  'ǡ': 'a', 'ǧ': 'g', 'ǩ': 'k', 'ǫ': 'o', 'ǭ': 'o', 'ǰ': 'j', 'ǵ': 'g',
-  'ǹ': 'n', 'ǻ': 'a', 'ȁ': 'a', 'ȃ': 'a', 'ȅ': 'e', 'ȇ': 'e', 'ȉ': 'i',
-  'ȋ': 'i', 'ȍ': 'o', 'ȏ': 'o', 'ȑ': 'r', 'ȓ': 'r', 'ȕ': 'u', 'ȗ': 'u',
-  'ș': 's', 'ț': 't', 'ȟ': 'h', 'ȧ': 'a', 'ȩ': 'e', 'ȫ': 'o', 'ȭ': 'o',
-  'ȯ': 'o', 'ȱ': 'o', 'ȳ': 'y', 'ḁ': 'a', 'ḃ': 'b', 'ḅ': 'b', 'ḇ': 'b',
-  'ḉ': 'c', 'ḋ': 'd', 'ḍ': 'd', 'ḏ': 'd', 'ḑ': 'd', 'ḓ': 'd', 'ḕ': 'e',
-  'ḗ': 'e', 'ḙ': 'e', 'ḛ': 'e', 'ḝ': 'e', 'ḟ': 'f', 'ḡ': 'g', 'ḣ': 'h',
-  'ḥ': 'h', 'ḧ': 'h', 'ḩ': 'h', 'ḫ': 'h', 'ḭ': 'i', 'ḯ': 'i', 'ḱ': 'k',
-  'ḳ': 'k', 'ḵ': 'k', 'ḷ': 'l', 'ḹ': 'l', 'ḻ': 'l', 'ḽ': 'l', 'ḿ': 'm',
-  'ṁ': 'm', 'ṃ': 'm', 'ṅ': 'n', 'ṇ': 'n', 'ṉ': 'n', 'ṋ': 'n', 'ṍ': 'o',
-  'ṏ': 'o', 'ṑ': 'o', 'ṓ': 'o', 'ṕ': 'p', 'ṗ': 'p', 'ṙ': 'r', 'ṛ': 'r',
-  'ṝ': 'r', 'ṟ': 'r', 'ṡ': 's', 'ṣ': 's', 'ṥ': 's', 'ṧ': 's', 'ṩ': 's',
-  'ṫ': 't', 'ṭ': 't', 'ṯ': 't', 'ṱ': 't', 'ṳ': 'u', 'ṵ': 'u', 'ṷ': 'u',
-  'ṹ': 'u', 'ṻ': 'u', 'ṽ': 'v', 'ṿ': 'v', 'ẁ': 'w', 'ẃ': 'w', 'ẅ': 'w',
-  'ẇ': 'w', 'ẉ': 'w', 'ẋ': 'x', 'ẍ': 'x', 'ẏ': 'y', 'ẑ': 'z', 'ẓ': 'z',
-  'ẕ': 'z', 'ẖ': 'h', 'ẗ': 't', 'ẘ': 'w', 'ẙ': 'y', 'ạ': 'a', 'ả': 'a',
-  'ấ': 'a', 'ầ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ậ': 'a', 'ắ': 'a', 'ằ': 'a',
-  'ẳ': 'a', 'ẵ': 'a', 'ặ': 'a', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ế': 'e',
-  'ề': 'e', 'ể': 'e', 'ễ': 'e', 'ệ': 'e', 'ỉ': 'i', 'ị': 'i', 'ọ': 'o',
-  'ỏ': 'o', 'ố': 'o', 'ồ': 'o', 'ổ': 'o', 'ỗ': 'o', 'ộ': 'o', 'ớ': 'o',
-  'ờ': 'o', 'ở': 'o', 'ỡ': 'o', 'ợ': 'o', 'ụ': 'u', 'ủ': 'u', 'ứ': 'u',
-  'ừ': 'u', 'ử': 'u', 'ữ': 'u', 'ự': 'u', 'ỳ': 'y', 'ỵ': 'y', 'ỷ': 'y',
+  'à': 'a',
+  'á': 'a',
+  'â': 'a',
+  'ã': 'a',
+  'ä': 'a',
+  'å': 'a',
+  'ç': 'c',
+  'è': 'e',
+  'é': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'ì': 'i',
+  'í': 'i',
+  'î': 'i',
+  'ï': 'i',
+  'ñ': 'n',
+  'ò': 'o',
+  'ó': 'o',
+  'ô': 'o',
+  'õ': 'o',
+  'ö': 'o',
+  'ù': 'u',
+  'ú': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ý': 'y',
+  'ÿ': 'y',
+  'ā': 'a',
+  'ă': 'a',
+  'ą': 'a',
+  'ć': 'c',
+  'ĉ': 'c',
+  'ċ': 'c',
+  'č': 'c',
+  'ď': 'd',
+  'ē': 'e',
+  'ĕ': 'e',
+  'ė': 'e',
+  'ę': 'e',
+  'ě': 'e',
+  'ĝ': 'g',
+  'ğ': 'g',
+  'ġ': 'g',
+  'ģ': 'g',
+  'ĥ': 'h',
+  'ĩ': 'i',
+  'ī': 'i',
+  'ĭ': 'i',
+  'į': 'i',
+  'ĵ': 'j',
+  'ķ': 'k',
+  'ĺ': 'l',
+  'ļ': 'l',
+  'ľ': 'l',
+  'ń': 'n',
+  'ņ': 'n',
+  'ň': 'n',
+  'ō': 'o',
+  'ŏ': 'o',
+  'ő': 'o',
+  'ŕ': 'r',
+  'ŗ': 'r',
+  'ř': 'r',
+  'ś': 's',
+  'ŝ': 's',
+  'ş': 's',
+  'š': 's',
+  'ţ': 't',
+  'ť': 't',
+  'ũ': 'u',
+  'ū': 'u',
+  'ŭ': 'u',
+  'ů': 'u',
+  'ű': 'u',
+  'ų': 'u',
+  'ŵ': 'w',
+  'ŷ': 'y',
+  'ź': 'z',
+  'ż': 'z',
+  'ž': 'z',
+  'ơ': 'o',
+  'ư': 'u',
+  'ǎ': 'a',
+  'ǐ': 'i',
+  'ǒ': 'o',
+  'ǔ': 'u',
+  'ǖ': 'u',
+  'ǘ': 'u',
+  'ǚ': 'u',
+  'ǜ': 'u',
+  'ǟ': 'a',
+  'ǡ': 'a',
+  'ǧ': 'g',
+  'ǩ': 'k',
+  'ǫ': 'o',
+  'ǭ': 'o',
+  'ǰ': 'j',
+  'ǵ': 'g',
+  'ǹ': 'n',
+  'ǻ': 'a',
+  'ȁ': 'a',
+  'ȃ': 'a',
+  'ȅ': 'e',
+  'ȇ': 'e',
+  'ȉ': 'i',
+  'ȋ': 'i',
+  'ȍ': 'o',
+  'ȏ': 'o',
+  'ȑ': 'r',
+  'ȓ': 'r',
+  'ȕ': 'u',
+  'ȗ': 'u',
+  'ș': 's',
+  'ț': 't',
+  'ȟ': 'h',
+  'ȧ': 'a',
+  'ȩ': 'e',
+  'ȫ': 'o',
+  'ȭ': 'o',
+  'ȯ': 'o',
+  'ȱ': 'o',
+  'ȳ': 'y',
+  'ḁ': 'a',
+  'ḃ': 'b',
+  'ḅ': 'b',
+  'ḇ': 'b',
+  'ḉ': 'c',
+  'ḋ': 'd',
+  'ḍ': 'd',
+  'ḏ': 'd',
+  'ḑ': 'd',
+  'ḓ': 'd',
+  'ḕ': 'e',
+  'ḗ': 'e',
+  'ḙ': 'e',
+  'ḛ': 'e',
+  'ḝ': 'e',
+  'ḟ': 'f',
+  'ḡ': 'g',
+  'ḣ': 'h',
+  'ḥ': 'h',
+  'ḧ': 'h',
+  'ḩ': 'h',
+  'ḫ': 'h',
+  'ḭ': 'i',
+  'ḯ': 'i',
+  'ḱ': 'k',
+  'ḳ': 'k',
+  'ḵ': 'k',
+  'ḷ': 'l',
+  'ḹ': 'l',
+  'ḻ': 'l',
+  'ḽ': 'l',
+  'ḿ': 'm',
+  'ṁ': 'm',
+  'ṃ': 'm',
+  'ṅ': 'n',
+  'ṇ': 'n',
+  'ṉ': 'n',
+  'ṋ': 'n',
+  'ṍ': 'o',
+  'ṏ': 'o',
+  'ṑ': 'o',
+  'ṓ': 'o',
+  'ṕ': 'p',
+  'ṗ': 'p',
+  'ṙ': 'r',
+  'ṛ': 'r',
+  'ṝ': 'r',
+  'ṟ': 'r',
+  'ṡ': 's',
+  'ṣ': 's',
+  'ṥ': 's',
+  'ṧ': 's',
+  'ṩ': 's',
+  'ṫ': 't',
+  'ṭ': 't',
+  'ṯ': 't',
+  'ṱ': 't',
+  'ṳ': 'u',
+  'ṵ': 'u',
+  'ṷ': 'u',
+  'ṹ': 'u',
+  'ṻ': 'u',
+  'ṽ': 'v',
+  'ṿ': 'v',
+  'ẁ': 'w',
+  'ẃ': 'w',
+  'ẅ': 'w',
+  'ẇ': 'w',
+  'ẉ': 'w',
+  'ẋ': 'x',
+  'ẍ': 'x',
+  'ẏ': 'y',
+  'ẑ': 'z',
+  'ẓ': 'z',
+  'ẕ': 'z',
+  'ẖ': 'h',
+  'ẗ': 't',
+  'ẘ': 'w',
+  'ẙ': 'y',
+  'ạ': 'a',
+  'ả': 'a',
+  'ấ': 'a',
+  'ầ': 'a',
+  'ẩ': 'a',
+  'ẫ': 'a',
+  'ậ': 'a',
+  'ắ': 'a',
+  'ằ': 'a',
+  'ẳ': 'a',
+  'ẵ': 'a',
+  'ặ': 'a',
+  'ẹ': 'e',
+  'ẻ': 'e',
+  'ẽ': 'e',
+  'ế': 'e',
+  'ề': 'e',
+  'ể': 'e',
+  'ễ': 'e',
+  'ệ': 'e',
+  'ỉ': 'i',
+  'ị': 'i',
+  'ọ': 'o',
+  'ỏ': 'o',
+  'ố': 'o',
+  'ồ': 'o',
+  'ổ': 'o',
+  'ỗ': 'o',
+  'ộ': 'o',
+  'ớ': 'o',
+  'ờ': 'o',
+  'ở': 'o',
+  'ỡ': 'o',
+  'ợ': 'o',
+  'ụ': 'u',
+  'ủ': 'u',
+  'ứ': 'u',
+  'ừ': 'u',
+  'ử': 'u',
+  'ữ': 'u',
+  'ự': 'u',
+  'ỳ': 'y',
+  'ỵ': 'y',
+  'ỷ': 'y',
   'ỹ': 'y',
 };

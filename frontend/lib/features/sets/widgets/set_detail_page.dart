@@ -133,11 +133,13 @@ class _SetDetailPageState extends State<SetDetailPage> {
     // back, so it says so when it happens.
     _problems = _sets.problems.listen((problem) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(errorSnackBar(
-        '"${problem.title.isEmpty ? 'A set' : problem.title}" could not be'
-        ' saved on the server (${problem.action}), and the change has been'
-        ' taken back: ${problem.error.detail}',
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        errorSnackBar(
+          '"${problem.title.isEmpty ? 'A set' : problem.title}" could not be'
+          ' saved on the server (${problem.action}), and the change has been'
+          ' taken back: ${problem.error.detail}',
+        ),
+      );
       if (problem.setId == _setId && !_dirty) {
         _readFromStored();
         setState(() {});
@@ -205,8 +207,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
           description: description,
           sharedWith: addressesIn(sharedWith),
         ),
-      ))
-          .orThrow();
+      )).orThrow();
       if (!mounted) return;
       // Only what was sent is saved. Whatever was typed while the write was
       // out is still to be saved; and when nothing was, the fields show what
@@ -294,8 +295,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
           transposition: transposition,
           position: position,
         ),
-      ))
-          .orThrow();
+      )).orThrow();
     } catch (error) {
       if (mounted) {
         _say('That song could not be written into the set: $error');
@@ -344,8 +344,10 @@ class _SetDetailPageState extends State<SetDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Played in this order',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Played in this order',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         if (!_isStored)
           const Text(
@@ -353,8 +355,10 @@ class _SetDetailPageState extends State<SetDetailPage> {
             ' so there has to be a set to put them in.',
           )
         else if (entries.isEmpty)
-          const Text('Nothing in this set yet. Add the scores that are played'
-              ' below.')
+          const Text(
+            'Nothing in this set yet. Add the scores that are played'
+            ' below.',
+          )
         else
           for (var index = 0; index < entries.length; index++)
             _EntryCard(
@@ -368,8 +372,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                 final scoreId? => _scores.getScore(scoreId),
                 null => null,
               },
-              onMove: (to) =>
-                  _writeEntry(id: entries[index].id, position: to),
+              onMove: (to) => _writeEntry(id: entries[index].id, position: to),
               onDescription: (text) =>
                   _writeEntry(id: entries[index].id, description: text),
               onBandTransposition: (semitones) =>
@@ -381,8 +384,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
                       setId: _setId,
                       entryId: entries[index].id,
                     ),
-                  ))
-                      .orThrow();
+                  )).orThrow();
                 } catch (error) {
                   if (mounted) _say('That song could not be taken out: $error');
                 }
@@ -394,10 +396,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   Widget _picker() {
     final needle = _filter.text.trim();
-    final scores = _scores.scores
-        .where((score) => score.matches(needle))
-        .toList()
-      ..sort((a, b) => a.title.compareTo(b.title));
+    final scores =
+        _scores.scores.where((score) => score.matches(needle)).toList()
+          ..sort((a, b) => a.title.compareTo(b.title));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,8 +411,10 @@ class _SetDetailPageState extends State<SetDetailPage> {
         ),
         const SizedBox(height: 8),
         if (scores.isEmpty)
-          const Text('No scores on this device to add. They arrive with the'
-              ' next sync.')
+          const Text(
+            'No scores on this device to add. They arrive with the'
+            ' next sync.',
+          )
         else
           Wrap(
             spacing: 8,
@@ -495,7 +498,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
       return Scaffold(
         appBar: AppBar(title: const Text('Set')),
         body: const Center(
-          child: Text('Sets are for score viewers, and this account is not one.'),
+          child: Text(
+            'Sets are for score viewers, and this account is not one.',
+          ),
         ),
       );
     }
@@ -749,8 +754,7 @@ class const _EntryCard({
           transposition: transposition,
           hiddenParts: hiddenParts,
         ),
-      ))
-          .orThrow();
+      )).orThrow();
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -823,8 +827,9 @@ class const _EntryCard({
                     onPressed: index == 0 ? null : () => onMove(index - 1),
                   ),
                   MoveEntryDownButton(
-                    onPressed:
-                        index == count - 1 ? null : () => onMove(index + 1),
+                    onPressed: index == count - 1
+                        ? null
+                        : () => onMove(index + 1),
                   ),
                   RemoveEntryButton(onPressed: onRemove),
                 ],
@@ -844,7 +849,8 @@ class const _EntryCard({
               children: [
                 Semitones(
                   label: 'band',
-                  tooltip: 'The key the band plays this one in, counted in'
+                  tooltip:
+                      'The key the band plays this one in, counted in'
                       ' semitones from where it is written. Everyone sees this.',
                   value: entry.transposition,
                   enabled: owner,
@@ -853,7 +859,8 @@ class const _EntryCard({
                 const Text('+'),
                 Semitones(
                   label: 'me',
-                  tooltip: 'How far you read it on top of the band, again in'
+                  tooltip:
+                      'How far you read it on top of the band, again in'
                       ' semitones. Only you see this.',
                   value: entry.view.transposition,
                   enabled: true,
@@ -864,13 +871,14 @@ class const _EntryCard({
                   ),
                 ),
                 Tooltip(
-                  message: 'What the two of them come to: the key this one opens'
+                  message:
+                      'What the two of them come to: the key this one opens'
                       ' at for you.',
                   child: Text(
                     read == 0
                         ? '= as written'
                         : '= ${read > 0 ? '+' : ''}$read semitones'
-                            '${read != sum ? ' (as far as it goes)' : ''}',
+                              '${read != sum ? ' (as far as it goes)' : ''}',
                     style: theme.textTheme.labelMedium,
                   ),
                 ),
@@ -883,8 +891,8 @@ class const _EntryCard({
                   entry.view.hiddenParts.isEmpty
                       ? 'every part on your screen'
                       : '${entry.view.hiddenParts.length} part'
-                          '${entry.view.hiddenParts.length == 1 ? '' : 's'}'
-                          ' off your screen',
+                            '${entry.view.hiddenParts.length == 1 ? '' : 's'}'
+                            ' off your screen',
                   style: theme.textTheme.bodySmall,
                 ),
                 if (entry.view.hiddenParts.isNotEmpty)

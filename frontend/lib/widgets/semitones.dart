@@ -29,8 +29,10 @@ class const Semitones({
           ),
           SizedBox(
             width: 28,
-            child: Text('${value > 0 ? '+' : ''}$value',
-                textAlign: TextAlign.center),
+            child: Text(
+              '${value > 0 ? '+' : ''}$value',
+              textAlign: TextAlign.center,
+            ),
           ),
           SemitoneUpButton(
             onPressed: enabled && value < maxTransposition

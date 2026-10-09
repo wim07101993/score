@@ -6,15 +6,9 @@ import 'package:score/features/sets/models.dart';
 
 void main() {
   group('a song with no score', () {
-    test('is read from the API as having none', () {
-      final entry = SetEntry.fromApi(json: {'id': 'a', 'score_id': null});
-
-      expect(entry.scoreId, isNull);
-    });
-
     test('is stored and read back as having none', () {
       final entry = SetEntry.fromJson(
-        json: SetEntry.fromApi(json: {'id': 'a', 'score_id': null}).toJson(),
+        const SetEntry(id: 'a', scoreId: null).toJson(),
       );
 
       expect(entry.scoreId, isNull);
@@ -22,14 +16,20 @@ void main() {
     });
 
     test('stored by an earlier version as the text null has none', () {
-      expect(SetEntry.fromJson(json: {'id': 'a', 'score_id': 'null'}).scoreId, isNull);
-      expect(SetEntry.fromJson(json: {'id': 'a', 'score_id': ''}).scoreId, isNull);
+      expect(
+        SetEntry.fromJson({'id': 'a', 'score_id': 'null'}).scoreId,
+        isNull,
+      );
+      expect(
+        SetEntry.fromJson({'id': 'a', 'score_id': ''}).scoreId,
+        isNull,
+      );
     });
   });
 
   test('a song with a score keeps it', () {
     final entry = SetEntry.fromJson(
-      json: SetEntry.fromApi(json: {'id': 'a', 'score_id': 'score-1'}).toJson(),
+      const SetEntry(id: 'a', scoreId: 'score-1').toJson(),
     );
 
     expect(entry.scoreId, 'score-1');
@@ -42,7 +42,7 @@ void main() {
     final set = ScoreSet(id: 's', lastChangedAt: at, lastSyncedAt: at);
 
     final json = set.toJson();
-    final back = ScoreSet.fromJson(json: json);
+    final back = ScoreSet.fromJson(json);
 
     expect(json['last_synced_at'], endsWith('Z'));
     expect(json['last_changed_at'], endsWith('Z'));
@@ -52,12 +52,19 @@ void main() {
 
   test('how big a player draws a song is part of how they read it', () {
     final view = EntryView.fromJson(
-      json: {'transposition': 2, 'hidden_parts': ['P2'], 'zoom': 2.5},
+      {
+        'transposition': 2,
+        'hidden_parts': ['P2'],
+        'zoom': 2.5,
+      },
     );
 
     expect(view.zoom, 2.5);
     expect(view.toJson(), containsPair('zoom', 2.5));
-    expect(EntryView.fromJson(json: {'transposition': 0}).zoom, 1,
-        reason: 'a view that says nothing about its size is the written size');
+    expect(
+      EntryView.fromJson({'transposition': 0}).zoom,
+      1,
+      reason: 'a view that says nothing about its size is the written size',
+    );
   });
 }

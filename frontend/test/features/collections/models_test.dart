@@ -14,31 +14,22 @@ import 'package:score/features/collections/models.dart';
 
 void main() {
   group('a piece that has yet to be scanned', () {
-    test('has no score when the API says it has none', () {
-      final entry = CollectionEntry.fromApi(json: {
-        'id': 'e1',
-        'score_id': null,
-        'description': 'Blue Bossa — page 62',
-        'transposition': 0,
-        'view': {'transposition': 0, 'hidden_parts': <String>[], 'zoom': 1},
-      });
-
-      expect(entry.scoreId, isNull);
-      expect(entry.isOnPaper, isTrue);
-    });
-
     test('still has none after being kept on this device and read back', () {
       const entry = CollectionEntry(id: 'e1', description: 'page 62');
 
       // Through the text it is actually stored as, rather than the map, so
       // that a null which turned into a string on the way would be caught.
       final stored = jsonDecode(jsonEncode(entry.toJson()));
-      final back =
-          CollectionEntry.fromJson(json: (stored as Map).cast<String, Object?>());
+      final back = CollectionEntry.fromJson(
+        (stored as Map).cast<String, Object?>(),
+      );
 
       expect(entry.toJson()['score_id'], isNull);
-      expect(entry.toJson().containsKey('score_id'), isTrue,
-          reason: 'said to be nothing, rather than not said at all');
+      expect(
+        entry.toJson().containsKey('score_id'),
+        isTrue,
+        reason: 'said to be nothing, rather than not said at all',
+      );
       expect(back.scoreId, isNull);
       expect(back.scoreId, isNot('null'));
     });
@@ -47,8 +38,9 @@ void main() {
       // It is what a null turns into when it is written out as text, and read
       // back as an id it would be sent to the server as a score that does not
       // exist.
-      final entry =
-          CollectionEntry.fromJson(json: {'id': 'e1', 'score_id': 'null'});
+      final entry = CollectionEntry.fromJson(
+        {'id': 'e1', 'score_id': 'null'},
+      );
 
       expect(entry.scoreId, isNull);
     });
@@ -94,11 +86,15 @@ void main() {
         lastSyncedAt: DateTime.utc(2026, 9, 1, 11),
         pendingChange: PendingChange.write,
         pendingViews: const ['e1'],
-        pendingEntries: const [PendingEntry(id: 'e2', action: PendingChange.write)],
+        pendingEntries: const [
+          PendingEntry(id: 'e2', action: PendingChange.write),
+        ],
       );
 
       final stored = jsonDecode(jsonEncode(collection.toJson()));
-      final back = Collection.fromJson(json: (stored as Map).cast<String, Object?>());
+      final back = Collection.fromJson(
+        (stored as Map).cast<String, Object?>(),
+      );
 
       expect(back.title, 'The Real Book, vol. 1');
       expect(back.description, 'what the band can be asked for');
@@ -125,54 +121,17 @@ void main() {
     });
 
     test('that owes nothing and was never deleted says so', () {
-      final collection = Collection(id: 'c1', lastChangedAt: DateTime.utc(2026));
+      final collection = Collection(
+        id: 'c1',
+        lastChangedAt: DateTime.utc(2026),
+      );
 
-      final back = Collection.fromJson(json: collection.toJson());
+      final back = Collection.fromJson(collection.toJson());
 
       expect(back.pendingChange, isNull);
       expect(back.deletedAt, isNull);
       expect(back.lastSyncedAt, isNull);
       expect(back.owesAnything, isFalse);
-    });
-  });
-
-  group('a collection the API hands over', () {
-    test('owes nothing and was synced when it was asked for', () {
-      final syncedAt = DateTime.utc(2026, 9, 2);
-      final collection = Collection.fromApi(json: {
-        'id': 'c1',
-        'title': 'The Real Book',
-        'description': '',
-        'entries': [
-          {
-            'id': 'e1',
-            'score_id': 'score-1',
-            'description': '',
-            'transposition': 2,
-            'view': {'transposition': 0, 'hidden_parts': <String>[], 'zoom': 1},
-          },
-        ],
-        'shared_with': <String>[],
-        'is_owner': false,
-        'last_changed_at': '2026-09-01T00:00:00Z',
-        'deleted_at': null,
-      }, syncedAt: syncedAt);
-
-      expect(collection.isOwner, isFalse);
-      expect(collection.lastSyncedAt, syncedAt);
-      expect(collection.owesAnything, isFalse);
-      expect(collection.entries.single.synced, isTrue,
-          reason: 'everything the API hands over is on the server');
-    });
-
-    test('that was deleted there says when', () {
-      final collection = Collection.fromApi(json: {
-        'id': 'c1',
-        'last_changed_at': '2026-09-01T00:00:00Z',
-        'deleted_at': '2026-09-01T00:00:00Z',
-      }, syncedAt: DateTime.utc(2026, 9, 2));
-
-      expect(collection.deletedAt, DateTime.utc(2026, 9));
     });
   });
 
@@ -223,20 +182,21 @@ void main() {
         CollectionEntry(id: 'y', description: 'page 12'),
       ];
 
-      expect([for (final entry in entriesByTitle(entries, titleOf)) entry.id],
-          ['y', 'z']);
       expect(
-          [
-            for (final entry
-                in entriesByTitle(entries.reversed, titleOf))
-              entry.id
-          ],
-          ['y', 'z']);
+        [for (final entry in entriesByTitle(entries, titleOf)) entry.id],
+        ['y', 'z'],
+      );
+      expect(
+        [
+          for (final entry in entriesByTitle(entries.reversed, titleOf))
+            entry.id,
+        ],
+        ['y', 'z'],
+      );
     });
   });
 
-  test('what the group plays and what the player reads are added together',
-      () {
+  test('what the group plays and what the player reads are added together', () {
     const entry = CollectionEntry(
       id: 'e1',
       scoreId: 'score-1',

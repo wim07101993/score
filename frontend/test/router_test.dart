@@ -11,8 +11,9 @@ import 'package:score/router.dart';
 final _router = AppRouter();
 
 /// The pages [address] opens onto, by their address.
-List<String> _pathsAt(String address) =>
-    [for (final route in _router.stackAt(address)) _router.pathOf(route)];
+List<String> _pathsAt(String address) => [
+  for (final route in _router.stackAt(address)) _router.pathOf(route),
+];
 
 /// The page [address] opens.
 PageRouteInfo _at(String address) => _router.stackAt(address).last;
@@ -21,11 +22,10 @@ Matcher _route(
   String name, {
   Map<String, Object?> path = const {},
   Map<String, Object?> query = const {},
-}) =>
-    isA<PageRouteInfo>()
-        .having((r) => r.routeName, 'routeName', name)
-        .having((r) => r.rawPathParams, 'path', path)
-        .having((r) => r.rawQueryParams, 'query', query);
+}) => isA<PageRouteInfo>()
+    .having((r) => r.routeName, 'routeName', name)
+    .having((r) => r.rawPathParams, 'path', path)
+    .having((r) => r.rawQueryParams, 'query', query);
 
 void main() {
   group('reading an address', () {

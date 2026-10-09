@@ -48,14 +48,16 @@ void main() {
     expect((await start()).themeMode, ThemeMode.dark);
   });
 
-  test('going back to the system stores nothing rather than the word for it',
-      () async {
-    await setThemeMode.action(ThemeMode.light, null);
-    await setThemeMode.action(ThemeMode.system, null);
+  test(
+    'going back to the system stores nothing rather than the word for it',
+    () async {
+      await setThemeMode.action(ThemeMode.light, null);
+      await setThemeMode.action(ThemeMode.system, null);
 
-    expect(await store.settings.read('theme_mode'), isNull);
-    expect((await start()).themeMode, ThemeMode.system);
-  });
+      expect(await store.settings.read('theme_mode'), isNull);
+      expect((await start()).themeMode, ThemeMode.system);
+    },
+  );
 
   test('the app is told, so the theme can change under it', () async {
     final settings = await start();
@@ -68,12 +70,14 @@ void main() {
     expect(settings.themeMode, ThemeMode.dark);
   });
 
-  test('a stored value nobody can read is the system, not a broken app',
-      () async {
-    await store.settings.write('theme_mode', 'midnight');
+  test(
+    'a stored value nobody can read is the system, not a broken app',
+    () async {
+      await store.settings.write('theme_mode', 'midnight');
 
-    expect((await start()).themeMode, ThemeMode.system);
-  });
+      expect((await start()).themeMode, ThemeMode.system);
+    },
+  );
 
   test('a behaviour that fails says so rather than throwing', () async {
     final failing = SetThemeMode(store: store.settings);
@@ -102,8 +106,11 @@ void main() {
 
       final settings = await start();
       expect(settings.pageLook(Brightness.dark).brightness, 0.4);
-      expect(settings.pageLook(Brightness.light).brightness, SheetPalette.full,
-          reason: 'a lit desk and a dark stage are two different rooms');
+      expect(
+        settings.pageLook(Brightness.light).brightness,
+        SheetPalette.full,
+        reason: 'a lit desk and a dark stage are two different rooms',
+      );
     });
 
     test('is where it was left at the next start', () async {
@@ -116,7 +123,10 @@ void main() {
       );
 
       final reopened = await start();
-      expect(reopened.pageLook(Brightness.dark).brightness, closeTo(0.22, 1e-9));
+      expect(
+        reopened.pageLook(Brightness.dark).brightness,
+        closeTo(0.22, 1e-9),
+      );
       expect(reopened.pageLook(Brightness.dark).warmth, closeTo(0.8, 1e-9));
     });
 
@@ -130,8 +140,10 @@ void main() {
       );
 
       final settings = await start();
-      expect(settings.pageLook(Brightness.dark).brightness,
-          SheetPalette.dimmest);
+      expect(
+        settings.pageLook(Brightness.dark).brightness,
+        SheetPalette.dimmest,
+      );
       expect(settings.pageLook(Brightness.dark).warmth, 1);
     });
 
@@ -157,13 +169,18 @@ void main() {
       expect(await store.settings.read('page_look_dark'), isNull);
     });
 
-    test('a stored page nobody can read is the page nobody has touched',
-        () async {
-      await store.settings.write('page_look_dark', 'dim-ish');
+    test(
+      'a stored page nobody can read is the page nobody has touched',
+      () async {
+        await store.settings.write('page_look_dark', 'dim-ish');
 
-      final settings = await start();
-      expect(settings.pageLook(Brightness.dark).brightness, SheetPalette.night);
-    });
+        final settings = await start();
+        expect(
+          settings.pageLook(Brightness.dark).brightness,
+          SheetPalette.night,
+        );
+      },
+    );
 
     test('the page is told, so the sheet follows what is kept', () async {
       final settings = await start();

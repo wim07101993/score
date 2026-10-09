@@ -1,71 +1,55 @@
 import 'package:get_it/get_it.dart';
-import 'package:score/behaviours/in_turn.dart';
-import 'package:score/config.dart';
 import 'package:score/features/observability/get_it.dart';
-import 'package:score/features/scores/behaviours/ensure_score.dart';
-import 'package:score/features/scores/behaviours/forget_gone_scores.dart';
+import 'package:score/features/scores/behaviours/forget_score.dart';
+import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
-import 'package:score/features/scores/behaviours/kept_scores.dart';
+import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
-import 'package:score/features/scores/storage/scores_store.dart';
+import 'package:score/features/scores/storage/scores_database.dart';
 import 'package:score/notifiers/get_it.dart';
+import 'package:score/storage/clients.dart';
 import 'package:score/storage/databases.dart';
 
 extension ScoresGetItExtensions on GetIt {
   void registerScores() {
     registerLazySingletonAsync<ScoresApi>(
-      () async => ScoresApi(config: (await getAsync<Config>()).api, client: get()),
+      () async => ScoresApi(clientFactory: await getAsync<ApiClientFactory>()),
     );
 
     registerLazySingletonAsync(
-      () async => ScoresStore(database: (await getAsync<Databases>()).data),
+      () async => ScoresDatabase(client: (await getAsync<Databases>()).data),
     );
     registerNotifier(
-      () async => ScoresNotifier(store: await getAsync<ScoresStore>()),
+      () async => ScoresNotifier(store: await getAsync<ScoresDatabase>()),
     );
 
-    registerFactory(() => KeptScores(store: get(), documents: get()));
-    // A sync and the search for what is gone take turns: see [InTurn].
-    registerLazySingleton(() => InTurn(), instanceName: _scoreSyncs);
+    registerFactory(() => CacheScore(monitor: get(), db: get()));
+    registerFactory(() => CacheMusicXml(monitor: get(), files: get()));
 
     registerFactory(
       () => SyncScores(
         monitor: get(),
         logger: logger('Scores'),
         documents: get(),
-        kept: get(),
+        db: get(),
         api: get(),
-        oidc: get(),
-        turn: get(instanceName: _scoreSyncs),
+        syncDates: get(),
       ),
     );
     registerFactory(
-      () => ForgetGoneScores(
-        monitor: get(),
-        logger: logger('Scores'),
-        kept: get(),
-        api: get(),
-        oidc: get(),
-        turn: get(instanceName: _scoreSyncs),
-      ),
-    );
-    registerFactory(
-      () => EnsureScore(monitor: get(), kept: get(), api: get(), oidc: get()),
+      () => GetScore(monitor: get(), api: get(), db: get(), cache: get()),
     );
     registerFactory(
       () => GetMusicXml(
         monitor: get(),
         logger: logger('Scores'),
-        documents: get(),
-        kept: get(),
+        files: get(),
         api: get(),
-        oidc: get(),
-        ensureScore: get(),
-        background: get(),
+        cache: get(),
       ),
     );
     registerFactory(
@@ -73,16 +57,24 @@ extension ScoresGetItExtensions on GetIt {
         monitor: get(),
         logger: logger('Scores'),
         documents: get(),
-        kept: get(),
+        db: get(),
         api: get(),
-        oidc: get(),
-        ensureScore: get(),
+        cacheScore: get(),
+        cacheMusicXml: get(),
       ),
     );
     registerFactory(
-      () => MarkScoreViewed(monitor: get(), store: get(), ensureScore: get()),
+      () => MarkScoreViewed(monitor: get(), store: get(), getScore: get()),
+    );
+    registerFactory(
+      () => ForgetScore(monitor: get(), scores: get(), files: get()),
+    );
+    registerFactory(
+      () => ForgetUnreferencedDocuments(
+        monitor: get(),
+        db: get(),
+        files: get(),
+      ),
     );
   }
 }
-
-const _scoreSyncs = 'scoreSyncs';

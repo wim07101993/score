@@ -10,9 +10,10 @@ import 'package:score/features/scores/models.dart';
 void main() {
   group('what a score can be found by', () {
     test('an instrument is found by the name the list shows for it', () {
-      const score = Score(
+      final score = Score(
         id: 'abc',
         instruments: ['keyboard.piano', 'wind.reed.clarinet'],
+        lastChangedAt: Score.defaultLastChangedAt,
       );
 
       expect(score.searchText, contains('piano'));
@@ -20,23 +21,32 @@ void main() {
     });
 
     test('the code it was written with still finds it', () {
-      const score = Score(id: 'abc', instruments: ['keyboard.piano']);
+      final score = Score(
+        id: 'abc',
+        instruments: ['keyboard.piano'],
+        lastChangedAt: Score.defaultLastChangedAt,
+      );
 
       expect(score.searchText, contains('keyboard.piano'));
     });
 
     test('an instrument with no name of its own is kept as written', () {
-      const score = Score(id: 'abc', instruments: ['metal.bells.agogo']);
+      final score = Score(
+        id: 'abc',
+        instruments: ['metal.bells.agogo'],
+        lastChangedAt: Score.defaultLastChangedAt,
+      );
 
       expect(score.searchText, contains('metal.bells.agogo'));
     });
 
     test('the title, the people and the tags are in there as well', () {
-      const score = Score(
+      final score = Score(
         id: 'abc',
-        work: Work(title: 'Kind of Blue'),
-        creators: Creators(composers: ['Miles Davis']),
+        work: const Work(title: 'Kind of Blue'),
+        creators: const Creators(composers: ['Miles Davis']),
         tags: ['jazz'],
+        lastChangedAt: Score.defaultLastChangedAt,
       );
 
       expect(score.searchText, contains('kind of blue'));
@@ -46,10 +56,11 @@ void main() {
   });
 
   group('looking for a score', () {
-    const score = Score(
+    final score = Score(
       id: 'abc',
-      work: Work(title: 'Après un rêve'),
-      creators: Creators(composers: ['Gabriel Fauré']),
+      work: const Work(title: 'Après un rêve'),
+      creators: const Creators(composers: ['Gabriel Fauré']),
+      lastChangedAt: Score.defaultLastChangedAt,
     );
 
     test('finds it without the accents', () {

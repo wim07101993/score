@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
-import 'package:score/background.dart';
 import 'package:score/config.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/auth/storage/oidc_api.dart';
@@ -20,17 +19,20 @@ extension TestGetItExtensions on GetIt {
     pushNewScope();
     registerLazySingletonAsync<Config>(
       () async => Config(
-        oidc: OidcConfig.fromJson(logger: Logger('test'), json: {
-          'clientId': 'test',
-          'nativeClientId': 'test',
-          'issuer': 'https://auth.invalid',
-          'redirectUri': 'http://localhost:3000/',
-          'authorizationEndpoint': 'https://auth.invalid/authorize',
-          'tokenEndpoint': 'https://auth.invalid/token',
-          'userInfoEndpoint': 'https://auth.invalid/userinfo',
-          'healthzEndpoint': 'https://auth.invalid/healthz',
-          'rolesKey': 'roles',
-        }),
+        oidc: OidcConfig.fromJson(
+          logger: Logger('test'),
+          json: {
+            'clientId': 'test',
+            'nativeClientId': 'test',
+            'issuer': 'https://auth.invalid',
+            'redirectUri': 'http://localhost:3000/',
+            'authorizationEndpoint': 'https://auth.invalid/authorize',
+            'tokenEndpoint': 'https://auth.invalid/token',
+            'userInfoEndpoint': 'https://auth.invalid/userinfo',
+            'healthzEndpoint': 'https://auth.invalid/healthz',
+            'rolesKey': 'roles',
+          },
+        ),
         api: ApiConfig(baseUrl: Uri.parse('https://api.invalid/')),
       ),
     );
@@ -39,7 +41,6 @@ extension TestGetItExtensions on GetIt {
       () async => InMemoryScoreDocuments(),
     );
     registerLazySingleton(() => http.Client());
-    registerLazySingleton(() => Background(logger: Logger('test')));
     registerFeatures();
 
     await resolveDependencies();

@@ -49,3 +49,7 @@ app.*.map.json
 /android/key.properties
 *.jks
 *.keystore
+
+# The generated API client is a package of its own only to keep it apart; the
+# app's pubspec.lock decides what it is built with.
+packages/score_api/pubspec.lock

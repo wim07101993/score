@@ -10,6 +10,7 @@ import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
 import 'package:score/features/sync/behaviours/update_collections.dart';
 import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/features/sync/behaviours/update_sets.dart';
+import 'package:score/features/sync/storage/sync_dates_store.dart';
 import 'package:score/features/sync/storage/sync_holds_store.dart';
 import 'package:score/storage/databases.dart';
 
@@ -17,6 +18,9 @@ extension SyncGetItExtensions on GetIt {
   void registerSync() {
     registerLazySingletonAsync(
       () async => SyncHoldsStore(database: (await getAsync<Databases>()).data),
+    );
+    registerLazySingletonAsync(
+      () async => SyncDatesStore(client: (await getAsync<Databases>()).data),
     );
     registerLazySingleton(() => OneAtATime());
     registerFactory(
@@ -70,12 +74,9 @@ extension SyncGetItExtensions on GetIt {
     registerFactory(
       () => SyncEverything(
         monitor: get(),
-        scoresApi: get(),
         updateScores: get(),
-        forgetGoneScores: get(),
         updateSets: get(),
         updateCollections: get(),
-        apiSync: get(),
       ),
     );
     registerFactory(

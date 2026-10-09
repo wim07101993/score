@@ -2,27 +2,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/scores/filters.dart';
 import 'package:score/features/scores/models.dart';
 
-const _bach = Score(
+final _bach = Score(
   id: 'bach',
-  creators: Creators(composers: ['Bach']),
+  creators: const Creators(composers: ['Bach']),
   languages: ['de'],
   tags: ['choir'],
+  lastChangedAt: Score.defaultLastChangedAt,
 );
-const _faure = Score(
+final _faure = Score(
   id: 'faure',
-  creators: Creators(composers: ['Fauré']),
+  creators: const Creators(composers: ['Fauré']),
   languages: ['fr'],
   tags: ['choir', 'solo'],
+  lastChangedAt: Score.defaultLastChangedAt,
 );
-const _handel = Score(
+final _handel = Score(
   id: 'handel',
-  creators: Creators(composers: ['Händel', 'Händel']),
+  creators: const Creators(composers: ['Händel', 'Händel']),
   languages: ['de'],
+  lastChangedAt: Score.defaultLastChangedAt,
 );
-const _scores = [_bach, _faure, _handel];
+final _scores = [_bach, _faure, _handel];
 
-List<String> _ids(Iterable<Score> scores) =>
-    [for (final score in scores) score.id];
+List<String> _ids(Iterable<Score> scores) => [
+  for (final score in scores) score.id,
+];
 
 void main() {
   test('nothing ticked lets everything through', () {
@@ -71,8 +75,7 @@ void main() {
   });
 
   test('a ticked value that nothing has any more can still be unticked', () {
-    final filters = ScoreFilters()
-      ..tick(ScoreField.tags, 'gone', wanted: true);
+    final filters = ScoreFilters()..tick(ScoreField.tags, 'gone', wanted: true);
     expect(
       filters.valuesOf(ScoreField.tags, _scores),
       contains((value: 'gone', count: 0)),

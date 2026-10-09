@@ -8,8 +8,10 @@ void main() {
     final oneAtATime = OneAtATime();
     var ran = 0;
 
-    await oneAtATime('sets', () async => ran++)
-        .timeout(const Duration(seconds: 1));
+    await oneAtATime(
+      'sets',
+      () async => ran++,
+    ).timeout(const Duration(seconds: 1));
 
     expect(ran, 1);
   });
@@ -27,8 +29,7 @@ void main() {
     final asked = [oneAtATime('sets', sync), oneAtATime('sets', sync)];
     first.complete();
 
-    await Future.wait([running, ...asked])
-        .timeout(const Duration(seconds: 1));
+    await Future.wait([running, ...asked]).timeout(const Duration(seconds: 1));
     expect(ran, 2);
 
     // And the kind is free again afterwards.

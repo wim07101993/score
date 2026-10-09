@@ -35,7 +35,10 @@ class const ScoreSheet({
 
   /// What one staff space is worth in logical pixels — the zoom.
   final double space = 7.0,
-  final EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  final EdgeInsets padding = const EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 8,
+  ),
 
   /// The page and the ink on it. Null follows the app's own brightness, which
   /// is what a score drawn anywhere but the reading page does.
@@ -236,14 +239,14 @@ class _ScoreSheetState extends State<ScoreSheet> {
   /// black note on a dimmed page is a note nobody can see. The palette is the
   /// one thing deciding what the ink is.
   EngravingStyle _styleFor(SheetPalette palette) => EngravingStyle(
-        colors: NotationColors(
-          ink: palette.ink,
-          staffLines: palette.ink,
-          editorial: palette.fadedInk,
-          background: palette.paper,
-          honourSourceColors: false,
-        ),
-      );
+    colors: NotationColors(
+      ink: palette.ink,
+      staffLines: palette.ink,
+      editorial: palette.fadedInk,
+      background: palette.paper,
+      honourSourceColors: false,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {

@@ -72,6 +72,13 @@
             </list>
           </value>
         </entry>
+        <entry key="big_decimal">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/big_decimal-0.7.0/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="boolean_selector">
           <value>
             <list>
@@ -121,10 +128,24 @@
             </list>
           </value>
         </entry>
+        <entry key="change_case">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/change_case-2.2.0/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="characters">
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/characters-1.4.1/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="charset">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/charset-2.0.1/lib" />
             </list>
           </value>
         </entry>
@@ -478,6 +499,13 @@
             </list>
           </value>
         </entry>
+        <entry key="lints">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/lints-6.1.0/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="logging">
           <value>
             <list>
@@ -786,6 +814,41 @@
             </list>
           </value>
         </entry>
+        <entry key="tonik">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/tonik-0.10.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="tonik_core">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_core-0.10.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="tonik_generate">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_generate-0.10.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="tonik_parse">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_parse-0.10.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="tonik_util">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_util-0.10.0/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="typed_data">
           <value>
             <list>
@@ -943,7 +1006,7 @@
         <entry key="yaml">
           <value>
             <list>
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/yaml-3.1.3/lib" />
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/yaml-3.1.4/lib" />
             </list>
           </value>
         </entry>
@@ -960,6 +1023,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/auto_route-11.2.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/auto_route_generator-10.6.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/behaviour-3.0.2/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/big_decimal-0.7.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/boolean_selector-2.1.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/build-4.0.11/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/build_config-1.3.3/lib" />
@@ -967,7 +1031,9 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/build_runner-2.16.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/built_collection-5.1.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/built_value-8.13.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/change_case-2.2.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/characters-1.4.1/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/charset-2.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/checked_yaml-2.0.4/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/circular_buffer-0.13.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/clock-1.1.2/lib" />
@@ -1014,6 +1080,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/lean_builder-1.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/lint-2.8.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/lints-6.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/logging-1.3.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/matcher-0.12.20/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/material_color_utilities-0.13.0/lib" />
@@ -1057,6 +1124,11 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/synchronized-3.4.1+1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/term_glyph-1.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/test_api-0.7.12/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/tonik-0.10.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_core-0.10.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_generate-0.10.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_parse-0.10.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/tonik_util-0.10.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/typed_data-1.4.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/url_launcher-6.3.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/url_launcher_android-6.3.32/lib" />
@@ -1079,7 +1151,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/xdg_directories-1.1.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/xml-7.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/xxh3-1.2.0/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/yaml-3.1.3/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/yaml-3.1.4/lib" />
       <root url="file://$PROJECT_DIR$/../../flutter/flutter/bin/cache/pkg/sky_engine/lib" />
       <root url="file://$PROJECT_DIR$/../../flutter/flutter/packages/flutter/lib" />
       <root url="file://$PROJECT_DIR$/../../flutter/flutter/packages/flutter_localizations/lib" />

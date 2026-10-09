@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:score/config.dart';
 import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/collections/behaviours/collections_engine.dart';
 import 'package:score/features/collections/behaviours/delete_collection.dart';
@@ -14,17 +13,19 @@ import 'package:score/features/collections/storage/collections_store.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/sync/storage/sync_holds_store.dart';
 import 'package:score/notifiers/get_it.dart';
+import 'package:score/storage/clients.dart';
 import 'package:score/storage/databases.dart';
 
 extension CollectionsGetItExtensions on GetIt {
   void registerCollections() {
     registerLazySingletonAsync<CollectionsApi>(
-      () async =>
-          CollectionsApi(config: (await getAsync<Config>()).api, client: get()),
+      () async => CollectionsApi(
+        clientFactory: await getAsync<ApiClientFactory>(),
+      ),
     );
 
     registerLazySingletonAsync(
-      () async => CollectionsStore(database: (await getAsync<Databases>()).data),
+      () async => CollectionsStore(client: (await getAsync<Databases>()).data),
     );
 
     registerLazySingletonAsync<CollectionsEngine>(() async {

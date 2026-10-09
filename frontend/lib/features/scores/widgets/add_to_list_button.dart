@@ -68,8 +68,9 @@ class const AddToListButtons({
         children: [
           for (final list in owned)
             SimpleDialogOption(
-              onPressed: () => Navigator.of(context)
-                  .pop(_Pick(id: list.id, title: list.title)),
+              onPressed: () =>
+                  Navigator.of(context)
+                      .pop(_Pick(id: list.id, title: list.title)),
               child: Text(list.title),
             ),
           SimpleDialogOption(
@@ -94,55 +95,59 @@ class const AddToListButtons({
       try {
         final id = isSet
             ? (await GetIt.I<SaveSet>()(SaveSetParams(title: title)))
-                .orThrow()
-                .id
+                  .orThrow()
+                  .id
             : (await GetIt.I<SaveCollection>()(
                 SaveCollectionParams(title: title),
-              ))
-                .orThrow()
-                .id;
+              )).orThrow().id;
         target = _Pick(id: id, title: title);
       } catch (error) {
-        messenger.showSnackBar(errorSnackBar(
-          'The ${isSet ? 'set' : 'collection'} could not be made: $error',
-        ));
+        messenger.showSnackBar(
+          errorSnackBar(
+            'The ${isSet ? 'set' : 'collection'} could not be made: $error',
+          ),
+        );
         return;
       }
     }
     final id = target.id!;
 
     void open() => router.push(
-          isSet
-              ? SetDetailRoute(setId: id)
-              : CollectionDetailRoute(collectionId: id),
-        );
+      isSet
+          ? SetDetailRoute(setId: id)
+          : CollectionDetailRoute(collectionId: id),
+    );
 
     try {
       if (isSet) {
         (await GetIt.I<SaveSetEntry>()(
           SaveSetEntryParams(setId: id, scoreId: scoreId),
-        ))
-            .orThrow();
+        )).orThrow();
       } else {
         (await GetIt.I<SaveCollectionEntry>()(
           SaveCollectionEntryParams(collectionId: id, scoreId: scoreId),
-        ))
-            .orThrow();
+        )).orThrow();
       }
-      messenger.showSnackBar(SnackBar(
-        content: Text('Added to "${target.title}".'),
-        action: SnackBarAction(label: 'Open', onPressed: open),
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Added to "${target.title}".'),
+          action: SnackBarAction(label: 'Open', onPressed: open),
+        ),
+      );
     } on ScoreAlreadyInCollectionException {
       // What was wanted is the piece in the book, and it is.
-      messenger.showSnackBar(SnackBar(
-        content: Text('It is in "${target.title}" already.'),
-        action: SnackBarAction(label: 'Open', onPressed: open),
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('It is in "${target.title}" already.'),
+          action: SnackBarAction(label: 'Open', onPressed: open),
+        ),
+      );
     } catch (error) {
-      messenger.showSnackBar(errorSnackBar(
-        'It could not be added to "${target.title}": $error',
-      ));
+      messenger.showSnackBar(
+        errorSnackBar(
+          'It could not be added to "${target.title}": $error',
+        ),
+      );
     }
   }
 
@@ -193,7 +198,5 @@ class const _Pick({
   required final String? id,
   required final String title,
 }) {
-  const _Pick.newOne()
-      : this(id: null, title: '');
-
+  const _Pick.newOne() : this(id: null, title: '');
 }

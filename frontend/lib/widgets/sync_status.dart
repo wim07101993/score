@@ -64,20 +64,23 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
   bool _busy = false;
 
   Future<_Reason> _find() async {
-    final connection = (await GetIt.I<CheckConnection>()()).valueOrNull ??
+    final connection =
+        (await GetIt.I<CheckConnection>()()).valueOrNull ??
         // Not known, rather than not there: what the last try ran into is
         // still worth saying.
         (server: true, provider: true, signedIn: true, holdsTheirData: true);
     if (!connection.server) {
       return (
-        text: 'The server cannot be reached from this device right now. What'
+        text:
+            'The server cannot be reached from this device right now. What'
             ' you changed is kept here, and goes as soon as it can.',
         signIn: false,
       );
     }
     if (!connection.provider) {
       return (
-        text: 'The sign-in provider cannot be reached from this device right'
+        text:
+            'The sign-in provider cannot be reached from this device right'
             ' now, and nothing can be sent without it. What you changed is'
             ' kept here, and goes as soon as it can.',
         signIn: false,
@@ -85,14 +88,16 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
     }
     if (!connection.signedIn) {
       return (
-        text: 'This device is no longer signed in, so there is nothing to send'
+        text:
+            'This device is no longer signed in, so there is nothing to send'
             ' it with. Sign in again, and it goes straight after.',
         signIn: true,
       );
     }
     if (!connection.holdsTheirData) {
       return (
-        text: 'What is on this device belongs to another account than the one'
+        text:
+            'What is on this device belongs to another account than the one'
             ' signed in, and is not sent as this one.',
         signIn: false,
       );
@@ -100,42 +105,47 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
 
     return switch (widget.whyNotSynced()) {
       null => (
-          text: 'It has not been tried since the app was started. It goes at'
-              ' the next sync — or now.',
-          signIn: false,
-        ),
+        text:
+            'It has not been tried since the app was started. It goes at'
+            ' the next sync — or now.',
+        signIn: false,
+      ),
       WhyNotSynced(hold: SyncHold.unreachable) => (
-          text: 'The server could not be reached the last time it was tried.',
-          signIn: false,
-        ),
+        text: 'The server could not be reached the last time it was tried.',
+        signIn: false,
+      ),
       WhyNotSynced(hold: SyncHold.noToken) => (
-          text: 'There was no sign-in to send it with the last time it was'
-              ' tried. Sign in again, and it goes straight after.',
-          signIn: true,
-        ),
+        text:
+            'There was no sign-in to send it with the last time it was'
+            ' tried. Sign in again, and it goes straight after.',
+        signIn: true,
+      ),
       WhyNotSynced(hold: SyncHold.notTheirs) => (
-          text: 'What is on this device belonged to another account than the'
-              ' one signed in the last time it was tried.',
-          signIn: false,
-        ),
+        text:
+            'What is on this device belonged to another account than the'
+            ' one signed in the last time it was tried.',
+        signIn: false,
+      ),
       WhyNotSynced(:final error?) => (
-          text: 'The last try ran into this: $error',
-          signIn: false,
-        ),
+        text: 'The last try ran into this: $error',
+        signIn: false,
+      ),
       WhyNotSynced(status: 401) => (
-          text: 'The server did not take this sign-in the last time it was'
-              ' tried. Sign in again, and it goes straight after.',
-          signIn: true,
-        ),
+        text:
+            'The server did not take this sign-in the last time it was'
+            ' tried. Sign in again, and it goes straight after.',
+        signIn: true,
+      ),
       WhyNotSynced(status: null, :final detail) => (
-          text: 'Nothing answered the last time it was tried: $detail',
-          signIn: false,
-        ),
+        text: 'Nothing answered the last time it was tried: $detail',
+        signIn: false,
+      ),
       WhyNotSynced(:final status, :final detail) => (
-          text: 'The server answered $status the last time it was tried:'
-              ' $detail',
-          signIn: false,
-        ),
+        text:
+            'The server answered $status the last time it was tried:'
+            ' $detail',
+        signIn: false,
+      ),
     };
   }
 

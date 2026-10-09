@@ -2,7 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/notation/parts.dart';
 
 /// A document with the parts it is given, each one measure of rest.
-String _withParts(List<String> ids) => '''
+String _withParts(List<String> ids) =>
+    '''
 <?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <part-list>
