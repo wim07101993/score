@@ -11,7 +11,7 @@ typedef DeviceSettings = ({
 /// What this device has been told to prefer, as the store has it.
 class SettingsNotifier({
   required final SettingsStore store,
-}) extends StoreNotifier<DeviceSettings> {
+}) extends StreamNotifier<DeviceSettings> {
   this
     : super(
         initial: (
@@ -23,22 +23,28 @@ class SettingsNotifier({
         ),
       ) {
     follow(
-      store.watch(themeModeKey),
-      (stored) => value = (
-        themeMode: readThemeMode(stored),
-        looks: value.looks,
-      ),
+      store
+          .watch(themeModeKey)
+          .map(
+            (stored) => (
+              themeMode: readThemeMode(stored),
+              looks: value.looks,
+            ),
+          ),
     );
     for (final brightness in Brightness.values) {
       follow(
-        store.watch(pageLookKey(brightness)),
-        (stored) => value = (
-          themeMode: value.themeMode,
-          looks: {
-            ...value.looks,
-            brightness: readPageLook(brightness, stored),
-          },
-        ),
+        store
+            .watch(pageLookKey(brightness))
+            .map(
+              (stored) => (
+                themeMode: value.themeMode,
+                looks: {
+                  ...value.looks,
+                  brightness: readPageLook(brightness, stored),
+                },
+              ),
+            ),
       );
     }
   }

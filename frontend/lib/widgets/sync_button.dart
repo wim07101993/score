@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
-import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/sync/behaviours/check_connection.dart';
 import 'package:score/features/sync/behaviours/sync_everything.dart';
 import 'package:score/widgets/error_snack_bar.dart';
@@ -36,7 +35,7 @@ class _SyncButtonState extends State<SyncButton> {
           ? 'The server cannot be reached right now.'
           : !connection.provider
           ? 'The sign-in provider cannot be reached right now.'
-          : GetIt.I<AuthNotifier>().authProblem != null || !connection.signedIn
+          : !connection.signedIn
           ? 'Not signed in; sign in again to sync.'
           : null;
       if (problem != null) {

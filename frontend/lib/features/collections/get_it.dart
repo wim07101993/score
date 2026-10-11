@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/collections/behaviours/collections_engine.dart';
 import 'package:score/features/collections/behaviours/delete_collection.dart';
 import 'package:score/features/collections/behaviours/delete_collection_entry.dart';
@@ -37,7 +36,6 @@ extension CollectionsGetItExtensions on GetIt {
           holds: await getAsync<SyncHoldsStore>(),
           api: await getAsync<CollectionsApi>(),
         ),
-        oidc: await getAsync<OidcApi>(),
       );
       await engine.init();
       return engine;

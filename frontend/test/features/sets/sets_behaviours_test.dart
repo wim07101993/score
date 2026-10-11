@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
-import 'package:score/config.dart';
-import 'package:score/features/auth/storage/auth_tokens.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
+import 'package:score/features/auth/authentication_exception.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
 import 'package:score/features/sets/behaviours/delete_set_entry.dart';
 import 'package:score/features/sets/behaviours/forget_sets.dart';
@@ -28,21 +25,6 @@ import '../../test_stores.dart';
 /// and until it has been sent it is newer than anything the server can say. The
 /// rules that follow from that — what is queued, in what order it goes out, and
 /// what happens when the server refuses — are what these are about.
-
-/// A provider nobody calls: these tests are about what happens to a set, and
-/// the token is only ever something the sync has to be holding.
-final _oidcConfig = OidcConfig(
-  clientId: 'test',
-  issuer: Uri.parse('http://nowhere'),
-  redirectUri: Uri.parse('http://localhost/'),
-  nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
-  desktopRedirectUri: Uri.parse('http://localhost:7005/'),
-  authorizationEndpoint: Uri.parse('http://nowhere/authorize'),
-  tokenEndpoint: Uri.parse('http://nowhere/token'),
-  userInfoEndpoint: Uri.parse('http://nowhere/userinfo'),
-  healthzEndpoint: Uri.parse('http://nowhere/healthz'),
-  rolesKey: 'roles',
-);
 
 /// An API that is not there, which is the case the whole design is for.
 class _OfflineApi() extends SetsApi {
@@ -310,31 +292,6 @@ class _SometimesThereApi extends _WorkingApi {
   }
 }
 
-/// An API that refuses the token itself.
-class _TokenRefusedApi extends _WorkingApi {
-  @override
-  Future<ScoreSet> putSet(
-    String setId,
-    Map<String, Object?> write,
-  ) {
-    throw ApiException(
-      message: 'the token is no good',
-      statusCode: 401,
-      problem: null,
-    );
-  }
-}
-
-/// A provider that counts the tokens it was told to forget.
-class _Counting({
-  required super.store,
-}) extends _SignedIn {
-  int forgotten = 0;
-
-  @override
-  Future<void> forgetAccessToken() async => forgotten++;
-}
-
 /// An API whose token cannot be had right now: a refresh that failed
 /// because the network did.
 class _TokenFailsApi extends _WorkingApi {
@@ -351,7 +308,7 @@ class _NotSignedInApi extends _WorkingApi {
   Future<ScoreSet> putSet(
     String setId,
     Map<String, Object?> write,
-  ) => throw const NotSignedIn();
+  ) => throw const SignInRequired();
 }
 
 /// An API whose first song write the server takes, and whose answer to it is
@@ -377,19 +334,6 @@ class _AnswerLostApi extends _WorkingApi {
   }
 }
 
-/// A provider that always has a token to hand.
-class _SignedIn({
-  required Stores store,
-}) extends OidcApi {
-  this : super(config: _oidcConfig, store: store.auth);
-
-  @override
-  Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
-
-  @override
-  Future<bool> canBeReached() async => true;
-}
-
 /// The sets behaviours over one store, one API and one provider, as the app
 /// wires them — under the names these rules were first written down with.
 /// What is read is read off the engine's working copy, which the behaviours
@@ -397,7 +341,6 @@ class _SignedIn({
 class _Sets({
   required final Stores store,
   required final SetsApi api,
-  required final OidcApi oidc,
 }) {
   late final SetsEngine _engine = SetsEngine(
     logger: Logger('test'),
@@ -407,7 +350,6 @@ class _Sets({
       holds: store.holds,
       api: api,
     ),
-    oidc: oidc,
   );
 
   Future<void> init() => _engine.init();
@@ -492,7 +434,6 @@ Future<(_Sets, Stores)> _open(SetsApi api) async {
   final opened = _Sets(
     store: store,
     api: api,
-    oidc: _SignedIn(store: store),
   );
   await opened.init();
   return (opened, store);
@@ -528,7 +469,6 @@ void main() {
       final reopened = _Sets(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await reopened.init();
       for (final now in [sets.getSet(set.id)!, reopened.getSet(set.id)!]) {
@@ -545,7 +485,6 @@ void main() {
       final first = _Sets(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await first.init();
       await first.saveSet(title: 'Zomerbar', description: 'two sets of forty');
@@ -554,7 +493,6 @@ void main() {
       final second = _Sets(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await second.init();
 
@@ -799,7 +737,6 @@ void main() {
       final online = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await store.sets.putAll([sets.getSet(set.id)!]);
       await online.init();
@@ -834,7 +771,6 @@ void main() {
       final online = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await store.sets.putAll([sets.getSet(set.id)!]);
       await online.init();
@@ -854,7 +790,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await sets.init();
 
@@ -887,7 +822,6 @@ void main() {
         final online = _Sets(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await store.sets.putAll([sets.getSet(set.id)!]);
         await online.init();
@@ -914,7 +848,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: _TokenFailsApi(),
-        oidc: _SignedIn(store: store),
       );
       await sets.init();
 
@@ -933,7 +866,6 @@ void main() {
         final sets = _Sets(
           store: store,
           api: _NotSignedInApi(),
-          oidc: _SignedIn(store: store),
         );
         await sets.init();
 
@@ -971,7 +903,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await sets.init();
 
@@ -1000,7 +931,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await sets.init();
 
@@ -1043,7 +973,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await store.sets.putAll([
         ScoreSet(
@@ -1120,7 +1049,6 @@ void main() {
         final offline = _Sets(
           store: store,
           api: _OfflineApi(),
-          oidc: _SignedIn(store: store),
         );
         await offline.init();
         await arrange(offline);
@@ -1129,7 +1057,6 @@ void main() {
         final online = _Sets(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await online.init();
         await online.syncWithApi();
@@ -1223,7 +1150,6 @@ void main() {
         final sets = _Sets(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await sets.init();
 
@@ -1259,7 +1185,6 @@ void main() {
       final thisTab = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await thisTab.init();
       await thisTab.saveSet(id: 'mine', title: 'Offline');
@@ -1268,7 +1193,6 @@ void main() {
       final otherTab = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await otherTab.init();
       await otherTab.syncWithApi();
@@ -1298,13 +1222,11 @@ void main() {
         final otherTab = _Sets(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await otherTab.init();
         final thisTab = _Sets(
           store: store,
           api: _OfflineApi(),
-          oidc: _SignedIn(store: store),
         );
         await thisTab.init();
 
@@ -1336,7 +1258,6 @@ void main() {
       final offline = _Sets(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await offline.init();
       await offline.saveEntry('mine', id: 'x', scoreId: 'x');
@@ -1345,13 +1266,11 @@ void main() {
       final otherTab = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await otherTab.init();
       final thisTab = _Sets(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await thisTab.init();
 
@@ -1376,7 +1295,6 @@ void main() {
       final again = _Sets(
         store: store,
         api: _WorkingApi(),
-        oidc: _SignedIn(store: store),
       );
       await again.init();
       await again.syncWithApi();
@@ -1386,22 +1304,6 @@ void main() {
         'n',
       ]);
     });
-
-    test(
-      'a token the API refuses is forgotten, and the write stays queued',
-      () async {
-        final store = await Stores.inMemory();
-        final oidc = _Counting(store: store);
-        final sets = _Sets(store: store, api: _TokenRefusedApi(), oidc: oidc);
-        await sets.init();
-
-        final saved = await sets.saveSet(title: 'Zomerbar');
-
-        expect(oidc.forgotten, 1);
-        expect(sets.getSet(saved.id)!.pendingChange, PendingChange.write);
-      },
-    );
-
     test(
       'a song goes to the place it has among the songs the server has',
       () async {
@@ -1421,7 +1323,6 @@ void main() {
         final offline = _Sets(
           store: store,
           api: _OfflineApi(),
-          oidc: _SignedIn(store: store),
         );
         await offline.init();
         await offline.saveEntry('mine', id: 'x', scoreId: 'x', position: 0);
@@ -1431,7 +1332,6 @@ void main() {
         final online = _Sets(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await online.init();
         await online.syncWithApi();
@@ -1573,7 +1473,6 @@ void main() {
         final online = _Sets(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await online.init();
         await online.syncWithApi();
@@ -1621,7 +1520,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await sets.init();
 
@@ -1659,7 +1557,6 @@ void main() {
       final sets = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await sets.init();
 
@@ -1670,131 +1567,6 @@ void main() {
       expect(api.orders['mine'], ['b', 'c', 'x', 'f']);
     },
   );
-
-  group('a device handed to somebody else', () {
-    Future<void> signedInAs(
-      Stores store, {
-      required String owner,
-      required String subject,
-    }) async {
-      await store.auth.write('data_owner', owner);
-      await store.auth.write(
-        'app_user_info',
-        jsonEncode(UserInfo(subject: subject).toJson()),
-      );
-    }
-
-    test('sends nothing of what the last user left', () async {
-      // Sent with the new user's token, the last user's sets would become
-      // theirs.
-      final store = await Stores.inMemory();
-      await store.sets.putAll([
-        ScoreSet(
-          id: 'alices',
-          title: "Alice's gig",
-          lastChangedAt: DateTime.now(),
-          pendingChange: PendingChange.write,
-        ),
-      ]);
-      await signedInAs(store, owner: 'alice', subject: 'bob');
-      final api = _WorkingApi();
-      final sets = _Sets(
-        store: store,
-        api: api,
-        oidc: _SignedIn(store: store),
-      );
-      await sets.init();
-
-      await sets.syncWithApi();
-
-      expect(api.calls, isEmpty);
-      expect(sets.getSet('alices')!.pendingChange, PendingChange.write);
-    });
-
-    test('forgets every set, owed or not', () async {
-      final (sets, store) = await _open(_OfflineApi());
-      await store.sets.putAll([
-        ScoreSet(
-          id: 'synced',
-          title: 'Last summer',
-          lastChangedAt: DateTime.now(),
-          lastSyncedAt: DateTime.now(),
-        ),
-      ]);
-      await sets.init();
-      await sets.saveSet(title: 'Owed');
-
-      await sets.forgetAll();
-
-      expect(sets.sets, isEmpty);
-      expect(sets.hasPendingChanges, isFalse);
-      expect(await store.sets.getAll(), isEmpty);
-      final reopened = _Sets(
-        store: store,
-        api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
-      );
-      await reopened.init();
-      expect(reopened.sets, isEmpty);
-    });
-
-    test(
-      'a pull answered after everything was forgotten is not kept',
-      () async {
-        // The last user signs out while a pull made with their token is on its
-        // way; what it answers is theirs, and not for whoever signs in next.
-        final api = _SlowListingApi()
-          ..answers = [
-            {
-              ...ScoreSet(
-                id: 'theirs',
-                title: 'Private',
-                lastChangedAt: DateTime.now(),
-              ).toJson(),
-              'is_owner': true,
-              'entries': <Object?>[],
-            },
-          ];
-        final (sets, store) = await _open(api);
-        await sets.init();
-
-        final syncing = sets.syncWithApi();
-        await api.asked.future;
-        await sets.forgetAll();
-        api.answer.complete();
-        await syncing;
-
-        expect(sets.sets, isEmpty);
-        expect(await store.sets.getAll(), isEmpty);
-      },
-    );
-
-    test('has what another tab forgot dropped by this one too', () async {
-      // Two tabs of the web app over the one store. What the other tab forgot
-      // is not to live on here, or to be written back by the next edit.
-      final store = await Stores.inMemory();
-      final thisTab = _Sets(
-        store: store,
-        api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
-      );
-      await thisTab.init();
-      await thisTab.saveSet(id: 'mine', title: 'Zomerbar');
-      final otherTab = _Sets(
-        store: store,
-        api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
-      );
-      await otherTab.init();
-
-      await otherTab.forgetAll();
-      await thisTab.saveSet(id: 'new', title: 'The next user');
-
-      expect(thisTab.getSet('mine'), isNull);
-      expect(thisTab.sets.map((set) => set.id), ['new']);
-      expect((await store.sets.getAll()).map((set) => set.id), ['new']);
-    });
-  });
 
   test(
     'an edit made while a push is out keeps what another tab stored',
@@ -1820,13 +1592,11 @@ void main() {
       final thisTab = _Sets(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await thisTab.init();
       final otherTab = _Sets(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await otherTab.init();
 

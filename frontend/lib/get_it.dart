@@ -1,11 +1,12 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:oidc/oidc.dart';
+import 'package:score/behaviours/exception_or.dart';
 import 'package:score/config.dart';
+import 'package:score/features/auth/authentication_exception.dart';
+import 'package:score/features/auth/behaviours/authenticate.dart';
 import 'package:score/features/auth/get_it.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/auth/storage/auth_key_value_store.dart';
-import 'package:score/features/auth/storage/auth_tokens.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/collections/behaviours/collections_engine.dart';
 import 'package:score/features/collections/get_it.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
@@ -26,6 +27,7 @@ import 'package:score/features/settings/get_it.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/storage/settings_store.dart';
 import 'package:score/features/sync/get_it.dart';
+import 'package:score/features/sync/storage/sync_dates_store.dart';
 import 'package:score/features/sync/storage/sync_holds_store.dart';
 import 'package:score/router.dart';
 import 'package:score/storage/clients.dart';
@@ -36,7 +38,7 @@ extension GetItExtensions on GetIt {
     this
       ..registerLogging()
       ..registerLogStorage()
-      ..registerLazySingletonAsync(() => Config.load(logger: logger('Config')))
+      ..registerLazySingletonAsync(() => Config.load())
       ..registerLazySingletonAsync(() => Databases.open())
       ..registerLazySingletonAsync(() => ScoreDocuments.open())
       ..registerLazySingleton<http.Client>(
@@ -49,13 +51,16 @@ extension GetItExtensions on GetIt {
 
   void registerFeatures() {
     this
-      // Every feature's API client is built by this one, which signs each
-      // request with the token of the moment: see [AuthTokens].
       ..registerLazySingletonAsync<ApiClientFactory>(
         () async => ApiClientFactory(
           config: (await getAsync<Config>()).api,
           inner: get(),
-          authToken: () async => (await getAsync<AuthTokens>())(),
+          authToken: () async {
+            final user = (await get<Authenticate>()(
+              const AuthenticateParams(mayAskTheUser: false),
+            )).orThrow();
+            return user.accessToken ?? (throw const SignInRequired());
+          },
         ),
       )
       ..registerSettings()
@@ -79,9 +84,9 @@ extension GetItExtensions on GetIt {
       getAsync<SetsStore>(),
       getAsync<CollectionsStore>(),
       getAsync<SyncHoldsStore>(),
+      getAsync<SyncDatesStore>(),
       getAsync<SettingsStore>(),
-      getAsync<AuthKeyValueStore>(),
-      getAsync<OidcApi>(),
+      getAsync<OidcUserManager>(),
       getAsync<ScoresApi>(),
       getAsync<SetsApi>(),
       getAsync<CollectionsApi>(),

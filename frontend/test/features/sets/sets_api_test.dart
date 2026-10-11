@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/storage/auth_tokens.dart';
+import 'package:score/features/auth/authentication_exception.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
@@ -153,11 +153,11 @@ void main() {
       clientFactory: ApiClientFactory(
         config: ApiConfig(baseUrl: Uri.parse('https://api.test/')),
         inner: MockClient((_) => fail('nothing is sent')),
-        authToken: () async => throw const NotSignedIn(),
+        authToken: () async => throw const SignInRequired(),
       ),
     );
 
-    await expectLater(api.listSets(null, null), throwsA(isA<NotSignedIn>()));
+    await expectLater(api.listSets(null, null), throwsA(isA<SignInRequired>()));
   });
 
   test('nothing answering is worth trying again', () async {

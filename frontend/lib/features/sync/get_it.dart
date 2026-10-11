@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:score/config.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/sync/behaviours/api_sync.dart';
 import 'package:score/features/sync/behaviours/check_connection.dart';
@@ -6,7 +7,6 @@ import 'package:score/features/sync/behaviours/ensure_collection.dart';
 import 'package:score/features/sync/behaviours/ensure_set.dart';
 import 'package:score/features/sync/behaviours/one_at_a_time.dart';
 import 'package:score/features/sync/behaviours/sync_everything.dart';
-import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
 import 'package:score/features/sync/behaviours/update_collections.dart';
 import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/features/sync/behaviours/update_sets.dart';
@@ -24,14 +24,16 @@ extension SyncGetItExtensions on GetIt {
     );
     registerLazySingleton(() => OneAtATime());
     registerFactory(
-      () => CheckConnection(monitor: get(), api: get(), oidc: get()),
+      () => CheckConnection(
+        monitor: get(),
+        api: get(),
+        manager: get(),
+        config: get<Config>().oidc,
+        client: get(),
+      ),
     );
     registerFactory(
-      () => ApiSync(
-        logger: logger('Sync'),
-        oidc: get(),
-        sayIfNoLongerSignedIn: get(),
-      ),
+      () => ApiSync(logger: logger('Sync')),
     );
 
     registerFactory(
@@ -74,16 +76,6 @@ extension SyncGetItExtensions on GetIt {
     registerFactory(
       () => SyncEverything(
         monitor: get(),
-        updateScores: get(),
-        updateSets: get(),
-        updateCollections: get(),
-      ),
-    );
-    registerFactory(
-      () => UpdateAuthAndCatchUp(
-        monitor: get(),
-        oidc: get(),
-        updateAuth: get(),
         updateScores: get(),
         updateSets: get(),
         updateCollections: get(),

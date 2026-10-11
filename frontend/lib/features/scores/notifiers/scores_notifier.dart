@@ -4,15 +4,22 @@ import 'package:score/notifiers/store_notifier.dart';
 
 class ScoresNotifier({
   required final ScoresDatabase store,
-}) extends StoreNotifier<Map<String, Score>> {
+}) extends StreamNotifier<Map<String, Score>> {
   this : super(initial: const {}) {
-    follow(store.watchAll(), (records) {
-      _sorted = null;
-      value = {for (final score in records) score.id: score};
-    });
+    follow(
+      store.watchAll().map(
+        (records) => {for (final score in records) score.id: score},
+      ),
+    );
   }
 
   List<Score>? _sorted;
+
+  @override
+  set value(Map<String, Score> scores) {
+    _sorted = null;
+    super.value = scores;
+  }
 
   List<Score> get scores {
     final cached = _sorted;

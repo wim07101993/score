@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
-import 'package:score/features/auth/behaviours/update_auth.dart';
+import 'package:score/features/auth/behaviours/authenticate.dart';
 import 'package:score/features/sync/behaviours/check_connection.dart';
 import 'package:score/features/sync/behaviours/sync_engine.dart';
-import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
 
 /// Where a set or a collection stands with the server, in the bar of its page.
 ///
@@ -68,7 +67,7 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
         (await GetIt.I<CheckConnection>()()).valueOrNull ??
         // Not known, rather than not there: what the last try ran into is
         // still worth saying.
-        (server: true, provider: true, signedIn: true, holdsTheirData: true);
+        (server: true, provider: true, signedIn: true);
     if (!connection.server) {
       return (
         text:
@@ -94,15 +93,6 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
         signIn: true,
       );
     }
-    if (!connection.holdsTheirData) {
-      return (
-        text:
-            'What is on this device belongs to another account than the one'
-            ' signed in, and is not sent as this one.',
-        signIn: false,
-      );
-    }
-
     return switch (widget.whyNotSynced()) {
       null => (
         text:
@@ -119,12 +109,6 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
             'There was no sign-in to send it with the last time it was'
             ' tried. Sign in again, and it goes straight after.',
         signIn: true,
-      ),
-      WhyNotSynced(hold: SyncHold.notTheirs) => (
-        text:
-            'What is on this device belonged to another account than the'
-            ' one signed in the last time it was tried.',
-        signIn: false,
       ),
       WhyNotSynced(:final error?) => (
         text: 'The last try ran into this: $error',
@@ -153,9 +137,7 @@ class _WhyNotSyncedState extends State<_WhyNotSynced> {
     setState(() => _busy = true);
     try {
       if (signIn) {
-        await GetIt.I<UpdateAuthAndCatchUp>()(
-          const UpdateAuthParams(retry: true),
-        );
+        await GetIt.I<Authenticate>()(const AuthenticateParams());
       }
       await widget.sync();
     } finally {

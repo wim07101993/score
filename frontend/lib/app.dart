@@ -5,16 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/app_update/new_version_bar.dart';
-import 'package:score/features/auth/behaviours/go_on_as_kept_user.dart';
-import 'package:score/features/auth/behaviours/update_auth.dart';
 import 'package:score/features/observability/errors.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/storage/theme_hint.dart';
-import 'package:score/features/sync/behaviours/update_auth_and_catch_up.dart';
 import 'package:score/get_it.dart';
 import 'package:score/router.dart';
 import 'package:score/theme.dart';
@@ -68,15 +64,6 @@ class _ScoreAppState extends State<ScoreApp> {
     // Before anything is fetched or uploaded, which would write documents of
     // their own. A behaviour never throws, so one that fails holds nothing up.
     await getIt<ForgetUnreferencedDocuments>()();
-    if ((await getIt<GoOnAsKeptUser>()()).orThrow()) {
-      // Not waited for: the pages are drawn from what this device knows, and
-      // the provider is asked behind them. A behaviour never throws.
-      unawaited(
-        Future.value(getIt<UpdateAuthAndCatchUp>()(const UpdateAuthParams())),
-      );
-    } else {
-      (await getIt<UpdateAuth>()(const UpdateAuthParams())).orThrow();
-    }
     return getIt<SettingsNotifier>();
   }
 

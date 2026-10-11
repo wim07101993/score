@@ -409,7 +409,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   }
 
   Future<void> _load() async {
-    if (_auth.user?.isScoreViewer != true) {
+    if (_auth.value?.isScoreViewer != true) {
       setState(() => _loading = false);
       return;
     }
@@ -866,13 +866,12 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
   Future<void> _pickAndUpload() async {
     final picked = await FilePicker.pickFiles(
-      withData: true,
       type: FileType.custom,
       allowedExtensions: const ['musicxml', 'xml'],
     );
-    final file = picked?.files.firstOrNull;
-    final bytes = file?.bytes;
-    if (bytes == null) return;
+    final file = picked.firstOrNull;
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
 
     // Read before it is sent: a file that cannot be read is a file the band
     // cannot play, and finding that out after it is on the server is finding it
@@ -896,7 +895,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         (scoreId, musicXml),
       )).orThrow();
       if (!mounted) return;
-      if (_isNew && _auth.user?.isScoreViewer != true) {
+      if (_isNew && _auth.value?.isScoreViewer == true) {
         // Its own address would only say this account may not read it. The
         // page stays, for the next file.
         _say('Uploaded.', briefly: true);
@@ -1094,7 +1093,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   }
 
   Widget _page(BuildContext context) {
-    final mayView = _auth.user?.isScoreViewer == true;
+    final mayView = _auth.value?.isScoreViewer == true;
     final score = _scoreId == null ? null : _scores.getScore(_scoreId!);
     final paperName =
         (_set?.entry.description ?? _collection?.entry?.description ?? '')
@@ -1106,7 +1105,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     // Uploading takes being an editor, not a reader: the server lets a score
     // be put by somebody who may not read it back, and an account kept for
     // filling the library is exactly that.
-    final mayUpload = _isNew && _auth.user?.isScoreEditor == true;
+    final mayUpload = _isNew && _auth.value?.isScoreEditor == true;
     if (!mayView && !mayUpload) {
       return Scaffold(
         appBar: AppBar(title: Text(title)),
@@ -1248,7 +1247,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// What is known about the score and how it is read, beside a look at it —
   /// or above one, on a screen that is taller than it is wide.
   Widget _details(String title, Score? score) {
-    final mayEdit = _auth.user?.isScoreEditor == true;
+    final mayEdit = _auth.value?.isScoreEditor == true;
     final hasMusic = _musicXml != null;
 
     final appBar = AppBar(title: Text(title));

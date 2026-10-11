@@ -494,7 +494,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
   }
 
   Widget _page(BuildContext context) {
-    if (_auth.user?.isScoreViewer != true) {
+    if (_auth.value?.isScoreViewer != true) {
       return Scaffold(
         appBar: AppBar(title: const Text('Set')),
         body: const Center(

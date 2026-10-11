@@ -37,7 +37,7 @@ class _CollectionsPageState extends State<CollectionsPage> {
   }
 
   Future<void> _sync() async {
-    if (_auth.user?.isScoreViewer != true) return;
+    if (_auth.value?.isScoreViewer != true) return;
 
     await GetIt.I<UpdateCollections>()();
     // The scores are what a collection is made of, so one that was written on
@@ -61,7 +61,7 @@ class _CollectionsPageState extends State<CollectionsPage> {
   }
 
   Widget _page(BuildContext context) {
-    final mayView = _auth.user?.isScoreViewer == true;
+    final mayView = _auth.value?.isScoreViewer == true;
 
     return Scaffold(
       appBar: AppBar(

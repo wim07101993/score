@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/auth/widgets/sign_in_button.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
@@ -44,7 +45,7 @@ class _ScoresPageState extends State<ScoresPage> {
   }
 
   Future<void> _sync() async {
-    if (_auth.user?.isScoreViewer != true) {
+    if (_auth.value?.isScoreViewer != true) {
       return;
     }
 
@@ -71,8 +72,8 @@ class _ScoresPageState extends State<ScoresPage> {
   }
 
   Widget _page(BuildContext context) {
-    final mayView = _auth.user?.isScoreViewer == true;
-    final mayEdit = _auth.user?.isScoreEditor == true;
+    final mayView = _auth.value?.isScoreViewer == true;
+    final mayEdit = _auth.value?.isScoreEditor == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -89,7 +90,7 @@ class _ScoresPageState extends State<ScoresPage> {
       ),
       floatingActionButton: mayEdit ? const UploadScoreFab() : null,
       body: !mayView
-          ? _NotAViewer(problem: _auth.authProblem)
+          ? _NotAViewer(signedIn: _auth.value != null)
           : Column(
               children: [
                 if (_syncing) const LinearProgressIndicator(),
@@ -223,52 +224,34 @@ class const _Line({
 /// happened. A page that shows nothing is a page that was told nothing, and the
 /// profile is where what it was told can be read.
 class const _NotAViewer({
-  /// What went wrong signing in, when something did. A sign-in that failed
-  /// looks exactly like an account with no roles, and the two want opposite
-  /// things done about them.
-  final Object? problem,
+  required final bool signedIn,
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final failed = problem != null;
-
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(failed ? Icons.error_outline : Icons.lock_outline, size: 40),
+            Icon(signedIn ? Icons.lock_outline : Icons.login, size: 40),
             const SizedBox(height: 12),
             Text(
-              failed
-                  ? 'Signing in did not finish.'
-                  : 'This account has not been given the role that reads'
-                        ' scores.',
+              signedIn
+                  ? 'This account has not been given the role that reads'
+                        ' scores.'
+                  : 'Sign in to read the scores.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (failed) ...[
-              const SizedBox(height: 12),
-              Container(
-                constraints: const BoxConstraints(maxWidth: 560),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SelectableText(
-                  '$problem',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
             const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: () => context.router.push(const ProfileRoute()),
-              child: const Text('See what the provider said'),
-            ),
+            if (signedIn)
+              FilledButton.tonal(
+                onPressed: () => context.router.push(const ProfileRoute()),
+                child: const Text('See what the provider said'),
+              )
+            else
+              const SignInButton(),
           ],
         ),
       ),

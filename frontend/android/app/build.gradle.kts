@@ -45,6 +45,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Where the identity provider sends the user back to: the scheme
+        // `nativeRedirectUri` is written with in assets/config.json, and the
+        // same one registered with the provider. `package:oidc` receives it on
+        // an activity of its own; without this the sign-in opens, succeeds, and
+        // never comes back.
+        manifestPlaceholders["oidcRedirectScheme"] = "app.wvl.score"
     }
 
     signingConfigs {

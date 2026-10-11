@@ -132,7 +132,6 @@ class SetsAdapter({
     }
 
     try {
-      if (!await engine.mayAsk()) return null;
       final onTheServer = await api.getSet(set.id);
       if (onTheServer == null) {
         // Not there for this user any more: each write will say so.
@@ -142,7 +141,6 @@ class SetsAdapter({
           .map((entry) => entry.id)
           .toList(growable: false);
     } catch (error, stackTrace) {
-      if (error is ApiException) await engine.forgetTokenIfRefused(error);
       logger.warning(
         'the running order of set ${set.id} could not be read; what is owed'
         ' about its songs stays queued',

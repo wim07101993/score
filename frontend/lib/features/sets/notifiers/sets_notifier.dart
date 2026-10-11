@@ -18,24 +18,28 @@ class SetsNotifier({
 
   /// Where the edits that were given up on are heard: see [problems].
   required final SetsEngine engine,
-}) extends StoreNotifier<StoredSets> {
+}) extends StreamNotifier<StoredSets> {
   this : super(initial: (sets: const {}, whyNotSynced: const {})) {
     follow(
-      store.watchAll(),
-      (records) => value = (
-        sets: {for (final set in records) set.id: set},
-        whyNotSynced: value.whyNotSynced,
+      store.watchAll().map(
+        (records) => (
+          sets: {for (final set in records) set.id: set},
+          whyNotSynced: value.whyNotSynced,
+        ),
       ),
     );
     follow(
-      holds.watch(SetsAdapter.syncHoldKind),
-      (holds) => value = (
-        sets: value.sets,
-        whyNotSynced: {
-          for (final MapEntry(key: id, value: json) in holds.entries)
-            id: WhyNotSynced.fromJson(json),
-        },
-      ),
+      holds
+          .watch(SetsAdapter.syncHoldKind)
+          .map(
+            (holds) => (
+              sets: value.sets,
+              whyNotSynced: {
+                for (final MapEntry(key: id, value: json) in holds.entries)
+                  id: WhyNotSynced.fromJson(json),
+              },
+            ),
+          ),
     );
   }
 

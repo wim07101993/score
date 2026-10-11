@@ -2,7 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/scores/widgets/upload_score_button.dart';
 import 'package:score/features/sets/behaviours/delete_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set.dart';
@@ -11,10 +10,10 @@ import 'package:score/router.dart';
 
 import '../../../test_get_it.dart';
 
-const _viewer = UserInfo(
-  subject: 'player',
-  roles: {'score_viewer': <String, dynamic>{}},
-);
+const _viewer = {
+  'sub': 'player',
+  'roles': {'score_viewer': <String, dynamic>{}},
+};
 
 /// The app opened at [route] alone, as [router] has it.
 Widget _app(AppRouter router, PageRouteInfo route) => MaterialApp.router(
@@ -29,10 +28,10 @@ void main() {
   ) async {
     await tester.runAsync(
       () => GetIt.I.registerForTesting(
-        user: const UserInfo(
-          subject: 'librarian',
-          roles: {'score_editor': <String, dynamic>{}},
-        ),
+        user: const {
+          'sub': 'librarian',
+          'roles': {'score_editor': <String, dynamic>{}},
+        },
       ),
     );
 

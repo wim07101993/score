@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
 import 'package:score/features/sets/behaviours/delete_set_entry.dart';
@@ -35,7 +34,6 @@ extension SetsGetItExtensions on GetIt {
           holds: await getAsync<SyncHoldsStore>(),
           api: await getAsync<SetsApi>(),
         ),
-        oidc: await getAsync<OidcApi>(),
       );
       await engine.init();
       return engine;

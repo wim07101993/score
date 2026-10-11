@@ -594,7 +594,8 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   }
 
   Widget _page(BuildContext context) {
-    if (_auth.user?.isScoreViewer != true) {
+    // TODO: use ValueListenableBuilder
+    if (_auth.value?.isScoreViewer != true) {
       return Scaffold(
         appBar: AppBar(title: const Text('Collection')),
         body: const Center(

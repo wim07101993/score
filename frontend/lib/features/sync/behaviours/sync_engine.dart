@@ -25,8 +25,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:logging/logging.dart';
-import 'package:score/features/auth/storage/auth_tokens.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
+import 'package:score/features/auth/authentication_exception.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/json_map_extensions.dart';
 import 'package:score/storage/api_exception.dart';
@@ -40,12 +39,8 @@ enum SyncHold {
   unreachable,
 
   /// There was no token to send it with, and the player did not sign in for
-  /// one: see [NotSignedIn].
+  /// one: see [AuthenticationException].
   noToken,
-
-  /// What is on this device belongs to another account than the one signed
-  /// in, and is not sent with that one's token.
-  notTheirs,
 }
 
 /// What the engine refuses to do, rather than queue: changing one that is
@@ -71,7 +66,8 @@ class const WhyNotSynced({
     Object why,
   ) => switch (why) {
     SyncHold() => WhyNotSynced(hold: why),
-    NotSignedIn() => const WhyNotSynced(hold: SyncHold.noToken),
+    ProviderUnreachable() => const WhyNotSynced(hold: SyncHold.unreachable),
+    AuthenticationException() => const WhyNotSynced(hold: SyncHold.noToken),
     ApiException(statusCode: final status, :final detail) => WhyNotSynced(
       status: status,
       detail: detail,
@@ -206,7 +202,6 @@ abstract class EntryRun<R, E> {
 class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
   required final Logger logger,
   required final SyncAdapter<R, E, P> adapter,
-  required final OidcApi oidc,
 }) {
   /// What one of them is called in the middle of a message.
   String get _kind => adapter.noun.toLowerCase();
@@ -244,14 +239,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
   Future<void> _holdBack(String id, Object why) async {
     _whyNotSynced[id] = why;
     await adapter.writeWhyNotSynced(id, WhyNotSynced.of(why));
-  }
-
-  /// Whether what is owed about [id] may be sent as the user signed in,
-  /// remembering why not when it may not: see [mayAsk].
-  Future<bool> _maySend(String id) async {
-    if (await mayAsk()) return true;
-    await _holdBack(id, SyncHold.notTheirs);
-    return false;
   }
 
   /// Takes in what other tabs of the app stored since this one read the store.
@@ -321,22 +308,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
   final Map<String, String> _seen = {};
 
   String _asStored(R record) => jsonEncode(record.toJson());
-
-  /// A token the API refused is spent, however long this device thinks it has
-  /// left, and is forgotten so that the next request asks for a fresh one
-  /// rather than sending it again — see [OidcApi.forgetAccessToken].
-  Future<void> forgetTokenIfRefused(ApiException error) async {
-    if (error.statusCode == 401) {
-      await oidc.forgetAccessToken();
-    }
-  }
-
-  /// Whether the API may be asked about what is here as the user signed in.
-  ///
-  /// Not while what is here belongs to somebody else (see
-  /// [OidcApi.dataOwner]): pushed with this user's token, it would become
-  /// theirs. The token itself is the API client's to find: see [AuthTokens].
-  Future<bool> mayAsk() => oidc.holdsTheDataOfTheSignedInUser();
 
   /// How many times everything here was forgotten: see [forgetAll].
   ///
@@ -622,11 +593,7 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
     if (record == null || !record.owesAnything) {
       return;
     }
-    final reachable = await Future.wait([
-      adapter.canBeReached(),
-      oidc.canBeReached(),
-    ]);
-    if (reachable.contains(false)) {
+    if (!await adapter.canBeReached()) {
       logger.info('the api cannot be reached; what was written stays queued');
       await _holdBack(id, SyncHold.unreachable);
       return;
@@ -693,8 +660,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
     final action = record.pendingChange!;
 
     try {
-      if (!await _maySend(id)) return;
-
       if (action == PendingChange.delete) {
         await adapter.remove(record.id);
         _tookAWrite(id);
@@ -738,7 +703,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
         carryPending(stored.copyWith(lastSyncedAt: syncedAt), current),
       );
     } on ApiException catch (error) {
-      await forgetTokenIfRefused(error);
       if (error.isWorthRetrying) {
         logger.warning(
           'failed to $action $_kind ${record.id}; it stays queued',
@@ -794,8 +758,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
       }
 
       try {
-        if (!await _maySend(id)) return;
-
         if (owed.action == PendingChange.delete) {
           await adapter.removeEntry(id, owed.id);
           _tookAWrite(id);
@@ -817,7 +779,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
             : _writtenBehindAWrite(current, owed.id);
         if (!await keepAnswer(settled)) return;
       } on ApiException catch (error) {
-        await forgetTokenIfRefused(error);
         if (run.takes(error)) {
           await run.take(owed, error);
           continue;
@@ -877,8 +838,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
       }
 
       try {
-        if (!await _maySend(id)) return;
-
         // Whole, the size included: a view is replaced by what is written, and
         // one written without a size is read by the server as the size the
         // score is written at.
@@ -907,7 +866,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
         );
         if (!kept) return;
       } on ApiException catch (error) {
-        await forgetTokenIfRefused(error);
         if (error.isWorthRetrying) {
           logger.warning(
             'failed to save the view of entry $entryId; it stays queued',
@@ -950,11 +908,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
   Future<void> _giveUpOn(R record, String action, ApiException error) async {
     R? fromApi;
     try {
-      // Not asking is not the server saying there is no such thing, and is
-      // handled as a read that failed. So is there being no token to ask with.
-      if (!await mayAsk()) {
-        throw StateError("the $_kind here is not the signed-in user's");
-      }
       fromApi = await adapter.fetch(record.id);
     } catch (readError) {
       final current = _records[record.id] ?? record;
@@ -1002,7 +955,6 @@ class SyncEngine<R extends SyncedRecord<R, E>, E extends SyncedEntry<E>, P>({
   /// anything, what was deleted there included.
   Future<void> _pull() async {
     final forgottenBefore = _forgotten;
-    if (!await mayAsk()) return;
 
     // The window runs to the end of time (see [endOfTime]); what is recorded
     // as synced is the newest change in the answer, and only an answer with no

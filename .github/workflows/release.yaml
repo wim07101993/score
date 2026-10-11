@@ -71,8 +71,8 @@ jobs:
             echo "args=" >> "$GITHUB_OUTPUT"
           fi
 
-  # The phone and desktop builds sign in as oidc.nativeClientId, and fall back
-  # to the web client when it is missing — which Zitadel refuses for their
+  # The phone and desktop builds sign in as oidc.mobileClient and
+  # oidc.desktopClient, and fall back to oidc.client when they are missing — which Zitadel refuses for their
   # redirect addresses, so every sign-in from the released APK and zips would
   # fail. Checked on its own, so a tag without one says so in seconds.
   #
@@ -86,11 +86,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: config.prod.json names a native client
+      - name: config.prod.json names a mobile and a desktop client
         run: |
-          if ! jq -e '.oidc.nativeClientId | strings | length > 0' \
+          if ! jq -e '[.oidc.mobileClient.clientId, .oidc.desktopClient.clientId] | map(strings | select(length > 0)) | length == 2' \
               frontend/assets/config.prod.json > /dev/null; then
-            echo "::error file=frontend/assets/config.prod.json::oidc.nativeClientId is missing or empty. The Android, Linux and Windows builds would sign in as the web client (oidc.clientId), which Zitadel refuses for app.wvl.score://callback and http://localhost:7005/. Create a native application in Zitadel with those redirect URIs and put its client id in oidc.nativeClientId."
+            echo "::error file=frontend/assets/config.prod.json::oidc.mobileClient.clientId or oidc.desktopClient.clientId is missing or empty. The Android, Linux and Windows builds would sign in as the web client (oidc.client), which Zitadel refuses for app.wvl.score://callback and http://localhost:7005/. Create a native application in Zitadel with those redirect URIs and put its client id in oidc.mobileClient and oidc.desktopClient."
             exit 1
           fi
 
@@ -173,13 +173,12 @@ jobs:
           artifacts: "dist/*"
           generateReleaseNotes: true
           # Put in front of the generated notes, which only list what changed.
-          # The Linux bundle links WebKitGTK through a plugin the sign-in never
-          # uses on Linux, but the loader still wants the library there before
-          # the app can start at all.
+          # The sign-in keeps its tokens in the Secret Service on Linux: the
+          # loader wants libsecret, and signing in wants a keyring running.
           body: |
-            **Linux:** the Linux build needs WebKitGTK 4.1 installed to start
-            (`libwebkit2gtk-4.1-0` on Debian and Ubuntu; the WebKitGTK 4.1
-            package on other distributions), in addition to GTK 3.
+            **Linux:** the Linux build needs libsecret (`libsecret-1-0` on
+            Debian and Ubuntu) and a keyring running in the session, such as
+            GNOME Keyring or KWallet, in addition to GTK 3.
           # A re-run of a failed release finds the release the first attempt
           # made, and should finish it rather than fail on it.
           allowUpdates: true

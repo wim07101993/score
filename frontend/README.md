@@ -178,13 +178,14 @@ behind it.
 - **Tokens survive a restart.** A device that is closed and opened again at the
   next rehearsal should not ask the player to sign in again.
 - **A device needs a redirect address of its own.** An app cannot be sent back
-  to a web page, so `nativeRedirectUri` and `desktopRedirectUri` in
-  [assets/config.json](assets/config.json) have to be registered with the
-  provider. Zitadel wants a native application for them rather than the web
-  one: put its client id in `nativeClientId`, which the phone and desktop
-  builds sign in as. Left out, they sign in as `clientId` (and say so in the
-  debug log). [assets/config.prod.json](assets/config.prod.json) must carry
-  `nativeClientId`: the release workflow refuses to build without it.
+  to a web page, so the `redirectUri` of `mobileClient` (default
+  `app.wvl.score://callback`) and `desktopClient` (default
+  `http://localhost:7005`) in [assets/config.json](assets/config.json) have to
+  be registered with the provider. Zitadel wants a native application for them
+  rather than the web one: put its client id in `mobileClient` and
+  `desktopClient`. Left out, a platform signs in as `client`.
+  [assets/config.prod.json](assets/config.prod.json) must carry both: the
+  release workflow refuses to publish without them.
 - **The score can be written out as MusicXML, but not yet as a picture.** That
   would be writing what the engraver paints out as SVG, which has not been
   done.
@@ -248,16 +249,15 @@ The CI's web build (`.github/workflows/flutter-build.yml`) does both steps.
 
 ### What the desktop builds need
 
-**Linux needs WebKitGTK 4.1 installed**, to build and to run. `flutter_web_auth_2`
-depends on `desktop_webview_window`, whose Linux plugin links against it. The
-app never opens that webview — on Linux the sign-in sends the browser to the
-provider and catches the answer on a local port
-([lib/features/auth/authorizer_native.dart](lib/features/auth/authorizer_native.dart))
-— but the library is linked all the same, so without it the app does not even
-start. To run the released bundle, install the runtime package
-(`libwebkit2gtk-4.1-0` on Debian and Ubuntu) next to GTK 3; to build it,
-`libwebkit2gtk-4.1-dev` on top of Flutter's own Linux prerequisites. The
-release notes say the same.
+**Linux needs libsecret, and a keyring to keep the sign-in in.** The tokens
+are kept in the platform's secret store (`flutter_secure_storage`, through
+`package:oidc`'s default store — see
+[lib/features/auth/storage/oidc_user_manager.dart](lib/features/auth/storage/oidc_user_manager.dart)),
+which on Linux is the Secret Service: GNOME Keyring or KWallet, running in the
+user's session. To build, install `libsecret-1-dev` on top of Flutter's own
+Linux prerequisites; to run the released bundle, `libsecret-1-0` and a keyring.
+The sign-in itself sends the browser to the provider and catches the answer on
+a local port, so no webview is linked.
 
 **Windows needs nothing extra.** The Visual C++ runtime the app is built
 against is copied next to `score.exe` by the build
@@ -270,40 +270,29 @@ window that is already open to the front instead.
 
 ### Android is pinned to AGP 8
 
-It builds, and it is pinned to get there. What is pinned is the Android Gradle
-Plugin — [android/settings.gradle.kts](android/settings.gradle.kts) — and not
-Flutter, which stays wherever the machine has it.
+What is pinned is the Android Gradle Plugin —
+[android/settings.gradle.kts](android/settings.gradle.kts) — and not Flutter,
+which stays wherever the machine has it.
 
-AGP 9 compiles Kotlin itself, and a plugin is meant to stop bringing its own
-compiler when it sees one. The two plugins this app uses on Android disagree
-about that:
+The pin was for `flutter_web_auth_2`, which brought its own Kotlin compiler
+under AGP 9 where `file_picker` expected the built-in one, and the two could not
+both build. `flutter_web_auth_2` is gone — signing in is `package:oidc`'s now,
+and on Android its `oidc_android` receives the answer on an activity of its own
+(the `oidcRedirectScheme` placeholder in
+[android/app/build.gradle.kts](android/app/build.gradle.kts)). Whether
+`file_picker` 13 and `oidc_android` build under AGP 9 has not been checked yet;
+until it has, the pin stays.
 
-| | applies its own Kotlin plugin |
-|---|---|
-| `file_picker` 11 | not under AGP 9 — it expects the built-in compiler |
-| `flutter_web_auth_2` 5 | always |
-
-Under AGP 9 there is no setting that suits both. Turn AGP's compiler on and the
-second plugin collides with it; turn it off — which is what Flutter's template
-does — and the first plugin's Kotlin is never compiled at all, so the generated
-plugin registrant cannot find a class that was never built. That is the failure
-this pin exists to avoid, and it is worth recognising by name:
-
-```
-GeneratedPluginRegistrant.java:19: error: cannot find symbol
-  new com.mr.flutter.plugin.filepicker.FilePickerPlugin()
-```
-
-Under AGP 8 there is no built-in compiler to disagree about, both plugins bring
-their own, and both build.
-
-**Undoing the pin**, once `flutter_web_auth_2` learns to stand aside under AGP 9
-the way `file_picker` already does:
+**Undoing the pin:**
 
 1. `com.android.application` back to 9.x and Gradle back to 9.x
 2. `android.builtInKotlin=true` in [android/gradle.properties](android/gradle.properties)
 3. drop `org.jetbrains.kotlin.android` from
    [android/app/build.gradle.kts](android/app/build.gradle.kts) — AGP compiles
    `MainActivity.kt` itself from then on
+
+and build. A failure naming `GeneratedPluginRegistrant` and a plugin class it
+cannot find is a plugin still bringing its own compiler, which is what the pin
+is for.
 
 Nothing in `lib/` is involved either way.

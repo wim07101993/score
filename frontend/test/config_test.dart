@@ -1,76 +1,115 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:logging/logging.dart';
 import 'package:score/config.dart';
-
-/// Where what is wrong with a config is said.
-final _log = Logger('Config');
 
 void main() {
   Map<String, dynamic> oidc([Map<String, dynamic> more = const {}]) => {
-    'clientId': 'web-client',
-    'redirectUri': 'https://score.test/',
-    'authorizationEndpoint': 'https://auth.test/oauth/v2/authorize',
-    'tokenEndpoint': 'https://auth.test/oauth/v2/token',
-    'userInfoEndpoint': 'https://auth.test/oidc/v1/userinfo',
+    'discoveryEndpoint': 'https://auth.test/.well-known/openid-configuration',
     'healthzEndpoint': 'https://auth.test/healthz',
     'rolesKey': 'roles',
+    'client': {
+      'clientId': 'default-client',
+      'redirectUri': 'https://score.test/redirect.html',
+    },
     ...more,
   };
 
-  // What was logged while [body] ran.
-  List<String> printed(void Function() body) {
-    final lines = <String>[];
-    final listening = Logger.root.onRecord.listen(
-      (record) => lines.add(record.message),
+  test('reads the endpoints as addresses', () {
+    final config = OidcConfig.fromJson(oidc());
+
+    expect(
+      config.discoveryEndpoint,
+      Uri.parse('https://auth.test/.well-known/openid-configuration'),
     );
-    try {
-      body();
-    } finally {
-      listening.cancel();
-    }
-    return lines;
-  }
-
-  test(
-    'a phone or a desktop signs in as the native client when there is one',
-    () {
-      late OidcConfig config;
-      final lines = printed(
-        () => config = OidcConfig.fromJson(
-          logger: _log,
-          json: oidc({'nativeClientId': 'native'}),
-        ),
-      );
-
-      expect(config.clientId, 'web-client');
-      expect(config.nativeClientId, 'native');
-      // Tests run as a device, not in a browser.
-      expect(config.clientIdHere, 'native');
-      expect(lines, isEmpty);
-    },
-  );
-
-  test('and as the web client when there is not, saying so', () {
-    late OidcConfig config;
-    final lines = printed(
-      () => config = OidcConfig.fromJson(logger: _log, json: oidc()),
-    );
-
-    expect(config.nativeClientId, 'web-client');
-    expect(config.clientIdHere, 'web-client');
-    expect(lines, [contains('nativeClientId')]);
+    expect(config.healthzEndpoint, Uri.parse('https://auth.test/healthz'));
   });
 
-  test('an empty native client counts as none', () {
-    late OidcConfig config;
-    final lines = printed(
-      () => config = OidcConfig.fromJson(
-        logger: _log,
-        json: oidc({'nativeClientId': ''}),
-      ),
+  test('always asks for openid, email and profile, once', () {
+    final config = OidcConfig.fromJson(
+      oidc({
+        'scopes': ['offline_access', 'email'],
+      }),
     );
 
-    expect(config.nativeClientId, 'web-client');
-    expect(lines, [contains('nativeClientId')]);
+    expect(config.scopes, ['openid', 'email', 'profile', 'offline_access']);
+  });
+
+  test('a desktop signs in as the desktop client when there is one', () {
+    final config = OidcConfig.fromJson(
+      oidc({
+        'desktopClient': {'clientId': 'desktop-client'},
+      }),
+    );
+
+    expect(config.clientConfig.clientId, 'desktop-client');
+    expect(
+      config.clientConfig.redirectUri,
+      Uri.parse('http://localhost:7005'),
+    );
+  });
+
+  test('and as the default client when there is not', () {
+    final config = OidcConfig.fromJson(oidc());
+
+    expect(config.clientConfig.clientId, 'default-client');
+    expect(
+      config.clientConfig.redirectUri,
+      Uri.parse('https://score.test/redirect.html'),
+    );
+  });
+
+  test('a phone redirects to the app when no address is given', () {
+    final config = OidcConfig.fromJson(
+      oidc({
+        'mobileClient': {'clientId': 'mobile-client'},
+      }),
+    );
+
+    expect(
+      config.mobileClient?.redirectUri,
+      Uri.parse('app.wvl.score://callback'),
+    );
+  });
+
+  test('without a default client every platform needs its own', () {
+    expect(
+      () => OidcConfig.fromJson(
+        oidc({
+          'client': null,
+          'webClient': {
+            'clientId': 'web-client',
+            'redirectUri': 'https://score.test/redirect.html',
+          },
+        }),
+      ),
+      throwsA(isA<OidcConfigInvalidException>()),
+    );
+  });
+
+  test('without a roles key it is invalid', () {
+    expect(
+      () => OidcConfig.fromJson(oidc({'rolesKey': ''})),
+      throwsA(isA<OidcConfigInvalidException>()),
+    );
+  });
+
+  test('without a discovery endpoint it is invalid', () {
+    expect(
+      () => OidcConfig.fromJson(oidc({'discoveryEndpoint': null})),
+      throwsA(isA<OidcConfigInvalidException>()),
+    );
+  });
+
+  test('a client without an id is invalid', () {
+    expect(
+      () => OidcConfig.fromJson(
+        oidc({
+          'client': {
+            'clientId': '',
+            'redirectUri': 'https://score.test/redirect.html',
+          },
+        }),
+      ),
+      throwsA(isA<OidcClientConfigInvalidException>()),
+    );
   });
 }

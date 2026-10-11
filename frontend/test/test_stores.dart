@@ -1,4 +1,3 @@
-import 'package:score/features/auth/storage/auth_key_value_store.dart';
 import 'package:score/features/collections/storage/collections_store.dart';
 import 'package:score/features/observability/storage/logs_store.dart';
 import 'package:score/features/scores/storage/score_documents.dart';
@@ -24,6 +23,5 @@ class Stores._({
   late final holds = SyncHoldsStore(database: databases.data);
   late final syncDates = SyncDatesStore(client: databases.data);
   late final settings = SettingsStore(database: databases.data);
-  late final auth = AuthKeyValueStore(database: databases.data);
   late final logs = LogsStore(database: databases.data);
 }

@@ -228,8 +228,7 @@ class _Pieces({
   Future<void> _takeInTheCopiesKept() async {
     try {
       final before = engine.held(collectionId);
-      if (await engine.mayAsk() &&
-          before != null &&
+      if (before != null &&
           before.pendingChange == null &&
           before.lastChangedAt == lastChangedAtTheStart) {
         final fromApi = await api.getCollection(collectionId);

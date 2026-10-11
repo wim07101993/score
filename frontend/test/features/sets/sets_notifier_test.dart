@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
-import 'package:score/config.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
 import 'package:score/features/sets/behaviours/save_set.dart';
 import 'package:score/features/sets/behaviours/sets_engine.dart';
@@ -14,19 +12,6 @@ import '../../test_stores.dart';
 
 /// What the pages are drawn from: the sets as the store has them, followed
 /// rather than asked for, and why what is owed about them was not sent.
-
-final _config = OidcConfig(
-  clientId: 'test',
-  issuer: Uri.parse('http://nowhere'),
-  redirectUri: Uri.parse('http://localhost/'),
-  nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
-  desktopRedirectUri: Uri.parse('http://localhost:7005/'),
-  authorizationEndpoint: Uri.parse('http://nowhere/authorize'),
-  tokenEndpoint: Uri.parse('http://nowhere/token'),
-  userInfoEndpoint: Uri.parse('http://nowhere/userinfo'),
-  healthzEndpoint: Uri.parse('http://nowhere/healthz'),
-  rolesKey: 'roles',
-);
 
 /// An API that is not there.
 class _OfflineApi() extends SetsApi {
@@ -54,7 +39,6 @@ void main() {
         holds: store.holds,
         api: _OfflineApi(),
       ),
-      oidc: OidcApi(config: _config, store: store.auth),
     );
     await engine.init();
     sets = SetsNotifier(store: store.sets, holds: store.holds, engine: engine);
@@ -114,7 +98,6 @@ void main() {
           holds: store.holds,
           api: _OfflineApi(),
         ),
-        oidc: OidcApi(config: _config, store: store.auth),
       );
       await restarted.init();
       await _settle();

@@ -136,21 +136,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # libwebkit2gtk is not on Flutter's own list of Linux desktop
-      # prerequisites. It is here because flutter_web_auth_2 depends on
-      # desktop_webview_window, whose Linux plugin links against it. The app
-      # never opens that webview — on Linux the sign-in hands the browser the
-      # address and catches the callback on a local port (see
-      # lib/features/auth/authorizer_native.dart) — but the plugin is linked
-      # all the same, so the bundle will not even start on a machine without
-      # the runtime library, libwebkit2gtk-4.1-0. The README and the release
-      # notes say so.
+      # libsecret is not on Flutter's own list of Linux desktop prerequisites.
+      # It is here because the sign-in keeps its tokens in the platform's
+      # secret store (flutter_secure_storage, through package:oidc's default
+      # store — see lib/features/auth/storage/oidc_user_manager.dart), which on
+      # Linux is the Secret Service. The README and the release notes say so.
       - name: Toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libwebkit2gtk-4.1-dev
+            libgtk-3-dev liblzma-dev libsecret-1-dev
 
       - uses: subosito/flutter-action@v2
         with:

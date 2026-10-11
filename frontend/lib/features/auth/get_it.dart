@@ -1,88 +1,90 @@
 import 'package:get_it/get_it.dart';
+import 'package:oidc/oidc.dart';
+import 'package:oidc_default_store/oidc_default_store.dart';
 import 'package:score/config.dart';
-import 'package:score/features/auth/behaviours/forget_user.dart';
-import 'package:score/features/auth/behaviours/go_on_as_kept_user.dart';
-import 'package:score/features/auth/behaviours/say_if_no_longer_signed_in.dart';
-import 'package:score/features/auth/behaviours/sign_out.dart';
-import 'package:score/features/auth/behaviours/sign_outs.dart';
-import 'package:score/features/auth/behaviours/update_auth.dart';
+import 'package:score/features/auth/behaviours/authenticate.dart';
+import 'package:score/features/auth/behaviours/can_connect_to_api.dart';
+import 'package:score/features/auth/behaviours/can_connect_to_oidc_provider.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/auth/storage/auth_key_value_store.dart';
-import 'package:score/features/auth/storage/auth_store.dart';
-import 'package:score/features/auth/storage/auth_tokens.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
-import 'package:score/features/auth/widgets/sign_in_prompt_dialog.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/notifiers/get_it.dart';
-import 'package:score/storage/databases.dart';
 
 extension AuthGetItExtensions on GetIt {
   void registerAuth() {
-    registerLazySingletonAsync(
-      () async =>
-          AuthKeyValueStore(database: (await getAsync<Databases>()).data),
-    );
-    registerLazySingletonAsync<OidcApi>(
-      () async => OidcApi(
-        config: (await getAsync<Config>()).oidc,
-        store: await getAsync<AuthKeyValueStore>(),
-        client: get(),
-      ),
-    );
-    registerFactory(() => AuthStore(store: get()));
-    registerLazySingletonAsync<AuthTokens>(
-      () async => AuthTokens(oidc: await getAsync<OidcApi>(), prompt: get()),
-      dispose: (tokens) => tokens.dispose(),
-    );
-    registerLazySingleton<SignInPrompt>(
-      () => SignInPromptDialog(
-        router: get(),
-        // Asked for when it is needed rather than now: signing in forgets the
-        // last user's sets, whose client is signed by the tokens this is for.
-        signIn: () async {
-          await get<UpdateAuth>()(const UpdateAuthParams(retry: true));
-        },
-      ),
-    );
+    registerLazySingletonAsync<OidcUserManager>(
+      () async {
+        final config = await getAsync<Config>().then((config) => config.oidc);
+        final clientConfig = config.clientConfig;
 
+        final manager = OidcUserManager.lazy(
+          discoveryDocumentUri: config.discoveryEndpoint,
+          clientCredentials: OidcClientAuthentication.none(
+            clientId: clientConfig.clientId,
+          ),
+          store: get(),
+          settings: OidcUserManagerSettings(
+            redirectUri: clientConfig.redirectUri,
+            scope: config.scopes,
+            supportOfflineAuth: true,
+            options: const OidcPlatformSpecificOptions(
+              android: OidcNativeOptionsAndroid(ephemeralBrowsing: true),
+              ios: OidcNativeOptionsApple(
+                prefersEphemeralWebBrowserSession: true,
+              ),
+              macos: OidcNativeOptionsApple(
+                prefersEphemeralWebBrowserSession: true,
+              ),
+              windows: desktop,
+              linux: desktop,
+            ),
+          ),
+        );
+        await manager.init();
+        return manager;
+      },
+      dispose: (manager) => manager.dispose(),
+    );
+    registerLazySingleton<OidcStore>(() => OidcDefaultStore());
+    registerFactory(
+      () => Authenticate(
+        monitor: get(),
+        manager: get(),
+        config: get<Config>().oidc,
+        logger: logger('Auth'),
+      ),
+    );
+    registerFactory(
+      () => CanConnectToApi(
+        monitor: get(),
+        api: get(),
+      ),
+    );
+    registerFactory(
+      () => CanConnectToOidcProvider(
+        monitor: get(),
+        httpClient: get(),
+        config: get<Config>().oidc,
+      ),
+    );
     registerNotifier(
       () async => AuthNotifier(
-        oidc: await getAsync<OidcApi>(),
-        authStore: AuthStore(store: await getAsync<AuthKeyValueStore>()),
+        manager: await getAsync<OidcUserManager>(),
+        config: (await getAsync<Config>()).oidc,
       ),
-    );
-
-    registerLazySingleton(() => SignOuts());
-    registerFactory(
-      () => GoOnAsKeptUser(monitor: get(), oidc: get(), authStore: get()),
-    );
-    registerFactory(
-      () => UpdateAuth(
-        monitor: get(),
-        logger: logger('Auth'),
-        oidc: get(),
-        authStore: get(),
-        signOuts: get(),
-        forgetSets: get(),
-        forgetCollections: get(),
-      ),
-    );
-    registerFactory(
-      () => ForgetUser(monitor: get(), oidc: get(), authStore: get()),
-    );
-    registerFactory(
-      () => SignOut(
-        monitor: get(),
-        oidc: get(),
-        authStore: get(),
-        signOuts: get(),
-        forgetSets: get(),
-        forgetCollections: get(),
-      ),
-    );
-    registerFactory(
-      () =>
-          SayIfNoLongerSignedIn(monitor: get(), oidc: get(), authStore: get()),
     );
   }
 }
+
+const desktop = OidcPlatformSpecificOptions_Native(
+  flowTimeoutSeconds: 5 * 60,
+  successfulPageResponse: '''
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Signed in</title></head>
+<body style="font-family: system-ui, sans-serif; text-align: center; padding: 4rem;">
+  <h1>Signed in</h1>
+  <p>You can close this tab and go back to Score.</p>
+</body>
+</html>
+''',
+);

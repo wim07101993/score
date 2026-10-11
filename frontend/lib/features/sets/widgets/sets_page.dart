@@ -37,7 +37,7 @@ class _SetsPageState extends State<SetsPage> {
   }
 
   Future<void> _sync() async {
-    if (_auth.user?.isScoreViewer != true) return;
+    if (_auth.value?.isScoreViewer != true) return;
 
     await GetIt.I<UpdateSets>()();
     // The scores are what a set is built out of, so a set that was written on
@@ -61,7 +61,7 @@ class _SetsPageState extends State<SetsPage> {
   }
 
   Widget _page(BuildContext context) {
-    final mayView = _auth.user?.isScoreViewer == true;
+    final mayView = _auth.value?.isScoreViewer == true;
 
     return Scaffold(
       appBar: AppBar(

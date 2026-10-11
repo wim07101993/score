@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
-import 'package:score/config.dart';
-import 'package:score/features/auth/storage/oidc_api.dart';
 import 'package:score/features/collections/behaviours/collections_engine.dart';
 import 'package:score/features/collections/behaviours/delete_collection.dart';
 import 'package:score/features/collections/behaviours/delete_collection_entry.dart';
@@ -27,22 +25,6 @@ import '../../test_stores.dart';
 /// set does, a collection has one rule of its own — a score is in it at most
 /// once — and pieces that have no score at all, which have to be called
 /// something. Those are what these are about.
-
-/// A provider nobody calls: these tests are about what happens to a
-/// collection, and the token is only ever something the sync has to be
-/// holding.
-final _oidcConfig = OidcConfig(
-  clientId: 'test',
-  issuer: Uri.parse('http://nowhere'),
-  redirectUri: Uri.parse('http://localhost/'),
-  nativeRedirectUri: Uri.parse('app.wvl.score://callback'),
-  desktopRedirectUri: Uri.parse('http://localhost:7005/'),
-  authorizationEndpoint: Uri.parse('http://nowhere/authorize'),
-  tokenEndpoint: Uri.parse('http://nowhere/token'),
-  userInfoEndpoint: Uri.parse('http://nowhere/userinfo'),
-  healthzEndpoint: Uri.parse('http://nowhere/healthz'),
-  rolesKey: 'roles',
-);
 
 /// An API that is not there, which is the case the whole design is for.
 class _OfflineApi() extends CollectionsApi {
@@ -274,31 +256,6 @@ class _SometimesThereApi extends _WorkingApi {
   }
 }
 
-/// An API that refuses the token itself.
-class _TokenRefusedApi extends _WorkingApi {
-  @override
-  Future<Collection> putCollection(
-    String collectionId,
-    Map<String, Object?> write,
-  ) {
-    throw ApiException(
-      message: 'the token is no good',
-      statusCode: 401,
-      problem: null,
-    );
-  }
-}
-
-/// A provider that counts the tokens it was told to forget.
-class _Counting({
-  required super.store,
-}) extends _SignedIn {
-  int forgotten = 0;
-
-  @override
-  Future<void> forgetAccessToken() async => forgotten++;
-}
-
 /// An API whose token cannot be had right now: a refresh that failed
 /// because the network did.
 class _TokenFailsApi extends _WorkingApi {
@@ -309,19 +266,6 @@ class _TokenFailsApi extends _WorkingApi {
   ) => throw Exception('the network went away');
 }
 
-/// A provider that always has a token to hand.
-class _SignedIn({
-  required Stores store,
-}) extends OidcApi {
-  this : super(config: _oidcConfig, store: store.auth);
-
-  @override
-  Future<String?> getActiveAccessToken({bool signIn = true}) async => 'a-token';
-
-  @override
-  Future<bool> canBeReached() async => true;
-}
-
 /// The collections behaviours over one store, one API and one provider, as
 /// the app wires them — under the names these rules were first written down
 /// with. What is read is read off the engine's working copy, which the
@@ -329,7 +273,6 @@ class _SignedIn({
 class _Collections({
   required final Stores store,
   required final CollectionsApi api,
-  required final OidcApi oidc,
 }) {
   late final CollectionsEngine _engine = CollectionsEngine(
     logger: Logger('test'),
@@ -339,7 +282,6 @@ class _Collections({
       holds: store.holds,
       api: api,
     ),
-    oidc: oidc,
   );
 
   Future<void> init() => _engine.init();
@@ -432,7 +374,6 @@ Future<(_Collections, Stores)> _open(CollectionsApi api) async {
   final opened = _Collections(
     store: store,
     api: api,
-    oidc: _SignedIn(store: store),
   );
   await opened.init();
   return (opened, store);
@@ -447,7 +388,6 @@ Future<_Collections> _online(_Collections offline, CollectionsApi api) async {
   final online = _Collections(
     store: store,
     api: api,
-    oidc: _SignedIn(store: store),
   );
   await online.init();
   return online;
@@ -471,7 +411,6 @@ void main() {
       final first = _Collections(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await first.init();
       final saved = await first.saveCollection(title: 'The Real Book');
@@ -482,7 +421,6 @@ void main() {
       final second = _Collections(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await second.init();
 
@@ -977,7 +915,6 @@ void main() {
       final offline = _Collections(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await offline.init();
       await offline.saveEntry('book', scoreId: 'score-1');
@@ -994,7 +931,6 @@ void main() {
       final online = _Collections(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await online.init();
       await online.syncWithApi();
@@ -1283,7 +1219,6 @@ void main() {
         final online = _Collections(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await online.init();
         await online.syncWithApi();
@@ -1394,7 +1329,6 @@ void main() {
     final collections = _Collections(
       store: store,
       api: api,
-      oidc: _SignedIn(store: store),
     );
     await collections.init();
 
@@ -1454,7 +1388,6 @@ void main() {
       final collections = _Collections(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await collections.init();
 
@@ -1493,7 +1426,6 @@ void main() {
     final reopened = _Collections(
       store: store,
       api: _OfflineApi(),
-      oidc: _SignedIn(store: store),
     );
     await reopened.init();
     expect(reopened.collections, isEmpty);
@@ -1559,7 +1491,6 @@ void main() {
       final reopened = _Collections(
         store: store,
         api: _OfflineApi(),
-        oidc: _SignedIn(store: store),
       );
       await reopened.init();
       for (final now in [
@@ -1589,7 +1520,6 @@ void main() {
         final collections = _Collections(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await collections.init();
 
@@ -1624,13 +1554,11 @@ void main() {
         final otherTab = _Collections(
           store: store,
           api: api,
-          oidc: _SignedIn(store: store),
         );
         await otherTab.init();
         final thisTab = _Collections(
           store: store,
           api: _OfflineApi(),
-          oidc: _SignedIn(store: store),
         );
         await thisTab.init();
 
@@ -1666,7 +1594,6 @@ void main() {
       final thisTab = _Collections(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await thisTab.init();
       await thisTab.saveCollection(id: 'book', title: 'Offline');
@@ -1675,7 +1602,6 @@ void main() {
       final otherTab = _Collections(
         store: store,
         api: api,
-        oidc: _SignedIn(store: store),
       );
       await otherTab.init();
       await otherTab.syncWithApi();
@@ -1692,7 +1618,6 @@ void main() {
       final collections = _Collections(
         store: store,
         api: _TokenFailsApi(),
-        oidc: _SignedIn(store: store),
       );
       await collections.init();
 
@@ -1703,28 +1628,6 @@ void main() {
         PendingChange.write,
       );
     });
-
-    test(
-      'a token the API refuses is forgotten, and the write stays queued',
-      () async {
-        final store = await Stores.inMemory();
-        final oidc = _Counting(store: store);
-        final collections = _Collections(
-          store: store,
-          api: _TokenRefusedApi(),
-          oidc: oidc,
-        );
-        await collections.init();
-
-        final saved = await collections.saveCollection(title: 'Book');
-
-        expect(oidc.forgotten, 1);
-        expect(
-          collections.getCollection(saved.id)!.pendingChange,
-          PendingChange.write,
-        );
-      },
-    );
   });
 
   group('what the server refuses', () {

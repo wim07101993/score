@@ -18,26 +18,30 @@ class CollectionsNotifier({
 
   /// Where the edits that were given up on are heard: see [problems].
   required final CollectionsEngine engine,
-}) extends StoreNotifier<StoredCollections> {
+}) extends StreamNotifier<StoredCollections> {
   this : super(initial: (collections: const {}, whyNotSynced: const {})) {
     follow(
-      store.watchAll(),
-      (records) => value = (
-        collections: {
-          for (final collection in records) collection.id: collection,
-        },
-        whyNotSynced: value.whyNotSynced,
+      store.watchAll().map(
+        (records) => (
+          collections: {
+            for (final collection in records) collection.id: collection,
+          },
+          whyNotSynced: value.whyNotSynced,
+        ),
       ),
     );
     follow(
-      holds.watch(CollectionsAdapter.syncHoldKind),
-      (holds) => value = (
-        collections: value.collections,
-        whyNotSynced: {
-          for (final MapEntry(key: id, value: json) in holds.entries)
-            id: WhyNotSynced.fromJson(json),
-        },
-      ),
+      holds
+          .watch(CollectionsAdapter.syncHoldKind)
+          .map(
+            (holds) => (
+              collections: value.collections,
+              whyNotSynced: {
+                for (final MapEntry(key: id, value: json) in holds.entries)
+                  id: WhyNotSynced.fromJson(json),
+              },
+            ),
+          ),
     );
   }
 
