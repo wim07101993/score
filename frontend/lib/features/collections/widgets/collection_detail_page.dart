@@ -11,6 +11,8 @@ import 'package:score/features/collections/behaviours/save_collection.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
 import 'package:score/features/collections/models.dart';
+import 'package:score/features/collections/models/collection.dart';
+import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
 import 'package:score/features/collections/widgets/add_score_to_collection_chip.dart';
 import 'package:score/features/collections/widgets/collection_description_field.dart';
@@ -19,11 +21,12 @@ import 'package:score/features/collections/widgets/collection_title_field.dart';
 import 'package:score/features/collections/widgets/delete_collection_button.dart';
 import 'package:score/features/collections/widgets/open_collection_entry_button.dart';
 import 'package:score/features/collections/widgets/remove_collection_entry_button.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 import 'package:score/features/scores/widgets/scores_page.dart';
+import 'package:score/features/sets/models.dart';
 import 'package:score/features/sync/behaviours/update_collections.dart';
 import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/router.dart';
@@ -36,7 +39,6 @@ import 'package:score/widgets/save_button.dart';
 import 'package:score/widgets/semitones.dart';
 import 'package:score/widgets/shared_with_field.dart';
 import 'package:score/widgets/show_all_parts_button.dart';
-import 'package:score/widgets/sync_status.dart';
 import 'package:score/widgets/unsaved_changes_guard.dart';
 import 'package:uuid/uuid.dart';
 
@@ -99,8 +101,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   String? _pointedAt;
   Timer? _pointing;
 
-  StreamSubscription<CollectionSyncProblem>? _problems;
-
   @override
   void initState() {
     super.initState();
@@ -112,7 +112,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   @override
   void dispose() {
-    unawaited(_problems?.cancel());
     _collections.removeListener(_takeStoredChanges);
     _pointing?.cancel();
     _title.dispose();
@@ -145,22 +144,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           (stored != null && stored.isOwner && stored.entries.isEmpty);
     });
 
-    // Giving up on an edit is the one thing this app does behind the player's
-    // back, so it says so when it happens.
-    _problems = _collections.problems.listen((problem) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        errorSnackBar(
-          '"${problem.title.isEmpty ? 'A collection' : problem.title}" could'
-          ' not be saved on the server (${problem.action}), and the change has'
-          ' been taken back: ${problem.error.detail}',
-        ),
-      );
-      if (problem.collectionId == _collectionId && !_dirty) {
-        _readFromStored();
-        setState(() {});
-      }
-    });
     _collections.addListener(_takeStoredChanges);
 
     // The scores are what the pieces are called by, and they may bring in ones
@@ -398,13 +381,10 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   String _stateOf(Collection? collection) {
     if (!_isOwner) {
       // Not read-only: what is in it is theirs, but how you read it is yours.
-      return collection?.owesAnything == true
-          ? 'shared with you — your reading is not synced yet'
-          : 'shared with you';
+      return 'shared with you';
     }
     if (_dirty) return 'not saved';
     if (collection == null) return 'new collection';
-    if (collection.owesAnything) return 'saved here, not synced yet';
     return 'saved';
   }
 
@@ -428,7 +408,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   }
 
   Widget _entries(Collection? collection, bool owner) {
-    final entries = entriesByTitle(
+    final entries = CollectionEntry.sortByTitle(
       collection?.entries ?? const <CollectionEntry>[],
       (scoreId) => _scores.getScore(scoreId)?.title,
     );
@@ -635,13 +615,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               actions: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: SyncStatus(
-                    label: _stateOf(collection),
-                    unsynced: collection?.owesAnything == true && !_dirty,
-                    whyNotSynced: () =>
-                        _collections.whyNotSynced(_collectionId),
-                    sync: () async => GetIt.I<UpdateCollections>()(),
-                  ),
+                  child: Center(child: Text(_stateOf(collection))),
                 ),
                 if (editing) SaveButton(onPressed: _dirty ? _save : null),
                 if (editing && _isStored)
@@ -711,7 +685,7 @@ class const _CollectionOverview({
     final theme = Theme.of(context);
     // By title, the way the stand goes through it: a collection has no order
     // of its own, and a book is looked through by what the pieces are called.
-    final entries = entriesByTitle(
+    final entries = CollectionEntry.sortByTitle(
       collection.entries,
       (scoreId) => scoreOf(scoreId)?.title,
     );
@@ -935,7 +909,7 @@ class const _EntryCard({
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final read = entry.readAt;
+    final read = entry.combinedTransposition;
     final sum = entry.transposition + entry.view.transposition;
 
     return Card(

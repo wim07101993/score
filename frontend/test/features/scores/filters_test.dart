@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/scores/filters.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/creators.dart';
+import 'package:score/features/scores/models/score.dart';
 
 final _bach = Score(
   id: 'bach',

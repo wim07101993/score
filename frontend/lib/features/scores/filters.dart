@@ -2,7 +2,7 @@
 library;
 
 import 'package:score/features/scores/instruments.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
 
 /// A field the library can be narrowed by, and how to read it off a score.
 ///

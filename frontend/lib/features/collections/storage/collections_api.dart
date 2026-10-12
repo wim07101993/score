@@ -1,34 +1,31 @@
-import 'package:score/features/collections/models.dart';
+import 'package:score/features/collections/models/collection.dart';
+import 'package:score/features/collections/models/collection_entry.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
+import 'package:score/features/sets/models.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/error_extensions.dart';
 import 'package:score_api/score_api.dart' as api;
 import 'package:tonik_util/tonik_util.dart';
 
-/// The collections endpoints of the API.
-///
-/// Everything about talking to the server is the same as it is for a set, for
-/// the same reason: a write is made from an edit that was already accepted and
-/// stored on this device, so a failure has to say more than that it failed.
-/// Whether the write is worth trying again decides between keeping the edit
-/// queued and giving it up, and that is what [ApiException.isWorthRetrying]
-/// says.
 class const CollectionsApi({
   required final ApiClientFactory clientFactory,
-}) {
+}) implements SyncApi<Collection> {
   /// The generated client, sending the token of the moment.
   api.CollectionsApi get _api => clientFactory.build(api.CollectionsApi.new);
 
   /// The collections that changed within the window, the caller's own and the
   /// ones shared with them. Collections that were deleted within it come back
   /// too, with `deleted_at` filled in.
-  Future<List<Collection>> listCollections(
-    DateTime? changesSince,
-    DateTime? changesUntil,
-  ) async {
+  @override
+  Future<List<Collection>> listChanges({
+    required DateTime since,
+    DateTime? until,
+  }) async {
     final result = await _api.listCollections(
-      changesSince: changesSince ?? DateTime.utc(1970),
-      changesUntil: changesUntil ?? DateTime.now(),
+      changesSince: since,
+      changesUntil: until ?? endOfTime,
     );
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
@@ -184,7 +181,7 @@ class const CollectionsApi({
   /// entries: it says nothing about the collection and changes nothing anybody
   /// else sees, so a player who cannot add a piece to the book can still say
   /// how they read one that is in it.
-  Future<EntryView> putEntryView(
+  Future<ScoreViewSettings> putEntryView(
     String collectionId,
     String entryId,
     Map<String, Object?> writeView,
@@ -197,7 +194,7 @@ class const CollectionsApi({
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
         api.PutCollectionEntryViewResponse200(:final body) =>
-          body.toEntryView(),
+          body.toScoreViewSettings(),
         api.PutCollectionEntryViewResponse400(:final body) =>
           throw body.toApiException(),
         api.PutCollectionEntryViewResponse401(:final body) =>
@@ -253,8 +250,6 @@ class const CollectionsApi({
 }
 
 extension on api.Collection {
-  /// This collection as this app knows one, with nothing owed and nothing said
-  /// yet about when this device heard of it.
   Collection toCollection() => Collection(
     id: id,
     title: title,
@@ -274,17 +269,15 @@ extension on api.CollectionEntry {
     id: id,
     scoreId: scoreIdOf(scoreId),
     description: description,
-    transposition: transpositionOf(transposition),
-    view: view.toEntryView(),
-    // Everything the API hands over is on the server by definition.
-    synced: true,
+    transposition: transposition,
+    view: view.toScoreViewSettings(),
   );
 }
 
 extension on api.EntryView {
-  EntryView toEntryView() => EntryView(
-    transposition: transpositionOf(transposition),
+  ScoreViewSettings toScoreViewSettings() => ScoreViewSettings(
+    transposition: transposition,
     hiddenParts: hiddenParts,
-    zoom: zoomOf(zoom),
+    zoom: zoom,
   );
 }

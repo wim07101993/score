@@ -1,6 +1,9 @@
 import 'package:behaviour/behaviour.dart';
-import 'package:score/features/sets/behaviours/sets_engine.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
+import 'package:score/features/sets/behaviours/get_set.dart';
 import 'package:score/features/sets/models.dart';
+import 'package:score/features/sets/storage/sets_api.dart';
+import 'package:score/features/sets/storage/sets_database.dart';
 
 class const SaveSetEntryViewParams({
   required final String setId,
@@ -10,17 +13,11 @@ class const SaveSetEntryViewParams({
   final double? zoom,
 });
 
-/// Stores how this user looks at one entry, and tells the server as soon as
-/// it can.
-///
-/// This is not writing the set, and it is deliberately not asked to be the
-/// owner of one: a view says nothing about the set and changes nothing
-/// anybody else sees, so a player who cannot change a note of the running
-/// order can still say what key they read it in and which parts they want on
-/// screen.
 class SaveSetEntryView({
   super.monitor,
-  required final SetsEngine engine,
+  required final SetsApi api,
+  required final SetsDatabase db,
+  required final FetchSet fetch,
 }) extends Behaviour<SaveSetEntryViewParams, ScoreSet> {
   @override
   String get description => 'keeping how a song of a set is read';
@@ -29,14 +26,39 @@ class SaveSetEntryView({
   Future<ScoreSet> action(
     SaveSetEntryViewParams input,
     BehaviourTrack? track,
-  ) {
+  ) async {
     track?.addAttribute('set', input.setId);
-    return engine.saveEntryView(
+    final set = await db.get(input.setId);
+    final current =
+        set?.entries
+            .where((entry) => entry.id == input.entryId)
+            .firstOrNull
+            ?.view ??
+        const ScoreViewSettings.defaultView();
+
+    final saved = await api.putEntryView(
       input.setId,
       input.entryId,
-      transposition: input.transposition,
-      hiddenParts: input.hiddenParts,
-      zoom: input.zoom,
+      ScoreViewSettings(
+        transposition: input.transposition ?? current.transposition,
+        hiddenParts: input.hiddenParts ?? current.hiddenParts,
+        zoom: input.zoom ?? current.zoom,
+      ).toJson(),
     );
+
+    if (set == null) {
+      return await fetch.action(input.setId, track) ??
+          (throw Exception('failed to read back the set which was just read'));
+    }
+    final updated = set.copyWith(
+      entries: set.entries
+          .map(
+            (entry) =>
+                entry.id == input.entryId ? entry.copyWith(view: saved) : entry,
+          )
+          .toList(growable: false),
+    );
+    await db.put(updated);
+    return updated;
   }
 }

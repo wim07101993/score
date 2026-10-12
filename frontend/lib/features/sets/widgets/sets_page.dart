@@ -133,7 +133,6 @@ class const _SetCard({
   /// see it" apart.
   String get _state {
     if (!set.isOwner) return 'shared with you';
-    if (set.owesAnything) return 'not synced yet';
     if (set.sharedWith.isNotEmpty) {
       return 'shared with ${set.sharedWith.length}';
     }

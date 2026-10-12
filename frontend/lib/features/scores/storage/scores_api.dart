@@ -1,7 +1,11 @@
 import 'dart:io';
 
 import 'package:http/http.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/creators.dart';
+import 'package:score/features/scores/models/movement.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/models/work.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/error_extensions.dart';
@@ -10,10 +14,11 @@ import 'package:tonik_util/tonik_util.dart';
 
 class const ScoresApi({
   required final ApiClientFactory clientFactory,
-}) {
+}) implements SyncApi<Score> {
   api.ScoresApi get _api => clientFactory.build(api.ScoresApi.new);
 
-  Future<List<Score>> listScores({
+  @override
+  Future<List<Score>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {

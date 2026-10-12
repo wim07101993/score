@@ -1,19 +1,17 @@
 import 'package:behaviour/behaviour.dart';
-import 'package:score/features/collections/behaviours/collections_engine.dart';
-import 'package:score/features/collections/models.dart';
+import 'package:score/features/collections/behaviours/get_collection.dart';
+import 'package:score/features/collections/models/collection.dart';
+import 'package:score/features/collections/storage/collections_api.dart';
 
 class const DeleteCollectionEntryParams({
   required final String collectionId,
   required final String entryId,
 });
 
-/// Takes one piece out of a collection.
-///
-/// What every player said about how they look at it goes with it: it was
-/// about a piece that is no longer in the collection.
 class DeleteCollectionEntry({
   super.monitor,
-  required final CollectionsEngine engine,
+  required final CollectionsApi api,
+  required final FetchCollection fetch,
 }) extends Behaviour<DeleteCollectionEntryParams, Collection> {
   @override
   String get description => 'taking a piece out of a collection';
@@ -22,8 +20,12 @@ class DeleteCollectionEntry({
   Future<Collection> action(
     DeleteCollectionEntryParams input,
     BehaviourTrack? track,
-  ) {
+  ) async {
     track?.addAttribute('collection', input.collectionId);
-    return engine.deleteEntry(input.collectionId, input.entryId);
+    await api.deleteEntry(input.collectionId, input.entryId);
+    return await fetch.action(input.collectionId, track) ??
+        (throw Exception(
+          'failed to read back the collection which was just changed',
+        ));
   }
 }

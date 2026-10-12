@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/creators.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/models/work.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 
 /// A piece of a list: a score, or something written down without one.

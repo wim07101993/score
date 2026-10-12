@@ -1,21 +1,5 @@
 import 'package:flutter/foundation.dart';
-
-/// How a score is being looked at: which of its parts are on screen and by how
-/// much it is transposed.
-///
-/// A view is never stored and never travels back to the API. The document a
-/// score is made of is what the editor uploaded and stays that way; hiding a
-/// part or transposing is something that happens on the way to the screen and
-/// nowhere else.
-///
-/// The state is immutable for the same reason: every change hands back a new
-/// view, so the one a caller is holding can never turn into something else
-/// underneath it, and putting a view back the way it was is a matter of keeping
-/// the old one around.
-
-/// The furthest a score can be transposed in either direction, in semitones.
-const int minTransposition = -12;
-const int maxTransposition = 12;
+import 'package:score/features/scores/models/score_view_settings.dart';
 
 @immutable
 // Not const: the lists are copied into unmodifiable ones, which takes a call.
@@ -55,7 +39,10 @@ class ScoreView({
 
   /// [semitones] beyond an octave either way is brought back to it.
   ScoreView withTransposition(int semitones) {
-    final clamped = semitones.clamp(minTransposition, maxTransposition);
+    final clamped = semitones.clamp(
+      ScoreViewSettings.minTransposition,
+      ScoreViewSettings.maxTransposition,
+    );
     if (clamped == transposition) {
       return this;
     }

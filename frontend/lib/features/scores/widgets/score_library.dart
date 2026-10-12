@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:score/features/scores/filters.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/search.dart';
 import 'package:score/features/scores/widgets/score_filters_panel.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 

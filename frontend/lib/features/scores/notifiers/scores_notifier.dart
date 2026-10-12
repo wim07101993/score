@@ -1,4 +1,4 @@
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/storage/scores_database.dart';
 import 'package:score/notifiers/store_notifier.dart';
 

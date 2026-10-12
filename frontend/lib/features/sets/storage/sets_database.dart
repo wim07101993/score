@@ -1,15 +1,16 @@
 import 'package:score/features/sets/models.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/record_store.dart';
 
-/// The sets this device keeps, what is still owed about them included.
-class SetsStore({
+class SetsDatabase({
   required super.client,
-}) extends SembastStore<ScoreSet> {
+}) extends SembastStore<ScoreSet> implements SyncEntityDatabase<ScoreSet> {
   this
     : super(
         storeName: 'sets',
         fromJson: ScoreSet.fromJson,
         toJson: (value) => value.toJson(),
         idOf: (value) => value.id,
+        idFieldKey: ScoreSet.idFieldKey,
       );
 }

@@ -62,7 +62,6 @@ void main() {
 
     final entry = (await api.getSet('the-set'))!.entries.single;
     expect(entry.scoreId, isNull);
-    expect(entry.synced, isTrue);
   });
 
   test('a set the API says is not there is nothing', () async {
@@ -139,9 +138,9 @@ void main() {
       ),
     );
 
-    await api.listSets(null, null);
+    await api.listChanges(since: DateTime.utc(1970));
     token = 'second';
-    await api.listSets(null, null);
+    await api.listChanges(since: DateTime.utc(1970));
 
     expect(sent, ['Bearer first', 'Bearer second']);
   });
@@ -157,7 +156,10 @@ void main() {
       ),
     );
 
-    await expectLater(api.listSets(null, null), throwsA(isA<SignInRequired>()));
+    await expectLater(
+      api.listChanges(since: DateTime.utc(1970)),
+      throwsA(isA<SignInRequired>()),
+    );
   });
 
   test('nothing answering is worth trying again', () async {
@@ -170,7 +172,7 @@ void main() {
     );
 
     await expectLater(
-      api.listSets(null, null),
+      api.listChanges(since: DateTime.utc(1970)),
       failure(status: null, retried: true),
     );
   });

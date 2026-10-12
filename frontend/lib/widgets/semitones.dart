@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/notation/view/score_view.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/widgets/semitone_down_button.dart';
 import 'package:score/widgets/semitone_up_button.dart';
 
@@ -23,7 +23,7 @@ class const Semitones({
           Text(label),
           const SizedBox(width: 6),
           SemitoneDownButton(
-            onPressed: enabled && value > minTransposition
+            onPressed: enabled && value > ScoreViewSettings.minTransposition
                 ? () => onChanged(value - 1)
                 : null,
           ),
@@ -35,7 +35,7 @@ class const Semitones({
             ),
           ),
           SemitoneUpButton(
-            onPressed: enabled && value < maxTransposition
+            onPressed: enabled && value < ScoreViewSettings.maxTransposition
                 ? () => onChanged(value + 1)
                 : null,
           ),

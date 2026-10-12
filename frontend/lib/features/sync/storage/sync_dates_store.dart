@@ -18,6 +18,7 @@ class SyncDatesStore({
         fromJson: SyncDate.fromJson,
         toJson: (value) => value.toJson(),
         idOf: (value) => value.what,
+        idFieldKey: 'what',
       );
 
   /// When [what] was last synced, or [beginningOfTime] when it never was.
@@ -26,6 +27,8 @@ class SyncDatesStore({
 
   Future<void> keepLastSyncedAt(String what, DateTime at) =>
       put(SyncDate(what: what, lastSyncedAt: at));
+
+  Future<void> forgetLastSyncedAt(String what) => remove(what);
 }
 
 class const SyncDate({

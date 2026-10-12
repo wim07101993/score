@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:score/features/collections/models.dart';
+import 'package:score/features/collections/models/collection.dart';
+import 'package:score/features/collections/models/collection_entry.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
+import 'package:score/features/sets/models.dart';
 
 /// What a collection is, written down and read back.
 ///
@@ -61,34 +64,29 @@ void main() {
   });
 
   group('a collection kept on this device', () {
-    test('comes back as it was, with everything it still owes', () {
+    test('comes back as it was', () {
       final collection = Collection(
         id: 'c1',
         title: 'The Real Book, vol. 1',
         description: 'what the band can be asked for',
-        entries: const [
+        entries: [
           CollectionEntry(
             id: 'e1',
             scoreId: 'score-1',
             description: 'the arrangement we do',
             transposition: -2,
-            view: CollectionEntryView(
+            view: ScoreViewSettings(
               transposition: 5,
               hiddenParts: ['P2'],
               zoom: 1.5,
             ),
-            synced: true,
           ),
-          CollectionEntry(id: 'e2', description: 'page 62'),
+          const CollectionEntry(id: 'e2', description: 'page 62'),
         ],
         sharedWith: const ['bas@example.com'],
+        isOwner: true,
         lastChangedAt: DateTime.utc(2026, 9, 1, 12),
-        lastSyncedAt: DateTime.utc(2026, 9, 1, 11),
-        pendingChange: PendingChange.write,
-        pendingViews: const ['e1'],
-        pendingEntries: const [
-          PendingEntry(id: 'e2', action: PendingChange.write),
-        ],
+        deletedAt: null,
       );
 
       final stored = jsonDecode(jsonEncode(collection.toJson()));
@@ -100,12 +98,7 @@ void main() {
       expect(back.description, 'what the band can be asked for');
       expect(back.sharedWith, ['bas@example.com']);
       expect(back.lastChangedAt, DateTime.utc(2026, 9, 1, 12));
-      expect(back.lastSyncedAt, DateTime.utc(2026, 9, 1, 11));
       expect(back.deletedAt, isNull);
-      expect(back.pendingChange, PendingChange.write);
-      expect(back.pendingViews, ['e1']);
-      expect(back.pendingEntries.single.id, 'e2');
-      expect(back.pendingEntries.single.action, PendingChange.write);
 
       final scanned = back.entries.first;
       expect(scanned.scoreId, 'score-1');
@@ -113,39 +106,46 @@ void main() {
       expect(scanned.view.transposition, 5);
       expect(scanned.view.hiddenParts, ['P2']);
       expect(scanned.view.zoom, 1.5);
-      expect(scanned.synced, isTrue);
 
       final onPaper = back.entries.last;
       expect(onPaper.scoreId, isNull);
-      expect(onPaper.synced, isFalse);
     });
 
-    test('that owes nothing and was never deleted says so', () {
+    test('that was never deleted says so', () {
       final collection = Collection(
         id: 'c1',
+        title: '',
+        description: '',
+        entries: const [],
+        sharedWith: const [],
+        isOwner: true,
         lastChangedAt: DateTime.utc(2026),
+        deletedAt: null,
       );
 
       final back = Collection.fromJson(collection.toJson());
 
-      expect(back.pendingChange, isNull);
       expect(back.deletedAt, isNull);
-      expect(back.lastSyncedAt, isNull);
-      expect(back.owesAnything, isFalse);
     });
   });
 
   group('how big a player draws a piece', () {
+    ScoreViewSettings zoomedTo(double zoom) =>
+        ScoreViewSettings(transposition: 0, hiddenParts: const [], zoom: zoom);
+
     test('is held to what the API takes', () {
-      expect(zoomOf(0.1), minZoom);
-      expect(zoomOf(10), maxZoom);
-      expect(zoomOf(1.5), 1.5);
+      expect(zoomedTo(0.1).zoom, ScoreViewSettings.minZoom);
+      expect(zoomedTo(10).zoom, ScoreViewSettings.maxZoom);
+      expect(zoomedTo(1.5).zoom, 1.5);
+    });
+
+    test('is read back when it is a whole number', () {
+      expect(ScoreViewSettings.fromJson({'zoom': 2}).zoom, 2);
     });
 
     test('is the size it is written at when nothing sensible was said', () {
-      expect(zoomOf(null), 1);
-      expect(zoomOf('big'), 1);
-      expect(zoomOf(double.nan), 1);
+      expect(ScoreViewSettings.fromJson({'zoom': null}).zoom, 1);
+      expect(ScoreViewSettings.fromJson({'zoom': 'big'}).zoom, 1);
     });
   });
 
@@ -160,7 +160,7 @@ void main() {
         CollectionEntry(id: '3', scoreId: 'a'),
       ];
 
-      final byTitle = entriesByTitle(entries, titleOf);
+      final byTitle = CollectionEntry.sortByTitle(entries, titleOf);
 
       expect([for (final entry in byTitle) entry.id], ['2', '3', '1']);
     });
@@ -171,7 +171,7 @@ void main() {
         CollectionEntry(id: '2', description: 'Autumn'),
       ];
 
-      final byTitle = entriesByTitle(entries, titleOf);
+      final byTitle = CollectionEntry.sortByTitle(entries, titleOf);
 
       expect([for (final entry in byTitle) entry.id], ['2', '1']);
     });
@@ -183,12 +183,18 @@ void main() {
       ];
 
       expect(
-        [for (final entry in entriesByTitle(entries, titleOf)) entry.id],
+        [
+          for (final entry in CollectionEntry.sortByTitle(entries, titleOf))
+            entry.id,
+        ],
         ['y', 'z'],
       );
       expect(
         [
-          for (final entry in entriesByTitle(entries.reversed, titleOf))
+          for (final entry in CollectionEntry.sortByTitle(
+            entries.reversed,
+            titleOf,
+          ))
             entry.id,
         ],
         ['y', 'z'],
@@ -197,13 +203,17 @@ void main() {
   });
 
   test('what the group plays and what the player reads are added together', () {
-    const entry = CollectionEntry(
+    final entry = CollectionEntry(
       id: 'e1',
       scoreId: 'score-1',
       transposition: 10,
-      view: CollectionEntryView(transposition: 10),
+      view: ScoreViewSettings(
+        transposition: 10,
+        hiddenParts: const [],
+        zoom: 1,
+      ),
     );
 
-    expect(entry.readAt, 12, reason: 'as far as it goes');
+    expect(entry.combinedTransposition, 12, reason: 'as far as it goes');
   });
 }

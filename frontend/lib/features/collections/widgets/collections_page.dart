@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/collections/models.dart';
+import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
 import 'package:score/features/sync/behaviours/check_connection.dart';
 import 'package:score/features/sync/behaviours/update_collections.dart';
@@ -136,7 +136,6 @@ class const _CollectionCard({
   /// can see it" apart.
   String get _state {
     if (!collection.isOwner) return 'shared with you';
-    if (collection.owesAnything) return 'not synced yet';
     if (collection.sharedWith.isNotEmpty) {
       return 'shared with ${collection.sharedWith.length}';
     }

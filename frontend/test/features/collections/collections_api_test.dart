@@ -38,7 +38,7 @@ void main() {
     expect(entry.isOnPaper, isTrue);
   });
 
-  test('a collection handed over owes nothing', () async {
+  test('a collection handed over is not ours', () async {
     final api = answering({
       ..._collection,
       'entries': [_entry(scoreId: 'score-1', description: '')],
@@ -46,12 +46,7 @@ void main() {
 
     final collection = (await api.getCollection('c1'))!;
     expect(collection.isOwner, isFalse);
-    expect(collection.owesAnything, isFalse);
-    expect(
-      collection.entries.single.synced,
-      isTrue,
-      reason: 'everything the API hands over is on the server',
-    );
+    expect(collection.entries.single.scoreId, 'score-1');
   });
 
   test('a collection deleted there says when', () async {
@@ -60,7 +55,7 @@ void main() {
     ]);
 
     expect(
-      (await api.listCollections(null, null)).single.deletedAt,
+      (await api.listChanges(since: DateTime.utc(1970))).single.deletedAt,
       DateTime.utc(2026, 9),
     );
   });

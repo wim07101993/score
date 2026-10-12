@@ -6,7 +6,8 @@ import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/models/work.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
@@ -37,7 +38,7 @@ class _Api() extends ScoresApi {
   Future<bool> canBeReached() async => true;
 
   @override
-  Future<List<Score>> listScores({
+  Future<List<Score>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {
@@ -79,7 +80,6 @@ class _Scores({
 
   Future<void> sync() => SyncScores(
     logger: Logger('test'),
-    documents: store.documents,
     db: store.scores,
     api: api,
     syncDates: store.syncDates,

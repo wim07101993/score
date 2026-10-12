@@ -51,7 +51,7 @@ void main() {
     );
 
     try {
-      await sets.listSets(null, null);
+      await sets.listChanges(since: DateTime.utc(1970));
       fail('it waited');
     } on ApiException catch (error) {
       expect(error.statusCode, isNull);
@@ -80,7 +80,7 @@ void main() {
         ),
       );
       try {
-        await sets.listSets(null, null);
+        await sets.listChanges(since: DateTime.utc(1970));
       } on ApiException catch (error) {
         return error;
       }

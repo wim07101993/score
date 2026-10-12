@@ -4,7 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/auth/widgets/sign_in_button.dart';
 import 'package:score/features/scores/instruments.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/add_to_list_button.dart';
 import 'package:score/features/scores/widgets/score_library.dart';

@@ -6,10 +6,19 @@ class SembastStore<T>({
   required final T Function(Map<String, Object?> json) fromJson,
   required final Map<String, Object?> Function(T value) toJson,
   required final String Function(T value) idOf,
+  required final String idFieldKey,
 }) {
   final store = stringMapStoreFactory.store(storeName);
 
   Future<List<T>> getAll() async => _valuesOf(await store.find(client));
+
+  Future<List<T>> getElementsWithIds(List<String> ids) async {
+    final set = await store.find(
+      client,
+      finder: Finder(filter: Filter.inList(idFieldKey, ids)),
+    );
+    return set.map((record) => fromJson(record.value)).toList(growable: false);
+  }
 
   Future<T?> get(String id) async {
     final json = await store.record(id).get(client);

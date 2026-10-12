@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/scores/widgets/upload_score_button.dart';
-import 'package:score/features/sets/behaviours/delete_set_entry.dart';
-import 'package:score/features/sets/behaviours/save_set.dart';
-import 'package:score/features/sets/behaviours/save_set_entry.dart';
+import 'package:score/features/sets/models.dart';
+import 'package:score/features/sets/storage/sets_database.dart';
 import 'package:score/router.dart';
 
 import '../../../test_get_it.dart';
@@ -18,6 +17,20 @@ const _viewer = {
 /// The app opened at [route] alone, as [router] has it.
 Widget _app(AppRouter router, PageRouteInfo route) => MaterialApp.router(
   routerConfig: router.config(deepLinkBuilder: (_) => DeepLink([route])),
+);
+
+ScoreSet _set({
+  required String id,
+  required List<SetEntry> entries,
+}) => ScoreSet(
+  id: id,
+  title: 'Friday',
+  description: '',
+  entries: entries,
+  sharedWith: const [],
+  isOwner: true,
+  lastChangedAt: DateTime.utc(2026),
+  deletedAt: null,
 );
 
 void main() {
@@ -49,26 +62,33 @@ void main() {
 
     Future<void> openPaperEntry(WidgetTester tester) async {
       await tester.runAsync(() => GetIt.I.registerForTesting(user: _viewer));
-      await tester.runAsync(() async {
-        final set = await GetIt.I<SaveSet>().action(
-          const SaveSetParams(title: 'Friday'),
-          null,
-        );
-        final withEntry = await GetIt.I<SaveSetEntry>().action(
-          SaveSetEntryParams(setId: set.id, description: 'Happy birthday'),
-          null,
-        );
-        setId = set.id;
-        entryId = withEntry.entries.single.id;
-      });
+      setId = 'friday';
+      entryId = 'birthday';
+      await tester.runAsync(
+        () => GetIt.I<SetsDatabase>().put(
+          _set(
+            id: setId,
+            entries: [
+              SetEntry(
+                id: entryId,
+                scoreId: null,
+                description: 'Happy birthday',
+                transposition: 0,
+              ),
+            ],
+          ),
+        ),
+      );
       router = AppRouter();
       await tester.pumpWidget(
         _app(router, paperRoute(setId: setId, entryId: entryId)),
       );
       // The router puts the page up a frame later, and the page reads what it
       // is of after that.
-      await tester.pump();
-      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 10));
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      }
       await tester.pump();
       expect(find.text('This one is played from paper.'), findsOneWidget);
     }
@@ -79,11 +99,7 @@ void main() {
       await openPaperEntry(tester);
 
       await tester.runAsync(() async {
-        await GetIt.I<DeleteSetEntry>().action(
-          DeleteSetEntryParams(setId: setId, entryId: entryId),
-          null,
-        );
-        // What was written reaches the page through the store.
+        await GetIt.I<SetsDatabase>().put(_set(id: setId, entries: const []));
         await Future<void>.delayed(Duration.zero);
       });
       await tester.pump();
@@ -97,9 +113,18 @@ void main() {
       await openPaperEntry(tester);
 
       await tester.runAsync(() async {
-        await GetIt.I<SaveSetEntry>().action(
-          SaveSetEntryParams(setId: setId, id: entryId, scoreId: 'scanned'),
-          null,
+        await GetIt.I<SetsDatabase>().put(
+          _set(
+            id: setId,
+            entries: [
+              SetEntry(
+                id: entryId,
+                scoreId: 'scanned',
+                description: 'Happy birthday',
+                transposition: 0,
+              ),
+            ],
+          ),
         );
         await Future<void>.delayed(Duration.zero);
       });
@@ -113,6 +138,7 @@ void main() {
       );
       // In its place, rather than on top of it.
       expect(router.stack, hasLength(1));
+      await tester.pump(const Duration(minutes: 1));
     });
   });
 }

@@ -2,15 +2,14 @@ import 'package:get_it/get_it.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
 import 'package:score/features/sets/behaviours/delete_set_entry.dart';
-import 'package:score/features/sets/behaviours/forget_sets.dart';
+import 'package:score/features/sets/behaviours/get_set.dart';
 import 'package:score/features/sets/behaviours/save_set.dart';
 import 'package:score/features/sets/behaviours/save_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
-import 'package:score/features/sets/behaviours/sets_engine.dart';
+import 'package:score/features/sets/behaviours/sync_sets.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
-import 'package:score/features/sets/storage/sets_store.dart';
-import 'package:score/features/sync/storage/sync_holds_store.dart';
+import 'package:score/features/sets/storage/sets_database.dart';
 import 'package:score/notifiers/get_it.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/databases.dart';
@@ -22,36 +21,41 @@ extension SetsGetItExtensions on GetIt {
     );
 
     registerLazySingletonAsync(
-      () async => SetsStore(client: (await getAsync<Databases>()).data),
+      () async => SetsDatabase(client: (await getAsync<Databases>()).data),
     );
-
-    registerLazySingletonAsync<SetsEngine>(() async {
-      final engine = SetsEngine(
-        logger: logger('Sync'),
-        adapter: SetsAdapter(
-          logger: logger('Sets'),
-          store: await getAsync<SetsStore>(),
-          holds: await getAsync<SyncHoldsStore>(),
-          api: await getAsync<SetsApi>(),
-        ),
-      );
-      await engine.init();
-      return engine;
-    });
 
     registerNotifier(
-      () async => SetsNotifier(
-        store: await getAsync<SetsStore>(),
-        holds: await getAsync<SyncHoldsStore>(),
-        engine: await getAsync<SetsEngine>(),
-      ),
+      () async => SetsNotifier(store: await getAsync<SetsDatabase>()),
     );
 
-    registerFactory(() => SaveSet(monitor: get(), engine: get()));
-    registerFactory(() => SaveSetEntry(monitor: get(), engine: get()));
-    registerFactory(() => DeleteSetEntry(monitor: get(), engine: get()));
-    registerFactory(() => SaveSetEntryView(monitor: get(), engine: get()));
-    registerFactory(() => DeleteSet(monitor: get(), engine: get()));
-    registerFactory(() => ForgetSets(monitor: get(), engine: get()));
+    registerFactory(
+      () => SyncSets(
+        monitor: get(),
+        logger: logger('Sets'),
+        db: get(),
+        api: get(),
+        syncDates: get(),
+      ),
+    );
+    registerFactory(() => FetchSet(monitor: get(), api: get(), db: get()));
+    registerFactory(
+      () => GetSet(monitor: get(), db: get(), api: get(), fetch: get()),
+    );
+    registerFactory(() => SaveSet(monitor: get(), api: get(), db: get()));
+    registerFactory(
+      () => SaveSetEntry(monitor: get(), api: get(), db: get(), fetch: get()),
+    );
+    registerFactory(
+      () => DeleteSetEntry(monitor: get(), api: get(), fetch: get()),
+    );
+    registerFactory(
+      () => SaveSetEntryView(
+        monitor: get(),
+        api: get(),
+        db: get(),
+        fetch: get(),
+      ),
+    );
+    registerFactory(() => DeleteSet(monitor: get(), api: get(), db: get()));
   }
 }

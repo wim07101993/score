@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
@@ -36,7 +36,6 @@ import 'package:score/widgets/save_button.dart';
 import 'package:score/widgets/semitones.dart';
 import 'package:score/widgets/shared_with_field.dart';
 import 'package:score/widgets/show_all_parts_button.dart';
-import 'package:score/widgets/sync_status.dart';
 import 'package:score/widgets/unsaved_changes_guard.dart';
 import 'package:uuid/uuid.dart';
 
@@ -87,8 +86,6 @@ class _SetDetailPageState extends State<SetDetailPage> {
   bool _editing = false;
   bool _loading = true;
 
-  StreamSubscription<SyncProblem>? _problems;
-
   @override
   void initState() {
     super.initState();
@@ -98,7 +95,6 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   @override
   void dispose() {
-    unawaited(_problems?.cancel());
     _sets.removeListener(_takeStoredChanges);
     _title.dispose();
     _description.dispose();
@@ -129,22 +125,6 @@ class _SetDetailPageState extends State<SetDetailPage> {
           (stored != null && stored.isOwner && stored.entries.isEmpty);
     });
 
-    // Giving up on an edit is the one thing this app does behind the player's
-    // back, so it says so when it happens.
-    _problems = _sets.problems.listen((problem) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        errorSnackBar(
-          '"${problem.title.isEmpty ? 'A set' : problem.title}" could not be'
-          ' saved on the server (${problem.action}), and the change has been'
-          ' taken back: ${problem.error.detail}',
-        ),
-      );
-      if (problem.setId == _setId && !_dirty) {
-        _readFromStored();
-        setState(() {});
-      }
-    });
     _sets.addListener(_takeStoredChanges);
 
     await GetIt.I<UpdateScores>()();
@@ -309,13 +289,10 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   String _stateOf(ScoreSet? set) {
     if (!_isOwner) {
-      return set?.owesAnything == true
-          ? 'shared with you — your reading is not synced yet'
-          : 'shared with you';
+      return 'shared with you';
     }
     if (_dirty) return 'not saved';
     if (set == null) return 'new set';
-    if (set.owesAnything) return 'saved here, not synced yet';
     return 'saved';
   }
 
@@ -531,12 +508,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
               actions: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: SyncStatus(
-                    label: _stateOf(set),
-                    unsynced: set?.owesAnything == true && !_dirty,
-                    whyNotSynced: () => _sets.whyNotSynced(_setId),
-                    sync: () async => GetIt.I<UpdateSets>()(),
-                  ),
+                  child: Center(child: Text(_stateOf(set))),
                 ),
                 if (editing) SaveButton(onPressed: _dirty ? _save : null),
                 if (editing && _isStored)

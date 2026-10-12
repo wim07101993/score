@@ -112,6 +112,36 @@
       <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/window_to_front/example/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/window_to_front/example/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/window_to_front/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/file_picker_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/file_picker_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/file_picker_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/flutter_secure_storage_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/flutter_secure_storage_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/flutter_secure_storage_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/oidc_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/oidc_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/oidc_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/flutter_secure_storage_windows/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/flutter_secure_storage_windows/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/flutter_secure_storage_windows/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/oidc_windows/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/oidc_windows/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/oidc_windows/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/shared_preferences_windows/example/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/windows_file_picker/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/windows_file_picker/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/windows/flutter/ephemeral/.plugin_symlinks/windows_file_picker/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

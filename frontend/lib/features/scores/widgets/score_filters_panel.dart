@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:score/features/scores/filters.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
 
 /// The other way of looking: the words the library is actually made of.
 ///

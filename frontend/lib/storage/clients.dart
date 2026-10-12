@@ -3,6 +3,7 @@ import 'package:score/config.dart';
 import 'package:score_api/score_api.dart' show CustomServer, HealthApi;
 import 'package:tonik_util/tonik_util.dart';
 
+// TODO move these times out of this file
 final endOfTime = DateTime.now().toUtc().add(const Duration(days: 15340));
 final beginningOfTime = DateTime.utc(1970);
 

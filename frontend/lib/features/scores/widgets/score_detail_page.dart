@@ -8,9 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/collections/behaviours/get_collection.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
-import 'package:score/features/collections/models.dart'
-    show Collection, CollectionEntry, entriesByTitle, maxZoom, minZoom;
+import 'package:score/features/collections/models/collection.dart';
+import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
 import 'package:score/features/files/file_saver.dart';
 import 'package:score/features/notation/parts.dart';
@@ -21,7 +22,8 @@ import 'package:score/features/scores/behaviours/get_music_xml.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/instruments.dart';
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/download_score_button.dart';
 import 'package:score/features/scores/widgets/next_score_button.dart';
@@ -35,12 +37,11 @@ import 'package:score/features/scores/widgets/transpose_up_button.dart';
 import 'package:score/features/scores/widgets/upload_score_button.dart';
 import 'package:score/features/scores/widgets/zoom_in_button.dart';
 import 'package:score/features/scores/widgets/zoom_out_button.dart';
+import 'package:score/features/sets/behaviours/get_set.dart';
 import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
-import 'package:score/features/sync/behaviours/ensure_collection.dart';
-import 'package:score/features/sync/behaviours/ensure_set.dart';
 import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/router.dart';
 import 'package:uuid/uuid.dart';
@@ -146,8 +147,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   /// As far as a score may be drawn either way: the sizes a view can say,
   /// which the buttons go to as well. Any narrower, and a size saved by
   /// another device would be drawn smaller than it says, and saved back so.
-  static const _minSpace = _writtenSpace * minZoom;
-  static const _maxSpace = _writtenSpace * maxZoom;
+  static const _minSpace = _writtenSpace * ScoreViewSettings.minZoom;
+  static const _maxSpace = _writtenSpace * ScoreViewSettings.maxZoom;
 
   /// What one staff space is worth on screen — the zoom the buttons set.
   double _space = _writtenSpace;
@@ -499,7 +500,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       // The same out of a book, where how big it is drawn comes too: that is
       // this player's alone and is not added to anything.
       view = view
-          .withTransposition(piece.readAt)
+          .withTransposition(piece.combinedTransposition)
           .withHiddenParts(piece.view.hiddenParts);
       _space = _spaceFor(piece.view.zoom);
     }
@@ -537,8 +538,8 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     }
 
     // A link into a set can be followed on a device that has not synced since
-    // it was shared: see [EnsureSet].
-    final set = (await GetIt.I<EnsureSet>()(setId)).valueOrNull;
+    // it was shared: see [GetSet].
+    final set = (await GetIt.I<GetSet>()(setId)).valueOrNull;
     if (set == null) return;
 
     final index = set.entries.indexWhere((entry) => entry.id == entryId);
@@ -568,7 +569,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       return;
     }
 
-    final collection = (await GetIt.I<EnsureCollection>()(collectionId))
+    final collection = (await GetIt.I<GetCollection>()(collectionId))
         .valueOrNull;
     if (collection == null) return;
 
@@ -589,8 +590,10 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
   /// How big the score is drawn now, as a view says it: where 1 is the size it
   /// is written at.
-  double get _zoom =>
-      (_space * _pinched / _writtenSpace).clamp(minZoom, maxZoom);
+  double get _zoom => (_space * _pinched / _writtenSpace).clamp(
+    ScoreViewSettings.minZoom,
+    ScoreViewSettings.maxZoom,
+  );
 
   /// Whether the score is on screen at the size a view with [zoom] draws it.
   bool _drawnAt(double zoom) =>
@@ -732,7 +735,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     return _readingOffset(
               band: entry.transposition,
               saved: entry.view.transposition,
-              savedReadAt: entry.readAt,
+              savedReadAt: entry.combinedTransposition,
               onScreen: view.transposition,
             ) ==
             entry.view.transposition &&
@@ -768,7 +771,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           transposition: _readingOffset(
             band: entry.transposition,
             saved: entry.view.transposition,
-            savedReadAt: entry.readAt,
+            savedReadAt: entry.combinedTransposition,
             onScreen: view.transposition,
           ),
           hiddenParts: [...view.hiddenPartIds],
@@ -1459,7 +1462,7 @@ class const _WayThrough({
     required bool performing,
   }) {
     final collection = context.collection;
-    final entries = entriesByTitle(collection.entries, titleOf);
+    final entries = CollectionEntry.sortByTitle(collection.entries, titleOf);
     final index = entries.indexWhere((entry) => entry.id == context.entryId);
     if (index < 0) return null;
 
@@ -1659,7 +1662,7 @@ class const _ViewSettings({
             const Text('Transpose'),
             const Spacer(),
             TransposeDownButton(
-              onPressed: semitones > minTransposition
+              onPressed: semitones > ScoreViewSettings.minTransposition
                   ? () => onChange(
                       (view) => view.withTransposition(semitones - 1),
                     )
@@ -1673,7 +1676,7 @@ class const _ViewSettings({
               ),
             ),
             TransposeUpButton(
-              onPressed: semitones < maxTransposition
+              onPressed: semitones < ScoreViewSettings.maxTransposition
                   ? () => onChange(
                       (view) => view.withTransposition(semitones + 1),
                     )
@@ -1737,7 +1740,7 @@ class const _ViewSettings({
 /// the octave is still a change to how the player's next save is worked out.
 class _Reading._({
   required final int band,
-  required EntryView view,
+  required ScoreViewSettings view,
   required final int readAt,
 }) {
   _Reading.ofSong({
@@ -1753,7 +1756,7 @@ class _Reading._({
   }) : this._(
          band: entry.transposition,
          view: entry.view,
-         readAt: entry.readAt,
+         readAt: entry.combinedTransposition,
        );
 
   this
@@ -1804,5 +1807,8 @@ int _readingOffset({
   required int onScreen,
 }) {
   if (onScreen == savedReadAt) return saved;
-  return (onScreen - band).clamp(minTransposition, maxTransposition);
+  return (onScreen - band).clamp(
+    ScoreViewSettings.minTransposition,
+    ScoreViewSettings.maxTransposition,
+  );
 }

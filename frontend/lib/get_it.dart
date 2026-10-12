@@ -7,28 +7,25 @@ import 'package:score/features/auth/authentication_exception.dart';
 import 'package:score/features/auth/behaviours/authenticate.dart';
 import 'package:score/features/auth/get_it.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/collections/behaviours/collections_engine.dart';
 import 'package:score/features/collections/get_it.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
 import 'package:score/features/collections/storage/collections_api.dart';
-import 'package:score/features/collections/storage/collections_store.dart';
+import 'package:score/features/collections/storage/collections_database.dart';
 import 'package:score/features/observability/get_it.dart';
 import 'package:score/features/scores/get_it.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/storage/score_documents.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
 import 'package:score/features/scores/storage/scores_database.dart';
-import 'package:score/features/sets/behaviours/sets_engine.dart';
 import 'package:score/features/sets/get_it.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
-import 'package:score/features/sets/storage/sets_store.dart';
+import 'package:score/features/sets/storage/sets_database.dart';
 import 'package:score/features/settings/get_it.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/storage/settings_store.dart';
 import 'package:score/features/sync/get_it.dart';
 import 'package:score/features/sync/storage/sync_dates_store.dart';
-import 'package:score/features/sync/storage/sync_holds_store.dart';
 import 'package:score/router.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/databases.dart';
@@ -81,17 +78,14 @@ extension GetItExtensions on GetIt {
       getAsync<Databases>(),
       getAsync<ScoresDatabase>(),
       getAsync<ScoreDocuments>(),
-      getAsync<SetsStore>(),
-      getAsync<CollectionsStore>(),
-      getAsync<SyncHoldsStore>(),
+      getAsync<SetsDatabase>(),
+      getAsync<CollectionsDatabase>(),
       getAsync<SyncDatesStore>(),
       getAsync<SettingsStore>(),
       getAsync<OidcUserManager>(),
       getAsync<ScoresApi>(),
       getAsync<SetsApi>(),
       getAsync<CollectionsApi>(),
-      getAsync<SetsEngine>(),
-      getAsync<CollectionsEngine>(),
       getAsync<SettingsNotifier>(),
       getAsync<AuthNotifier>(),
       getAsync<ScoresNotifier>(),

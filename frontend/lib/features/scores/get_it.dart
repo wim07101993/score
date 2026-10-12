@@ -34,7 +34,6 @@ extension ScoresGetItExtensions on GetIt {
       () => SyncScores(
         monitor: get(),
         logger: logger('Scores'),
-        documents: get(),
         db: get(),
         api: get(),
         syncDates: get(),

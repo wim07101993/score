@@ -1,4 +1,7 @@
-import 'package:score/features/scores/models.dart';
+import 'package:score/features/scores/models/creators.dart';
+import 'package:score/features/scores/models/movement.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/models/work.dart';
 import 'package:songbird_musicxml/songbird_musicxml.dart' show MusicXmlDocument;
 
 /// The details of a score read from its document on this device, the way the

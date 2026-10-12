@@ -1,33 +1,29 @@
+import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/sets/models.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/error_extensions.dart';
 import 'package:score_api/score_api.dart' as api;
 import 'package:tonik_util/tonik_util.dart';
 
-/// The sets endpoints of the API.
-///
-/// Unlike the scores endpoints, these are written to as well as read from, and
-/// a write is made from an edit that was already accepted and stored on this
-/// device. So a failure has to say more than that it failed: whether the write
-/// is worth trying again decides between keeping the edit queued and giving it
-/// up, and that is what [ApiException.isWorthRetrying] says.
 class const SetsApi({
   required final ApiClientFactory clientFactory,
-}) {
+}) implements SyncApi<ScoreSet> {
   /// The generated client, sending the token of the moment.
   api.SetsApi get _api => clientFactory.build(api.SetsApi.new);
 
   /// The sets that changed within the window, the caller's own and the ones
   /// shared with them. Sets that were deleted within it come back too, with
   /// `deleted_at` filled in.
-  Future<List<ScoreSet>> listSets(
-    DateTime? changesSince,
-    DateTime? changesUntil,
-  ) async {
+  @override
+  Future<List<ScoreSet>> listChanges({
+    required DateTime since,
+    DateTime? until,
+  }) async {
     final result = await _api.listSets(
-      changesSince: changesSince ?? DateTime.utc(1970),
-      changesUntil: changesUntil ?? DateTime.now(),
+      changesSince: since,
+      changesUntil: until ?? endOfTime,
     );
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
@@ -165,7 +161,7 @@ class const SetsApi({
   /// says nothing about the set and changes nothing anybody else sees, so a
   /// player who cannot change a note of the running order can still say how
   /// they read it.
-  Future<EntryView> putEntryView(
+  Future<ScoreViewSettings> putEntryView(
     String setId,
     String entryId,
     Map<String, Object?> writeView,
@@ -177,7 +173,8 @@ class const SetsApi({
     );
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
-        api.PutSetEntryViewResponse200(:final body) => body.toEntryView(),
+        api.PutSetEntryViewResponse200(:final body) =>
+          body.toScoreViewSettings(),
         api.PutSetEntryViewResponse400(:final body) =>
           throw body.toApiException(),
         api.PutSetEntryViewResponse401(:final body) =>
@@ -230,8 +227,6 @@ class const SetsApi({
 }
 
 extension on api.Set {
-  /// This set as this app knows one, with nothing owed and nothing said yet
-  /// about when this device heard of it.
   ScoreSet toScoreSet() => ScoreSet(
     id: id,
     title: title,
@@ -249,17 +244,15 @@ extension on api.SetEntry {
     id: id,
     scoreId: scoreIdOf(scoreId),
     description: description,
-    transposition: transpositionOf(transposition),
-    view: view.toEntryView(),
-    // Everything the API hands over is on the server by definition.
-    synced: true,
+    transposition: transposition,
+    view: view.toScoreViewSettings(),
   );
 }
 
 extension on api.EntryView {
-  EntryView toEntryView() => EntryView(
-    transposition: transpositionOf(transposition),
+  ScoreViewSettings toScoreViewSettings() => ScoreViewSettings(
+    transposition: transposition,
     hiddenParts: hiddenParts,
-    zoom: zoomOf(zoom),
+    zoom: zoom,
   );
 }
