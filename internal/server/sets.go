@@ -54,11 +54,11 @@ func (h *Handler) ListSets(ctx context.Context, params api.ListSetsParams) (api.
 
 	page := make(api.GetSetsResponse, 0, len(sets))
 	for _, stored := range sets {
-		apiSet, err := mapSetToApi(stored)
+		item, err := mapListedSetToApi(stored)
 		if err != nil {
 			return nil, err
 		}
-		page = append(page, *apiSet)
+		page = append(page, item)
 	}
 	return &page, nil
 }
@@ -287,6 +287,22 @@ func callerOf(ctx context.Context) (set.User, error) {
 	return set.NewUser(user.Subject, user.VerifiedEmail()), nil
 }
 
+func mapListedSetToApi(stored *set.Set) (api.ListedSet, error) {
+	if stored.DeletedAt != nil {
+		deleted, err := mapDeletedToApi(stored.Id, *stored.DeletedAt)
+		if err != nil {
+			return api.ListedSet{}, err
+		}
+		return api.NewDeletedResourceListedSet(deleted), nil
+	}
+
+	apiSet, err := mapSetToApi(stored)
+	if err != nil {
+		return api.ListedSet{}, err
+	}
+	return api.NewSetListedSet(*apiSet), nil
+}
+
 func mapSetToApi(stored *set.Set) (*api.Set, error) {
 	id, err := uuid.Parse(stored.Id)
 	if err != nil {
@@ -302,11 +318,6 @@ func mapSetToApi(stored *set.Set) (*api.Set, error) {
 		entries = append(entries, *mapped)
 	}
 
-	deletedAt := api.NilDateTime{Null: true}
-	if stored.DeletedAt != nil {
-		deletedAt = api.NewNilDateTime(*stored.DeletedAt)
-	}
-
 	return &api.Set{
 		ID:            id,
 		Title:         stored.Title,
@@ -315,7 +326,6 @@ func mapSetToApi(stored *set.Set) (*api.Set, error) {
 		SharedWith:    stored.SharedWith,
 		IsOwner:       stored.IsOwner,
 		LastChangedAt: stored.LastChangedAt,
-		DeletedAt:     deletedAt,
 	}, nil
 }
 

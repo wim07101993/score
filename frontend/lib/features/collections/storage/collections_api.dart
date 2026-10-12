@@ -19,7 +19,7 @@ class const CollectionsApi({
   /// ones shared with them. Collections that were deleted within it come back
   /// too, with `deleted_at` filled in.
   @override
-  Future<List<Collection>> listChanges({
+  Future<SyncChanges<Collection>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {
@@ -29,8 +29,21 @@ class const CollectionsApi({
     );
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
-        api.ListCollectionsResponse200(:final body) =>
-          body.map((el) => el.toCollection()).toList(growable: false),
+        api.ListCollectionsResponse200(:final body) => (
+          changed: body
+              .whereType<api.ListedCollectionCollection>()
+              .map((el) => el.value.toCollection())
+              .toList(growable: false),
+          deleted: body
+              .whereType<api.ListedCollectionDeletedResource>()
+              .map(
+                (el) => DeletedEntity(
+                  id: el.value.id,
+                  deletedAt: el.value.deletedAt,
+                ),
+              )
+              .toList(growable: false),
+        ),
         api.ListCollectionsResponse400(:final body) =>
           throw body.toApiException(),
         api.ListCollectionsResponse401(:final body) =>
@@ -260,7 +273,6 @@ extension on api.Collection {
     sharedWith: sharedWith,
     isOwner: isOwner,
     lastChangedAt: lastChangedAt,
-    deletedAt: deletedAt,
   );
 }
 

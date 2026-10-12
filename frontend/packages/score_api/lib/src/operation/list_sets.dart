@@ -6,8 +6,8 @@ import 'dart:convert' as _i6;
 import 'dart:core' as _i3;
 
 import 'package:http/http.dart' as _i5;
+import 'package:score_api/src/model/listed_set.dart' as _i7;
 import 'package:score_api/src/model/problem_details.dart' as _i8;
-import 'package:score_api/src/model/set.dart' as _i7;
 import 'package:score_api/src/operation/http_operation.dart' as _i1;
 import 'package:score_api/src/response_wrapper/list_sets_response.dart' as _i2;
 import 'package:tonik_util/tonik_util.dart' as _i4;
@@ -94,7 +94,7 @@ final class ListSets extends _i1.HttpOperation<_i2.ListSetsResponse> {
         final _$json = _i4.decodeResponseJson<_i3.Object?>(response.bodyBytes);
         final _$body = _$json
             .decodeJsonList<_i3.Object?>()
-            .map(_i7.Set.fromJson)
+            .map(_i7.ListedSet.fromJson)
             .toList();
         return _i2.ListSetsResponse200(body: _$body);
       case (400, r'application/problem+json'):

@@ -30,7 +30,6 @@ ScoreSet _set({
   sharedWith: const [],
   isOwner: true,
   lastChangedAt: DateTime.utc(2026),
-  deletedAt: null,
 );
 
 void main() {

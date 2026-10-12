@@ -86,7 +86,6 @@ void main() {
         sharedWith: const ['bas@example.com'],
         isOwner: true,
         lastChangedAt: DateTime.utc(2026, 9, 1, 12),
-        deletedAt: null,
       );
 
       final stored = jsonDecode(jsonEncode(collection.toJson()));
@@ -98,8 +97,6 @@ void main() {
       expect(back.description, 'what the band can be asked for');
       expect(back.sharedWith, ['bas@example.com']);
       expect(back.lastChangedAt, DateTime.utc(2026, 9, 1, 12));
-      expect(back.deletedAt, isNull);
-
       final scanned = back.entries.first;
       expect(scanned.scoreId, 'score-1');
       expect(scanned.transposition, -2);
@@ -109,23 +106,6 @@ void main() {
 
       final onPaper = back.entries.last;
       expect(onPaper.scoreId, isNull);
-    });
-
-    test('that was never deleted says so', () {
-      final collection = Collection(
-        id: 'c1',
-        title: '',
-        description: '',
-        entries: const [],
-        sharedWith: const [],
-        isOwner: true,
-        lastChangedAt: DateTime.utc(2026),
-        deletedAt: null,
-      );
-
-      final back = Collection.fromJson(collection.toJson());
-
-      expect(back.deletedAt, isNull);
     });
   });
 

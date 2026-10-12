@@ -23,10 +23,11 @@ class Sync<T extends SyncableModel>({
 
   Future<void> sync() async {
     final lastSync = await syncDates.lastSyncedAt(syncDateKey);
-    final changedEntities = await api.listChanges(
+    final changes = await api.listChanges(
       // avoid rounding errors on fetch timestamps
       since: lastSync.subtract(const Duration(seconds: 2)),
     );
+    final changedEntities = changes.changed;
 
     final existingEntities = await db.getElementsWithIds(
       changedEntities.map((entity) => entity.id).toList(growable: false),
@@ -43,22 +44,34 @@ class Sync<T extends SyncableModel>({
     }
 
     await db.putAll(entitiesToSave);
+    await db.removeWithIds(
+      changes.deleted.map((entity) => entity.id).toList(growable: false),
+    );
 
     // On the server's clock rather than this device's: a device whose clock
     // runs ahead would otherwise start the next window after changes the
     // server has yet to make.
-    if (changedEntities.isEmpty) {
+    final moments = [
+      ...changedEntities.map((entity) => entity.lastChangedAt),
+      ...changes.deleted.map((entity) => entity.deletedAt),
+    ];
+    if (moments.isEmpty) {
       return;
     }
-    final newest = changedEntities
-        .map((entity) => entity.lastChangedAt)
-        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final newest = moments.reduce((a, b) => a.isAfter(b) ? a : b);
     await syncDates.keepLastSyncedAt(syncDateKey, newest);
   }
 }
 
+class const DeletedEntity({
+  required final String id,
+  required final DateTime deletedAt,
+});
+
+typedef SyncChanges<T> = ({List<T> changed, List<DeletedEntity> deleted});
+
 abstract class SyncApi<T> {
-  Future<List<T>> listChanges({
+  Future<SyncChanges<T>> listChanges({
     required DateTime since,
     DateTime? until,
   });
@@ -67,6 +80,7 @@ abstract class SyncApi<T> {
 abstract class SyncEntityDatabase<T> {
   Future<List<T>> getElementsWithIds(List<String> ids);
   Future<void> putAll(List<T> entities);
+  Future<void> removeWithIds(List<String> ids);
 }
 
 abstract class SyncableModel {

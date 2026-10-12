@@ -30,7 +30,11 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	const ownerQuery = `SELECT owner_subject FROM sets WHERE id = @id`
+	const ownerQuery = `
+		SELECT owner_subject FROM sets WHERE id = @id
+		UNION ALL
+		SELECT owner_subject FROM deleted_sets WHERE id = @id
+		LIMIT 1`
 	var owner string
 	err = tx.QueryRow(ctx, ownerQuery, pgx.NamedArgs{"id": setId}).Scan(&owner)
 	switch {
@@ -44,15 +48,12 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 	}
 
 	const upsertSetQuery = `
-		INSERT INTO sets (id, owner_subject, title, description, lastChangedAt, deletedAt)
-		VALUES (@id, @owner_subject, @title, @description, @lastChangedAt, NULL)
+		INSERT INTO sets (id, owner_subject, title, description, lastChangedAt)
+		VALUES (@id, @owner_subject, @title, @description, @lastChangedAt)
 		ON CONFLICT (id) DO UPDATE SET
 			title = EXCLUDED.title,
 			description = EXCLUDED.description,
-			lastChangedAt = EXCLUDED.lastChangedAt,
-			-- Writing a set again brings it back: a client that still has it
-			-- and edits it is saying it should exist.
-			deletedAt = NULL`
+			lastChangedAt = EXCLUDED.lastChangedAt`
 
 	now := time.Now().UTC()
 	_, err = tx.Exec(ctx, upsertSetQuery, pgx.NamedArgs{
@@ -64,6 +65,12 @@ func Save(ctx context.Context, db *pgxpool.Conn, setId string, user User, write 
 	})
 	if err != nil {
 		return fmt.Errorf("failed to save the set: %w", err)
+	}
+
+	// Writing a set that had been deleted brings it back, with nothing in it.
+	_, err = tx.Exec(ctx, `DELETE FROM deleted_sets WHERE id = @id`, pgx.NamedArgs{"id": setId})
+	if err != nil {
+		return fmt.Errorf("failed to bring the set back: %w", err)
 	}
 
 	// The entries are left exactly as they are. What is played is a resource of

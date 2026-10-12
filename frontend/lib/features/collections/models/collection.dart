@@ -11,7 +11,6 @@ class const Collection({
   required final List<CollectionEntry> entries,
   required final List<String> sharedWith,
   required final bool isOwner,
-  required final DateTime? deletedAt,
 }) implements SyncableModel {
   factory Collection.fromJson(Map json) {
     return Collection(
@@ -29,7 +28,6 @@ class const Collection({
       lastChangedAt:
           json.get(lastChangedAtFieldKey, parser: DateTime.tryParse) ??
           beginningOfTime,
-      deletedAt: json.get('deleted_at', parser: DateTime.tryParse),
     );
   }
 
@@ -46,7 +44,6 @@ class const Collection({
     List<String>? sharedWith,
     bool? isOwner,
     DateTime? lastChangedAt,
-    DateTime? deletedAt,
   }) => Collection(
     id: id,
     title: title ?? this.title,
@@ -55,7 +52,6 @@ class const Collection({
     sharedWith: sharedWith ?? this.sharedWith,
     isOwner: isOwner ?? this.isOwner,
     lastChangedAt: lastChangedAt ?? this.lastChangedAt,
-    deletedAt: deletedAt ?? this.deletedAt,
   );
 
   Map<String, Object?> toJson() => {
@@ -66,6 +62,5 @@ class const Collection({
     'shared_with': sharedWith,
     'is_owner': isOwner,
     lastChangedAtFieldKey: lastChangedAt.toUtc().toIso8601String(),
-    'deleted_at': deletedAt?.toUtc().toIso8601String(),
   };
 }

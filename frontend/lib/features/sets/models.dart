@@ -11,7 +11,6 @@ class const ScoreSet({
   required final List<SetEntry> entries,
   required final List<String> sharedWith,
   required final bool isOwner,
-  required final DateTime? deletedAt,
 }) implements SyncableModel {
   factory ScoreSet.fromJson(Map json) {
     return ScoreSet(
@@ -27,7 +26,6 @@ class const ScoreSet({
       lastChangedAt:
           json.get(lastChangedAtFieldKey, parser: DateTime.tryParse) ??
           beginningOfTime,
-      deletedAt: json.get('deleted_at', parser: DateTime.tryParse),
     );
   }
 
@@ -43,7 +41,6 @@ class const ScoreSet({
     List<String>? sharedWith,
     bool? isOwner,
     DateTime? lastChangedAt,
-    DateTime? deletedAt,
   }) => ScoreSet(
     id: id,
     title: title ?? this.title,
@@ -52,7 +49,6 @@ class const ScoreSet({
     sharedWith: sharedWith ?? this.sharedWith,
     isOwner: isOwner ?? this.isOwner,
     lastChangedAt: lastChangedAt ?? this.lastChangedAt,
-    deletedAt: deletedAt ?? this.deletedAt,
   );
 
   Map<String, Object?> toJson() => {
@@ -63,7 +59,6 @@ class const ScoreSet({
     'shared_with': sharedWith,
     'is_owner': isOwner,
     lastChangedAtFieldKey: lastChangedAt.toUtc().toIso8601String(),
-    'deleted_at': deletedAt?.toUtc().toIso8601String(),
   };
 }
 

@@ -160,6 +160,19 @@ void main() {
     );
   });
 
+  test('a set deleted there is listed as only its id', () async {
+    final api = answering(200, [
+      _set,
+      {'id': 'gone', 'deleted_at': '2026-09-01T00:00:00Z'},
+    ]);
+
+    final changes = await api.listChanges(since: DateTime.utc(1970));
+
+    expect(changes.changed.single.id, 'the-set');
+    expect(changes.deleted.single.id, 'gone');
+    expect(changes.deleted.single.deletedAt, DateTime.utc(2026, 9));
+  });
+
   test('nothing answering is a failure with no status', () async {
     final api = SetsApi(
       clientFactory: ApiClientFactory(
@@ -184,7 +197,6 @@ final _set = {
   'is_owner': true,
   'shared_with': <String>[],
   'last_changed_at': '2026-02-01T00:00:00Z',
-  'deleted_at': null,
 };
 
 /// A failure the way the API words one.

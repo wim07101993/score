@@ -1,0 +1,6 @@
+description: |
+  A set as the change window lists it: whole while it exists, and as nothing
+  but its id and when it was deleted once it is gone.
+oneOf:
+  - $ref: 'set.yaml'
+  - $ref: '../../schemas/deleted_resource.yaml'

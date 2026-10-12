@@ -17,8 +17,7 @@ func Get(ctx context.Context, db *pgxpool.Conn, collectionId string, user User) 
 
 	const query = selectCollections + `
 		WHERE id = @id
-			AND (owner_subject = @subject OR shared)
-			AND deletedAt IS NULL`
+			AND (owner_subject = @subject OR shared)`
 
 	rows, err := db.Query(ctx, query, pgx.NamedArgs{
 		"id":      collectionId,
@@ -83,10 +82,15 @@ func List(
 	if err != nil {
 		return nil, err
 	}
-	if len(unshared) == 0 {
+	deleted, err := listDeleted(ctx, db, user, changesSince, changesUntil)
+	if err != nil {
+		return nil, err
+	}
+	if len(unshared) == 0 && len(deleted) == 0 {
 		return collections, nil
 	}
 	collections = append(collections, unshared...)
+	collections = append(collections, deleted...)
 	slices.SortStableFunc(collections, func(a, b *Collection) int {
 		return b.LastChangedAt.Compare(a.LastChangedAt)
 	})
@@ -119,7 +123,7 @@ func listUnshared(
 	changesUntil time.Time,
 ) ([]*Collection, error) {
 	const query = `
-		SELECT u.collection_id, c.owner_subject, '', '', u.unshared_at, u.unshared_at
+		SELECT u.collection_id, u.unshared_at
 		FROM collection_unshares AS u
 		JOIN collections AS c ON c.id = u.collection_id
 		WHERE u.email = @email
@@ -139,9 +143,39 @@ func listUnshared(
 		return nil, fmt.Errorf("failed to query the collections the caller was taken off: %w", err)
 	}
 
-	unshared, err := scanCollections(rows, user)
+	unshared, err := scanDeleted(rows)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan the collections the caller was taken off: %w", err)
 	}
 	return unshared, nil
+}
+
+func listDeleted(
+	ctx context.Context,
+	db *pgxpool.Conn,
+	user User,
+	changesSince time.Time,
+	changesUntil time.Time,
+) ([]*Collection, error) {
+	const query = `
+		SELECT id, deleted_at
+		FROM deleted_collections
+		WHERE (owner_subject = @subject OR @email = ANY(shared_with))
+			AND deleted_at >= @since AND deleted_at <= @until`
+
+	rows, err := db.Query(ctx, query, pgx.NamedArgs{
+		"subject": user.Subject,
+		"email":   user.Email,
+		"since":   changesSince,
+		"until":   changesUntil,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the deleted collections: %w", err)
+	}
+
+	deleted, err := scanDeleted(rows)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan the deleted collections: %w", err)
+	}
+	return deleted, nil
 }

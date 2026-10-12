@@ -9,6 +9,7 @@ import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/work.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 
@@ -38,12 +39,12 @@ class _Api() extends ScoresApi {
   Future<bool> canBeReached() async => true;
 
   @override
-  Future<List<Score>> listChanges({
+  Future<SyncChanges<Score>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {
     this.since.add(since);
-    return answers;
+    return (changed: answers, deleted: const <DeletedEntity>[]);
   }
 
   @override

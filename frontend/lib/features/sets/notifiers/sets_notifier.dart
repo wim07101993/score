@@ -13,13 +13,9 @@ class SetsNotifier({
     );
   }
 
-  List<ScoreSet> get sets => [
-    for (final set in value.values)
-      if (set.deletedAt == null) set,
-  ]..sort((a, b) => b.lastChangedAt.compareTo(a.lastChangedAt));
+  List<ScoreSet> get sets =>
+      [...value.values]
+        ..sort((a, b) => b.lastChangedAt.compareTo(a.lastChangedAt));
 
-  ScoreSet? getSet(String setId) {
-    final set = value[setId];
-    return set == null || set.deletedAt != null ? null : set;
-  }
+  ScoreSet? getSet(String setId) => value[setId];
 }

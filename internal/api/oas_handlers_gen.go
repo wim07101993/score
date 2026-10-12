@@ -35,8 +35,10 @@ func (c *codeRecorder) Unwrap() http.ResponseWriter {
 
 // handleDeleteCollectionRequest handles deleteCollection operation.
 //
-// Marks the collection as deleted. It is kept rather than removed, and it keeps turning up in the
-// change window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+// Deletes the collection: its pieces, its shares and how anybody reads them are removed. Its id is
+// kept, with when it was deleted, its owner and who it was shared with, and it keeps turning up in
+// their change windows as nothing but its id and `deleted_at`, so that a client holding a copy learns
+// that it is gone. Fetching it by id answers 404.
 //
 // Only the owner of a collection can delete it. A collection that is not there, already deleted, or
 // not the caller's is answered the same way.
@@ -463,8 +465,10 @@ func (s *Server) handleDeleteCollectionEntryRequest(args [2]string, argsEscaped 
 
 // handleDeleteSetRequest handles deleteSet operation.
 //
-// Marks the set as deleted. It is kept rather than removed, and it keeps turning up in the change
-// window with `deleted_at` filled in, so that a client holding a copy learns that it is gone.
+// Deletes the set: its entries, its shares and how anybody reads them are removed. Its id is kept,
+// with when it was deleted, its owner and who it was shared with, and it keeps turning up in their
+// change windows as nothing but its id and `deleted_at`, so that a client holding a copy learns that
+// it is gone. Fetching it by id answers 404.
 //
 // Only the owner of a set can delete it. A set that is not there, already deleted, or not the caller's
 // is answered the same way.
@@ -1678,8 +1682,8 @@ func (s *Server) handleHealthzRequest(args [0]string, argsEscaped bool, w http.R
 // the given window, most recently changed first. Both ends of the window are inclusive and both are
 // required: a client synchronises by asking for everything since the moment it last asked.
 //
-// Collections that were deleted within the window are returned too, with `deleted_at` filled in, so
-// that a client holding a copy learns that it is gone rather than syncing it back.
+// Collections that were deleted within the window are returned too, as nothing but their id and
+// `deleted_at`, so that a client holding a copy learns that it is gone rather than syncing it back.
 //
 // Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
 // keeping one asks no more of a user than reading the scores in it.
@@ -2106,8 +2110,8 @@ func (s *Server) handleListScoresRequest(args [0]string, argsEscaped bool, w htt
 // given window, most recently changed first. Both ends of the window are inclusive and both are
 // required: a client synchronises by asking for everything since the moment it last asked.
 //
-// Sets that were deleted within the window are returned too, with `deleted_at` filled in, so that a
-// client holding a copy learns that it is gone rather than syncing it back.
+// Sets that were deleted within the window are returned too, as nothing but their id and `deleted_at`,
+// so that a client holding a copy learns that it is gone rather than syncing it back.
 //
 // Requires the `score_viewer` role. A set names scores but changes nothing about them, so keeping one
 // asks no more of a user than reading the scores in it.
@@ -2325,8 +2329,8 @@ func (s *Server) handleListSetsRequest(args [0]string, argsEscaped bool, w http.
 // What is in the collection is not written here and is not touched by writing here: an entry is a
 // resource of its own, so a collection is created empty and filled afterwards.
 //
-// Writing a collection that had been deleted brings it back: a client that still has it and edits it
-// is saying it should exist.
+// Writing a collection that had been deleted brings it back, empty: a client that still has it and
+// edits it is saying it should exist.
 //
 // Requires the `score_viewer` role. A collection names scores but changes nothing about them, so
 // building one asks no more of a user than reading the scores in it.
@@ -3256,8 +3260,8 @@ func (s *Server) handlePutScoreRequest(args [1]string, argsEscaped bool, w http.
 // it now reads. A set that is not there yet belongs to whoever creates it; one that is can only be
 // written by its owner.
 //
-// Writing a set that had been deleted brings it back: a client that still has it and edits it is
-// saying it should exist.
+// Writing a set that had been deleted brings it back, empty: a client that still has it and edits it
+// is saying it should exist.
 //
 // Requires the `score_viewer` role. A set names scores but changes nothing about them, so building one
 // asks no more of a user than reading the scores in it.

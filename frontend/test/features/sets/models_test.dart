@@ -58,15 +58,12 @@ void main() {
       sharedWith: const [],
       isOwner: true,
       lastChangedAt: at,
-      deletedAt: at,
     );
 
     final json = set.toJson();
     final back = ScoreSet.fromJson(json);
 
-    expect(json['deleted_at'], endsWith('Z'));
     expect(json['last_changed_at'], endsWith('Z'));
-    expect(back.deletedAt!.isAtSameMomentAs(at), isTrue);
     expect(back.lastChangedAt.isAtSameMomentAs(at), isTrue);
   });
 

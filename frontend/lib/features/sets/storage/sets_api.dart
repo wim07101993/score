@@ -13,11 +13,8 @@ class const SetsApi({
   /// The generated client, sending the token of the moment.
   api.SetsApi get _api => clientFactory.build(api.SetsApi.new);
 
-  /// The sets that changed within the window, the caller's own and the ones
-  /// shared with them. Sets that were deleted within it come back too, with
-  /// `deleted_at` filled in.
   @override
-  Future<List<ScoreSet>> listChanges({
+  Future<SyncChanges<ScoreSet>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {
@@ -27,8 +24,21 @@ class const SetsApi({
     );
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
-        api.ListSetsResponse200(:final body) =>
-          body.map((el) => el.toScoreSet()).toList(growable: false),
+        api.ListSetsResponse200(:final body) => (
+          changed: body
+              .whereType<api.ListedSetSet>()
+              .map((el) => el.value.toScoreSet())
+              .toList(growable: false),
+          deleted: body
+              .whereType<api.ListedSetDeletedResource>()
+              .map(
+                (el) => DeletedEntity(
+                  id: el.value.id,
+                  deletedAt: el.value.deletedAt,
+                ),
+              )
+              .toList(growable: false),
+        ),
         api.ListSetsResponse400(:final body) => throw body.toApiException(),
         api.ListSetsResponse401(:final body) => throw body.toApiException(),
         api.ListSetsResponse403(:final body) => throw body.toApiException(),
@@ -235,7 +245,6 @@ extension on api.Set {
     sharedWith: sharedWith,
     isOwner: isOwner,
     lastChangedAt: lastChangedAt,
-    deletedAt: deletedAt,
   );
 }
 

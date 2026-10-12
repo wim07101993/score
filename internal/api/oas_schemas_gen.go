@@ -50,11 +50,6 @@ type Collection struct {
 	IsOwner bool `json:"is_owner"`
 	// When the collection was last written.
 	LastChangedAt time.Time `json:"last_changed_at"`
-	// When the collection was deleted, or null while it still exists.
-	//
-	// A deleted collection is kept rather than removed, and it is still returned by the change window, so
-	// that a client holding a copy learns that it is gone instead of syncing it back.
-	DeletedAt NilDateTime `json:"deleted_at"`
 }
 
 // GetID returns the value of ID.
@@ -92,11 +87,6 @@ func (s *Collection) GetLastChangedAt() time.Time {
 	return s.LastChangedAt
 }
 
-// GetDeletedAt returns the value of DeletedAt.
-func (s *Collection) GetDeletedAt() NilDateTime {
-	return s.DeletedAt
-}
-
 // SetID sets the value of ID.
 func (s *Collection) SetID(val uuid.UUID) {
 	s.ID = val
@@ -130,11 +120,6 @@ func (s *Collection) SetIsOwner(val bool) {
 // SetLastChangedAt sets the value of LastChangedAt.
 func (s *Collection) SetLastChangedAt(val time.Time) {
 	s.LastChangedAt = val
-}
-
-// SetDeletedAt sets the value of DeletedAt.
-func (s *Collection) SetDeletedAt(val NilDateTime) {
-	s.DeletedAt = val
 }
 
 func (*Collection) getCollectionRes() {}
@@ -317,6 +302,38 @@ type DeleteSetUnauthorized ProblemDetails
 
 func (*DeleteSetUnauthorized) deleteSetRes() {}
 
+// A set or collection that was deleted, as a listing answers it.
+//
+// Everything about it is gone but its id and when it went, which is all a client holding a copy needs
+// to drop it.
+// Ref: #
+type DeletedResource struct {
+	// The id the resource was stored under.
+	ID uuid.UUID `json:"id"`
+	// When the resource was deleted.
+	DeletedAt time.Time `json:"deleted_at"`
+}
+
+// GetID returns the value of ID.
+func (s *DeletedResource) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetDeletedAt returns the value of DeletedAt.
+func (s *DeletedResource) GetDeletedAt() time.Time {
+	return s.DeletedAt
+}
+
+// SetID sets the value of ID.
+func (s *DeletedResource) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetDeletedAt sets the value of DeletedAt.
+func (s *DeletedResource) SetDeletedAt(val time.Time) {
+	s.DeletedAt = val
+}
+
 // How one player looks at one entry of a set or a collection.
 //
 // A set says what the band plays and a collection says what the group has; a view says what one player
@@ -406,7 +423,7 @@ type GetCollectionUnauthorized ProblemDetails
 
 func (*GetCollectionUnauthorized) getCollectionRes() {}
 
-type GetCollectionsResponse []Collection
+type GetCollectionsResponse []ListedCollection
 
 func (*GetCollectionsResponse) listCollectionsRes() {}
 
@@ -482,7 +499,7 @@ type GetSetUnauthorized ProblemDetails
 
 func (*GetSetUnauthorized) getSetRes() {}
 
-type GetSetsResponse []Set
+type GetSetsResponse []ListedSet
 
 func (*GetSetsResponse) listSetsRes() {}
 
@@ -538,49 +555,140 @@ type ListSetsUnauthorized ProblemDetails
 
 func (*ListSetsUnauthorized) listSetsRes() {}
 
-// NewNilDateTime returns new NilDateTime with value set to v.
-func NewNilDateTime(v time.Time) NilDateTime {
-	return NilDateTime{
-		Value: v,
-	}
+// A collection as the change window lists it: whole while it exists, and as nothing but its id and
+// when it was deleted once it is gone.
+// Ref: #
+// ListedCollection represents sum type.
+type ListedCollection struct {
+	// Type selects the active sum variant, switch on this field.
+	Type            ListedCollectionType
+	Collection      Collection
+	DeletedResource DeletedResource
 }
 
-// NilDateTime is nullable time.Time.
-type NilDateTime struct {
-	Value time.Time
-	Null  bool
+// ListedCollectionType is oneOf type of ListedCollection.
+type ListedCollectionType string
+
+// Possible values for ListedCollectionType.
+const (
+	CollectionListedCollection      ListedCollectionType = "Collection"
+	DeletedResourceListedCollection ListedCollectionType = "DeletedResource"
+)
+
+// IsCollection reports whether ListedCollection is Collection.
+func (s ListedCollection) IsCollection() bool { return s.Type == CollectionListedCollection }
+
+// IsDeletedResource reports whether ListedCollection is DeletedResource.
+func (s ListedCollection) IsDeletedResource() bool { return s.Type == DeletedResourceListedCollection }
+
+// SetCollection sets ListedCollection to Collection.
+func (s *ListedCollection) SetCollection(v Collection) {
+	s.Type = CollectionListedCollection
+	s.Collection = v
 }
 
-// SetTo sets value to v.
-func (o *NilDateTime) SetTo(v time.Time) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilDateTime) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilDateTime) SetToNull() {
-	o.Null = true
-	var v time.Time
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilDateTime) Get() (v time.Time, ok bool) {
-	if o.Null {
+// GetCollection returns Collection and true boolean if ListedCollection is Collection.
+func (s ListedCollection) GetCollection() (v Collection, ok bool) {
+	if !s.IsCollection() {
 		return v, false
 	}
-	return o.Value, true
+	return s.Collection, true
 }
 
-// Or returns value if set, or given parameter if does not.
-func (o NilDateTime) Or(d time.Time) time.Time {
-	if v, ok := o.Get(); ok {
-		return v
+// NewCollectionListedCollection returns new ListedCollection from Collection.
+func NewCollectionListedCollection(v Collection) ListedCollection {
+	var s ListedCollection
+	s.SetCollection(v)
+	return s
+}
+
+// SetDeletedResource sets ListedCollection to DeletedResource.
+func (s *ListedCollection) SetDeletedResource(v DeletedResource) {
+	s.Type = DeletedResourceListedCollection
+	s.DeletedResource = v
+}
+
+// GetDeletedResource returns DeletedResource and true boolean if ListedCollection is DeletedResource.
+func (s ListedCollection) GetDeletedResource() (v DeletedResource, ok bool) {
+	if !s.IsDeletedResource() {
+		return v, false
 	}
-	return d
+	return s.DeletedResource, true
+}
+
+// NewDeletedResourceListedCollection returns new ListedCollection from DeletedResource.
+func NewDeletedResourceListedCollection(v DeletedResource) ListedCollection {
+	var s ListedCollection
+	s.SetDeletedResource(v)
+	return s
+}
+
+// A set as the change window lists it: whole while it exists, and as nothing but its id and when it
+// was deleted once it is gone.
+// Ref: #
+// ListedSet represents sum type.
+type ListedSet struct {
+	// Type selects the active sum variant, switch on this field.
+	Type            ListedSetType
+	Set             Set
+	DeletedResource DeletedResource
+}
+
+// ListedSetType is oneOf type of ListedSet.
+type ListedSetType string
+
+// Possible values for ListedSetType.
+const (
+	SetListedSet             ListedSetType = "Set"
+	DeletedResourceListedSet ListedSetType = "DeletedResource"
+)
+
+// IsSet reports whether ListedSet is Set.
+func (s ListedSet) IsSet() bool { return s.Type == SetListedSet }
+
+// IsDeletedResource reports whether ListedSet is DeletedResource.
+func (s ListedSet) IsDeletedResource() bool { return s.Type == DeletedResourceListedSet }
+
+// SetSet sets ListedSet to Set.
+func (s *ListedSet) SetSet(v Set) {
+	s.Type = SetListedSet
+	s.Set = v
+}
+
+// GetSet returns Set and true boolean if ListedSet is Set.
+func (s ListedSet) GetSet() (v Set, ok bool) {
+	if !s.IsSet() {
+		return v, false
+	}
+	return s.Set, true
+}
+
+// NewSetListedSet returns new ListedSet from Set.
+func NewSetListedSet(v Set) ListedSet {
+	var s ListedSet
+	s.SetSet(v)
+	return s
+}
+
+// SetDeletedResource sets ListedSet to DeletedResource.
+func (s *ListedSet) SetDeletedResource(v DeletedResource) {
+	s.Type = DeletedResourceListedSet
+	s.DeletedResource = v
+}
+
+// GetDeletedResource returns DeletedResource and true boolean if ListedSet is DeletedResource.
+func (s ListedSet) GetDeletedResource() (v DeletedResource, ok bool) {
+	if !s.IsDeletedResource() {
+		return v, false
+	}
+	return s.DeletedResource, true
+}
+
+// NewDeletedResourceListedSet returns new ListedSet from DeletedResource.
+func NewDeletedResourceListedSet(v DeletedResource) ListedSet {
+	var s ListedSet
+	s.SetDeletedResource(v)
+	return s
 }
 
 // NewNilUUID returns new NilUUID with value set to v.
@@ -1538,11 +1646,6 @@ type Set struct {
 	IsOwner bool `json:"is_owner"`
 	// When the set was last written.
 	LastChangedAt time.Time `json:"last_changed_at"`
-	// When the set was deleted, or null while it still exists.
-	//
-	// A deleted set is kept rather than removed, and it is still returned by the change window, so that a
-	// client holding a copy learns that it is gone instead of syncing it back.
-	DeletedAt NilDateTime `json:"deleted_at"`
 }
 
 // GetID returns the value of ID.
@@ -1580,11 +1683,6 @@ func (s *Set) GetLastChangedAt() time.Time {
 	return s.LastChangedAt
 }
 
-// GetDeletedAt returns the value of DeletedAt.
-func (s *Set) GetDeletedAt() NilDateTime {
-	return s.DeletedAt
-}
-
 // SetID sets the value of ID.
 func (s *Set) SetID(val uuid.UUID) {
 	s.ID = val
@@ -1618,11 +1716,6 @@ func (s *Set) SetIsOwner(val bool) {
 // SetLastChangedAt sets the value of LastChangedAt.
 func (s *Set) SetLastChangedAt(val time.Time) {
 	s.LastChangedAt = val
-}
-
-// SetDeletedAt sets the value of DeletedAt.
-func (s *Set) SetDeletedAt(val NilDateTime) {
-	s.DeletedAt = val
 }
 
 func (*Set) getSetRes() {}

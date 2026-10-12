@@ -1,0 +1,18 @@
+type: object
+description: |
+  A set or collection that was deleted, as a listing answers it.
+
+  Everything about it is gone but its id and when it went, which is all a
+  client holding a copy needs to drop it.
+required:
+  - id
+  - deleted_at
+properties:
+  id:
+    type: string
+    format: uuid
+    description: The id the resource was stored under.
+  deleted_at:
+    type: string
+    format: date-time
+    description: When the resource was deleted.

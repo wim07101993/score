@@ -66,12 +66,26 @@ func FindCollection(
 	collections api.GetCollectionsResponse,
 	collectionId uuid.UUID,
 ) (api.Collection, bool) {
-	for _, c := range collections {
-		if c.ID == collectionId {
+	for _, item := range collections {
+		if c, ok := item.GetCollection(); ok && c.ID == collectionId {
 			return c, true
 		}
 	}
 	return api.Collection{}, false
+}
+
+// FindDeletedCollection picks one collection out of a listing that lists it as
+// deleted.
+func FindDeletedCollection(
+	collections api.GetCollectionsResponse,
+	collectionId uuid.UUID,
+) (api.DeletedResource, bool) {
+	for _, item := range collections {
+		if d, ok := item.GetDeletedResource(); ok && d.ID == collectionId {
+			return d, true
+		}
+	}
+	return api.DeletedResource{}, false
 }
 
 // ACollectionEntry is a piece with nothing remarkable about it: a score the

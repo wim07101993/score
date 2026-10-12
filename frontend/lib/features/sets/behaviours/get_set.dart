@@ -16,7 +16,7 @@ class GetSet({
   Future<ScoreSet?> action(String setId, BehaviourTrack? track) async {
     final existing = await db.get(setId);
     if (existing != null) {
-      return existing.deletedAt == null ? existing : null;
+      return existing;
     }
     if (!await api.canBeReached()) {
       return null;
@@ -41,6 +41,6 @@ class FetchSet({
       return null;
     }
     await db.put(set);
-    return set.deletedAt == null ? set : null;
+    return set;
   }
 }

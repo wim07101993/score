@@ -35,7 +35,6 @@ class Collection extends _i1.ObjectParameterEncodable
     required this.sharedWith,
     required this.isOwner,
     required this.lastChangedAt,
-    required this.deletedAt,
   });
 
   factory Collection.fromSimple(
@@ -67,9 +66,6 @@ class Collection extends _i1.ObjectParameterEncodable
       ),
       lastChangedAt: _$map[r'last_changed_at'].decodeJsonDateTime(
         context: r'Collection.last_changed_at',
-      ),
-      deletedAt: _$map[r'deleted_at'].decodeJsonNullableDateTime(
-        context: r'Collection.deleted_at',
       ),
     );
   }
@@ -128,14 +124,6 @@ class Collection extends _i1.ObjectParameterEncodable
   /// When the collection was last written.
   final _i3.DateTime lastChangedAt;
 
-  /// When the collection was deleted, or null while it still exists.
-  ///
-  /// A deleted collection is kept rather than removed, and it is still returned
-  /// by the change window, so that a client holding a copy learns that it is
-  /// gone instead of syncing it back.
-  ///
-  final _i3.DateTime? deletedAt;
-
   @_i3.override
   _i3.Object? toJson() => {
     r'id': id,
@@ -145,7 +133,6 @@ class Collection extends _i1.ObjectParameterEncodable
     r'shared_with': sharedWith,
     r'is_owner': isOwner,
     r'last_changed_at': lastChangedAt.toTimeZonedIso8601String(),
-    r'deleted_at': deletedAt?.toTimeZonedIso8601String(),
   };
 
   $$CollectionCopyWith<Collection> get copyWith => _CollectionCopyWith(this);
@@ -161,8 +148,7 @@ class Collection extends _i1.ObjectParameterEncodable
         _$deepEquals.equals(other.entries, this.entries) &&
         _$deepEquals.equals(other.sharedWith, this.sharedWith) &&
         other.isOwner == this.isOwner &&
-        other.lastChangedAt == this.lastChangedAt &&
-        other.deletedAt == this.deletedAt;
+        other.lastChangedAt == this.lastChangedAt;
   }
 
   @_i3.override
@@ -176,7 +162,6 @@ class Collection extends _i1.ObjectParameterEncodable
       deepEquals.hash(sharedWith),
       isOwner,
       lastChangedAt,
-      deletedAt,
     ]);
   }
 
@@ -213,7 +198,6 @@ abstract class $$CollectionCopyWith<$Res> {
     _i3.List<_i3.String>? sharedWith,
     _i3.bool? isOwner,
     _i3.DateTime? lastChangedAt,
-    _i3.DateTime? deletedAt,
   });
   _i3.String get id;
   _i3.String get title;
@@ -222,7 +206,6 @@ abstract class $$CollectionCopyWith<$Res> {
   _i3.List<_i3.String> get sharedWith;
   _i3.bool get isOwner;
   _i3.DateTime get lastChangedAt;
-  _i3.DateTime? get deletedAt;
 }
 
 class _CollectionCopyWith<$Res> implements $$CollectionCopyWith<$Res> {
@@ -254,9 +237,6 @@ class _CollectionCopyWith<$Res> implements $$CollectionCopyWith<$Res> {
   _i3.DateTime get lastChangedAt => _value.lastChangedAt;
 
   @_i3.override
-  _i3.DateTime? get deletedAt => _value.deletedAt;
-
-  @_i3.override
   $Res call({
     _i3.Object? id = _sentinel,
     _i3.Object? title = _sentinel,
@@ -265,7 +245,6 @@ class _CollectionCopyWith<$Res> implements $$CollectionCopyWith<$Res> {
     _i3.Object? sharedWith = _sentinel,
     _i3.Object? isOwner = _sentinel,
     _i3.Object? lastChangedAt = _sentinel,
-    _i3.Object? deletedAt = _sentinel,
   }) {
     return (Collection(
       id: _i3.identical(id, _sentinel) ? this.id : (id as _i3.String),
@@ -287,9 +266,6 @@ class _CollectionCopyWith<$Res> implements $$CollectionCopyWith<$Res> {
       lastChangedAt: _i3.identical(lastChangedAt, _sentinel)
           ? this.lastChangedAt
           : (lastChangedAt as _i3.DateTime),
-      deletedAt: _i3.identical(deletedAt, _sentinel)
-          ? this.deletedAt
-          : (deletedAt as _i3.DateTime?),
     ) as $Res);
   }
 }

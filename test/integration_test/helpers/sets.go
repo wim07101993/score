@@ -49,12 +49,22 @@ func MustListSets(t *testing.T, client *ApiClient, params api.ListSetsParams) ap
 // caller has, which in a suite that runs in parallel is more than the set the
 // test is about, so a test says which one it means rather than counting.
 func FindSet(sets api.GetSetsResponse, setId uuid.UUID) (api.Set, bool) {
-	for _, s := range sets {
-		if s.ID == setId {
+	for _, item := range sets {
+		if s, ok := item.GetSet(); ok && s.ID == setId {
 			return s, true
 		}
 	}
 	return api.Set{}, false
+}
+
+// FindDeletedSet picks one set out of a listing that lists it as deleted.
+func FindDeletedSet(sets api.GetSetsResponse, setId uuid.UUID) (api.DeletedResource, bool) {
+	for _, item := range sets {
+		if d, ok := item.GetDeletedResource(); ok && d.ID == setId {
+			return d, true
+		}
+	}
+	return api.DeletedResource{}, false
 }
 
 // ScoreIdsOf is the scores of a set in playing order, which is what a test

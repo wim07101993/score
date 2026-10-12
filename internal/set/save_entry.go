@@ -219,7 +219,7 @@ func requireOwnedSet(ctx context.Context, tx pgx.Tx, setId string, user User) er
 		SELECT s.owner_subject, (sh.email IS NOT NULL) AS shared
 		FROM sets AS s
 		LEFT JOIN set_shares AS sh ON sh.set_id = s.id AND sh.email = @email
-		WHERE s.id = @id AND s.deletedAt IS NULL`
+		WHERE s.id = @id`
 
 	var (
 		owner  string

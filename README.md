@@ -32,6 +32,7 @@ api/
 │   ├── sets/
 │   │   ├── methods.yaml         what GET /sets answers to
 │   │   ├── set.yaml             what more than one of these is written in
+│   │   ├── listed_set.yaml      a set, or what is left of a deleted one
 │   │   ├── set_entry.yaml
 │   │   └── by_id/               a resource under a resource is a directory
 │   │       ├── methods.yaml         under a directory: the path is the path
@@ -43,6 +44,7 @@ api/
 │   └── collections/             the same shape, less the running order
 │       ├── methods.yaml
 │       ├── collection.yaml
+│       ├── listed_collection.yaml
 │       ├── collection_entry.yaml
 │       └── by_id/
 │           ├── methods.yaml
@@ -55,6 +57,7 @@ api/
 ├── responses/                   what a failure comes back as, a file per status
 ├── schemas/                     what more than one endpoint is written in
 │   ├── problem_details.yaml
+│   ├── deleted_resource.yaml    what a listing says about a deleted set or collection
 │   ├── entry_view.yaml          a set and a collection are read the same way
 │   └── write_entry_view.yaml
 └── security/

@@ -60,11 +60,11 @@ func (h *Handler) ListCollections(
 
 	page := make(api.GetCollectionsResponse, 0, len(collections))
 	for _, stored := range collections {
-		apiCollection, err := mapCollectionToApi(stored)
+		item, err := mapListedCollectionToApi(stored)
 		if err != nil {
 			return nil, err
 		}
-		page = append(page, *apiCollection)
+		page = append(page, item)
 	}
 	return &page, nil
 }
@@ -325,6 +325,22 @@ func collectionCallerOf(ctx context.Context) (collection.User, error) {
 	return collection.NewUser(user.Subject, user.VerifiedEmail()), nil
 }
 
+func mapListedCollectionToApi(stored *collection.Collection) (api.ListedCollection, error) {
+	if stored.DeletedAt != nil {
+		deleted, err := mapDeletedToApi(stored.Id, *stored.DeletedAt)
+		if err != nil {
+			return api.ListedCollection{}, err
+		}
+		return api.NewDeletedResourceListedCollection(deleted), nil
+	}
+
+	apiCollection, err := mapCollectionToApi(stored)
+	if err != nil {
+		return api.ListedCollection{}, err
+	}
+	return api.NewCollectionListedCollection(*apiCollection), nil
+}
+
 func mapCollectionToApi(stored *collection.Collection) (*api.Collection, error) {
 	id, err := uuid.Parse(stored.Id)
 	if err != nil {
@@ -340,11 +356,6 @@ func mapCollectionToApi(stored *collection.Collection) (*api.Collection, error) 
 		entries = append(entries, *mapped)
 	}
 
-	deletedAt := api.NilDateTime{Null: true}
-	if stored.DeletedAt != nil {
-		deletedAt = api.NewNilDateTime(*stored.DeletedAt)
-	}
-
 	return &api.Collection{
 		ID:            id,
 		Title:         stored.Title,
@@ -353,7 +364,6 @@ func mapCollectionToApi(stored *collection.Collection) (*api.Collection, error) 
 		SharedWith:    stored.SharedWith,
 		IsOwner:       stored.IsOwner,
 		LastChangedAt: stored.LastChangedAt,
-		DeletedAt:     deletedAt,
 	}, nil
 }
 

@@ -16,7 +16,7 @@ class GetCollection({
   Future<Collection?> action(String collectionId, BehaviourTrack? track) async {
     final existing = await db.get(collectionId);
     if (existing != null) {
-      return existing.deletedAt == null ? existing : null;
+      return existing;
     }
     if (!await api.canBeReached()) {
       return null;
@@ -41,6 +41,6 @@ class FetchCollection({
       return null;
     }
     await db.put(collection);
-    return collection.deletedAt == null ? collection : null;
+    return collection;
   }
 }

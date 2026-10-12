@@ -4,6 +4,6 @@
 
 import 'dart:core' as _i1;
 
-import 'package:score_api/src/model/collection.dart' as _i2;
+import 'package:score_api/src/model/listed_collection.dart' as _i2;
 
-typedef GetCollectionsResponse = _i1.List<_i2.Collection>;
+typedef GetCollectionsResponse = _i1.List<_i2.ListedCollection>;

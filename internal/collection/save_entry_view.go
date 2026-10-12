@@ -54,7 +54,6 @@ func SaveEntryView(
 			ON sh.collection_id = c.id AND sh.email = @email
 		WHERE e.id = @entry_id
 			AND e.collection_id = @collection_id
-			AND c.deletedAt IS NULL
 			AND (c.owner_subject = @subject OR sh.email IS NOT NULL)`
 
 	var readable int

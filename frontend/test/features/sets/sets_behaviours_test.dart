@@ -10,6 +10,7 @@ import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/behaviours/sync_sets.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/api_exception.dart';
 
 import '../../test_api.dart';
@@ -21,6 +22,7 @@ class _Api() extends SetsApi {
   bool reachable = true;
   bool writesFail = false;
   final Map<String, ScoreSet> sets = {};
+  final Map<String, DateTime> deleted = {};
   final List<Map<String, Object?>> entryWrites = [];
   final List<Map<String, Object?>> viewWrites = [];
   final List<DateTime> since = [];
@@ -42,12 +44,17 @@ class _Api() extends SetsApi {
   Future<bool> canBeReached() async => reachable;
 
   @override
-  Future<List<ScoreSet>> listChanges({
+  Future<SyncChanges<ScoreSet>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {
     this.since.add(since);
-    return sets.values.toList(growable: false);
+    return (
+      changed: sets.values.toList(growable: false),
+      deleted: deleted.entries
+          .map((gone) => DeletedEntity(id: gone.key, deletedAt: gone.value))
+          .toList(growable: false),
+    );
   }
 
   @override
@@ -65,7 +72,6 @@ class _Api() extends SetsApi {
       sharedWith: (writeSet['shared_with']! as List).cast<String>(),
       isOwner: true,
       lastChangedAt: DateTime.utc(2026, 10),
-      deletedAt: null,
     );
   }
 
@@ -124,6 +130,7 @@ class _Api() extends SetsApi {
   Future<void> deleteSet(String setId) async {
     _failIfAsked();
     sets.remove(setId);
+    deleted[setId] = DateTime.utc(2026, 11);
   }
 }
 
@@ -349,7 +356,6 @@ void main() {
         sharedWith: const [],
         isOwner: false,
         lastChangedAt: DateTime.utc(2026, 9),
-        deletedAt: null,
       );
 
       await sets.sync();
@@ -358,6 +364,20 @@ void main() {
       expect(
         await store.syncDates.lastSyncedAt(SyncSets.key),
         DateTime.utc(2026, 9),
+      );
+    });
+
+    test('forgets what was deleted on the server', () async {
+      await sets.saveSet(const SaveSetParams(id: 'gig', title: 'Friday'));
+      api.sets.remove('gig');
+      api.deleted['gig'] = DateTime.utc(2026, 11);
+
+      await sets.sync();
+
+      expect(await store.sets.get('gig'), isNull);
+      expect(
+        await store.syncDates.lastSyncedAt(SyncSets.key),
+        DateTime.utc(2026, 11),
       );
     });
   });

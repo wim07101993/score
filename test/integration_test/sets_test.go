@@ -93,7 +93,6 @@ func TestCreatingASetStoresWhatWasGiven(t *testing.T) {
 	assert.Equal(t, "Zomerbar 12 juli", saved.Title)
 	assert.Equal(t, "outside, two sets of 45", saved.Description)
 	assert.True(t, saved.IsOwner, "the user who created a set owns it")
-	assert.True(t, saved.DeletedAt.Null, "a set that was just created is not deleted")
 	assert.NotNil(t, saved.Entries, "entries should be an empty list, never null")
 	assert.NotNil(t, saved.SharedWith, "shared_with should be an empty list, never null")
 }
@@ -679,22 +678,16 @@ func TestUnsharingASetTakesItAway(t *testing.T) {
 
 	listed := helpers.MustListSets(t, bandMember.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
-	gone, found := helpers.FindSet(listed, setId)
-	require.True(t, found, "a set somebody was taken off should be listed to them, so their devices drop it")
-	assert.False(t, gone.DeletedAt.Null, "a set somebody was taken off should be listed to them as deleted")
-	assert.Equal(t, gone.DeletedAt.Value, gone.LastChangedAt,
-		"it is gone from the moment it was unshared, which is when it last changed for them")
-	assert.False(t, gone.IsOwner)
-	assert.Empty(t, gone.Title, "what the set is called since is none of their business")
-	assert.Empty(t, gone.Description)
-	assert.Empty(t, gone.Entries, "what is in the set is none of their business any more")
-	assert.Empty(t, gone.SharedWith)
+	_, listedWhole := helpers.FindSet(listed, setId)
+	assert.False(t, listedWhole, "what the set is like since is none of their business")
+	gone, found := helpers.FindDeletedSet(listed, setId)
+	require.True(t, found, "a set somebody was taken off should be listed to them as deleted, so their devices drop it")
+	assert.False(t, gone.DeletedAt.IsZero(), "it is gone from the moment it was unshared")
 
 	asOwner := helpers.MustListSets(t, owner.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
 	kept, found := helpers.FindSet(asOwner, setId)
-	require.True(t, found)
-	assert.True(t, kept.DeletedAt.Null, "taking somebody off a set does not delete it for the owner")
+	require.True(t, found, "taking somebody off a set does not delete it for the owner")
 	assert.Equal(t, "Renamed since", kept.Title)
 	assert.Len(t, kept.Entries, 1)
 }
@@ -738,15 +731,11 @@ func TestSharingASetAgainBringsItBack(t *testing.T) {
 
 	listed := helpers.MustListSets(t, bandMember.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
-	count := 0
-	for _, s := range listed {
-		if s.ID == setId {
-			count++
-			assert.True(t, s.DeletedAt.Null, "a set shared again should not be listed as gone")
-			assert.Equal(t, "On again", s.Title)
-		}
-	}
-	assert.Equal(t, 1, count, "a set shared again should be listed once")
+	_, listedAsGone := helpers.FindDeletedSet(listed, setId)
+	assert.False(t, listedAsGone, "a set shared again should not be listed as gone")
+	again, found := helpers.FindSet(listed, setId)
+	require.True(t, found, "a set shared again should be listed")
+	assert.Equal(t, "On again", again.Title)
 }
 
 // Taking one person off says nothing to anybody who is still on it.
@@ -763,9 +752,10 @@ func TestUnsharingSomebodyLeavesTheOthersAlone(t *testing.T) {
 
 	listed := helpers.MustListSets(t, staying.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
+	_, listedAsGone := helpers.FindDeletedSet(listed, setId)
+	assert.False(t, listedAsGone, "somebody still on the set should not be told it is gone")
 	kept, found := helpers.FindSet(listed, setId)
 	require.True(t, found)
-	assert.True(t, kept.DeletedAt.Null, "somebody still on the set should not be told it is gone")
 	assert.Equal(t, "The band", kept.Title)
 }
 
@@ -787,10 +777,12 @@ func TestADeletedSetIsReportedAsDeletedRatherThanVanishing(t *testing.T) {
 
 	sets := helpers.MustListSets(t, owner.ApiClient,
 		api.ListSetsParams{ChangesSince: aWhileAgo(), ChangesUntil: soon()})
-	deleted, found := helpers.FindSet(sets, setId)
 
+	_, listedWhole := helpers.FindSet(sets, setId)
+	assert.False(t, listedWhole, "a deleted set should not be listed as if it were still there")
+	deleted, found := helpers.FindDeletedSet(sets, setId)
 	require.True(t, found, "a deleted set should still be reported so other devices drop it")
-	assert.False(t, deleted.DeletedAt.Null, "the set is not marked as deleted")
+	assert.False(t, deleted.DeletedAt.IsZero(), "the set should say when it was deleted")
 }
 
 func TestADeletedSetCannotBeReadAnyMore(t *testing.T) {
@@ -828,7 +820,6 @@ func TestWritingADeletedSetAgainBringsItBack(t *testing.T) {
 
 	revived := helpers.MustGetSet(t, owner.ApiClient, setId)
 	assert.Equal(t, "Back on", revived.Title)
-	assert.True(t, revived.DeletedAt.Null)
 }
 
 // A device that was offline while a set was edited should get it on its next

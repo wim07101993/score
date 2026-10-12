@@ -21,7 +21,6 @@ required:
   - shared_with
   - is_owner
   - last_changed_at
-  - deleted_at
 properties:
   id:
     type: string
@@ -65,12 +64,3 @@ properties:
     type: string
     format: date-time
     description: When the collection was last written.
-  deleted_at:
-    type: [string, 'null']
-    format: date-time
-    description: |
-      When the collection was deleted, or null while it still exists.
-
-      A deleted collection is kept rather than removed, and it is still returned
-      by the change window, so that a client holding a copy learns that it is
-      gone instead of syncing it back.

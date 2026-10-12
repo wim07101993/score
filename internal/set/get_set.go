@@ -17,8 +17,7 @@ func Get(ctx context.Context, db *pgxpool.Conn, setId string, user User) (*Set, 
 
 	const query = selectSets + `
 		WHERE id = @id
-			AND (owner_subject = @subject OR shared)
-			AND deletedAt IS NULL`
+			AND (owner_subject = @subject OR shared)`
 
 	rows, err := db.Query(ctx, query, pgx.NamedArgs{
 		"id":      setId,
@@ -82,10 +81,15 @@ func List(
 	if err != nil {
 		return nil, err
 	}
-	if len(unshared) == 0 {
+	deleted, err := listDeleted(ctx, db, user, changesSince, changesUntil)
+	if err != nil {
+		return nil, err
+	}
+	if len(unshared) == 0 && len(deleted) == 0 {
 		return sets, nil
 	}
 	sets = append(sets, unshared...)
+	sets = append(sets, deleted...)
 	slices.SortStableFunc(sets, func(a, b *Set) int {
 		return b.LastChangedAt.Compare(a.LastChangedAt)
 	})
@@ -118,7 +122,7 @@ func listUnshared(
 	changesUntil time.Time,
 ) ([]*Set, error) {
 	const query = `
-		SELECT u.set_id, s.owner_subject, '', '', u.unshared_at, u.unshared_at
+		SELECT u.set_id, u.unshared_at
 		FROM set_unshares AS u
 		JOIN sets AS s ON s.id = u.set_id
 		WHERE u.email = @email
@@ -138,9 +142,39 @@ func listUnshared(
 		return nil, fmt.Errorf("failed to query the sets the caller was taken off: %w", err)
 	}
 
-	unshared, err := scanSets(rows, user)
+	unshared, err := scanDeleted(rows)
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan the sets the caller was taken off: %w", err)
 	}
 	return unshared, nil
+}
+
+func listDeleted(
+	ctx context.Context,
+	db *pgxpool.Conn,
+	user User,
+	changesSince time.Time,
+	changesUntil time.Time,
+) ([]*Set, error) {
+	const query = `
+		SELECT id, deleted_at
+		FROM deleted_sets
+		WHERE (owner_subject = @subject OR @email = ANY(shared_with))
+			AND deleted_at >= @since AND deleted_at <= @until`
+
+	rows, err := db.Query(ctx, query, pgx.NamedArgs{
+		"subject": user.Subject,
+		"email":   user.Email,
+		"since":   changesSince,
+		"until":   changesUntil,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query the deleted sets: %w", err)
+	}
+
+	deleted, err := scanDeleted(rows)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan the deleted sets: %w", err)
+	}
+	return deleted, nil
 }

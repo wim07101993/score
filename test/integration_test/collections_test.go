@@ -52,7 +52,6 @@ func TestCreatingACollectionStoresWhatWasGiven(t *testing.T) {
 	assert.Equal(t, "The Real Book, vol. 1", saved.Title)
 	assert.Equal(t, "what we can be asked for", saved.Description)
 	assert.True(t, saved.IsOwner, "the user who created a collection owns it")
-	assert.True(t, saved.DeletedAt.Null, "a collection that was just created is not deleted")
 	assert.NotNil(t, saved.Entries, "entries should be an empty list, never null")
 	assert.NotNil(t, saved.SharedWith, "shared_with should be an empty list, never null")
 }
@@ -428,23 +427,18 @@ func TestUnsharingACollectionTakesItAway(t *testing.T) {
 		ChangesSince: aWhileAgo(),
 		ChangesUntil: soon(),
 	})
-	gone, found := helpers.FindCollection(listed, collectionId)
-	require.True(t, found, "a collection somebody was taken off should be listed to them, so their devices drop it")
-	assert.False(t, gone.DeletedAt.Null, "a collection somebody was taken off should be listed to them as deleted")
-	assert.Equal(t, gone.DeletedAt.Value, gone.LastChangedAt)
-	assert.False(t, gone.IsOwner)
-	assert.Empty(t, gone.Title, "what the collection is called since is none of their business")
-	assert.Empty(t, gone.Description)
-	assert.Empty(t, gone.Entries, "what is in the collection is none of their business any more")
-	assert.Empty(t, gone.SharedWith)
+	_, listedWhole := helpers.FindCollection(listed, collectionId)
+	assert.False(t, listedWhole, "what the collection is like since is none of their business")
+	gone, found := helpers.FindDeletedCollection(listed, collectionId)
+	require.True(t, found, "a collection somebody was taken off should be listed to them as deleted, so their devices drop it")
+	assert.False(t, gone.DeletedAt.IsZero(), "it is gone from the moment it was unshared")
 
 	asOwner := helpers.MustListCollections(t, owner.ApiClient, api.ListCollectionsParams{
 		ChangesSince: aWhileAgo(),
 		ChangesUntil: soon(),
 	})
 	kept, found := helpers.FindCollection(asOwner, collectionId)
-	require.True(t, found)
-	assert.True(t, kept.DeletedAt.Null, "taking somebody off a collection does not delete it for the owner")
+	require.True(t, found, "taking somebody off a collection does not delete it for the owner")
 	assert.Equal(t, "Renamed since", kept.Title)
 	assert.Len(t, kept.Entries, 1)
 }
@@ -470,15 +464,11 @@ func TestSharingACollectionAgainBringsItBack(t *testing.T) {
 		ChangesSince: aWhileAgo(),
 		ChangesUntil: soon(),
 	})
-	count := 0
-	for _, c := range listed {
-		if c.ID == collectionId {
-			count++
-			assert.True(t, c.DeletedAt.Null, "a collection shared again should not be listed as gone")
-			assert.Equal(t, "On again", c.Title)
-		}
-	}
-	assert.Equal(t, 1, count, "a collection shared again should be listed once")
+	_, listedAsGone := helpers.FindDeletedCollection(listed, collectionId)
+	assert.False(t, listedAsGone, "a collection shared again should not be listed as gone")
+	again, found := helpers.FindCollection(listed, collectionId)
+	require.True(t, found, "a collection shared again should be listed")
+	assert.Equal(t, "On again", again.Title)
 }
 
 // Who else somebody shares with is not the business of the people they share
@@ -648,9 +638,11 @@ func TestADeletedCollectionKeepsTurningUpInTheWindow(t *testing.T) {
 		ChangesUntil: time.Now().Add(time.Minute),
 	})
 
-	found, ok := helpers.FindCollection(listed, collectionId)
+	_, listedWhole := helpers.FindCollection(listed, collectionId)
+	assert.False(t, listedWhole, "a deleted collection should not be listed as if it were still there")
+	found, ok := helpers.FindDeletedCollection(listed, collectionId)
 	require.True(t, ok, "a deleted collection should still turn up in the window")
-	assert.False(t, found.DeletedAt.Null, "and should say when it was deleted")
+	assert.False(t, found.DeletedAt.IsZero(), "and should say when it was deleted")
 
 	byId, err := owner.GetCollection(t.Context(),
 		api.GetCollectionParams{CollectionId: collectionId})

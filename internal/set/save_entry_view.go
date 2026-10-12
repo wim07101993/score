@@ -52,7 +52,6 @@ func SaveEntryView(
 		LEFT JOIN set_shares AS sh ON sh.set_id = s.id AND sh.email = @email
 		WHERE e.id = @entry_id
 			AND e.set_id = @set_id
-			AND s.deletedAt IS NULL
 			AND (s.owner_subject = @subject OR sh.email IS NOT NULL)`
 
 	var readable int

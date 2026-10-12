@@ -37,7 +37,11 @@ func Save(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	const ownerQuery = `SELECT owner_subject FROM collections WHERE id = @id`
+	const ownerQuery = `
+		SELECT owner_subject FROM collections WHERE id = @id
+		UNION ALL
+		SELECT owner_subject FROM deleted_collections WHERE id = @id
+		LIMIT 1`
 	var owner string
 	err = tx.QueryRow(ctx, ownerQuery, pgx.NamedArgs{"id": collectionId}).Scan(&owner)
 	switch {
@@ -51,15 +55,12 @@ func Save(
 	}
 
 	const upsertQuery = `
-		INSERT INTO collections (id, owner_subject, title, description, lastChangedAt, deletedAt)
-		VALUES (@id, @owner_subject, @title, @description, @lastChangedAt, NULL)
+		INSERT INTO collections (id, owner_subject, title, description, lastChangedAt)
+		VALUES (@id, @owner_subject, @title, @description, @lastChangedAt)
 		ON CONFLICT (id) DO UPDATE SET
 			title = EXCLUDED.title,
 			description = EXCLUDED.description,
-			lastChangedAt = EXCLUDED.lastChangedAt,
-			-- Writing a collection again brings it back: a client that still
-			-- has it and edits it is saying it should exist.
-			deletedAt = NULL`
+			lastChangedAt = EXCLUDED.lastChangedAt`
 
 	now := time.Now().UTC()
 	_, err = tx.Exec(ctx, upsertQuery, pgx.NamedArgs{
@@ -71,6 +72,12 @@ func Save(
 	})
 	if err != nil {
 		return fmt.Errorf("failed to save the collection: %w", err)
+	}
+
+	// Writing a collection that had been deleted brings it back, with nothing in it.
+	_, err = tx.Exec(ctx, `DELETE FROM deleted_collections WHERE id = @id`, pgx.NamedArgs{"id": collectionId})
+	if err != nil {
+		return fmt.Errorf("failed to bring the collection back: %w", err)
 	}
 
 	// The entries are left exactly as they are. What is in the collection is a

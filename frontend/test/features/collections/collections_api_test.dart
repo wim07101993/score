@@ -49,15 +49,17 @@ void main() {
     expect(collection.entries.single.scoreId, 'score-1');
   });
 
-  test('a collection deleted there says when', () async {
+  test('a collection deleted there is listed as only its id', () async {
     final api = answering([
-      {..._collection, 'deleted_at': '2026-09-01T00:00:00Z'},
+      _collection,
+      {'id': 'c2', 'deleted_at': '2026-09-01T00:00:00Z'},
     ]);
 
-    expect(
-      (await api.listChanges(since: DateTime.utc(1970))).single.deletedAt,
-      DateTime.utc(2026, 9),
-    );
+    final changes = await api.listChanges(since: DateTime.utc(1970));
+
+    expect(changes.changed.single.id, 'c1');
+    expect(changes.deleted.single.id, 'c2');
+    expect(changes.deleted.single.deletedAt, DateTime.utc(2026, 9));
   });
 }
 
@@ -69,7 +71,6 @@ final _collection = {
   'shared_with': <String>[],
   'is_owner': false,
   'last_changed_at': '2026-09-01T00:00:00Z',
-  'deleted_at': null,
 };
 
 Map<String, Object?> _entry({

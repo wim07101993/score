@@ -359,7 +359,7 @@ func (s *GetCollectionUnauthorized) Validate() error {
 }
 
 func (s GetCollectionsResponse) Validate() error {
-	alias := ([]Collection)(s)
+	alias := ([]ListedCollection)(s)
 	if alias == nil {
 		return errors.New("nil is invalid value")
 	}
@@ -473,7 +473,7 @@ func (s *GetSetUnauthorized) Validate() error {
 }
 
 func (s GetSetsResponse) Validate() error {
-	alias := ([]Set)(s)
+	alias := ([]ListedSet)(s)
 	if alias == nil {
 		return errors.New("nil is invalid value")
 	}
@@ -567,6 +567,34 @@ func (s *ListSetsUnauthorized) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s ListedCollection) Validate() error {
+	switch s.Type {
+	case CollectionListedCollection:
+		if err := s.Collection.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case DeletedResourceListedCollection:
+		return nil // no validation needed
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
+func (s ListedSet) Validate() error {
+	switch s.Type {
+	case SetListedSet:
+		if err := s.Set.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case DeletedResourceListedSet:
+		return nil // no validation needed
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s *ProblemDetails) Validate() error {

@@ -27,7 +27,6 @@ class Set extends _i1.ObjectParameterEncodable implements _i1.UriEncodable {
     required this.sharedWith,
     required this.isOwner,
     required this.lastChangedAt,
-    required this.deletedAt,
   });
 
   factory Set.fromSimple(_i3.String? value, {required _i3.bool explode}) {
@@ -54,9 +53,6 @@ class Set extends _i1.ObjectParameterEncodable implements _i1.UriEncodable {
       isOwner: _$map[r'is_owner'].decodeJsonBool(context: r'Set.is_owner'),
       lastChangedAt: _$map[r'last_changed_at'].decodeJsonDateTime(
         context: r'Set.last_changed_at',
-      ),
-      deletedAt: _$map[r'deleted_at'].decodeJsonNullableDateTime(
-        context: r'Set.deleted_at',
       ),
     );
   }
@@ -104,14 +100,6 @@ class Set extends _i1.ObjectParameterEncodable implements _i1.UriEncodable {
   /// When the set was last written.
   final _i3.DateTime lastChangedAt;
 
-  /// When the set was deleted, or null while it still exists.
-  ///
-  /// A deleted set is kept rather than removed, and it is still returned by
-  /// the change window, so that a client holding a copy learns that it is gone
-  /// instead of syncing it back.
-  ///
-  final _i3.DateTime? deletedAt;
-
   @_i3.override
   _i3.Object? toJson() => {
     r'id': id,
@@ -121,7 +109,6 @@ class Set extends _i1.ObjectParameterEncodable implements _i1.UriEncodable {
     r'shared_with': sharedWith,
     r'is_owner': isOwner,
     r'last_changed_at': lastChangedAt.toTimeZonedIso8601String(),
-    r'deleted_at': deletedAt?.toTimeZonedIso8601String(),
   };
 
   $$SetCopyWith<Set> get copyWith => _SetCopyWith(this);
@@ -137,8 +124,7 @@ class Set extends _i1.ObjectParameterEncodable implements _i1.UriEncodable {
         _$deepEquals.equals(other.entries, this.entries) &&
         _$deepEquals.equals(other.sharedWith, this.sharedWith) &&
         other.isOwner == this.isOwner &&
-        other.lastChangedAt == this.lastChangedAt &&
-        other.deletedAt == this.deletedAt;
+        other.lastChangedAt == this.lastChangedAt;
   }
 
   @_i3.override
@@ -152,7 +138,6 @@ class Set extends _i1.ObjectParameterEncodable implements _i1.UriEncodable {
       deepEquals.hash(sharedWith),
       isOwner,
       lastChangedAt,
-      deletedAt,
     ]);
   }
 
@@ -189,7 +174,6 @@ abstract class $$SetCopyWith<$Res> {
     _i3.List<_i3.String>? sharedWith,
     _i3.bool? isOwner,
     _i3.DateTime? lastChangedAt,
-    _i3.DateTime? deletedAt,
   });
   _i3.String get id;
   _i3.String get title;
@@ -198,7 +182,6 @@ abstract class $$SetCopyWith<$Res> {
   _i3.List<_i3.String> get sharedWith;
   _i3.bool get isOwner;
   _i3.DateTime get lastChangedAt;
-  _i3.DateTime? get deletedAt;
 }
 
 class _SetCopyWith<$Res> implements $$SetCopyWith<$Res> {
@@ -230,9 +213,6 @@ class _SetCopyWith<$Res> implements $$SetCopyWith<$Res> {
   _i3.DateTime get lastChangedAt => _value.lastChangedAt;
 
   @_i3.override
-  _i3.DateTime? get deletedAt => _value.deletedAt;
-
-  @_i3.override
   $Res call({
     _i3.Object? id = _sentinel,
     _i3.Object? title = _sentinel,
@@ -241,7 +221,6 @@ class _SetCopyWith<$Res> implements $$SetCopyWith<$Res> {
     _i3.Object? sharedWith = _sentinel,
     _i3.Object? isOwner = _sentinel,
     _i3.Object? lastChangedAt = _sentinel,
-    _i3.Object? deletedAt = _sentinel,
   }) {
     return (Set(
       id: _i3.identical(id, _sentinel) ? this.id : (id as _i3.String),
@@ -263,9 +242,6 @@ class _SetCopyWith<$Res> implements $$SetCopyWith<$Res> {
       lastChangedAt: _i3.identical(lastChangedAt, _sentinel)
           ? this.lastChangedAt
           : (lastChangedAt as _i3.DateTime),
-      deletedAt: _i3.identical(deletedAt, _sentinel)
-          ? this.deletedAt
-          : (deletedAt as _i3.DateTime?),
     ) as $Res);
   }
 }

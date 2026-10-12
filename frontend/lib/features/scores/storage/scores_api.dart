@@ -18,7 +18,7 @@ class const ScoresApi({
   api.ScoresApi get _api => clientFactory.build(api.ScoresApi.new);
 
   @override
-  Future<List<Score>> listChanges({
+  Future<SyncChanges<Score>> listChanges({
     required DateTime since,
     DateTime? until,
   }) async {
@@ -28,8 +28,10 @@ class const ScoresApi({
     );
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
-        api.ListScoresResponse200(:final body) =>
-          body.map((el) => el.toScore()).toList(growable: false),
+        api.ListScoresResponse200(:final body) => (
+          changed: body.map((el) => el.toScore()).toList(growable: false),
+          deleted: const <DeletedEntity>[],
+        ),
         api.ListScoresResponse400(:final body) => throw body.toApiException(),
         api.ListScoresResponse401(:final body) => throw body.toApiException(),
         api.ListScoresResponse403(:final body) => throw body.toApiException(),

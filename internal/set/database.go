@@ -46,9 +46,9 @@ func NormalizeEmail(email string) string {
 // wrote on another device is exactly that — while somebody else writing theirs
 // is not, and does not turn up here.
 const selectSets = `
-	SELECT id, owner_subject, title, description, last_changed_at, deletedAt
+	SELECT id, owner_subject, title, description, last_changed_at
 	FROM (
-		SELECT s.id, s.owner_subject, s.title, s.description, s.deletedAt,
+		SELECT s.id, s.owner_subject, s.title, s.description,
 		       (sh.email IS NOT NULL) AS shared,
 		       GREATEST(s.lastChangedAt, COALESCE(v.last_changed_at, s.lastChangedAt)) AS last_changed_at
 		FROM sets AS s
@@ -72,9 +72,8 @@ func scanSets(rows pgx.Rows, user User) ([]*Set, error) {
 			title         string
 			description   string
 			lastChangedAt time.Time
-			deletedAt     *time.Time
 		)
-		if err := rows.Scan(&id, &ownerSubject, &title, &description, &lastChangedAt, &deletedAt); err != nil {
+		if err := rows.Scan(&id, &ownerSubject, &title, &description, &lastChangedAt); err != nil {
 			return nil, err
 		}
 
@@ -83,10 +82,6 @@ func scanSets(rows pgx.Rows, user User) ([]*Set, error) {
 		// would have the same set read differently from one deployment to the
 		// next, so it is said in UTC and the instant is what is left.
 		lastChangedAt = lastChangedAt.UTC()
-		if deletedAt != nil {
-			utc := deletedAt.UTC()
-			deletedAt = &utc
-		}
 
 		sets = append(sets, &Set{
 			Id:            id,
@@ -96,10 +91,33 @@ func scanSets(rows pgx.Rows, user User) ([]*Set, error) {
 			SharedWith:    make([]string, 0),
 			IsOwner:       ownerSubject == user.Subject,
 			LastChangedAt: lastChangedAt,
-			DeletedAt:     deletedAt,
 		})
 	}
 	return sets, rows.Err()
+}
+
+func scanDeleted(rows pgx.Rows) ([]*Set, error) {
+	defer rows.Close()
+
+	deleted := make([]*Set, 0)
+	for rows.Next() {
+		var (
+			id        string
+			deletedAt time.Time
+		)
+		if err := rows.Scan(&id, &deletedAt); err != nil {
+			return nil, err
+		}
+		deletedAt = deletedAt.UTC()
+		deleted = append(deleted, &Set{
+			Id:            id,
+			Entries:       make([]Entry, 0),
+			SharedWith:    make([]string, 0),
+			LastChangedAt: deletedAt,
+			DeletedAt:     &deletedAt,
+		})
+	}
+	return deleted, rows.Err()
 }
 
 // fillIn reads the entries and shares of the given sets. It is one query for

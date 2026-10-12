@@ -4,6 +4,6 @@
 
 import 'dart:core' as _i1;
 
-import 'package:score_api/src/model/set.dart' as _i2;
+import 'package:score_api/src/model/listed_set.dart' as _i2;
 
-typedef GetSetsResponse = _i1.List<_i2.Set>;
+typedef GetSetsResponse = _i1.List<_i2.ListedSet>;

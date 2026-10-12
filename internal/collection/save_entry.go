@@ -207,7 +207,7 @@ func requireOwnedCollection(ctx context.Context, tx pgx.Tx, collectionId string,
 		FROM collections AS c
 		LEFT JOIN collection_shares AS sh
 			ON sh.collection_id = c.id AND sh.email = @email
-		WHERE c.id = @id AND c.deletedAt IS NULL`
+		WHERE c.id = @id`
 
 	var (
 		owner  string

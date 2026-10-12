@@ -5,7 +5,6 @@ package api
 import (
 	"math/bits"
 	"strconv"
-	"time"
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
@@ -59,13 +58,9 @@ func (s *Collection) encodeFields(e *jx.Encoder) {
 		e.FieldStart("last_changed_at")
 		json.EncodeDateTime(e, s.LastChangedAt)
 	}
-	{
-		e.FieldStart("deleted_at")
-		s.DeletedAt.Encode(e, json.EncodeDateTime)
-	}
 }
 
-var jsonFieldsNameOfCollection = [8]string{
+var jsonFieldsNameOfCollection = [7]string{
 	0: "id",
 	1: "title",
 	2: "description",
@@ -73,7 +68,6 @@ var jsonFieldsNameOfCollection = [8]string{
 	4: "shared_with",
 	5: "is_owner",
 	6: "last_changed_at",
-	7: "deleted_at",
 }
 
 // Decode decodes Collection from json.
@@ -183,16 +177,6 @@ func (s *Collection) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"last_changed_at\"")
 			}
-		case "deleted_at":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				if err := s.DeletedAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"deleted_at\"")
-			}
 		default:
 			return d.Skip()
 		}
@@ -203,7 +187,7 @@ func (s *Collection) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b11111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1018,6 +1002,119 @@ func (s *DeleteSetUnauthorized) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *DeletedResource) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DeletedResource) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("deleted_at")
+		json.EncodeDateTime(e, s.DeletedAt)
+	}
+}
+
+var jsonFieldsNameOfDeletedResource = [2]string{
+	0: "id",
+	1: "deleted_at",
+}
+
+// Decode decodes DeletedResource from json.
+func (s *DeletedResource) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DeletedResource to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "deleted_at":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.DeletedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"deleted_at\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DeletedResource")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDeletedResource) {
+					name = jsonFieldsNameOfDeletedResource[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DeletedResource) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DeletedResource) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *EntryView) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -1314,7 +1411,7 @@ func (s *GetCollectionUnauthorized) UnmarshalJSON(data []byte) error {
 
 // Encode encodes GetCollectionsResponse as json.
 func (s GetCollectionsResponse) Encode(e *jx.Encoder) {
-	unwrapped := []Collection(s)
+	unwrapped := []ListedCollection(s)
 
 	e.ArrStart()
 	for _, elem := range unwrapped {
@@ -1328,11 +1425,11 @@ func (s *GetCollectionsResponse) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode GetCollectionsResponse to nil")
 	}
-	var unwrapped []Collection
+	var unwrapped []ListedCollection
 	if err := func() error {
-		unwrapped = make([]Collection, 0)
+		unwrapped = make([]ListedCollection, 0)
 		if err := d.Arr(func(d *jx.Decoder) error {
-			var elem Collection
+			var elem ListedCollection
 			if err := elem.Decode(d); err != nil {
 				return err
 			}
@@ -1718,7 +1815,7 @@ func (s *GetSetUnauthorized) UnmarshalJSON(data []byte) error {
 
 // Encode encodes GetSetsResponse as json.
 func (s GetSetsResponse) Encode(e *jx.Encoder) {
-	unwrapped := []Set(s)
+	unwrapped := []ListedSet(s)
 
 	e.ArrStart()
 	for _, elem := range unwrapped {
@@ -1732,11 +1829,11 @@ func (s *GetSetsResponse) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode GetSetsResponse to nil")
 	}
-	var unwrapped []Set
+	var unwrapped []ListedSet
 	if err := func() error {
-		unwrapped = make([]Set, 0)
+		unwrapped = make([]ListedSet, 0)
 		if err := d.Arr(func(d *jx.Decoder) error {
-			var elem Set
+			var elem ListedSet
 			if err := elem.Decode(d); err != nil {
 				return err
 			}
@@ -2108,50 +2205,306 @@ func (s *ListSetsUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes time.Time as json.
-func (o NilDateTime) Encode(e *jx.Encoder, format func(*jx.Encoder, time.Time)) {
-	if o.Null {
-		e.Null()
-		return
+// Encode encodes ListedCollection as json.
+func (s ListedCollection) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case CollectionListedCollection:
+		s.Collection.Encode(e)
+	case DeletedResourceListedCollection:
+		s.DeletedResource.Encode(e)
 	}
-	format(e, o.Value)
 }
 
-// Decode decodes time.Time from json.
-func (o *NilDateTime) Decode(d *jx.Decoder, format func(*jx.Decoder) (time.Time, error)) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilDateTime to nil")
+func (s ListedCollection) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case CollectionListedCollection:
+		s.Collection.encodeFields(e)
+	case DeletedResourceListedCollection:
+		s.DeletedResource.encodeFields(e)
 	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
+}
+
+// Decode decodes ListedCollection from json.
+func (s *ListedCollection) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListedCollection to nil")
+	}
+	// Sum type fields.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			switch string(key) {
+			case "deleted_at":
+				match := DeletedResourceListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "description":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.String {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := CollectionListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "entries":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.Array {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := CollectionListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "is_owner":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.Bool {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := CollectionListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "last_changed_at":
+				match := CollectionListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "shared_with":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.Array {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := CollectionListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "title":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.String {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := CollectionListedCollection
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case CollectionListedCollection:
+		if err := s.Collection.Decode(d); err != nil {
 			return err
 		}
-
-		var v time.Time
-		o.Value = v
-		o.Null = true
-		return nil
+	case DeletedResourceListedCollection:
+		if err := s.DeletedResource.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
 	}
-	o.Null = false
-	v, err := format(d)
-	if err != nil {
-		return err
-	}
-	o.Value = v
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s NilDateTime) MarshalJSON() ([]byte, error) {
+func (s ListedCollection) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
-	s.Encode(&e, json.EncodeDateTime)
+	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilDateTime) UnmarshalJSON(data []byte) error {
+func (s *ListedCollection) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
-	return s.Decode(d, json.DecodeDateTime)
+	return s.Decode(d)
+}
+
+// Encode encodes ListedSet as json.
+func (s ListedSet) Encode(e *jx.Encoder) {
+	switch s.Type {
+	case SetListedSet:
+		s.Set.Encode(e)
+	case DeletedResourceListedSet:
+		s.DeletedResource.Encode(e)
+	}
+}
+
+func (s ListedSet) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case SetListedSet:
+		s.Set.encodeFields(e)
+	case DeletedResourceListedSet:
+		s.DeletedResource.encodeFields(e)
+	}
+}
+
+// Decode decodes ListedSet from json.
+func (s *ListedSet) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListedSet to nil")
+	}
+	// Sum type fields.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
+
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			switch string(key) {
+			case "deleted_at":
+				match := DeletedResourceListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "description":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.String {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := SetListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "entries":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.Array {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := SetListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "is_owner":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.Bool {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := SetListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "last_changed_at":
+				match := SetListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "shared_with":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.Array {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := SetListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			case "title":
+				// Type-based discrimination: check if field has expected JSON type
+				if typ := d.Next(); typ != jx.String {
+					// Field exists but has wrong type, not a match for this variant
+					return d.Skip()
+				}
+				match := SetListedSet
+				if found && s.Type != match {
+					s.Type = ""
+					return errors.Errorf("multiple oneOf matches: (%v, %v)", s.Type, match)
+				}
+				found = true
+				s.Type = match
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case SetListedSet:
+		if err := s.Set.Decode(d); err != nil {
+			return err
+		}
+	case DeletedResourceListedSet:
+		if err := s.DeletedResource.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ListedSet) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListedSet) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
 }
 
 // Encode encodes uuid.UUID as json.
@@ -4796,13 +5149,9 @@ func (s *Set) encodeFields(e *jx.Encoder) {
 		e.FieldStart("last_changed_at")
 		json.EncodeDateTime(e, s.LastChangedAt)
 	}
-	{
-		e.FieldStart("deleted_at")
-		s.DeletedAt.Encode(e, json.EncodeDateTime)
-	}
 }
 
-var jsonFieldsNameOfSet = [8]string{
+var jsonFieldsNameOfSet = [7]string{
 	0: "id",
 	1: "title",
 	2: "description",
@@ -4810,7 +5159,6 @@ var jsonFieldsNameOfSet = [8]string{
 	4: "shared_with",
 	5: "is_owner",
 	6: "last_changed_at",
-	7: "deleted_at",
 }
 
 // Decode decodes Set from json.
@@ -4920,16 +5268,6 @@ func (s *Set) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"last_changed_at\"")
 			}
-		case "deleted_at":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				if err := s.DeletedAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"deleted_at\"")
-			}
 		default:
 			return d.Skip()
 		}
@@ -4940,7 +5278,7 @@ func (s *Set) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b11111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

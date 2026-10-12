@@ -12,6 +12,7 @@ import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
+import 'package:score/features/sync/models.dart';
 import 'package:score/storage/api_exception.dart';
 
 import '../../test_api.dart';
@@ -23,6 +24,7 @@ class _Api() extends CollectionsApi {
   bool reachable = true;
   bool writesFail = false;
   final Map<String, Collection> collections = {};
+  final Map<String, DateTime> deleted = {};
   final List<Map<String, Object?>> entryWrites = [];
   final List<Map<String, Object?>> viewWrites = [];
 
@@ -44,10 +46,15 @@ class _Api() extends CollectionsApi {
   Future<bool> canBeReached() async => reachable;
 
   @override
-  Future<List<Collection>> listChanges({
+  Future<SyncChanges<Collection>> listChanges({
     required DateTime since,
     DateTime? until,
-  }) async => collections.values.toList(growable: false);
+  }) async => (
+    changed: collections.values.toList(growable: false),
+    deleted: deleted.entries
+        .map((gone) => DeletedEntity(id: gone.key, deletedAt: gone.value))
+        .toList(growable: false),
+  );
 
   @override
   Future<Collection?> getCollection(String collectionId) async =>
@@ -68,7 +75,6 @@ class _Api() extends CollectionsApi {
       sharedWith: (writeCollection['shared_with']! as List).cast<String>(),
       isOwner: true,
       lastChangedAt: DateTime.utc(2026, 10),
-      deletedAt: null,
     );
   }
 
@@ -126,6 +132,7 @@ class _Api() extends CollectionsApi {
   Future<void> deleteCollection(String collectionId) async {
     _failIfAsked();
     collections.remove(collectionId);
+    deleted[collectionId] = DateTime.utc(2026, 11);
   }
 }
 
@@ -368,7 +375,6 @@ void main() {
         sharedWith: const [],
         isOwner: false,
         lastChangedAt: DateTime.utc(2026, 9),
-        deletedAt: null,
       );
 
       await collections.sync();
@@ -377,6 +383,22 @@ void main() {
       expect(
         await store.syncDates.lastSyncedAt(SyncCollections.key),
         DateTime.utc(2026, 9),
+      );
+    });
+
+    test('forgets what was deleted on the server', () async {
+      await collections.saveCollection(
+        const SaveCollectionParams(id: 'book', title: 'The Real Book'),
+      );
+      api.collections.remove('book');
+      api.deleted['book'] = DateTime.utc(2026, 11);
+
+      await collections.sync();
+
+      expect(await store.collections.get('book'), isNull);
+      expect(
+        await store.syncDates.lastSyncedAt(SyncCollections.key),
+        DateTime.utc(2026, 11),
       );
     });
   });

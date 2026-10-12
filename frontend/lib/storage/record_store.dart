@@ -45,6 +45,13 @@ class SembastStore<T>({
 
   Future<void> remove(String id) => store.record(id).delete(client);
 
+  Future<void> removeWithIds(List<String> ids) async {
+    if (ids.isEmpty) {
+      return;
+    }
+    await store.records(ids).delete(client);
+  }
+
   List<T> _valuesOf(
     List<RecordSnapshot<String, Map<String, Object?>>> records,
   ) {

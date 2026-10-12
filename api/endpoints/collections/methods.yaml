@@ -7,9 +7,9 @@ get:
     ends of the window are inclusive and both are required: a client
     synchronises by asking for everything since the moment it last asked.
 
-    Collections that were deleted within the window are returned too, with
-    `deleted_at` filled in, so that a client holding a copy learns that it is
-    gone rather than syncing it back.
+    Collections that were deleted within the window are returned too, as
+    nothing but their id and `deleted_at`, so that a client holding a copy
+    learns that it is gone rather than syncing it back.
 
     Requires the `score_viewer` role. A collection names scores but changes
     nothing about them, so keeping one asks no more of a user than reading the

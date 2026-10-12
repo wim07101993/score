@@ -15,15 +15,9 @@ class CollectionsNotifier({
     );
   }
 
-  List<Collection> get collections => [
-    for (final collection in value.values)
-      if (collection.deletedAt == null) collection,
-  ]..sort((a, b) => b.lastChangedAt.compareTo(a.lastChangedAt));
+  List<Collection> get collections =>
+      [...value.values]
+        ..sort((a, b) => b.lastChangedAt.compareTo(a.lastChangedAt));
 
-  Collection? getCollection(String collectionId) {
-    final collection = value[collectionId];
-    return collection == null || collection.deletedAt != null
-        ? null
-        : collection;
-  }
+  Collection? getCollection(String collectionId) => value[collectionId];
 }
