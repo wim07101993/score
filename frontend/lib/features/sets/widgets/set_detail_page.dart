@@ -739,7 +739,7 @@ class const _EntryCard({
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final read = entry.readAt;
+    final read = entry.combinedTransposition;
     final sum = entry.transposition + entry.view.transposition;
 
     return Card(

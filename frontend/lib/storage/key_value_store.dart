@@ -25,13 +25,4 @@ class KeyValueStore({
   /// One value, again every time it changes. Null while it is not there.
   Stream<String?> watch(String key) =>
       _values.record(key).onSnapshot(database).map((record) => record?.value);
-
-  /// Forgets every value whose key starts with [prefix]: the values kept one
-  /// per something, of which there is no list.
-  Future<void> forgetStartingWith(String prefix) => _values.delete(
-    database,
-    finder: Finder(
-      filter: Filter.custom((record) => '${record.key}'.startsWith(prefix)),
-    ),
-  );
 }

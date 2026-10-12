@@ -103,7 +103,7 @@ class const SetEntry({
     );
   }
 
-  int get readAt => (transposition + view.transposition).clamp(
+  int get combinedTransposition => (transposition + view.transposition).clamp(
     ScoreViewSettings.minTransposition,
     ScoreViewSettings.maxTransposition,
   );

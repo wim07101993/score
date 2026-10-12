@@ -55,7 +55,6 @@ void main() {
       fail('it waited');
     } on ApiException catch (error) {
       expect(error.statusCode, isNull);
-      expect(error.isWorthRetrying, isTrue);
     }
   });
 
@@ -92,10 +91,9 @@ void main() {
 
       expect(error.statusCode, 404);
       expect(error.errorCode, ErrorCode.setEntryNotFound);
-      expect(error.isWorthRetrying, isFalse);
     });
 
-    test("that is not the API's is worth trying again", () async {
+    test("that is not the API's has nothing of the API's in it", () async {
       // A proxy's page, or a server halfway through a deploy.
       for (final (body, contentType) in [
         ('<html>Not Found</html>', 'text/html'),
@@ -105,21 +103,22 @@ void main() {
       ]) {
         final error = await failureOn(404, body, contentType: contentType);
 
-        expect(error.isWorthRetrying, isTrue, reason: body);
+        expect(error.statusCode, 404, reason: body);
+        expect(error.problem, isNull, reason: body);
       }
     });
 
-    test('from a server without the endpoint has not refused anything', () async {
+    test('from a server without the endpoint says so', () async {
       // A backend older than the app, during a deploy or after a rollback: its
       // own router answers, in the API's own words, that there is no such
       // route.
-      for (final (status, code) in [
-        (404, 'endpoint_not_found'),
-        (405, 'method_not_allowed'),
+      for (final (status, code, errorCode) in [
+        (404, 'endpoint_not_found', ErrorCode.endpointNotFound),
+        (405, 'method_not_allowed', ErrorCode.methodNotAllowed),
       ]) {
         final error = await failureOn(status, _problem(code, status));
 
-        expect(error.isWorthRetrying, isTrue, reason: code);
+        expect(error.errorCode, errorCode, reason: code);
       }
     });
 
@@ -133,10 +132,9 @@ void main() {
 
       expect(error.statusCode, 409);
       expect(error.problem, isNull);
-      expect(error.isWorthRetrying, isFalse);
     });
 
-    test('of a yes the API does not give is worth trying again', () async {
+    test('of a yes the API does not give is a failure all the same', () async {
       // A page where the answer was expected: whatever said yes, it was not
       // the API.
       final error = await failureOn(
@@ -145,14 +143,14 @@ void main() {
         contentType: 'text/html',
       );
 
-      expect(error.isWorthRetrying, isTrue);
+      expect(error.statusCode, 200);
+      expect(error.problem, isNull);
     });
 
-    test("over somebody else's set is not worth asking about again", () async {
+    test("over somebody else's set says whose it is not", () async {
       final error = await failureOn(403, _problem('not_set_owner', 403));
 
-      expect(error.isNotTheOwners, isTrue);
-      expect(error.isWorthRetrying, isFalse);
+      expect(error.errorCode, ErrorCode.notSetOwner);
     });
 
     test('over a piece already in the collection says where it is', () async {
@@ -161,7 +159,7 @@ void main() {
         _problem('score_already_in_collection', 409, entryId: 'the-entry'),
       );
 
-      expect(error.isAlreadyInTheCollection, isTrue);
+      expect(error.errorCode, ErrorCode.scoreAlreadyInCollection);
       expect(error.problem?.entryId, 'the-entry');
     });
   });

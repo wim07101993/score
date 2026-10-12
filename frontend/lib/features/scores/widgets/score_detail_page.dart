@@ -490,7 +490,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
       // reads that a fifth up, and what goes on screen is the two together —
       // at the size this player draws it, which is theirs alone.
       view = view
-          .withTransposition(entry.readAt)
+          .withTransposition(entry.combinedTransposition)
           .withHiddenParts(entry.view.hiddenParts);
       _space = _spaceFor(entry.view.zoom);
     }
@@ -654,7 +654,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     return _readingOffset(
               band: entry.transposition,
               saved: entry.view.transposition,
-              savedReadAt: entry.readAt,
+              savedReadAt: entry.combinedTransposition,
               onScreen: view.transposition,
             ) ==
             entry.view.transposition &&
@@ -685,7 +685,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
           transposition: _readingOffset(
             band: context.entry.transposition,
             saved: context.entry.view.transposition,
-            savedReadAt: context.entry.readAt,
+            savedReadAt: context.entry.combinedTransposition,
             onScreen: view.transposition,
           ),
           hiddenParts: [...view.hiddenPartIds],
@@ -1748,7 +1748,7 @@ class _Reading._({
   }) : this._(
          band: entry.transposition,
          view: entry.view,
-         readAt: entry.readAt,
+         readAt: entry.combinedTransposition,
        );
 
   _Reading.ofPiece({

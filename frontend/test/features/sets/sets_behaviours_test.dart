@@ -324,7 +324,7 @@ void main() {
   group('getting a set', () {
     test('asks the server for one this device does not have', () async {
       await sets.saveSet(const SaveSetParams(id: 'gig', title: 'Friday'));
-      await store.sets.removeAll();
+      await store.sets.remove('gig');
 
       final set = await sets.getSet('gig');
 

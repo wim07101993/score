@@ -39,9 +39,6 @@ class const Collection({
   String get displayTitle =>
       title.trim().isEmpty ? 'Untitled collection' : title;
 
-  bool holds(String scoreId) =>
-      entries.any((entry) => entry.scoreId == scoreId);
-
   Collection copyWith({
     String? title,
     String? description,

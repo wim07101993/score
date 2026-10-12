@@ -11,7 +11,7 @@ import 'package:score/storage/clients.dart';
 
 /// What the sets client makes of what the server answers: the generated
 /// client reads it, and every answer it can give is turned into a set, a
-/// nothing, or a failure that says whether it is worth trying again.
+/// nothing, or a failure.
 void main() {
   SetsApi answering(int status, Object body, {String? contentType}) => SetsApi(
     clientFactory: ApiClientFactory(
@@ -33,10 +33,8 @@ void main() {
     ),
   );
 
-  Matcher failure({required int? status, required bool retried}) => throwsA(
-    isA<ApiException>()
-        .having((error) => error.statusCode, 'status', status)
-        .having((error) => error.isWorthRetrying, 'retried', retried),
+  Matcher failure({required int? status}) => throwsA(
+    isA<ApiException>().having((error) => error.statusCode, 'status', status),
   );
 
   test('a set that is there is read', () async {
@@ -70,7 +68,7 @@ void main() {
     expect(await api.getSet('the-set'), isNull);
   });
 
-  test("a 404 that is not the API's is worth trying again", () async {
+  test("a 404 that is not the API's is a failure by its status", () async {
     final api = answering(
       404,
       '<html>Not Found</html>',
@@ -79,7 +77,7 @@ void main() {
 
     await expectLater(
       api.getSet('the-set'),
-      failure(status: 404, retried: true),
+      failure(status: 404),
     );
   });
 
@@ -88,7 +86,7 @@ void main() {
 
     await expectLater(
       api.deleteSet('the-set'),
-      failure(status: 404, retried: true),
+      failure(status: 404),
     );
   });
 
@@ -107,7 +105,7 @@ void main() {
         'description': '',
         'shared_with': <String>[],
       }),
-      failure(status: 403, retried: false),
+      failure(status: 403),
     );
   });
 
@@ -116,7 +114,7 @@ void main() {
 
     await expectLater(
       api.getSet('the-set'),
-      failure(status: 409, retried: false),
+      failure(status: 409),
     );
   });
 
@@ -162,7 +160,7 @@ void main() {
     );
   });
 
-  test('nothing answering is worth trying again', () async {
+  test('nothing answering is a failure with no status', () async {
     final api = SetsApi(
       clientFactory: ApiClientFactory(
         config: ApiConfig(baseUrl: Uri.parse('https://api.test/')),
@@ -173,7 +171,7 @@ void main() {
 
     await expectLater(
       api.listChanges(since: DateTime.utc(1970)),
-      failure(status: null, retried: true),
+      failure(status: null),
     );
   });
 }

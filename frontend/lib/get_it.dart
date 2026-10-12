@@ -69,8 +69,8 @@ extension GetItExtensions on GetIt {
   }
 
   /// Builds everything that is registered asynchronously and that a page or a
-  /// behaviour asks for without waiting: the store, the clients, the sync
-  /// engines and the notifiers. What is on this device is read here, before
+  /// behaviour asks for without waiting: the store, the clients and the
+  /// notifiers. What is on this device is read here, before
   /// the first page, so that no page is drawn from an empty store.
   Future<void> resolveDependencies() async {
     await Future.wait([

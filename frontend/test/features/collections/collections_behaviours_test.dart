@@ -343,7 +343,7 @@ void main() {
       await collections.saveCollection(
         const SaveCollectionParams(id: 'book', title: 'The Real Book'),
       );
-      await store.collections.removeAll();
+      await store.collections.remove('book');
 
       final collection = await collections.getCollection('book');
 

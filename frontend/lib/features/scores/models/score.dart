@@ -80,7 +80,6 @@ class const Score({
   );
 
   Score copyWith({
-    DateTime? lastSyncedAt,
     DateTime? lastFetchedFileAt,
     DateTime? lastViewedAt,
   }) => Score(

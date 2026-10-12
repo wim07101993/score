@@ -26,9 +26,4 @@ class CollectionsNotifier({
         ? null
         : collection;
   }
-
-  List<Collection> collectionsWith(String scoreId) => [
-    for (final collection in collections)
-      if (collection.holds(scoreId)) collection,
-  ];
 }

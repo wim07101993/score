@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'package:score_api/score_api.dart'
     show ProblemDetails, ProblemDetailsErrorCodeModel;
@@ -56,28 +54,6 @@ class ApiException({
   ErrorCode? get errorCode => problem?.errorCode;
 
   String get detail => problem?.detail ?? message;
-
-  bool get isNotTheOwners =>
-      errorCode == ErrorCode.notSetOwner ||
-      errorCode == ErrorCode.notCollectionOwner;
-
-  bool get isAlreadyInTheCollection =>
-      errorCode == ErrorCode.scoreAlreadyInCollection;
-
-  bool get isWorthRetrying => switch ((statusCode, errorCode)) {
-    (null, _) => true,
-    (_, ErrorCode.notSetOwner) => false,
-    (_, ErrorCode.notCollectionOwner) => false,
-    (HttpStatus.unauthorized, _) => true,
-    (HttpStatus.forbidden, _) => true,
-    (HttpStatus.notFound, null) => true,
-    (HttpStatus.notFound, ErrorCode.endpointNotFound) => true,
-    (HttpStatus.methodNotAllowed, null) => true,
-    (HttpStatus.methodNotAllowed, ErrorCode.methodNotAllowed) => true,
-    (final int status, _) when status >= 500 => true,
-    (final int status, _) when status >= 400 => false,
-    _ => true,
-  };
 
   @override
   String toString() => message;

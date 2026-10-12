@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/auth/authentication_exception.dart';
 import 'package:score/features/auth/behaviours/authenticate.dart';
-import 'package:score/features/sync/behaviours/update_collections.dart';
-import 'package:score/features/sync/behaviours/update_scores.dart';
-import 'package:score/features/sync/behaviours/update_sets.dart';
+import 'package:score/features/sync/behaviours/sync_everything.dart';
 import 'package:score/widgets/error_snack_bar.dart';
 
 class const SignInButton({
@@ -25,16 +23,9 @@ class _SignInButtonState extends State<SignInButton> {
       switch (await GetIt.I<Authenticate>()(const AuthenticateParams())) {
         case Success():
           // TODO let this be handled somewhere else
-          await GetIt.I<UpdateScores>()();
-          await GetIt.I<UpdateSets>()();
-          await GetIt.I<UpdateCollections>()();
+          await GetIt.I<SyncEverything>()();
         case Failed(
-          reason:
-          /// Finds out what stands between this device and the server, for a page that
-          /// has to say why something did not sync. The server and the provider are
-          /// asked at the same time: each of them may take seconds to say it is not
-          /// there.
-          SignInCancelled(),
+          reason: SignInCancelled(),
         ):
           break;
         case Failed(:final reason):

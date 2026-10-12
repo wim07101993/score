@@ -128,12 +128,6 @@ class _CollectionsPageState extends State<CollectionsPage> {
 class const _CollectionCard({
   required final Collection collection,
 }) extends StatelessWidget {
-  /// What is worth saying about a collection beyond what it holds: whose it
-  /// is, and whether the server has heard about it yet.
-  ///
-  /// One that is still owed to the server can be read from all the same, which
-  /// is the point, but saying so is what keeps "I added that" and "the others
-  /// can see it" apart.
   String get _state {
     if (!collection.isOwner) return 'shared with you';
     if (collection.sharedWith.isNotEmpty) {
