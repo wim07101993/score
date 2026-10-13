@@ -35,6 +35,7 @@ extension SetsGetItExtensions on GetIt {
         db: get(),
         api: get(),
         syncDates: get(),
+        authNotifier: get(),
       ),
     );
     registerFactory(() => FetchSet(monitor: get(), api: get(), db: get()));

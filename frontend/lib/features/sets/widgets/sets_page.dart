@@ -1,13 +1,13 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:behaviour/behaviour.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/scores/behaviours/sync_scores.dart';
+import 'package:score/features/sets/behaviours/sync_sets.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
-import 'package:score/features/sync/behaviours/check_connection.dart';
-import 'package:score/features/sync/behaviours/update_scores.dart';
-import 'package:score/features/sync/behaviours/update_sets.dart';
+import 'package:score/features/sync/behaviours/syncer.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/offline_notice.dart';
 import 'package:score/widgets/sync_button.dart';
@@ -39,15 +39,17 @@ class _SetsPageState extends State<SetsPage> {
   Future<void> _sync() async {
     if (_auth.value?.isScoreViewer != true) return;
 
-    await GetIt.I<UpdateSets>()();
+    final synced = await GetIt.I<SyncSets>()();
     // The scores are what a set is built out of, so a set that was written on
     // another device is only readable here once its scores are.
-    await GetIt.I<UpdateScores>()();
+    await GetIt.I<SyncScores>()();
 
-    final reachable =
-        (await GetIt.I<CheckConnection>()()).valueOrNull?.server ?? false;
     if (mounted) {
-      setState(() => _offline = !reachable);
+      setState(
+        () => _offline =
+            synced is Failed<void> &&
+            synced.reason is NoConnectionSyncerException,
+      );
     }
   }
 

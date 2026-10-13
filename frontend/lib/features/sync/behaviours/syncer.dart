@@ -1,8 +1,10 @@
 import 'package:behaviour/behaviour.dart';
-import 'package:logging/logging.dart';
+import 'package:flutter_fox_logging/flutter_fox_logging.dart';
+import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/features/sync/storage/sync_dates_store.dart';
 
-class Sync<T extends SyncableModel>({
+class Syncer<T extends SyncableModel>({
   super.monitor,
   required final Logger logger,
   required final SyncEntityDatabase<T> db,
@@ -10,6 +12,7 @@ class Sync<T extends SyncableModel>({
   required final SyncDatesStore syncDates,
   required final String syncDateKey,
   required final T Function(T existing, T updated) copyUpdate,
+  required final AuthNotifier authNotifier,
 }) extends BehaviourWithoutInput<void> {
   static Future<void> _currentSync = Future.value();
 
@@ -18,10 +21,19 @@ class Sync<T extends SyncableModel>({
 
   @override
   Future<void> action(BehaviourTrack? track) {
-    return _currentSync = _currentSync.then((_) => sync());
+    final next = _currentSync.then((_) {}, onError: (_) {}).then((_) => sync());
+    _currentSync = next;
+    return next;
   }
 
   Future<void> sync() async {
+    if (authNotifier.value?.accessToken == null) {
+      throw const NotAuthenticatedSyncerException();
+    }
+    if (!await api.canBeReached()) {
+      throw const NoConnectionSyncerException();
+    }
+
     final lastSync = await syncDates.lastSyncedAt(syncDateKey);
     final changes = await api.listChanges(
       // avoid rounding errors on fetch timestamps
@@ -63,27 +75,8 @@ class Sync<T extends SyncableModel>({
   }
 }
 
-class const DeletedEntity({
-  required final String id,
-  required final DateTime deletedAt,
-});
+sealed class const SyncerException() implements Exception {}
 
-typedef SyncChanges<T> = ({List<T> changed, List<DeletedEntity> deleted});
+class const NotAuthenticatedSyncerException() extends SyncerException {}
 
-abstract class SyncApi<T> {
-  Future<SyncChanges<T>> listChanges({
-    required DateTime since,
-    DateTime? until,
-  });
-}
-
-abstract class SyncEntityDatabase<T> {
-  Future<List<T>> getElementsWithIds(List<String> ids);
-  Future<void> putAll(List<T> entities);
-  Future<void> removeWithIds(List<String> ids);
-}
-
-abstract class SyncableModel {
-  String get id;
-  DateTime get lastChangedAt;
-}
+class const NoConnectionSyncerException() extends SyncerException {}

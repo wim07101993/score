@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
+import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
@@ -13,6 +14,7 @@ import 'package:score/features/sets/behaviours/delete_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set.dart';
 import 'package:score/features/sets/behaviours/save_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
+import 'package:score/features/sets/behaviours/sync_sets.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/sets/widgets/add_score_chip.dart';
@@ -24,8 +26,6 @@ import 'package:score/features/sets/widgets/open_score_button.dart';
 import 'package:score/features/sets/widgets/remove_entry_button.dart';
 import 'package:score/features/sets/widgets/set_description_field.dart';
 import 'package:score/features/sets/widgets/set_title_field.dart';
-import 'package:score/features/sync/behaviours/update_scores.dart';
-import 'package:score/features/sync/behaviours/update_sets.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
@@ -112,7 +112,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
     // an empty set to type over would be a lie about what is stored under that
     // id.
     if (widget.setId != 'new' && _sets.getSet(_setId) == null) {
-      await GetIt.I<UpdateSets>()();
+      await GetIt.I<SyncSets>()();
     }
 
     if (!mounted) return;
@@ -127,9 +127,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
     _sets.addListener(_takeStoredChanges);
 
-    await GetIt.I<UpdateScores>()();
+    await GetIt.I<SyncScores>()();
     if (widget.setId != 'new') {
-      await GetIt.I<UpdateSets>()();
+      await GetIt.I<SyncSets>()();
     }
     if (mounted && !_dirty) {
       _readFromStored();
@@ -140,7 +140,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
   /// Asks the server for the set again, for a page that found it was not here.
   Future<void> _retry() async {
     setState(() => _loading = true);
-    await GetIt.I<UpdateSets>()();
+    await GetIt.I<SyncSets>()();
     if (!mounted) return;
     setState(() {
       _readFromStored();

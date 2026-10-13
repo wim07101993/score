@@ -9,7 +9,7 @@ import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/add_to_list_button.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/upload_score_fab.dart';
-import 'package:score/features/sync/behaviours/sync_everything.dart';
+import 'package:score/features/sync/sync_engine.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/collections_button.dart';
 import 'package:score/widgets/profile_button.dart';
@@ -48,7 +48,7 @@ class _ScoresPageState extends State<ScoresPage> {
     }
 
     setState(() => _syncing = true);
-    await GetIt.I<SyncEverything>()();
+    await GetIt.I<SyncEngine>().sync();
     if (mounted) {
       setState(() => _syncing = false);
     }

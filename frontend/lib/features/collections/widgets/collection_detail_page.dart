@@ -10,6 +10,7 @@ import 'package:score/features/collections/behaviours/delete_collection_entry.da
 import 'package:score/features/collections/behaviours/save_collection.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
+import 'package:score/features/collections/behaviours/sync_collections.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/models/collection_entry.dart';
@@ -21,14 +22,13 @@ import 'package:score/features/collections/widgets/collection_title_field.dart';
 import 'package:score/features/collections/widgets/delete_collection_button.dart';
 import 'package:score/features/collections/widgets/open_collection_entry_button.dart';
 import 'package:score/features/collections/widgets/remove_collection_entry_button.dart';
+import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_library.dart';
 import 'package:score/features/scores/widgets/score_search_field.dart';
-import 'package:score/features/scores/widgets/scores_page.dart';
+import 'package:score/features/scores/widgets/scores/scores_page.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sync/behaviours/update_collections.dart';
-import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
@@ -131,7 +131,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     // is stored under that id.
     if (widget.collectionId != 'new' &&
         _collections.getCollection(_collectionId) == null) {
-      await GetIt.I<UpdateCollections>()();
+      await GetIt.I<SyncCollections>()();
     }
 
     if (!mounted) return;
@@ -149,9 +149,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     // The scores are what the pieces are called by, and they may bring in ones
     // this collection names; and, when nothing is being typed, the sync may
     // bring in a newer version of the collection itself.
-    await GetIt.I<UpdateScores>()();
+    await GetIt.I<SyncScores>()();
     if (widget.collectionId != 'new') {
-      await GetIt.I<UpdateCollections>()();
+      await GetIt.I<SyncCollections>()();
     }
     if (mounted && !_dirty) {
       _readFromStored();
@@ -163,7 +163,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   /// not here.
   Future<void> _retry() async {
     setState(() => _loading = true);
-    await GetIt.I<UpdateCollections>()();
+    await GetIt.I<SyncCollections>()();
     if (!mounted) return;
     setState(() {
       _readFromStored();

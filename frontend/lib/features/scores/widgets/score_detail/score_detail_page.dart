@@ -20,6 +20,7 @@ import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
+import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models/score.dart';
@@ -42,7 +43,6 @@ import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
-import 'package:score/features/sync/behaviours/update_scores.dart';
 import 'package:score/router.dart';
 import 'package:uuid/uuid.dart';
 
@@ -458,7 +458,7 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     if (_musicXml != null) {
       unawaited(Future(() => GetIt.I<MarkScoreViewed>()(widget.scoreId)));
     }
-    unawaited(Future(() => GetIt.I<UpdateScores>()()));
+    unawaited(Future(() => GetIt.I<SyncScores>()()));
   }
 
   /// Reads a score and starts it off being looked at the way the set says it is
@@ -909,13 +909,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         // that reloading it or keeping it opens this score rather than another
         // empty upload page. The file is on this device by now, so the page at
         // that address opens straight onto it.
-        unawaited(Future(() => GetIt.I<UpdateScores>()()));
+        unawaited(Future(() => GetIt.I<SyncScores>()()));
         context.router.replace(ScoreRoute(scoreId: scoreId));
         return;
       }
       setState(() => _scoreId = scoreId);
       _show(musicXml);
-      await GetIt.I<UpdateScores>()();
+      await GetIt.I<SyncScores>()();
     } catch (error) {
       if (mounted) _say('That score could not be uploaded: $error');
     }

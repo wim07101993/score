@@ -8,7 +8,6 @@ import 'package:get_it/get_it.dart';
 import 'package:score/features/app_update/new_version_bar.dart';
 import 'package:score/features/observability/errors.dart';
 import 'package:score/features/observability/get_it.dart';
-import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/storage/theme_hint.dart';
 import 'package:score/get_it.dart';
@@ -61,9 +60,6 @@ class _ScoreAppState extends State<ScoreApp> {
   Future<SettingsNotifier> _start() async {
     final getIt = GetIt.I;
     await getIt.resolveDependencies();
-    // Before anything is fetched or uploaded, which would write documents of
-    // their own. A behaviour never throws, so one that fails holds nothing up.
-    await getIt<ForgetUnreferencedDocuments>()();
     return getIt<SettingsNotifier>();
   }
 

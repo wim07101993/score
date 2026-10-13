@@ -1,5 +1,5 @@
 import 'package:score/features/collections/models/collection.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/record_store.dart';
 
 class CollectionsDatabase({

@@ -26,6 +26,7 @@ import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/features/settings/storage/settings_store.dart';
 import 'package:score/features/sync/get_it.dart';
 import 'package:score/features/sync/storage/sync_dates_store.dart';
+import 'package:score/features/sync/sync_engine.dart';
 import 'package:score/router.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/databases.dart';
@@ -91,6 +92,7 @@ extension GetItExtensions on GetIt {
       getAsync<ScoresNotifier>(),
       getAsync<SetsNotifier>(),
       getAsync<CollectionsNotifier>(),
+      getAsync<SyncEngine>(),
     ]);
   }
 }

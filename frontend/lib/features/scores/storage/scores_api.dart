@@ -5,7 +5,7 @@ import 'package:score/features/scores/models/creators.dart';
 import 'package:score/features/scores/models/movement.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/work.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/error_extensions.dart';
@@ -136,6 +136,7 @@ class const ScoresApi({
     }
   }
 
+  @override
   Future<bool> canBeReached() => clientFactory.canBeReached();
 }
 

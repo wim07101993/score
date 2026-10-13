@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
-import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
 import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
@@ -9,11 +8,12 @@ import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/work.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 
 import '../../test_api.dart';
+import '../../test_auth.dart';
 import '../../test_stores.dart';
 
 /// An API that lists what it is told to, and hands out scores and documents.
@@ -79,8 +79,9 @@ class _Scores({
     cache: _cacheScore,
   );
 
-  Future<void> sync() => SyncScores(
+  Future<void> sync() async => SyncScores(
     logger: Logger('test'),
+    authNotifier: await signedIn(),
     db: store.scores,
     api: api,
     syncDates: store.syncDates,
@@ -108,11 +109,6 @@ class _Scores({
     cacheScore: _cacheScore,
     cacheMusicXml: _cacheMusicXml,
   ).action((scoreId, musicXml), null);
-
-  Future<void> forgetUnreferencedDocuments() => ForgetUnreferencedDocuments(
-    db: store.scores,
-    files: store.documents,
-  ).action(null);
 }
 
 /// Lets what was left to run in the background — a score or a document being
@@ -251,19 +247,6 @@ void main() {
       await _settle();
 
       expect(await store.documents.read('abc'), '<new/>');
-    });
-
-    test('that no score refers to is forgotten', () async {
-      final store = await Stores.inMemory();
-      await store.scores.putAll([
-        Score(id: 'kept', lastChangedAt: DateTime.utc(2026)),
-      ]);
-      await store.documents.write('kept', '<kept/>');
-      await store.documents.write('gone', '<gone/>');
-
-      await _Scores(store: store, api: _Api()).forgetUnreferencedDocuments();
-
-      expect(await store.documents.ids(), ['kept']);
     });
   });
 

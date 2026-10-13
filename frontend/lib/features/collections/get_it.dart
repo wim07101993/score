@@ -39,6 +39,7 @@ extension CollectionsGetItExtensions on GetIt {
         db: get(),
         api: get(),
         syncDates: get(),
+        authNotifier: get(),
       ),
     );
     registerFactory(

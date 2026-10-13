@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/features/scores/widgets/score_detail_page.dart';
+import 'package:score/features/scores/widgets/score_detail/score_detail_page.dart';
 
 /// What is known about a score, how it is read, and a look at it.
 ///

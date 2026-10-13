@@ -1,6 +1,6 @@
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/error_extensions.dart';
@@ -233,6 +233,7 @@ class const SetsApi({
     }
   }
 
+  @override
   Future<bool> canBeReached() => clientFactory.canBeReached();
 }
 

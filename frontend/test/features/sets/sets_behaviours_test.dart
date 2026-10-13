@@ -10,10 +10,11 @@ import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/behaviours/sync_sets.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 
 import '../../test_api.dart';
+import '../../test_auth.dart';
 import '../../test_stores.dart';
 
 class _Api() extends SetsApi {
@@ -140,8 +141,9 @@ class _Sets({
 }) {
   late final _fetch = FetchSet(api: api, db: store.sets);
 
-  Future<void> sync() => SyncSets(
+  Future<void> sync() async => SyncSets(
     logger: Logger('test'),
+    authNotifier: await signedIn(),
     db: store.sets,
     api: api,
     syncDates: store.syncDates,

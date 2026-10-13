@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/auth/authentication_exception.dart';
 import 'package:score/features/auth/behaviours/authenticate.dart';
-import 'package:score/features/sync/behaviours/sync_everything.dart';
 import 'package:score/widgets/error_snack_bar.dart';
 
 class const SignInButton({
@@ -22,8 +21,7 @@ class _SignInButtonState extends State<SignInButton> {
     try {
       switch (await GetIt.I<Authenticate>()(const AuthenticateParams())) {
         case Success():
-          // TODO let this be handled somewhere else
-          await GetIt.I<SyncEverything>()();
+          break;
         case Failed(
           reason: SignInCancelled(),
         ):

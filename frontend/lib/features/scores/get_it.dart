@@ -1,7 +1,5 @@
 import 'package:get_it/get_it.dart';
 import 'package:score/features/observability/get_it.dart';
-import 'package:score/features/scores/behaviours/forget_score.dart';
-import 'package:score/features/scores/behaviours/forget_unreferenced_documents.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
 import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
@@ -37,6 +35,7 @@ extension ScoresGetItExtensions on GetIt {
         db: get(),
         api: get(),
         syncDates: get(),
+        authNotifier: get(),
       ),
     );
     registerFactory(
@@ -64,16 +63,6 @@ extension ScoresGetItExtensions on GetIt {
     );
     registerFactory(
       () => MarkScoreViewed(monitor: get(), store: get(), getScore: get()),
-    );
-    registerFactory(
-      () => ForgetScore(monitor: get(), scores: get(), files: get()),
-    );
-    registerFactory(
-      () => ForgetUnreferencedDocuments(
-        monitor: get(),
-        db: get(),
-        files: get(),
-      ),
     );
   }
 }

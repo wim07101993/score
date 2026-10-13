@@ -1,5 +1,5 @@
 import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/json_map_extensions.dart';
 import 'package:score/storage/clients.dart';
 

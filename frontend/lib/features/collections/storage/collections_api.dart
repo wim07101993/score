@@ -2,7 +2,7 @@ import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/sets/models.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
 import 'package:score/storage/error_extensions.dart';
@@ -12,12 +12,8 @@ import 'package:tonik_util/tonik_util.dart';
 class const CollectionsApi({
   required final ApiClientFactory clientFactory,
 }) implements SyncApi<Collection> {
-  /// The generated client, sending the token of the moment.
   api.CollectionsApi get _api => clientFactory.build(api.CollectionsApi.new);
 
-  /// The collections that changed within the window, the caller's own and the
-  /// ones shared with them. Collections that were deleted within it come back
-  /// too, with `deleted_at` filled in.
   @override
   Future<SyncChanges<Collection>> listChanges({
     required DateTime since,
@@ -57,11 +53,7 @@ class const CollectionsApi({
     };
   }
 
-  /// One collection, asked for by id. `null` when there is no such collection,
-  /// or when it is neither the caller's nor shared with them.
-  Future<Collection?> getCollection(
-    String collectionId,
-  ) async {
+  Future<Collection?> getCollection(String collectionId) async {
     final result = await _api.getCollection(collectionId: collectionId);
     return switch (result) {
       TonikSuccess(:final value) => switch (value) {
@@ -84,9 +76,6 @@ class const CollectionsApi({
     };
   }
 
-  /// Stores what the collection is — the group of pieces, and who may read it —
-  /// and hands back the collection as it now reads. What is in it is written
-  /// one piece at a time, the same way a set's songs are.
   Future<Collection> putCollection(
     String collectionId,
     Map<String, Object?> writeCollection,
@@ -115,8 +104,6 @@ class const CollectionsApi({
     };
   }
 
-  /// Puts one piece into a collection, or changes what the group does with it,
-  /// and hands the entry back as it now reads.
   Future<CollectionEntry> putEntry(
     String collectionId,
     String entryId,
@@ -152,8 +139,6 @@ class const CollectionsApi({
     };
   }
 
-  /// Takes one piece out of a collection. One that is already gone is not an
-  /// error: what was asked for is the state it is now in.
   Future<void> deleteEntry(
     String collectionId,
     String entryId,
@@ -188,12 +173,6 @@ class const CollectionsApi({
     }
   }
 
-  /// Stores how the caller looks at one entry of a collection.
-  ///
-  /// Anyone who can read the collection can write their own view of its
-  /// entries: it says nothing about the collection and changes nothing anybody
-  /// else sees, so a player who cannot add a piece to the book can still say
-  /// how they read one that is in it.
   Future<ScoreViewSettings> putEntryView(
     String collectionId,
     String entryId,
@@ -227,8 +206,6 @@ class const CollectionsApi({
     };
   }
 
-  /// Marks the collection as deleted. One that was already gone is not an
-  /// error: what was asked for is the state it is now in.
   Future<void> deleteCollection(String collectionId) async {
     final result = await _api.deleteCollection(
       collectionId: collectionId,
@@ -259,6 +236,7 @@ class const CollectionsApi({
     }
   }
 
+  @override
   Future<bool> canBeReached() => clientFactory.canBeReached();
 }
 

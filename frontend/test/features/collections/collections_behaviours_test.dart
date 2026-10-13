@@ -12,10 +12,11 @@ import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/sync/models.dart';
+import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 
 import '../../test_api.dart';
+import '../../test_auth.dart';
 import '../../test_stores.dart';
 
 class _Api() extends CollectionsApi {
@@ -142,8 +143,9 @@ class _Collections({
 }) {
   late final _fetch = FetchCollection(api: api, db: store.collections);
 
-  Future<void> sync() => SyncCollections(
+  Future<void> sync() async => SyncCollections(
     logger: Logger('test'),
+    authNotifier: await signedIn(),
     db: store.collections,
     api: api,
     syncDates: store.syncDates,
