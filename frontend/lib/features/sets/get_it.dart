@@ -7,6 +7,7 @@ import 'package:score/features/sets/behaviours/save_set.dart';
 import 'package:score/features/sets/behaviours/save_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/behaviours/sync_sets.dart';
+import 'package:score/features/sets/notifiers/is_syncing_sets_notifier.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
 import 'package:score/features/sets/storage/sets_database.dart';
@@ -28,6 +29,10 @@ extension SetsGetItExtensions on GetIt {
       () async => SetsNotifier(store: await getAsync<SetsDatabase>()),
     );
 
+    registerLazySingleton(
+      () => IsSyncingSetsNotifier(),
+      dispose: (notifier) => notifier.dispose(),
+    );
     registerFactory(
       () => SyncSets(
         monitor: get(),
@@ -36,6 +41,7 @@ extension SetsGetItExtensions on GetIt {
         api: get(),
         syncDates: get(),
         authNotifier: get(),
+        isSyncing: get(),
       ),
     );
     registerFactory(() => FetchSet(monitor: get(), api: get(), db: get()));

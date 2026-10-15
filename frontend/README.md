@@ -196,7 +196,7 @@ behind it.
 $ flutter run -d chrome --web-port=3000   # CHROME_EXECUTABLE=/usr/bin/chromium if needed
 $ flutter run -d linux
 $ flutter test
-$ flutter test --platform chrome test/features/scores/score_documents_web_test.dart   # the browser's file system
+$ flutter test --platform chrome test/features/score_list/score_documents_web_test.dart   # the browser's file system
 $ dart run build_runner build             # after changing a page's route: writes lib/router.gr.dart
 ```
 

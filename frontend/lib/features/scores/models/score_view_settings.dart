@@ -1,4 +1,4 @@
-import 'package:score/json_map_extensions.dart';
+import 'package:score/helpers/json_map_extensions.dart';
 
 class ScoreViewSettings {
   ScoreViewSettings({

@@ -7,6 +7,7 @@ import 'package:score/features/collections/behaviours/save_collection_entry.dart
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
 import 'package:score/features/collections/behaviours/sync_collections.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
+import 'package:score/features/collections/notifiers/is_syncing_collections_notifier.dart';
 import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/features/collections/storage/collections_database.dart';
 import 'package:score/features/observability/get_it.dart';
@@ -32,6 +33,10 @@ extension CollectionsGetItExtensions on GetIt {
           CollectionsNotifier(store: await getAsync<CollectionsDatabase>()),
     );
 
+    registerLazySingleton(
+      () => IsSyncingCollectionsNotifier(),
+      dispose: (notifier) => notifier.dispose(),
+    );
     registerFactory(
       () => SyncCollections(
         monitor: get(),
@@ -40,6 +45,7 @@ extension CollectionsGetItExtensions on GetIt {
         api: get(),
         syncDates: get(),
         authNotifier: get(),
+        isSyncing: get(),
       ),
     );
     registerFactory(

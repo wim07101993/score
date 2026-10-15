@@ -30,56 +30,59 @@ List<String> _ids(Iterable<Score> scores) => [
 ];
 
 void main() {
+  late ScoreFilter filter;
+  late int notified;
+
+  setUp(() {
+    filter = ScoreFilter();
+    notified = 0;
+    filter.addListener(() => notified++);
+  });
+
+  tearDown(() => filter.dispose());
+
   test('nothing ticked lets everything through', () {
-    expect(_ids(ScoreFilters().narrow(_scores)), ['bach', 'faure', 'handel']);
+    expect(_ids(_scores.where(filter.call)), ['bach', 'faure', 'handel']);
   });
 
   test('two values in one field widen, a second field narrows', () {
-    final filters = ScoreFilters()
-      ..tick(ScoreField.composers, 'Bach', wanted: true)
-      ..tick(ScoreField.composers, 'Fauré', wanted: true);
-    expect(_ids(filters.narrow(_scores)), ['bach', 'faure']);
+    filter.composers.addAll(['Bach', 'Fauré']);
+    expect(_ids(_scores.where(filter.call)), ['bach', 'faure']);
 
-    filters.tick(ScoreField.languages, 'fr', wanted: true);
-    expect(_ids(filters.narrow(_scores)), ['faure']);
-    expect(filters.count, 3);
-
-    filters.clear();
-    expect(filters.count, 0);
-    expect(filters.narrow(_scores), hasLength(3));
+    filter.languages.add('fr');
+    expect(_ids(_scores.where(filter.call)), ['faure']);
+    expect(filter.count, 3);
   });
 
-  test('values are counted most often first, a score once per value', () {
-    expect(ScoreFilters().valuesOf(ScoreField.languages, _scores), [
-      (value: 'de', count: 2),
-      (value: 'fr', count: 1),
-    ]);
-    expect(
-      ScoreFilters().valuesOf(ScoreField.composers, _scores),
-      contains((value: 'Händel', count: 1)),
-    );
+  test('every field narrows by its own values', () {
+    filter.tags.add('solo');
+    expect(_ids(_scores.where(filter.call)), ['faure']);
+
+    filter.tags.clear();
+    filter.lyricists.add('Nobody');
+    expect(_scores.where(filter.call), isEmpty);
   });
 
-  test("a field's values are counted without its own ticks", () {
-    final filters = ScoreFilters()
-      ..tick(ScoreField.composers, 'Bach', wanted: true);
-
-    // Fauré can still be ticked next to Bach…
-    expect(
-      filters.valuesOf(ScoreField.composers, _scores),
-      contains((value: 'Fauré', count: 1)),
-    );
-    // …while the other fields count only what Bach leaves.
-    expect(filters.valuesOf(ScoreField.tags, _scores), [
-      (value: 'choir', count: 1),
-    ]);
+  test('what is typed narrows as well', () {
+    filter.query.text = 'faure';
+    expect(_ids(_scores.where(filter.call)), ['faure']);
   });
 
-  test('a ticked value that nothing has any more can still be unticked', () {
-    final filters = ScoreFilters()..tick(ScoreField.tags, 'gone', wanted: true);
-    expect(
-      filters.valuesOf(ScoreField.tags, _scores),
-      contains((value: 'gone', count: 0)),
-    );
+  test('tells its listeners whenever anything in it changes', () {
+    filter.composers.add('Bach');
+    filter.query.text = 'b';
+    expect(notified, 2);
+  });
+
+  test('clearing it tells its listeners once', () {
+    filter.composers.add('Bach');
+    filter.tags.add('choir');
+    notified = 0;
+
+    filter.clear();
+
+    expect(filter.count, 0);
+    expect(notified, 1);
+    expect(_scores.where(filter.call), hasLength(3));
   });
 }

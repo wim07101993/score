@@ -6,8 +6,7 @@ import 'package:flutter/material.dart';
 /// into one of them is what may be typed into all of them.
 class const ScoreSearchField({
   super.key,
-  final TextEditingController? controller,
-  required final ValueChanged<String> onChanged,
+  required final TextEditingController controller,
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -19,7 +18,6 @@ class const ScoreSearchField({
         border: OutlineInputBorder(),
         isDense: true,
       ),
-      onChanged: onChanged,
     );
   }
 }

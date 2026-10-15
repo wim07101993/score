@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:score/features/auth/user_info.dart';
-import 'package:score/json_map_extensions.dart';
+import 'package:score/helpers/json_map_extensions.dart';
 
 class const Config({
   required final OidcConfig oidc,

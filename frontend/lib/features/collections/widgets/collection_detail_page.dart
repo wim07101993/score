@@ -25,9 +25,8 @@ import 'package:score/features/collections/widgets/remove_collection_entry_butto
 import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
-import 'package:score/features/scores/widgets/score_library.dart';
-import 'package:score/features/scores/widgets/score_search_field.dart';
-import 'package:score/features/scores/widgets/scores/scores_page.dart';
+import 'package:score/features/scores/widgets/score_list/filter/score_search_field.dart';
+import 'package:score/features/scores/widgets/score_list/score_library.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/router.dart';
 import 'package:score/widgets/add_paper_entry_button.dart';
@@ -104,11 +103,14 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   @override
   void initState() {
     super.initState();
+    _filter.addListener(_onFilterChanged);
     _collectionId = widget.collectionId == 'new'
         ? _uuid.v4()
         : widget.collectionId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
+
+  void _onFilterChanged() => setState(() {});
 
   @override
   void dispose() {
@@ -117,7 +119,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     _title.dispose();
     _description.dispose();
     _sharedWith.dispose();
-    _filter.dispose();
+    _filter
+      ..removeListener(_onFilterChanged)
+      ..dispose();
     _paperEntry.dispose();
     _paperEntryFocus.dispose();
     super.dispose();
@@ -481,10 +485,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       children: [
         Text('Add a piece', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ScoreSearchField(
-          controller: _filter,
-          onChanged: (_) => setState(() {}),
-        ),
+        ScoreSearchField(controller: _filter),
         const SizedBox(height: 8),
         if (_scores.scores.isEmpty)
           const Text(
@@ -694,30 +695,29 @@ class const _CollectionOverview({
     // Looked through the way the list of every score is — the same search,
     // the same filters — so that finding a piece in the book goes the way
     // finding it on the shelf does.
-    return ScoreLibrary<CollectionEntry>(
-      items: entries,
-      scoreOf: (entry) => switch (entry.scoreId) {
+    final entryOfScore = <String, CollectionEntry>{};
+    final scores = <Score>[];
+    final unlisted = <CollectionEntry>[];
+    for (final entry in entries) {
+      final score = switch (entry.scoreId) {
         final scoreId? => scoreOf(scoreId),
         null => null,
-      },
-      // A piece that was never scanned is called by what is written next to
-      // it, and one that was is found by that too.
-      textOf: (entry) => entry.description,
-      // A piece that is a score is drawn the way the list of scores draws it;
-      // one with nothing to draw it from says what it is.
-      itemBuilder: (context, entry) => switch (entry.scoreId) {
-        final scoreId? when scoreOf(scoreId) != null => ScoreCard(
-          score: scoreOf(scoreId)!,
-          note: _noteOf(entry),
-          onTap: () => onOpen(entry),
-        ),
-        _ => _OverviewRow(
-          entry: entry,
-          score: null,
-          onTap: () => onOpen(entry),
-        ),
-      },
-      empty: owner
+      };
+      if (score == null) {
+        unlisted.add(entry);
+      } else {
+        entryOfScore[score.id] = entry;
+        scores.add(score);
+      }
+    }
+
+    return ScoreLibrary(
+      scores: scores,
+      noteOf: (score) => _noteOf(entryOfScore[score.id]!),
+      onScoreTapped: (score) => onOpen(entryOfScore[score.id]!),
+      empty: entries.isNotEmpty
+          ? ''
+          : owner
           ? 'Nothing in this collection yet. Change the collection to add'
                 ' pieces, or add them from the list of scores.'
           : 'Nothing in this collection yet.',
@@ -727,6 +727,13 @@ class const _CollectionOverview({
             padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
             child: Text(description),
           ),
+        ...unlisted.map(
+          (entry) => _OverviewRow(
+            entry: entry,
+            score: null,
+            onTap: () => onOpen(entry),
+          ),
+        ),
       ],
       footer: [
         if (owner && collection.sharedWith.isNotEmpty)

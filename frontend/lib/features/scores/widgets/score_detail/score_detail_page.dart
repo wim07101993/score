@@ -46,135 +46,34 @@ import 'package:score/features/settings/notifiers/settings_notifier.dart';
 import 'package:score/router.dart';
 import 'package:uuid/uuid.dart';
 
-/// One score: what is known about it with a look at it, or — [performing] —
-/// the whole screen given over to playing from it.
-///
-/// The two are one page in two ways rather than two pages, because everything
-/// about how the score is read — and keeping that against the set or the
-/// collection it is played from — is the same in both. What the details have
-/// and the stand does not is the reason to look anything up: who wrote it,
-/// what plays it, the download and the upload. What the stand has is the
-/// score, as big as it will go, and only what is changed while playing.
-///
-/// How it is being looked at — the key it is read in, which parts are on screen,
-/// how big it is drawn — never changes the document, which is what the editor
-/// uploaded and stays that way. Played from a set or a collection, it is kept
-/// as this player's reading of that entry (see [_ScoreDetailPageState._keepReading]):
-/// theirs alone, and saved as they change it.
 class const ScoreDetailPage({
   super.key,
-
-  /// `new` for a score that is about to be uploaded, and [paper] for an entry
-  /// that is played from paper.
   required final String scoreId,
   final String? setId,
-
-  /// The collection this score is being played from, when it is being played
-  /// from one rather than from a set.
-  ///
-  /// A set is a gig and a collection is a book, but what a score is opened as
-  /// is the same thing in both — a piece, in the key the others play it in,
-  /// read the way this player reads it, with the rest of the list either side
-  /// of it. What differs is which behaviour a view is written with, and what
-  /// order the list is in.
   final String? collectionId,
-
-  /// Which entry of the set or the collection this is.
   final String? entryId,
-
-  /// Whether the score is on the whole screen, to be played from.
   final bool performing = false,
-
-  /// How the details page it was opened from had the score, when it was
-  /// opened from one: see [ScoreReadingHandover].
   final ScoreReadingHandover? handover,
 }) extends StatefulWidget {
-  /// What stands in for the id of a score an entry does not have. Ids are
-  /// UUIDs, so no score is ever called this.
   static const paper = 'paper';
 
   @override
   State<ScoreDetailPage> createState() => _ScoreDetailPageState();
 }
 
-/// How a score is being read on its details page, handed to the stand it is
-/// played from there — and back, once the playing is done.
-///
-/// A key moved on a score played for itself is kept nowhere but on the page
-/// it was moved on: there is no entry of a set to write it into. Without this
-/// the stand would open as written, and the details would not know what was
-/// changed while playing.
 class const ScoreReadingHandover({
   required final ScoreView view,
-
-  /// How big it is drawn, as a view says it: 1 is the size it is written at.
   required final double zoom,
-
-  /// Called with how the stand had it, as the stand is closed.
   required final void Function(ScoreView view, double zoom) onReturn,
 });
 
 class _ScoreDetailPageState extends State<ScoreDetailPage> {
-  /// How many stands are open. Going on to the next song puts up its stand
-  /// before the last one is taken down, and the screen stays the stand's
-  /// until the last of them is.
-  static int _stands = 0;
-
   static const _uuid = Uuid();
-  List<ScorePartRef> _parts = const [];
-
-  /// The score as it was uploaded. Transposing and hiding parts never touch it,
-  /// so this stays what is downloaded and re-uploaded.
-  String? _musicXml;
-
-  String? _scoreId;
-
-  /// The id a new score is uploaded under, picked once per page rather than
-  /// per attempt. An upload can reach the server and still come back as failed
-  /// (the answer lost on the way, or the copy on this device not written), and
-  /// the server only knows a score by its id: trying again under a new one
-  /// would put the score there twice.
-  late final String _newScoreId = _uuid.v4();
-  ScoreView? _view;
-
-  bool _loading = true;
-  Object? _failure;
-
-  /// What one staff space is worth on screen when the score is drawn the size
-  /// it is written at — which is what a zoom of 1 means in a view.
   static const _writtenSpace = 7.5;
-
-  /// As far as a score may be drawn either way: the sizes a view can say,
-  /// which the buttons go to as well. Any narrower, and a size saved by
-  /// another device would be drawn smaller than it says, and saved back so.
   static const _minSpace = _writtenSpace * ScoreViewSettings.minZoom;
   static const _maxSpace = _writtenSpace * ScoreViewSettings.maxZoom;
 
-  /// What one staff space is worth on screen — the zoom the buttons set.
-  double _space = _writtenSpace;
-
-  /// How much a pinch has made the score bigger or smaller than [_space] on
-  /// top of that. What is on screen is the two together, and that is what is
-  /// saved as how big this player reads it.
-  double _pinched = 1;
-
-  /// The set this score is being played from, when it is being played from one.
-  _SetContext? _set;
-
-  /// The collection this score is being played from, when it is being played
-  /// from one.
-  _CollectionContext? _collection;
-
-  bool get _isNew => widget.scoreId == 'new';
-
-  /// Whether this is an entry of a set or a collection that is played from
-  /// paper: there is no score to draw, and the page is there to say which song
-  /// it is and to go on to the next.
-  bool get _isPaper => widget.scoreId == ScoreDetailPage.paper;
-
-  /// The score the entry this is opened from has to be of: none, for one on
-  /// paper.
-  String? get _entryScoreId => _isPaper ? null : widget.scoreId;
+  static int _stands = 0;
 
   final _auth = GetIt.I<AuthNotifier>();
   final _settings = GetIt.I<SettingsNotifier>();
@@ -182,15 +81,26 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   final _collections = GetIt.I<CollectionsNotifier>();
   final _scores = GetIt.I<ScoresNotifier>();
 
-  /// Waits for the player to stop changing how they read the score before it
-  /// is kept: see [_keepReading].
-  Timer? _keeping;
-
-  /// What the document on screen was fetched as, so that a sync that fetches a
-  /// newer upload of it is noticed: see [_takeScoreChanges].
-  DateTime? _shownFetchedAt;
-
+  late final String _newScoreId = _uuid.v4();
   late final AppLifecycleListener _lifecycle;
+
+  List<ScorePartRef> _parts = const [];
+  String? _musicXml;
+  String? _scoreId;
+  ScoreView? _view;
+
+  bool _loading = true;
+  Object? _failure;
+  double _space = _writtenSpace;
+  double _pinched = 1;
+  _SetContext? _set;
+  _CollectionContext? _collection;
+
+  bool get _isNew => widget.scoreId == 'new';
+  bool get _isPaper => widget.scoreId == ScoreDetailPage.paper;
+  String? get _entryScoreId => _isPaper ? null : widget.scoreId;
+  Timer? _keeping;
+  DateTime? _shownFetchedAt;
 
   @override
   void initState() {

@@ -1,6 +1,6 @@
 import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/sync/models/syncable.dart';
-import 'package:score/json_map_extensions.dart';
+import 'package:score/helpers/json_map_extensions.dart';
 import 'package:score/storage/clients.dart';
 
 class const Collection({

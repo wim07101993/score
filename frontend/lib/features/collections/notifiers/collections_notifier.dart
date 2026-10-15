@@ -4,20 +4,17 @@ import 'package:score/notifiers/store_notifier.dart';
 
 class CollectionsNotifier({
   required final CollectionsDatabase store,
-}) extends StreamNotifier<Map<String, Collection>> {
-  this : super(initial: const {}) {
-    follow(
-      store.watchAll().map(
-        (records) => {
-          for (final collection in records) collection.id: collection,
-        },
-      ),
-    );
+}) extends StreamNotifier<List<Collection>> {
+  this : super(initial: const []) {
+    follow(store.watchAll());
   }
 
   List<Collection> get collections =>
-      [...value.values]
-        ..sort((a, b) => b.lastChangedAt.compareTo(a.lastChangedAt));
+      value..sort((a, b) => b.lastChangedAt.compareTo(a.lastChangedAt));
 
-  Collection? getCollection(String collectionId) => value[collectionId];
+  Collection? getCollection(String collectionId) {
+    return value
+        .where((collection) => collection.id == collectionId)
+        .firstOrNull;
+  }
 }

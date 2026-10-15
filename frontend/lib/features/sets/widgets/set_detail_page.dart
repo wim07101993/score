@@ -8,7 +8,7 @@ import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
-import 'package:score/features/scores/widgets/score_search_field.dart';
+import 'package:score/features/scores/widgets/score_list/filter/score_search_field.dart';
 import 'package:score/features/sets/behaviours/delete_set.dart';
 import 'package:score/features/sets/behaviours/delete_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set.dart';
@@ -89,9 +89,12 @@ class _SetDetailPageState extends State<SetDetailPage> {
   @override
   void initState() {
     super.initState();
+    _filter.addListener(_onFilterChanged);
     _setId = widget.setId == 'new' ? _uuid.v4() : widget.setId;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
+
+  void _onFilterChanged() => setState(() {});
 
   @override
   void dispose() {
@@ -99,7 +102,9 @@ class _SetDetailPageState extends State<SetDetailPage> {
     _title.dispose();
     _description.dispose();
     _sharedWith.dispose();
-    _filter.dispose();
+    _filter
+      ..removeListener(_onFilterChanged)
+      ..dispose();
     _paperEntry.dispose();
     _paperEntryFocus.dispose();
     super.dispose();
@@ -382,10 +387,7 @@ class _SetDetailPageState extends State<SetDetailPage> {
       children: [
         Text('Add a score', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ScoreSearchField(
-          controller: _filter,
-          onChanged: (_) => setState(() {}),
-        ),
+        ScoreSearchField(controller: _filter),
         const SizedBox(height: 8),
         if (scores.isEmpty)
           const Text(

@@ -9,6 +9,7 @@ import 'package:score/features/sets/behaviours/save_set_entry.dart';
 import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
 import 'package:score/features/sets/behaviours/sync_sets.dart';
 import 'package:score/features/sets/models.dart';
+import 'package:score/features/sets/notifiers/is_syncing_sets_notifier.dart';
 import 'package:score/features/sets/storage/sets_api.dart';
 import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
@@ -144,6 +145,7 @@ class _Sets({
   Future<void> sync() async => SyncSets(
     logger: Logger('test'),
     authNotifier: await signedIn(),
+    isSyncing: IsSyncingSetsNotifier(),
     db: store.sets,
     api: api,
     syncDates: store.syncDates,

@@ -3,42 +3,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/scores/models/creators.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/work.dart';
-import 'package:score/features/scores/widgets/score_library.dart';
+import 'package:score/features/scores/widgets/score_list/score_library.dart';
 
-/// A piece of a list: a score, or something written down without one.
-typedef _Item = ({Score? score, String note});
-
-final _items = <_Item>[
+final _scores = [
   for (var i = 0; i < 10; i++)
-    (
-      score: Score(
-        id: '$i',
-        work: Work(title: 'Piece $i'),
-        creators: Creators(composers: ['Composer ${i % 9}']),
-        lastChangedAt: Score.defaultLastChangedAt,
-      ),
-      note: '',
+    Score(
+      id: '$i',
+      work: Work(title: 'Piece $i'),
+      creators: Creators(composers: ['Composer ${i % 9}']),
+      lastChangedAt: Score.defaultLastChangedAt,
     ),
-  (score: null, note: 'Never scanned'),
 ];
 
-Future<void> _show(WidgetTester tester, Size size) async {
+Future<List<Score>> _show(
+  WidgetTester tester,
+  Size size, {
+  List<Score>? scores,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
+  final tapped = <Score>[];
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: ScoreLibrary<_Item>(
-          items: _items,
-          scoreOf: (item) => item.score,
-          textOf: (item) => item.note,
-          itemBuilder: (context, item) => Text(item.score?.title ?? item.note),
+        body: ScoreLibrary(
+          scores: scores ?? _scores,
+          onScoreTapped: tapped.add,
           empty: 'Nothing at all.',
+          header: const [Text('Above')],
         ),
       ),
     ),
   );
+  return tapped;
 }
 
 void main() {
@@ -48,21 +46,20 @@ void main() {
     await _show(tester, const Size(1200, 900));
 
     expect(find.text('Filters'), findsOneWidget);
-    expect(find.text('1 more'), findsOneWidget);
-    expect(find.text('Never scanned'), findsOneWidget);
+    expect(find.text('Show 1 more'), findsOneWidget);
+    expect(find.text('Above'), findsOneWidget);
 
-    await tester.tap(find.text('Composer 0'));
+    await tester.tap(find.widgetWithText(CheckboxListTile, 'Composer 1'));
     await tester.pump();
 
     expect(find.text('Filters (1)'), findsOneWidget);
-    expect(find.text('Piece 0'), findsOneWidget);
-    expect(find.text('Piece 1'), findsNothing);
-    // Nothing to tick it by, so nothing ticked lets it through.
-    expect(find.text('Never scanned'), findsNothing);
+    expect(find.text('Piece 1'), findsOneWidget);
+    expect(find.text('Piece 2'), findsNothing);
 
     await tester.tap(find.text('Clear all'));
     await tester.pump();
-    expect(find.text('Never scanned'), findsOneWidget);
+    expect(find.text('Filters'), findsOneWidget);
+    expect(find.text('Piece 2'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -71,26 +68,37 @@ void main() {
   ) async {
     await _show(tester, const Size(400, 900));
 
-    expect(find.text('Composer 0'), findsNothing);
+    expect(find.widgetWithText(CheckboxListTile, 'Composer 1'), findsNothing);
     await tester.tap(find.text('Filters'));
     await tester.pumpAndSettle();
-    expect(find.text('Composer 0'), findsOneWidget);
+    expect(find.widgetWithText(CheckboxListTile, 'Composer 1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('something without a score is found by what it says', (
-    tester,
-  ) async {
+  testWidgets('what is typed narrows the list', (tester) async {
     await _show(tester, const Size(1200, 900));
 
-    await tester.enterText(find.byType(TextField), 'scanned');
+    await tester.enterText(find.byType(TextField), 'piece 3');
     await tester.pump();
-
-    expect(find.text('Never scanned'), findsOneWidget);
-    expect(find.text('Piece 0'), findsNothing);
+    expect(find.text('Piece 3'), findsOneWidget);
+    expect(find.text('Piece 4'), findsNothing);
 
     await tester.enterText(find.byType(TextField), 'nothing like it');
     await tester.pump();
     expect(find.text('Nothing here matches that.'), findsOneWidget);
+  });
+
+  testWidgets('says so when there is nothing to list at all', (tester) async {
+    await _show(tester, const Size(1200, 900), scores: []);
+
+    expect(find.text('Nothing at all.'), findsOneWidget);
+  });
+
+  testWidgets('a tapped score is handed back', (tester) async {
+    final tapped = await _show(tester, const Size(1200, 900));
+
+    await tester.tap(find.text('Piece 2'));
+
+    expect(tapped.map((score) => score.id), ['2']);
   });
 }

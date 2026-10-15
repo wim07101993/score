@@ -7,6 +7,7 @@ import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/work.dart';
+import 'package:score/features/scores/notifiers/is_syncing_scores_notifier.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
 import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
@@ -82,6 +83,7 @@ class _Scores({
   Future<void> sync() async => SyncScores(
     logger: Logger('test'),
     authNotifier: await signedIn(),
+    isSyncing: IsSyncingScoresNotifier(),
     db: store.scores,
     api: api,
     syncDates: store.syncDates,

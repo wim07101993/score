@@ -5,6 +5,7 @@ import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
+import 'package:score/features/scores/notifiers/is_syncing_scores_notifier.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/storage/scores_api.dart';
 import 'package:score/features/scores/storage/scores_database.dart';
@@ -28,6 +29,10 @@ extension ScoresGetItExtensions on GetIt {
     registerFactory(() => CacheScore(monitor: get(), db: get()));
     registerFactory(() => CacheMusicXml(monitor: get(), files: get()));
 
+    registerLazySingleton(
+      () => IsSyncingScoresNotifier(),
+      dispose: (notifier) => notifier.dispose(),
+    );
     registerFactory(
       () => SyncScores(
         monitor: get(),
@@ -36,6 +41,7 @@ extension ScoresGetItExtensions on GetIt {
         api: get(),
         syncDates: get(),
         authNotifier: get(),
+        isSyncing: get(),
       ),
     );
     registerFactory(

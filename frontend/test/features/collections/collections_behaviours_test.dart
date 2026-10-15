@@ -10,6 +10,7 @@ import 'package:score/features/collections/behaviours/sync_collections.dart';
 import 'package:score/features/collections/models.dart';
 import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/models/collection_entry.dart';
+import 'package:score/features/collections/notifiers/is_syncing_collections_notifier.dart';
 import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/sync/models/syncable.dart';
@@ -146,6 +147,7 @@ class _Collections({
   Future<void> sync() async => SyncCollections(
     logger: Logger('test'),
     authNotifier: await signedIn(),
+    isSyncing: IsSyncingCollectionsNotifier(),
     db: store.collections,
     api: api,
     syncDates: store.syncDates,

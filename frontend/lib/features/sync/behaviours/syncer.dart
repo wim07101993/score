@@ -1,4 +1,5 @@
 import 'package:behaviour/behaviour.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_fox_logging/flutter_fox_logging.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/sync/models/syncable.dart';
@@ -13,17 +14,25 @@ class Syncer<T extends SyncableModel>({
   required final String syncDateKey,
   required final T Function(T existing, T updated) copyUpdate,
   required final AuthNotifier authNotifier,
+  required final ValueNotifier<bool> isSyncing,
 }) extends BehaviourWithoutInput<void> {
-  static Future<void> _currentSync = Future.value();
+  static final Map<String, Future<void>> _running = {};
 
   @override
   String get description => 'syncing the $syncDateKey';
 
   @override
-  Future<void> action(BehaviourTrack? track) {
-    final next = _currentSync.then((_) {}, onError: (_) {}).then((_) => sync());
-    _currentSync = next;
-    return next;
+  Future<void> action(BehaviourTrack? track) async {
+    if (_running[syncDateKey] case final running?) {
+      return running;
+    }
+    isSyncing.value = true;
+    try {
+      await (_running[syncDateKey] = sync());
+    } finally {
+      _running.remove(syncDateKey);
+      isSyncing.value = false;
+    }
   }
 
   Future<void> sync() async {
