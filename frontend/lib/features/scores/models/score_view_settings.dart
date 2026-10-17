@@ -3,24 +3,24 @@ import 'package:score/helpers/json_map_extensions.dart';
 class ScoreViewSettings {
   ScoreViewSettings({
     required int transposition,
-    required List<String> hiddenParts,
+    required Map<String, bool> partVisibilities,
     required double zoom,
   }) : this._(
          transposition: transposition.clamp(minTransposition, maxTransposition),
-         hiddenParts: hiddenParts,
+         partVisibilities: partVisibilities,
          zoom: zoom.clamp(minZoom, maxZoom),
        );
 
   const ScoreViewSettings._({
     required this.transposition,
-    required this.hiddenParts,
+    required this.partVisibilities,
     required this.zoom,
   });
 
   const ScoreViewSettings.defaultView()
     : this._(
         transposition: 0,
-        hiddenParts: const [],
+        partVisibilities: const {},
         zoom: 1,
       );
 
@@ -29,7 +29,12 @@ class ScoreViewSettings {
       transposition:
           json.get('transposition', parser: int.tryParse) ??
           defaultTransposition,
-      hiddenParts: json.getList('hidden_parts'),
+      partVisibilities:
+          json.getObject(
+            'part_visibilities',
+            (m) => m as Map<String, bool>?,
+          ) ??
+          const {},
       zoom:
           json.get<num>('zoom', parser: num.tryParse)?.toDouble() ??
           defaultZoom,
@@ -46,12 +51,12 @@ class ScoreViewSettings {
   static const int minTransposition = -12;
 
   final int transposition;
-  final List<String> hiddenParts;
+  final Map<String, bool> partVisibilities;
   final double zoom;
 
   Map<String, Object?> toJson() => {
     'transposition': transposition,
-    'hidden_parts': hiddenParts,
+    'part_visibilities': partVisibilities,
     'zoom': zoom,
   };
 }

@@ -2,7 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:score/features/scores/widgets/upload_score_button.dart';
+import 'package:score/features/scores/widgets/score_detail/details/upload_score_button.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/storage/sets_database.dart';
 import 'package:score/router.dart';

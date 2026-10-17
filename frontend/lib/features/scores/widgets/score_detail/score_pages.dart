@@ -1,6 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:score/features/scores/widgets/score_detail/collection_score_detail_page.dart';
+import 'package:score/features/scores/widgets/score_detail/models/score_reading_handover.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_page.dart';
+import 'package:score/features/scores/widgets/score_detail/set_score_detail_page.dart';
 
 /// What is known about a score, how it is read, and a look at it.
 ///
@@ -15,7 +18,7 @@ class const ScorePage({
   @QueryParam('entry') final String? entryId,
 }) extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => ScoreDetailPage(
+  Widget build(BuildContext context) => _detailPage(
     scoreId: scoreId,
     setId: setId,
     collectionId: collectionId,
@@ -40,12 +43,45 @@ class const PerformScorePage({
   final ScoreReadingHandover? handover,
 }) extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => ScoreDetailPage(
+  Widget build(BuildContext context) => _detailPage(
     scoreId: scoreId,
     setId: setId,
     collectionId: collectionId,
     entryId: entryId,
     performing: true,
+    handover: handover,
+  );
+}
+
+Widget _detailPage({
+  required String scoreId,
+  required String? setId,
+  required String? collectionId,
+  required String? entryId,
+  bool performing = false,
+  ScoreReadingHandover? handover,
+}) {
+  if (entryId != null && setId != null) {
+    return SetScoreDetailPage(
+      scoreId: scoreId,
+      setId: setId,
+      entryId: entryId,
+      performing: performing,
+      handover: handover,
+    );
+  }
+  if (entryId != null && collectionId != null) {
+    return CollectionScoreDetailPage(
+      scoreId: scoreId,
+      collectionId: collectionId,
+      entryId: entryId,
+      performing: performing,
+      handover: handover,
+    );
+  }
+  return ScoreDetailPage(
+    scoreId: scoreId,
+    performing: performing,
     handover: handover,
   );
 }
