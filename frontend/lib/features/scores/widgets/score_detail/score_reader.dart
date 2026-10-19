@@ -8,7 +8,6 @@ import 'package:score/features/notation/parts.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
-import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_detail/score_view_controller.dart';
@@ -36,11 +35,6 @@ class ScoreReader({
   Object? get failure => _failure;
   bool get isShowing => !_loading && _failure == null;
 
-  Score? get score => switch (scoreId) {
-    final scoreId? => _scores.getScore(scoreId),
-    null => null,
-  };
-
   void open() {
     _scores.addListener(_takeScoreChanges);
   }
@@ -59,10 +53,9 @@ class ScoreReader({
   }
 
   Future<void> _takeScoreChanges() async {
-    if (_disposed) return;
-    final score = this.score;
-    _notify();
-    final fetched = score?.lastFetchedFileAt;
+    final scoreId = this.scoreId;
+    if (_disposed || scoreId == null) return;
+    final fetched = _scores.getScore(scoreId)?.lastFetchedFileAt;
     if (_musicXml == null || fetched == null || fetched == _shownFetchedAt) {
       return;
     }

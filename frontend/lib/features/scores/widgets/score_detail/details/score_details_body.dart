@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:score/features/auth/user_info.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_about.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_sheet.dart';
 import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
@@ -7,6 +8,7 @@ import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
 class const ScoreDetailsBody({
   super.key,
   required final ScoreReader reader,
+  required final Score? score,
   required final UserInfo user,
   final bool keptAsYourReading = false,
 }) extends StatelessWidget {
@@ -16,7 +18,7 @@ class const ScoreDetailsBody({
   @override
   Widget build(BuildContext context) {
     final sheet = ScoreDetailSheet(reader: reader);
-    final score = reader.score;
+    final score = this.score;
     final musicXml = reader.musicXml;
     final controller = reader.view;
     if (score == null || musicXml == null || controller == null) {

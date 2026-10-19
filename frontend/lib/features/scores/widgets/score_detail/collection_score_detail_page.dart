@@ -6,6 +6,7 @@ import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/collections/behaviours/get_collection.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_details_body.dart';
@@ -203,7 +204,9 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     if (!didPop) _reader.isPerforming.value = false;
   }
 
-  String get _title => _reader.score?.title ?? 'Score';
+  Score? get _score => _scores.getScore(widget.scoreId);
+
+  String get _title => _score?.title ?? 'Score';
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +214,7 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     return ListenableBuilder(
       listenable: Listenable.merge([
         _user,
+        _scores,
         _reader,
         _reader.isPerforming,
         _collections,
@@ -236,6 +240,7 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
                 ? ImmersiveStand(child: ScoreDetailSheet(reader: _reader))
                 : ScoreDetailsBody(
                     reader: _reader,
+                    score: _score,
                     user: user,
                     keptAsYourReading: _collection != null,
                   ),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/auth/user_info.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_detail/details/new_score_body.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_details_body.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_sheet.dart';
@@ -24,6 +26,7 @@ class const ScoreDetailPage({
 
 class _ScoreDetailPageState extends State<ScoreDetailPage> {
   final _user = GetIt.I<AuthNotifier>();
+  final _scores = GetIt.I<ScoresNotifier>();
 
   late final _reader = ScoreReader(
     scoreId: widget.scoreId,
@@ -31,6 +34,11 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   );
 
   bool get _isNew => widget.scoreId == null;
+
+  Score? get _score => switch (widget.scoreId) {
+    final scoreId? => _scores.getScore(scoreId),
+    null => null,
+  };
 
   @override
   void initState() {
@@ -57,14 +65,19 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
 
   String get _title {
     if (_isNew) return 'New score';
-    return _reader.score?.title ?? 'Score';
+    return _score?.title ?? 'Score';
   }
 
   @override
   Widget build(BuildContext context) {
     // Who is signed in decides what the page shows.
     return ListenableBuilder(
-      listenable: Listenable.merge([_user, _reader, _reader.isPerforming]),
+      listenable: Listenable.merge([
+        _user,
+        _scores,
+        _reader,
+        _reader.isPerforming,
+      ]),
       builder: (context, _) {
         final user = _user.value;
         final mayView = user != null && user.isScoreViewer;
@@ -107,6 +120,6 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     if (performing) {
       return ImmersiveStand(child: ScoreDetailSheet(reader: _reader));
     }
-    return ScoreDetailsBody(reader: _reader, user: user);
+    return ScoreDetailsBody(reader: _reader, score: _score, user: user);
   }
 }

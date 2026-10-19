@@ -6,6 +6,7 @@ import 'package:score/features/auth/notifiers/auth_notifier.dart';
 import 'package:score/features/auth/user_info.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
+import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_details_body.dart';
 import 'package:score/features/scores/widgets/score_detail/models/entry_reading.dart';
 import 'package:score/features/scores/widgets/score_detail/models/set_context.dart';
@@ -39,6 +40,7 @@ class const SetScoreDetailPage({
 class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   final _user = GetIt.I<AuthNotifier>();
   final _sets = GetIt.I<SetsNotifier>();
+  final _scores = GetIt.I<ScoresNotifier>();
 
   late final _reader = ScoreReader(
     scoreId: _entryScoreId,
@@ -58,6 +60,11 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
 
   bool get _isPaper => widget.scoreId == Score.paperId;
   String? get _entryScoreId => _isPaper ? null : widget.scoreId;
+
+  Score? get _score => switch (_entryScoreId) {
+    final scoreId? => _scores.getScore(scoreId),
+    null => null,
+  };
 
   EntryReading? get _reading => switch (_set) {
     final set? => EntryReading.ofSong(entry: set.entry),
@@ -203,7 +210,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   }
 
   String get _title {
-    if (!_isPaper) return _reader.score?.title ?? 'Score';
+    if (!_isPaper) return _score?.title ?? 'Score';
     final paperName = (_set?.entry.description ?? '').trim();
     return paperName.isEmpty ? 'Played from paper' : paperName;
   }
@@ -217,7 +224,12 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   Widget build(BuildContext context) {
     // Who is signed in decides what the page shows.
     return ListenableBuilder(
-      listenable: Listenable.merge([_user, _reader, _reader.isPerforming]),
+      listenable: Listenable.merge([
+        _user,
+        _scores,
+        _reader,
+        _reader.isPerforming,
+      ]),
       builder: (context, _) {
         final user = _user.value;
         final mayView = user != null && user.isScoreViewer;
@@ -284,6 +296,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
               ? _paper(onPerform: () => _reader.isPerforming.value = true)
               : ScoreDetailsBody(
                   reader: _reader,
+                  score: _score,
                   user: user,
                   keptAsYourReading: _set != null,
                 ),
