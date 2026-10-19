@@ -134,7 +134,7 @@ func (h *Handler) PutCollectionEntry(
 		params.EntryId.String(),
 		user,
 		collection.WriteEntry{
-			ScoreId:       scoreIdFromApi(req.ScoreID),
+			ScoreId:       req.ScoreID.String(),
 			Description:   req.Description,
 			Transposition: req.Transposition,
 		})
@@ -373,13 +373,9 @@ func mapCollectionEntryToApi(entry collection.Entry) (*api.CollectionEntry, erro
 		return nil, ErrUnknown.WithParent(err)
 	}
 
-	scoreId := api.NilUUID{Null: true}
-	if entry.ScoreId != nil {
-		parsed, err := uuid.Parse(*entry.ScoreId)
-		if err != nil {
-			return nil, ErrUnknown.WithParent(err)
-		}
-		scoreId = api.NewNilUUID(parsed)
+	scoreId, err := uuid.Parse(entry.ScoreId)
+	if err != nil {
+		return nil, ErrUnknown.WithParent(err)
 	}
 
 	return &api.CollectionEntry{

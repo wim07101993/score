@@ -7,9 +7,6 @@ import 'package:score/features/settings/notifiers/settings_notifier.dart';
 class const ScoreDetailSheet({
   super.key,
   required final ScoreReader reader,
-  final bool isPaper = false,
-  final String paperNote = 'This song is no longer in there.',
-  final VoidCallback? onTouched,
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -18,36 +15,11 @@ class const ScoreDetailSheet({
     }
     final failure = reader.failure;
     if (failure != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text('$failure', textAlign: TextAlign.center),
-        ),
-      );
+      return _Message('$failure');
     }
-    final musicXml = reader.musicXml;
-    if (isPaper) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            paperNote,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ),
-      );
-    }
-    if (musicXml == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text(
-            'There is nothing to show.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    final view = reader.view;
+    if (view == null) {
+      return const _Message('There is nothing to show.');
     }
 
     // The page is lit the way this device has been told to light it, and it
@@ -60,19 +32,27 @@ class const ScoreDetailSheet({
       builder: (context, _) {
         final look = settings.pageLook(Theme.of(context).brightness);
         return ScoreSheet(
-          musicXml: musicXml,
-          view: reader.view,
-          space: reader.space,
-          onPinched: (pinched) {
-            reader.pinch(pinched);
-            onTouched?.call();
-          },
+          controller: view.scoreController,
           palette: SheetPalette.lamp(
             brightness: look.brightness,
             warmth: look.warmth,
           ),
         );
       },
+    );
+  }
+}
+
+class const _Message(
+  final String text,
+) extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(text, textAlign: TextAlign.center),
+      ),
     );
   }
 }

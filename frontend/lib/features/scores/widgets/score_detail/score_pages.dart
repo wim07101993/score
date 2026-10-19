@@ -1,14 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/widgets/score_detail/collection_score_detail_page.dart';
-import 'package:score/features/scores/widgets/score_detail/models/score_reading_handover.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_page.dart';
 import 'package:score/features/scores/widgets/score_detail/set_score_detail_page.dart';
 
 /// What is known about a score, how it is read, and a look at it.
 ///
 /// [scoreId] is `new` for a score that is about to be uploaded, and
-/// [ScoreDetailPage.paper] for an entry that is played from paper.
+/// [Score.paperId] for an entry of a set that is played from paper.
 @RoutePage()
 class const ScorePage({
   super.key,
@@ -37,10 +37,6 @@ class const PerformScorePage({
   @QueryParam('set') final String? setId,
   @QueryParam('collection') final String? collectionId,
   @QueryParam('entry') final String? entryId,
-
-  /// How the details page had it, when that is where the score is being
-  /// played from; an address opened on its own has none.
-  final ScoreReadingHandover? handover,
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _detailPage(
@@ -49,7 +45,6 @@ class const PerformScorePage({
     collectionId: collectionId,
     entryId: entryId,
     performing: true,
-    handover: handover,
   );
 }
 
@@ -59,7 +54,6 @@ Widget _detailPage({
   required String? collectionId,
   required String? entryId,
   bool performing = false,
-  ScoreReadingHandover? handover,
 }) {
   if (entryId != null && setId != null) {
     return SetScoreDetailPage(
@@ -67,7 +61,6 @@ Widget _detailPage({
       setId: setId,
       entryId: entryId,
       performing: performing,
-      handover: handover,
     );
   }
   if (entryId != null && collectionId != null) {
@@ -76,12 +69,10 @@ Widget _detailPage({
       collectionId: collectionId,
       entryId: entryId,
       performing: performing,
-      handover: handover,
     );
   }
   return ScoreDetailPage(
-    scoreId: scoreId,
+    scoreId: scoreId == 'new' ? null : scoreId,
     performing: performing,
-    handover: handover,
   );
 }

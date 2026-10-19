@@ -3,26 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/features/scores/behaviours/download_score.dart';
 import 'package:score/features/scores/models/score.dart';
-import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/scores/widgets/score_detail/details/score_about.dart';
+import 'package:score/features/scores/widgets/score_detail/score_view_controller.dart';
 import 'package:score/widgets/exceptions.dart';
-import 'package:songbird_score/songbird_score.dart' as mxml;
 
 class const DownloadScoreButton({
   super.key,
-  required final mxml.Score scoreData,
-  required final Score scoreProperties,
-  required final ScoreViewController viewController,
+  required final Score score,
+  required final String musicXml,
+  required final ScoreViewController controller,
 }) extends StatelessWidget {
   Future<void> download(
-    BuildContext context,
-    ScoreViewSettings viewSettings,
-  ) async {
+    BuildContext context, {
+    required String musicXml,
+  }) async {
     final result = await GetIt.I<DownloadScore>()(
       DownloadScoreParams(
-        scoreData: scoreData,
-        score: scoreProperties,
-        view: viewSettings,
+        musicXml: musicXml,
+        scoreId: score.id,
+        title: score.title,
       ),
     );
     if (!context.mounted) {
@@ -50,9 +48,7 @@ class const DownloadScoreButton({
       ),
       menuChildren: [
         DownloadButtonMenuItem(
-          onPressed: () {
-            download(context, const ScoreViewSettings.defaultView());
-          },
+          onPressed: () => download(context, musicXml: musicXml),
           icon: Icons.description_outlined,
           title: 'Score file, as written (.musicxml)',
           subtitle:
@@ -61,7 +57,7 @@ class const DownloadScoreButton({
         ),
         DownloadButtonMenuItem(
           onPressed: () {
-            download(context, viewController.scoreViewSettings);
+            download(context, musicXml: controller.visibleMusicXml);
           },
           icon: Icons.visibility_outlined,
           title: 'Score file, as on screen (.musicxml)',

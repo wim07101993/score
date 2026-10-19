@@ -94,7 +94,7 @@ class _Api() extends CollectionsApi {
         .firstOrNull;
     final entry = CollectionEntry(
       id: entryId,
-      scoreId: writeEntry['score_id'] as String?,
+      scoreId: writeEntry['score_id']! as String,
       description: writeEntry['description']! as String,
       transposition: writeEntry['transposition']! as int,
       view: known?.view ?? const ScoreViewSettings.defaultView(),
@@ -281,12 +281,15 @@ void main() {
       expect(api.entryWrites, hasLength(1));
     });
 
-    test('with no score needs a name', () async {
+    test('without a score is refused', () async {
       await expectLater(
         collections.saveEntry(
-          const SaveCollectionEntryParams(collectionId: 'book', onPaper: true),
+          const SaveCollectionEntryParams(
+            collectionId: 'book',
+            description: 'page 12',
+          ),
         ),
-        throwsA(isA<UnnamedPieceException>()),
+        throwsA(isA<PieceWithoutAScoreException>()),
       );
       expect(api.entryWrites, isEmpty);
     });

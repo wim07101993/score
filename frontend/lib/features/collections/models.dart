@@ -24,12 +24,7 @@ class const ScoreAlreadyInCollectionException({
       "Score '$scoreId' is already in this collection, as entry '$entryId'.";
 }
 
-/// A piece with no score has nothing to be called by but what is written next
-/// to it, and one that says nothing cannot be found, sorted, or told from the
-/// next one.
-class const UnnamedPieceException() implements Exception {
+class const PieceWithoutAScoreException() implements Exception {
   @override
-  String toString() =>
-      'A piece with no score has nothing to be called by but'
-      ' what is written next to it.';
+  String toString() => 'A piece of a collection has to be a score.';
 }

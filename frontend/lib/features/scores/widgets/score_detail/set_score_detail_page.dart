@@ -3,17 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/scores/widgets/score_detail/details/score_about.dart';
+import 'package:score/features/auth/user_info.dart';
+import 'package:score/features/scores/models/score.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_details_body.dart';
 import 'package:score/features/scores/widgets/score_detail/models/entry_reading.dart';
-import 'package:score/features/scores/widgets/score_detail/models/score_reading_handover.dart';
 import 'package:score/features/scores/widgets/score_detail/models/set_context.dart';
 import 'package:score/features/scores/widgets/score_detail/reading_keeper.dart';
 import 'package:score/features/scores/widgets/score_detail/say.dart';
-import 'package:score/features/scores/widgets/score_detail/score_detail_page.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_sheet.dart';
 import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
 import 'package:score/features/scores/widgets/score_detail/scores_are_for_viewers.dart';
+import 'package:score/features/scores/widgets/score_detail/set/paper_entry_body.dart';
+import 'package:score/features/scores/widgets/score_detail/stand/immersive_stand.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/stand_actions.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/stand_title.dart';
 import 'package:score/features/scores/widgets/score_detail/way/way_bar.dart';
@@ -29,7 +31,6 @@ class const SetScoreDetailPage({
   required final String setId,
   required final String entryId,
   final bool performing = false,
-  final ScoreReadingHandover? handover,
 }) extends StatefulWidget {
   @override
   State<SetScoreDetailPage> createState() => _SetScoreDetailPageState();
@@ -42,8 +43,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   late final _reader = ScoreReader(
     scoreId: _entryScoreId,
     performing: widget.performing,
-    handover: widget.handover,
-    reading: () => _reading,
+    settings: () => _reading?.onScreen,
   );
   late final _keeper = ReadingKeeper(
     reader: _reader,
@@ -56,7 +56,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
 
   SetContext? _set;
 
-  bool get _isPaper => widget.scoreId == ScoreDetailPage.paper;
+  bool get _isPaper => widget.scoreId == Score.paperId;
   String? get _entryScoreId => _isPaper ? null : widget.scoreId;
 
   EntryReading? get _reading => switch (_set) {
@@ -68,6 +68,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   void initState() {
     super.initState();
     _reader.open();
+    _keeper.start();
     _sets.addListener(_takeSetChanges);
     // A tablet put away, or a tab put in the background, may not come back:
     // what the player changed is kept before it goes.
@@ -82,7 +83,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
 
   @override
   void dispose() {
-    _keeper.keepWhatIsWaiting();
+    _keeper.dispose();
     _lifecycle.dispose();
     _sets.removeListener(_takeSetChanges);
     _reader.dispose();
@@ -130,11 +131,9 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
       return;
     }
     setState(() => _set = SetContext(set: now, index: index));
-    _reader.takeReading(
-      was: EntryReading.ofSong(entry: context.entry),
-      now: EntryReading.ofSong(entry: entry),
-      keepTouched: _keeper.isPending,
-    );
+    if (!_keeper.isPending) {
+      _reader.view?.apply(EntryReading.ofSong(entry: entry).onScreen);
+    }
   }
 
   void _letGoOfTheEntry({String? scannedAs}) {
@@ -145,21 +144,17 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
           scannedAs,
           setId: set.set.id,
           entryId: set.entry.id,
-          performing: widget.performing,
+          performing: _reader.isPerforming.value,
         ),
       );
       return;
     }
     _keeper.cancel();
     setState(() => _set = null);
-    _reader.reset();
+    _reader.view?.apply(const ScoreViewSettings.defaultView());
   }
 
-  Future<bool> _saveReading({
-    required int transposition,
-    required List<String> hiddenParts,
-    required double zoom,
-  }) async {
+  Future<bool> _saveReading(ScoreViewSettings reading) async {
     final context = _set;
     if (context == null) return true;
 
@@ -167,9 +162,9 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
       SaveSetEntryViewParams(
         setId: context.set.id,
         entryId: context.entry.id,
-        transposition: transposition,
-        hiddenParts: hiddenParts,
-        zoom: zoom,
+        transposition: reading.transposition,
+        hiddenParts: reading.hiddenParts,
+        zoom: reading.zoom,
       ),
     )).orThrow();
     // Where the entry comes in the set is read again rather than kept: a sync
@@ -197,27 +192,14 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
     say(context, message, briefly: briefly);
   }
 
-  /// Puts the score on the whole screen, read the way it is being read here.
-  ///
-  /// What was waiting to be kept is kept first: the stand keeps its own
-  /// reading against the same entry, and the two must not cross.
-  void _perform() {
-    _keeper.keepWhatIsWaiting();
-    final set = _set;
-    context.router.push(
-      PerformScoreRoute(
-        scoreId: widget.scoreId,
-        setId: set?.set.id,
-        entryId: set?.entry.id,
-        handover: _reader.handOver(),
-      ),
-    );
-  }
-
   /// Opens the one before or after this one, in place of this one.
   void _go(PageRouteInfo route) {
     _keeper.keepWhatIsWaiting();
     context.router.replace(route);
+  }
+
+  void _stopPerforming(bool didPop, Object? _) {
+    if (!didPop) _reader.isPerforming.value = false;
   }
 
   String get _title {
@@ -226,8 +208,8 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
     return paperName.isEmpty ? 'Played from paper' : paperName;
   }
 
-  WayThrough? _wayThrough() => switch (_set) {
-    final set? => WayThrough.ofSet(context: set, performing: widget.performing),
+  WayThrough? _wayThrough(bool performing) => switch (_set) {
+    final set? => WayThrough.ofSet(context: set, performing: performing),
     null => null,
   };
 
@@ -235,15 +217,24 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   Widget build(BuildContext context) {
     // Who is signed in decides what the page shows.
     return ListenableBuilder(
-      listenable: Listenable.merge([_user, _reader]),
+      listenable: Listenable.merge([_user, _reader, _reader.isPerforming]),
       builder: (context, _) {
-        final mayView = _user.value?.isScoreViewer == true;
-        final way = _wayThrough();
-        return Scaffold(
-          appBar: widget.performing && mayView
-              ? _standAppBar(way)
-              : AppBar(title: Text(_title)),
-          body: !mayView ? const ScoresAreForViewers() : _body(way),
+        final user = _user.value;
+        final mayView = user != null && user.isScoreViewer;
+        final performing = _reader.isPerforming.value;
+        return PopScope(
+          canPop: !performing || widget.performing,
+          onPopInvokedWithResult: _stopPerforming,
+          child: Scaffold(
+            appBar: mayView && performing
+                ? _standAppBar(_wayThrough(true))
+                : AppBar(title: Text(_title)),
+            body: !mayView
+                ? const ScoresAreForViewers()
+                : performing
+                ? ImmersiveStand(child: _sheet())
+                : _details(user),
+          ),
         );
       },
     );
@@ -260,34 +251,44 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
           : StandTitle(title: _title, way: way, onGo: _go),
       actions: [
         StandActions(
-          reader: _reader,
+          controller: _reader.view,
           keptAsYourReading: _set != null,
-          onTouched: _keeper.keepReading,
         ),
       ],
     );
   }
 
-  Widget _body(WayThrough? way) {
-    final sheet = ScoreDetailSheet(
-      reader: _reader,
-      isPaper: _isPaper,
-      paperNote: _set == null
+  Widget _paper({VoidCallback? onPerform}) {
+    if (_reader.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return PaperEntryBody(
+      note: _set == null
           ? 'This song is no longer in there.'
           : 'This one is played from paper.',
-      onTouched: _keeper.keepReading,
+      onPerform: onPerform,
     );
-    if (widget.performing) return sheet;
-    return ScoreDetailsBody(
-      wayBar: way == null ? null : WayBar(way: way, go: _go),
-      about: ScoreAbout(
-        reader: _reader,
-        onPerform: _perform,
-        mayUpload: _user.value?.isScoreEditor == true && !_isPaper,
-        keptAsYourReading: _set != null,
-        onTouched: _keeper.keepReading,
-      ),
-      sheet: sheet,
+  }
+
+  Widget _sheet() {
+    return _isPaper ? _paper() : ScoreDetailSheet(reader: _reader);
+  }
+
+  Widget _details(UserInfo user) {
+    final way = _wayThrough(false);
+    return Column(
+      children: [
+        if (way != null) WayBar(way: way, go: _go),
+        Expanded(
+          child: _isPaper
+              ? _paper(onPerform: () => _reader.isPerforming.value = true)
+              : ScoreDetailsBody(
+                  reader: _reader,
+                  user: user,
+                  keptAsYourReading: _set != null,
+                ),
+        ),
+      ],
     );
   }
 }

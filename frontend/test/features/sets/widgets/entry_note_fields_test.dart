@@ -41,7 +41,6 @@ class _PageState extends State<_Page> {
                 if (widget.collection)
                   CollectionEntryDescriptionField(
                     initialValue: '',
-                    isTheOnlyName: false,
                     enabled: true,
                     onSubmitted: widget.submitted.add,
                   )

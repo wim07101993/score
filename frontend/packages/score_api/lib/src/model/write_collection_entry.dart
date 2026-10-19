@@ -40,7 +40,7 @@ class WriteCollectionEntry extends _i1.ObjectParameterEncodable
       context: r'WriteCollectionEntry',
     );
     return WriteCollectionEntry(
-      scoreId: _$values[r'score_id'].decodeSimpleNullableString(
+      scoreId: _$values[r'score_id'].decodeSimpleString(
         context: r'WriteCollectionEntry.score_id',
       ),
       description: _$values[r'description'].decodeSimpleString(
@@ -55,7 +55,7 @@ class WriteCollectionEntry extends _i1.ObjectParameterEncodable
   factory WriteCollectionEntry.fromJson(_i3.Object? json) {
     final _$map = json.decodeMap(context: r'WriteCollectionEntry');
     return WriteCollectionEntry(
-      scoreId: _$map[r'score_id'].decodeJsonNullableString(
+      scoreId: _$map[r'score_id'].decodeJsonString(
         context: r'WriteCollectionEntry.score_id',
       ),
       description: _$map[r'description'].decodeJsonString(
@@ -79,7 +79,7 @@ class WriteCollectionEntry extends _i1.ObjectParameterEncodable
       context: r'WriteCollectionEntry',
     );
     return WriteCollectionEntry(
-      scoreId: _$values[r'score_id'].decodeFormNullableString(
+      scoreId: _$values[r'score_id'].decodeFormString(
         context: r'WriteCollectionEntry.score_id',
       ),
       description: _$values[r'description'].decodeFormString(
@@ -91,25 +91,16 @@ class WriteCollectionEntry extends _i1.ObjectParameterEncodable
     );
   }
 
-  /// The piece, or `null` for one that is in the collection but not in here —
-  /// a page of a book that has yet to be scanned. Such an entry is called by
-  /// its `description`, which then cannot be blank.
+  /// The piece.
   ///
   /// A score that is already in this collection under another entry is refused;
   /// a collection holds a piece once. Writing the entry the score is already in
   /// is not that: it is saying what the group does with a piece the collection
   /// already has, which is what an entry is for.
   ///
-  final _i3.String? scoreId;
+  final _i3.String scoreId;
 
   /// Whatever is worth remembering about this one.
-  ///
-  /// For a piece with no score it is the only name there is, so it cannot be
-  /// blank and an entry that leaves it blank is refused. This is where a
-  /// collection parts company with a set: a blank line in a running order is a
-  /// place in the gig, and where it comes is what it means, while a collection
-  /// has nowhere for a piece to come — an unnamed one cannot be found, cannot
-  /// be sorted, and cannot be told from the next unnamed one.
   ///
   ///
   /// **Example**:
@@ -169,9 +160,7 @@ class WriteCollectionEntry extends _i1.ObjectParameterEncodable
     _i3.bool allowEmpty = true,
   }) {
     final _$result = <_i3.String, _i1.PropertyValue>{};
-    if (scoreId != null) {
-      _$result[r'score_id'] = _i1.PropertyValue.scalar(scoreId!);
-    }
+    _$result[r'score_id'] = _i1.PropertyValue.scalar(scoreId);
     _$result[r'description'] = _i1.PropertyValue.scalar(description);
     _$result[r'transposition'] = _i1.PropertyValue.scalar(
       transposition.toString(),
@@ -201,7 +190,7 @@ abstract class $$WriteCollectionEntryCopyWith<$Res> {
     _i3.String? description,
     _i3.int? transposition,
   });
-  _i3.String? get scoreId;
+  _i3.String get scoreId;
   _i3.String get description;
   _i3.int get transposition;
 }
@@ -215,7 +204,7 @@ class _WriteCollectionEntryCopyWith<$Res>
   final WriteCollectionEntry _value;
 
   @_i3.override
-  _i3.String? get scoreId => _value.scoreId;
+  _i3.String get scoreId => _value.scoreId;
 
   @_i3.override
   _i3.String get description => _value.description;
@@ -232,7 +221,7 @@ class _WriteCollectionEntryCopyWith<$Res>
     return (WriteCollectionEntry(
       scoreId: _i3.identical(scoreId, _sentinel)
           ? this.scoreId
-          : (scoreId as _i3.String?),
+          : (scoreId as _i3.String),
       description: _i3.identical(description, _sentinel)
           ? this.description
           : (description as _i3.String),

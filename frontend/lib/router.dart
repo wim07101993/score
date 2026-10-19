@@ -13,8 +13,7 @@ import 'package:score/features/auth/widgets/profile_page.dart';
 import 'package:score/features/collections/widgets/collection_detail_page.dart';
 import 'package:score/features/collections/widgets/collections_page.dart';
 import 'package:score/features/observability/widgets/logs_page.dart';
-import 'package:score/features/scores/widgets/score_detail/models/score_reading_handover.dart';
-import 'package:score/features/scores/widgets/score_detail/score_detail_page.dart';
+import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/widgets/score_detail/score_pages.dart';
 import 'package:score/features/scores/widgets/score_list/scores_page.dart';
 import 'package:score/features/sets/widgets/set_detail_page.dart';
@@ -137,18 +136,16 @@ class AppRouter extends RootStackRouter {
   }
 }
 
-/// The address of an entry of a set or a collection that is played from
+/// The address of an entry of a set that is played from
 /// paper, and has no score to open. It is opened all the same, in its place in
 /// the running order: skipping it would have the player looking at the next
 /// song while the band plays this one.
 PerformScoreRoute paperRoute({
-  String? setId,
-  String? collectionId,
+  required String setId,
   required String entryId,
 }) => PerformScoreRoute(
-  scoreId: ScoreDetailPage.paper,
+  scoreId: Score.paperId,
   setId: setId,
-  collectionId: collectionId,
   entryId: entryId,
 );
 

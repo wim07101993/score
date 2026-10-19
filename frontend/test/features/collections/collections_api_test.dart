@@ -7,11 +7,7 @@ import 'package:score/config.dart';
 import 'package:score/features/collections/storage/collections_api.dart';
 import 'package:score/storage/clients.dart';
 
-/// What the collections client makes of a collection the server hands over —
-/// above all what is *not* there. A piece that has yet to be scanned has no
-/// score, and an entry that forgets that on the way in turns into a piece
-/// named after a score called `null`, which the server refuses and the player
-/// can never open.
+/// What the collections client makes of a collection the server hands over.
 void main() {
   CollectionsApi answering(Object body) => CollectionsApi(
     clientFactory: ApiClientFactory(
@@ -26,17 +22,6 @@ void main() {
       authToken: () async => 'a-token',
     ),
   );
-
-  test('a piece that has yet to be scanned has no score', () async {
-    final api = answering({
-      ..._collection,
-      'entries': [_entry(scoreId: null, description: 'Blue Bossa — page 62')],
-    });
-
-    final entry = (await api.getCollection('c1'))!.entries.single;
-    expect(entry.scoreId, isNull);
-    expect(entry.isOnPaper, isTrue);
-  });
 
   test('a collection handed over is not ours', () async {
     final api = answering({

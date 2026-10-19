@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/scores/widgets/score_detail/details/score_about.dart';
+import 'package:score/features/scores/widgets/score_detail/score_view_controller.dart';
 
 class const ShowAsWrittenButton({
   super.key,
   required final ScoreViewController controller,
 }) extends StatelessWidget {
-  void resetScoreView() {
-    const defaults = ScoreViewSettings.defaultView();
-    controller.transposition.value = defaults.transposition;
-    controller.partVisibilities.value = defaults.partVisibilities;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: resetScoreView,
-      child: const Text('Show as written'),
+    return ListenableBuilder(
+      listenable: controller.scoreController,
+      builder: (context, _) {
+        final settings = controller.settings;
+        final isAsWritten =
+            settings.transposition == 0 && settings.hiddenParts.isEmpty;
+        return TextButton(
+          onPressed: isAsWritten ? null : controller.showAsWritten,
+          child: const Text('Show as written'),
+        );
+      },
     );
   }
 }

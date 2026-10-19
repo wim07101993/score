@@ -146,17 +146,16 @@ func fillIn(ctx context.Context, db *pgxpool.Conn, collections []*Collection, us
 	// The join on scores is only there to sort by. A collection has no order of
 	// its own, and handing one back in whatever order the rows came off the
 	// disk would be a different list every time it was read; by title is the
-	// order somebody looking for a piece in a book reads in. A piece with no
-	// score is filed under what is written next to it, which is the only name
-	// it has. The id breaks the tie, so that two pieces of the same name always
-	// come back the same way round.
+	// order somebody looking for a piece in a book reads in. A score with no
+	// title is filed under what is written next to it. The id breaks the tie,
+	// so that two pieces of the same name always come back the same way round.
 	const entriesQuery = `
 		SELECT e.collection_id, e.id, e.score_id, e.description, e.transposition,
 		       COALESCE(v.transposition, 0), COALESCE(v.hidden_parts, '{}'), COALESCE(v.zoom, 1)
 		FROM collection_entries AS e
 		LEFT JOIN collection_entry_views AS v
 			ON v.entry_id = e.id AND v.user_subject = @subject
-		LEFT JOIN scores AS s ON s.id = e.score_id
+		JOIN scores AS s ON s.id = e.score_id
 		WHERE e.collection_id = ANY(@ids)
 		ORDER BY e.collection_id,
 		         lower(COALESCE(NULLIF(s.work_title, ''), NULLIF(s.movement_title, ''), e.description)),

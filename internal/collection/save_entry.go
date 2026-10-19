@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"score/internal/storage"
@@ -114,10 +113,10 @@ func SaveEntry(
 		// else that points at what is not there is the score, since a score is
 		// the only thing an entry points at.
 		if storage.IsUniqueViolation(err) {
-			return nil, &ErrScoreAlreadyInCollection{ScoreId: valueOr(write.ScoreId, "")}
+			return nil, &ErrScoreAlreadyInCollection{ScoreId: write.ScoreId}
 		}
 		if storage.IsForeignKeyViolation(err) {
-			return nil, &ErrUnknownScore{ScoreId: valueOr(write.ScoreId, "")}
+			return nil, &ErrUnknownScore{ScoreId: write.ScoreId}
 		}
 		return nil, fmt.Errorf("failed to save the entry: %w", err)
 	}
@@ -236,19 +235,13 @@ func requireOwnedCollection(ctx context.Context, tx pgx.Tx, collectionId string,
 // score is already in is saying what the group does with a piece the collection
 // already holds, which is what an entry is for; only a second entry naming the
 // same score is a piece twice.
-//
-// A piece with no score is not asked about at all: there is nothing to compare.
 func requireScoreIsNotInCollectionYet(
 	ctx context.Context,
 	tx pgx.Tx,
 	collectionId string,
 	entryId string,
-	scoreId *string,
+	scoreId string,
 ) error {
-	if scoreId == nil {
-		return nil
-	}
-
 	const query = `
 		SELECT id FROM collection_entries
 		WHERE collection_id = @collection_id AND score_id = @score_id AND id <> @entry_id
@@ -257,7 +250,7 @@ func requireScoreIsNotInCollectionYet(
 	var alreadyIn string
 	err := tx.QueryRow(ctx, query, pgx.NamedArgs{
 		"collection_id": collectionId,
-		"score_id":      *scoreId,
+		"score_id":      scoreId,
 		"entry_id":      entryId,
 	}).Scan(&alreadyIn)
 	switch {
@@ -267,7 +260,7 @@ func requireScoreIsNotInCollectionYet(
 		return fmt.Errorf("failed to look up whether the score is already in the collection: %w", err)
 	}
 
-	return &ErrScoreAlreadyInCollection{ScoreId: *scoreId, EntryId: alreadyIn}
+	return &ErrScoreAlreadyInCollection{ScoreId: scoreId, EntryId: alreadyIn}
 }
 
 // touchCollection says the collection changed now. What is in it is what
@@ -323,26 +316,5 @@ func validateEntry(write WriteEntry) error {
 			"the entry is transposed by %d semitones, which is outside the range %d..%d",
 			write.Transposition, MinTransposition, MaxTransposition)}
 	}
-
-	// A piece with no score has to be called something.
-	//
-	// This is where a collection parts company with a set. A blank line in a
-	// running order is a thing people write: it is a place in the gig, and
-	// where it comes is what it means, so it needs no name. A collection has
-	// nowhere for a piece to come. An unnamed piece in a book cannot be found,
-	// cannot be sorted, and cannot be told from the next unnamed one — and
-	// being told apart by what is written next to them is the whole reason
-	// these are outside the rule that a score is in a collection once.
-	if write.ScoreId == nil && strings.TrimSpace(write.Description) == "" {
-		return &ErrInvalidCollectionEntry{
-			Reason: "a piece with no score has nothing to be called by but its description, so it cannot be blank"}
-	}
 	return nil
-}
-
-func valueOr[T any](value *T, fallback T) T {
-	if value == nil {
-		return fallback
-	}
-	return *value
 }

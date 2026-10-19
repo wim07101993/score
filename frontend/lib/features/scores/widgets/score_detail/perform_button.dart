@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class const PerformButton({
   super.key,
-  required final VoidCallback onPressed,
+  required final VoidCallback? onPressed,
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {

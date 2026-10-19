@@ -37,8 +37,7 @@ type Collection struct {
 	// The pieces in the collection, by title.
 	//
 	// A collection has no order of its own, so this is not one: it is the order a list somebody is looking
-	// through should be in, and a piece with no score is filed under what is written next to it, which is
-	// the only name it has. Nothing about a collection changes when two of them swap places.
+	// through should be in. Nothing about a collection changes when two of them swap places.
 	Entries []CollectionEntry `json:"entries"`
 	// The addresses the collection is readable by.
 	//
@@ -147,16 +146,12 @@ type CollectionEntry struct {
 	// at the same thing. An id that is already an entry of another collection is refused rather than taken
 	// over.
 	ID uuid.UUID `json:"id"`
-	// The piece, or `null` for one that is in the collection but not in here.
+	// The piece.
 	//
 	// A score is in a collection at most once: that is the whole of what makes a collection a collection
-	// rather than a set. The pieces that have no score are outside that rule — half of what is in a book
-	// is on paper until somebody gets round to scanning it, they are told apart by what is written next to
-	// them, and two lines of a book nobody has scanned are two pieces.
-	ScoreID NilUUID `json:"score_id"`
-	// Whatever is worth remembering about this one, and the only name it has when there is no score to
-	// take a title from. For a piece with no score it is therefore never blank: being told apart by it is
-	// what puts those pieces outside the rule above.
+	// rather than a set.
+	ScoreID uuid.UUID `json:"score_id"`
+	// Whatever is worth remembering about this one.
 	Description string `json:"description"`
 	// How far the group plays this one from where it is written, in semitones, negative for down. It is
 	// the arrangement rather than anyone's own reading of it: everybody the collection is shared with
@@ -172,7 +167,7 @@ func (s *CollectionEntry) GetID() uuid.UUID {
 }
 
 // GetScoreID returns the value of ScoreID.
-func (s *CollectionEntry) GetScoreID() NilUUID {
+func (s *CollectionEntry) GetScoreID() uuid.UUID {
 	return s.ScoreID
 }
 
@@ -197,7 +192,7 @@ func (s *CollectionEntry) SetID(val uuid.UUID) {
 }
 
 // SetScoreID sets the value of ScoreID.
-func (s *CollectionEntry) SetScoreID(val NilUUID) {
+func (s *CollectionEntry) SetScoreID(val uuid.UUID) {
 	s.ScoreID = val
 }
 
@@ -1882,27 +1877,20 @@ func (s *WriteCollection) SetSharedWith(val []string) {
 // all: a collection has no order to put a piece in.
 // Ref: #
 type WriteCollectionEntry struct {
-	// The piece, or `null` for one that is in the collection but not in here — a page of a book that has
-	// yet to be scanned. Such an entry is called by its `description`, which then cannot be blank.
+	// The piece.
 	//
 	// A score that is already in this collection under another entry is refused; a collection holds a
 	// piece once. Writing the entry the score is already in is not that: it is saying what the group does
 	// with a piece the collection already has, which is what an entry is for.
-	ScoreID NilUUID `json:"score_id"`
+	ScoreID uuid.UUID `json:"score_id"`
 	// Whatever is worth remembering about this one.
-	//
-	// For a piece with no score it is the only name there is, so it cannot be blank and an entry that
-	// leaves it blank is refused. This is where a collection parts company with a set: a blank line in a
-	// running order is a place in the gig, and where it comes is what it means, while a collection has
-	// nowhere for a piece to come — an unnamed one cannot be found, cannot be sorted, and cannot be told
-	// from the next unnamed one.
 	Description string `json:"description"`
 	// How far the group plays this one from where it is written, in semitones, negative for down.
 	Transposition int `json:"transposition"`
 }
 
 // GetScoreID returns the value of ScoreID.
-func (s *WriteCollectionEntry) GetScoreID() NilUUID {
+func (s *WriteCollectionEntry) GetScoreID() uuid.UUID {
 	return s.ScoreID
 }
 
@@ -1917,7 +1905,7 @@ func (s *WriteCollectionEntry) GetTransposition() int {
 }
 
 // SetScoreID sets the value of ScoreID.
-func (s *WriteCollectionEntry) SetScoreID(val NilUUID) {
+func (s *WriteCollectionEntry) SetScoreID(val uuid.UUID) {
 	s.ScoreID = val
 }
 

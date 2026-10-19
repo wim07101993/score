@@ -34,23 +34,17 @@ properties:
       thing. An id that is already an entry of another collection is refused
       rather than taken over.
   score_id:
-    type: [string, 'null']
+    type: string
     format: uuid
     description: |
-      The piece, or `null` for one that is in the collection but not in here.
+      The piece.
 
       A score is in a collection at most once: that is the whole of what makes a
-      collection a collection rather than a set. The pieces that have no score
-      are outside that rule — half of what is in a book is on paper until
-      somebody gets round to scanning it, they are told apart by what is written
-      next to them, and two lines of a book nobody has scanned are two pieces.
+      collection a collection rather than a set.
   description:
     type: string
     description: |
-      Whatever is worth remembering about this one, and the only name it has
-      when there is no score to take a title from. For a piece with no score it
-      is therefore never blank: being told apart by it is what puts those pieces
-      outside the rule above.
+      Whatever is worth remembering about this one.
     examples: [page 214, in the red folder, the arrangement we do]
   transposition:
     type: integer

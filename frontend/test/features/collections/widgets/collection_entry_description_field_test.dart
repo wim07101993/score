@@ -8,16 +8,14 @@ void main() {
   Future<void> pumpField(
     WidgetTester tester,
     String text,
-    List<String> submitted, {
-    bool isTheOnlyName = false,
-  }) => tester.pumpWidget(
+    List<String> submitted,
+  ) => tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
         body: Column(
           children: [
             CollectionEntryDescriptionField(
               initialValue: text,
-              isTheOnlyName: isTheOnlyName,
               enabled: true,
               onSubmitted: submitted.add,
             ),
@@ -29,27 +27,24 @@ void main() {
     ),
   );
 
-  for (final isTheOnlyName in [false, true]) {
-    testWidgets(
-      'shows what a sync changed, and does not write the old text back'
-      '${isTheOnlyName ? ' (a piece with no score)' : ''}',
-      (tester) async {
-        final submitted = <String>[];
-        await pumpField(tester, 'A', submitted, isTheOnlyName: isTheOnlyName);
-        await pumpField(tester, 'B', submitted, isTheOnlyName: isTheOnlyName);
+  testWidgets(
+    'shows what a sync changed, and does not write the old text back',
+    (tester) async {
+      final submitted = <String>[];
+      await pumpField(tester, 'A', submitted);
+      await pumpField(tester, 'B', submitted);
 
-        expect(find.text('B'), findsOneWidget);
-        expect(find.text('A'), findsNothing);
+      expect(find.text('B'), findsOneWidget);
+      expect(find.text('A'), findsNothing);
 
-        await tester.tap(find.byType(CollectionEntryDescriptionField));
-        await tester.pump();
-        await tester.tap(find.byKey(const Key('elsewhere')));
-        await tester.pump();
+      await tester.tap(find.byType(CollectionEntryDescriptionField));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('elsewhere')));
+      await tester.pump();
 
-        expect(submitted, isEmpty);
-      },
-    );
-  }
+      expect(submitted, isEmpty);
+    },
+  );
 
   testWidgets('keeps what the player is typing over what a sync brings in', (
     tester,

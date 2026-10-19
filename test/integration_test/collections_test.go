@@ -75,7 +75,7 @@ func TestWritingACollectionLeavesWhatIsInItAlone(t *testing.T) {
 	saved := helpers.MustGetCollection(t, owner.ApiClient, collectionId)
 	assert.Equal(t, "After", saved.Title)
 	require.Len(t, saved.Entries, 1, "correcting the title emptied the collection")
-	assert.Equal(t, scoreId, saved.Entries[0].ScoreID.Value)
+	assert.Equal(t, scoreId, saved.Entries[0].ScoreID)
 }
 
 // A collection has no order of its own, so it comes back in the one order that
@@ -85,7 +85,7 @@ func TestACollectionComesBackByTitle(t *testing.T) {
 
 	owner := aPlayer(t)
 	titles := map[uuid.UUID]string{}
-	for _, title := range []string{"Ruby, My Dear", "All The Things You Are", "Misty"} {
+	for _, title := range []string{"Ruby, My Dear", "All The Things You Are", "Blue Bossa", "Misty"} {
 		titles[aTitledScore(t, title)] = title
 	}
 
@@ -96,10 +96,6 @@ func TestACollectionComesBackByTitle(t *testing.T) {
 		helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, uuid.New(),
 			helpers.ACollectionEntry(scoreId))
 	}
-	// A piece nobody has scanned is filed under what is written next to it,
-	// which is the only name it has.
-	helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, uuid.New(),
-		helpers.AnUnscannedEntry("Blue Bossa"))
 
 	saved := helpers.MustGetCollection(t, owner.ApiClient, collectionId)
 
@@ -163,25 +159,6 @@ func TestTheEntryAScoreIsInCanBeWrittenAgain(t *testing.T) {
 	assert.Len(t, helpers.MustGetCollection(t, owner.ApiClient, collectionId).Entries, 1)
 }
 
-// They have no score to be the same score, and they are told apart by what is
-// written next to them: two lines of a book nobody has scanned are two pieces.
-func TestTwoPiecesWithNoScoreAreTwoPieces(t *testing.T) {
-	t.Parallel()
-
-	owner := aPlayer(t)
-
-	collectionId := uuid.New()
-	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
-		helpers.WriteCollectionOf("The red folder", nil))
-	helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, uuid.New(),
-		helpers.AnUnscannedEntry("page 12"))
-	helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, uuid.New(),
-		helpers.AnUnscannedEntry("page 44"))
-
-	saved := helpers.MustGetCollection(t, owner.ApiClient, collectionId)
-	assert.Len(t, saved.Entries, 2)
-}
-
 // The rule is about one collection, not about the score: a piece belongs to as
 // many books as it is printed in.
 func TestAScoreCanBeInMoreThanOneCollection(t *testing.T) {
@@ -223,34 +200,8 @@ func TestAPieceThatIsTakenOutCanBePutBackIn(t *testing.T) {
 // WHAT IS REFUSED
 // ---------------------------------------------------------------------------
 
-// A collection has nowhere for a piece to come, so an unnamed one could never
-// be found, sorted, or told from the next unnamed one — and being told apart by
-// what is written next to them is the whole reason these are outside the rule
-// that a score is in a collection once.
-//
-// This is where a collection parts company with a set, where a blank line is a
-// place in the gig and where it comes is what it means.
-func TestAPieceWithNoScoreHasToBeCalledSomething(t *testing.T) {
-	t.Parallel()
-
-	owner := aPlayer(t)
-
-	collectionId := uuid.New()
-	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
-		helpers.WriteCollectionOf("The red folder", nil))
-
-	res, err := owner.PutCollectionEntry(t.Context(), helpers.AnUnscannedEntry("   "),
-		api.PutCollectionEntryParams{CollectionId: collectionId, EntryId: uuid.New()})
-
-	require.NoError(t, err)
-	badRequest, ok := res.(*api.PutCollectionEntryBadRequest)
-	require.Truef(t, ok, "an unnamed piece should be refused, got %#v", res)
-	assert.Equal(t, api.ProblemDetailsErrorCodeInvalidCollectionEntry, badRequest.ErrorCode)
-	assert.Empty(t, helpers.MustGetCollection(t, owner.ApiClient, collectionId).Entries)
-}
-
-// A piece with a score is called by its score, so there is nothing it has to
-// have written next to it.
+// A piece is called by its score, so there is nothing it has to have written
+// next to it.
 func TestAPieceWithAScoreNeedsNothingWrittenNextToIt(t *testing.T) {
 	t.Parallel()
 
@@ -265,31 +216,6 @@ func TestAPieceWithAScoreNeedsNothingWrittenNextToIt(t *testing.T) {
 		helpers.ACollectionEntry(scoreId))
 
 	assert.Empty(t, saved.Description)
-}
-
-// The name is the only thing a piece with no score has, so it cannot be taken
-// away by writing the entry again without it.
-func TestAPieceWithNoScoreCannotHaveItsNameTakenAway(t *testing.T) {
-	t.Parallel()
-
-	owner := aPlayer(t)
-
-	collectionId := uuid.New()
-	helpers.MustPutCollection(t, owner.ApiClient, collectionId,
-		helpers.WriteCollectionOf("The red folder", nil))
-	entryId := uuid.New()
-	helpers.MustPutCollectionEntry(t, owner.ApiClient, collectionId, entryId,
-		helpers.AnUnscannedEntry("page 12"))
-
-	res, err := owner.PutCollectionEntry(t.Context(), helpers.AnUnscannedEntry(""),
-		api.PutCollectionEntryParams{CollectionId: collectionId, EntryId: entryId})
-
-	require.NoError(t, err)
-	assert.IsTypef(t, &api.PutCollectionEntryBadRequest{}, res, "got %#v", res)
-
-	kept := helpers.MustGetCollection(t, owner.ApiClient, collectionId)
-	require.Len(t, kept.Entries, 1)
-	assert.Equal(t, "page 12", kept.Entries[0].Description)
 }
 
 func TestAnEntryNamingAScoreThatDoesNotExistIsRefused(t *testing.T) {

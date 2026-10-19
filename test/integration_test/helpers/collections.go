@@ -92,16 +92,7 @@ func FindDeletedCollection(
 // group plays as written, which nobody has said anything about how they look
 // at.
 func ACollectionEntry(scoreId uuid.UUID) *api.WriteCollectionEntry {
-	return &api.WriteCollectionEntry{ScoreID: api.NewNilUUID(scoreId)}
-}
-
-// AnUnscannedEntry is a piece that is in the collection but not in here: a page
-// of a book nobody has scanned, called by whatever is written next to it.
-func AnUnscannedEntry(description string) *api.WriteCollectionEntry {
-	return &api.WriteCollectionEntry{
-		ScoreID:     api.NilUUID{Null: true},
-		Description: description,
-	}
+	return &api.WriteCollectionEntry{ScoreID: scoreId}
 }
 
 // TheSameCollectionEntry is an entry written again as it came back, for a test
@@ -211,21 +202,16 @@ func WriteCollectionOf(title string, sharedWith []string) *api.WriteCollection {
 }
 
 // TitlesOf is what the entries of a collection are filed under, which is what a
-// test about the order they come back in compares: the title of the score, and
-// what is written next to a piece that has none.
+// test about the order they come back in compares: the title of the score.
 //
 // It takes the titles rather than looking them up, since this package has no
 // way to ask what a score is called.
 func TitlesOf(collection *api.Collection, titles map[uuid.UUID]string) []string {
 	names := make([]string, 0, len(collection.Entries))
 	for _, entry := range collection.Entries {
-		if entry.ScoreID.Null {
-			names = append(names, entry.Description)
-			continue
-		}
-		title, known := titles[entry.ScoreID.Value]
+		title, known := titles[entry.ScoreID]
 		if !known {
-			title = fmt.Sprintf("unknown score %s", entry.ScoreID.Value)
+			title = fmt.Sprintf("unknown score %s", entry.ScoreID)
 		}
 		names = append(names, title)
 	}

@@ -107,7 +107,6 @@ class PerformScoreRoute extends PageRouteInfo<PerformScoreRouteArgs> {
     String? setId,
     String? collectionId,
     String? entryId,
-    ScoreReadingHandover? handover,
     List<PageRouteInfo>? children,
   }) : super(
          PerformScoreRoute.name,
@@ -117,7 +116,6 @@ class PerformScoreRoute extends PageRouteInfo<PerformScoreRouteArgs> {
            setId: setId,
            collectionId: collectionId,
            entryId: entryId,
-           handover: handover,
          ),
          rawPathParams: {'scoreId': scoreId},
          rawQueryParams: {
@@ -149,7 +147,6 @@ class PerformScoreRoute extends PageRouteInfo<PerformScoreRouteArgs> {
         setId: args.setId,
         collectionId: args.collectionId,
         entryId: args.entryId,
-        handover: args.handover,
       );
     },
   );
@@ -162,7 +159,6 @@ class PerformScoreRouteArgs {
     this.setId,
     this.collectionId,
     this.entryId,
-    this.handover,
   });
 
   final Key? key;
@@ -175,11 +171,9 @@ class PerformScoreRouteArgs {
 
   final String? entryId;
 
-  final ScoreReadingHandover? handover;
-
   @override
   String toString() {
-    return 'PerformScoreRouteArgs{key: $key, scoreId: $scoreId, setId: $setId, collectionId: $collectionId, entryId: $entryId, handover: $handover}';
+    return 'PerformScoreRouteArgs{key: $key, scoreId: $scoreId, setId: $setId, collectionId: $collectionId, entryId: $entryId}';
   }
 
   @override
@@ -190,8 +184,7 @@ class PerformScoreRouteArgs {
         scoreId == other.scoreId &&
         setId == other.setId &&
         collectionId == other.collectionId &&
-        entryId == other.entryId &&
-        handover == other.handover;
+        entryId == other.entryId;
   }
 
   @override
@@ -200,8 +193,7 @@ class PerformScoreRouteArgs {
       scoreId.hashCode ^
       setId.hashCode ^
       collectionId.hashCode ^
-      entryId.hashCode ^
-      handover.hashCode;
+      entryId.hashCode;
 }
 
 /// generated route for

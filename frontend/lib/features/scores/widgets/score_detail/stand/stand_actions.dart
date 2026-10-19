@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/scores/widgets/score_detail/reading/reading_dialog.dart';
-import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
+import 'package:score/features/scores/widgets/score_detail/score_view_controller.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/zoom_in_button.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/zoom_out_button.dart';
 
@@ -15,46 +14,31 @@ import 'package:score/features/scores/widgets/score_detail/stand/zoom_out_button
 /// is a button that gets pressed by accident between two songs.
 class const StandActions({
   super.key,
-  required final ScoreReader reader,
+  required final ScoreViewController? controller,
   final bool keptAsYourReading = false,
-  final VoidCallback? onTouched,
 }) extends StatelessWidget {
-  void _zoomBy(double step) {
-    reader.zoomBy(step);
-    onTouched?.call();
-  }
-
-  void _changeView(ScoreView Function(ScoreView) change) {
-    reader.changeView(change);
-    onTouched?.call();
-  }
-
-  Future<void> _openReadingDialog(BuildContext context) => showDialog<void>(
-    context: context,
-    builder: (dialogContext) => ReadingDialog(
-      view: () => reader.view,
-      parts: reader.parts,
-      keptAsYourReading: keptAsYourReading,
-      onChange: _changeView,
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
-    if (reader.musicXml == null) {
+    final controller = this.controller;
+    if (controller == null) {
       return const SizedBox.shrink();
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ZoomOutButton(onPressed: () => _zoomBy(-0.8)),
-        ZoomInButton(onPressed: () => _zoomBy(0.8)),
-        if (reader.view != null)
-          IconButton(
-            tooltip: 'How you read it',
-            icon: const Icon(Icons.tune),
-            onPressed: () => _openReadingDialog(context),
+        ZoomOutButton(onPressed: controller.zoomOut),
+        ZoomInButton(onPressed: controller.zoomIn),
+        IconButton(
+          tooltip: 'How you read it',
+          icon: const Icon(Icons.tune),
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (context) => ReadingDialog(
+              controller: controller,
+              keptAsYourReading: keptAsYourReading,
+            ),
           ),
+        ),
       ],
     );
   }

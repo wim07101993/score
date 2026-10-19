@@ -1,7 +1,6 @@
 import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/models/collection_entry.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/sets/models.dart';
 import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/storage/api_exception.dart';
 import 'package:score/storage/clients.dart';
@@ -257,7 +256,7 @@ extension on api.Collection {
 extension on api.CollectionEntry {
   CollectionEntry toCollectionEntry() => CollectionEntry(
     id: id,
-    scoreId: scoreIdOf(scoreId),
+    scoreId: scoreId,
     description: description,
     transposition: transposition,
     view: view.toScoreViewSettings(),

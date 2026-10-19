@@ -96,9 +96,8 @@ class Collection extends _i1.ObjectParameterEncodable
   /// The pieces in the collection, by title.
   ///
   /// A collection has no order of its own, so this is not one: it is the order
-  /// a list somebody is looking through should be in, and a piece with no score
-  /// is filed under what is written next to it, which is the only name it has.
-  /// Nothing about a collection changes when two of them swap places.
+  /// a list somebody is looking through should be in. Nothing about a
+  /// collection changes when two of them swap places.
   ///
   final _i3.List<_i4.CollectionEntry> entries;
 

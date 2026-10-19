@@ -1,8 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:score/features/observability/get_it.dart';
+import 'package:score/features/scores/behaviours/download_score.dart';
 import 'package:score/features/scores/behaviours/get_music_xml.dart';
 import 'package:score/features/scores/behaviours/get_score.dart';
 import 'package:score/features/scores/behaviours/mark_score_viewed.dart';
+import 'package:score/features/scores/behaviours/pick_music_xml_file.dart';
 import 'package:score/features/scores/behaviours/sync_scores.dart';
 import 'package:score/features/scores/behaviours/upload_score.dart';
 import 'package:score/features/scores/notifiers/is_syncing_scores_notifier.dart';
@@ -70,5 +72,7 @@ extension ScoresGetItExtensions on GetIt {
     registerFactory(
       () => MarkScoreViewed(monitor: get(), store: get(), getScore: get()),
     );
+    registerFactory(() => DownloadScore(monitor: get()));
+    registerFactory(() => PickMusicXmlFile(monitor: get()));
   }
 }

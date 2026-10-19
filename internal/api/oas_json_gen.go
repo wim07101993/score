@@ -248,7 +248,7 @@ func (s *CollectionEntry) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("score_id")
-		s.ScoreID.Encode(e)
+		json.EncodeUUID(e, s.ScoreID)
 	}
 	{
 		e.FieldStart("description")
@@ -296,7 +296,9 @@ func (s *CollectionEntry) Decode(d *jx.Decoder) error {
 		case "score_id":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				if err := s.ScoreID.Decode(d); err != nil {
+				v, err := json.DecodeUUID(d)
+				s.ScoreID = v
+				if err != nil {
 					return err
 				}
 				return nil
@@ -5654,7 +5656,7 @@ func (s *WriteCollectionEntry) Encode(e *jx.Encoder) {
 func (s *WriteCollectionEntry) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("score_id")
-		s.ScoreID.Encode(e)
+		json.EncodeUUID(e, s.ScoreID)
 	}
 	{
 		e.FieldStart("description")
@@ -5684,7 +5686,9 @@ func (s *WriteCollectionEntry) Decode(d *jx.Decoder) error {
 		case "score_id":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				if err := s.ScoreID.Decode(d); err != nil {
+				v, err := json.DecodeUUID(d)
+				s.ScoreID = v
+				if err != nil {
 					return err
 				}
 				return nil

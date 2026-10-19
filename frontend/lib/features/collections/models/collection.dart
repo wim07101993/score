@@ -1,4 +1,5 @@
 import 'package:score/features/collections/models/collection_entry.dart';
+import 'package:score/features/sets/models.dart';
 import 'package:score/features/sync/models/syncable.dart';
 import 'package:score/helpers/json_map_extensions.dart';
 import 'package:score/storage/clients.dart';
@@ -21,6 +22,7 @@ class const Collection({
       description: json.get<String>('description') ?? '',
       entries: json
           .getList<Map>('entries')
+          .where((entry) => scoreIdOf(entry['score_id']) != null)
           .map(CollectionEntry.fromJson)
           .toList(growable: false),
       sharedWith: json.getList('shared_with'),

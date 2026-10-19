@@ -43,7 +43,7 @@ class CollectionEntry extends _i1.ObjectParameterEncodable
     final _$map = json.decodeMap(context: r'CollectionEntry');
     return CollectionEntry(
       id: _$map[r'id'].decodeJsonString(context: r'CollectionEntry.id'),
-      scoreId: _$map[r'score_id'].decodeJsonNullableString(
+      scoreId: _$map[r'score_id'].decodeJsonString(
         context: r'CollectionEntry.score_id',
       ),
       description: _$map[r'description'].decodeJsonString(
@@ -81,20 +81,14 @@ class CollectionEntry extends _i1.ObjectParameterEncodable
   ///
   final _i3.String id;
 
-  /// The piece, or `null` for one that is in the collection but not in here.
+  /// The piece.
   ///
   /// A score is in a collection at most once: that is the whole of what makes a
-  /// collection a collection rather than a set. The pieces that have no score
-  /// are outside that rule — half of what is in a book is on paper until
-  /// somebody gets round to scanning it, they are told apart by what is written
-  /// next to them, and two lines of a book nobody has scanned are two pieces.
+  /// collection a collection rather than a set.
   ///
-  final _i3.String? scoreId;
+  final _i3.String scoreId;
 
-  /// Whatever is worth remembering about this one, and the only name it has
-  /// when there is no score to take a title from. For a piece with no score it
-  /// is therefore never blank: being told apart by it is what puts those pieces
-  /// outside the rule above.
+  /// Whatever is worth remembering about this one.
   ///
   ///
   /// **Example**:
@@ -190,7 +184,7 @@ abstract class $$CollectionEntryCopyWith<$Res> {
     _i4.EntryView? view,
   });
   _i3.String get id;
-  _i3.String? get scoreId;
+  _i3.String get scoreId;
   _i3.String get description;
   _i3.int get transposition;
   _i4.EntryView get view;
@@ -208,7 +202,7 @@ class _CollectionEntryCopyWith<$Res>
   _i3.String get id => _value.id;
 
   @_i3.override
-  _i3.String? get scoreId => _value.scoreId;
+  _i3.String get scoreId => _value.scoreId;
 
   @_i3.override
   _i3.String get description => _value.description;
@@ -231,7 +225,7 @@ class _CollectionEntryCopyWith<$Res>
       id: _i3.identical(id, _sentinel) ? this.id : (id as _i3.String),
       scoreId: _i3.identical(scoreId, _sentinel)
           ? this.scoreId
-          : (scoreId as _i3.String?),
+          : (scoreId as _i3.String),
       description: _i3.identical(description, _sentinel)
           ? this.description
           : (description as _i3.String),

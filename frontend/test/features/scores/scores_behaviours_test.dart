@@ -270,6 +270,21 @@ void main() {
       expect((await store.scores.get('abc'))!.title, 'As the server read it');
     });
 
+    test('of a file that is not a score is refused before anything', () async {
+      final store = await Stores.inMemory();
+      final api = _Api();
+
+      await expectLater(
+        _Scores(store: store, api: api).upload('abc', 'not a score'),
+        throwsA(anything),
+      );
+      await _settle();
+
+      expect(api.uploaded, isEmpty);
+      expect(await store.documents.read('abc'), isNull);
+      expect(await store.scores.get('abc'), isNull);
+    });
+
     test('that does not get through is still on this device', () async {
       final store = await Stores.inMemory();
       final api = _Api()..uploadsFail = true;

@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:score/features/notation/parts.dart';
-import 'package:score/features/notation/view/score_view.dart';
 import 'package:score/features/notation/widgets/score_sheet.dart';
+import 'package:score/features/scores/models/score_view_settings.dart';
+import 'package:score/features/scores/widgets/score_detail/score_view_controller.dart';
 import 'package:songbird_music_notation/songbird_music_notation.dart';
 
 /// The sheet, asked what colour it is.
@@ -24,6 +25,14 @@ import 'package:songbird_music_notation/songbird_music_notation.dart';
 const _examples = '../test/example_data';
 
 String _read(String name) => File('$_examples/$name').readAsStringSync();
+
+ScoreViewController _controllerFor(
+  String name, {
+  ScoreViewSettings settings = const ScoreViewSettings.defaultView(),
+}) => ScoreViewController.forScore(
+  parseMusicXml(_read(name)),
+  settings: settings,
+);
 
 ThemeData _themeOf(Brightness brightness) => ThemeData(
   colorScheme: ColorScheme.fromSeed(
@@ -56,10 +65,15 @@ Future<SheetPalette> _sheet(
       key: ValueKey(brightness),
       theme: _themeOf(brightness),
       home: Scaffold(
-        body: ScoreSheet(musicXml: _read('BeetAnGeSample.musicxml')),
+        body: ScoreSheet(
+          controller: _controllerFor(
+            'BeetAnGeSample.musicxml',
+          ).scoreController,
+        ),
       ),
     ),
   );
+  await tester.pump();
   await tester.pump();
 
   // Read off the style the sheet handed the engraver: it is what the notes and
@@ -278,7 +292,11 @@ void _smoke() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ScoreSheet(musicXml: _read('BeetAnGeSample.musicxml')),
+          body: ScoreSheet(
+            controller: _controllerFor(
+              'BeetAnGeSample.musicxml',
+            ).scoreController,
+          ),
         ),
       ),
     );
@@ -292,96 +310,80 @@ void _smoke() {
     expect(controller.score.measureCount, greaterThan(0));
   });
 
-  testWidgets('leaves a hidden part off the page', (tester) async {
-    final musicXml = _read('BeetAnGeSample.musicxml');
-    final parts = readParts(parseMusicXml(musicXml));
-    final view = ScoreView.forParts(
-      partIds: [for (final part in parts) part.id],
-    ).withPartVisible(parts.first.id, false);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ScoreSheet(musicXml: musicXml, view: view),
-        ),
+  test('leaves a hidden part off the page', () {
+    final parts = readParts(parseMusicXml(_read('BeetAnGeSample.musicxml')));
+    final view = _controllerFor(
+      'BeetAnGeSample.musicxml',
+      settings: ScoreViewSettings(
+        transposition: 0,
+        hiddenParts: [parts.first.id],
+        zoom: 1,
       ),
     );
-    await tester.pump();
-
-    final controller = tester
-        .widget<MusicScoreView>(find.byType(MusicScoreView))
-        .controller;
 
     // Hidden, not removed: the score still has both parts, because the
     // document the app holds is the one that was uploaded.
-    expect(controller.visibleParts, hasLength(1));
-    expect(controller.score.parts, hasLength(2));
+    expect(view.scoreController.visibleParts, hasLength(1));
+    expect(view.scoreController.score.parts, hasLength(2));
+    expect(view.settings.hiddenParts, [parts.first.id]);
   });
 
-  testWidgets('reads the score in the key the view asks for', (tester) async {
-    final musicXml = _read('BeetAnGeSample.musicxml');
-    final parts = readParts(parseMusicXml(musicXml));
-    final view = ScoreView.forParts(
-      partIds: [for (final part in parts) part.id],
-    );
+  test('will not hide the last part that is left', () {
+    final view = _controllerFor('BeetAnGeSample.musicxml');
+    for (final part in view.parts) {
+      view.setPartVisible(part.id, false);
+    }
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ScoreSheet(
-            musicXml: musicXml,
-            view: view.withTransposition(3),
-          ),
-        ),
+    expect(view.scoreController.visibleParts, hasLength(1));
+  });
+
+  test('reads the score in the key the view asks for', () {
+    final view = _controllerFor(
+      'BeetAnGeSample.musicxml',
+      settings: ScoreViewSettings(
+        transposition: 3,
+        hiddenParts: const [],
+        zoom: 1,
       ),
     );
-    await tester.pump();
-
-    final controller = tester
-        .widget<MusicScoreView>(find.byType(MusicScoreView))
-        .controller;
-    expect(controller.transposition.chromaticSemitones, 3);
+    expect(view.scoreController.transposition.chromaticSemitones, 3);
 
     // Going from up a third to down a tone is not two transpositions stacked:
     // the score is put back first, which is the thing that goes wrong when
     // a transposition is treated as a setting rather than a step.
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ScoreSheet(
-            musicXml: musicXml,
-            view: view.withTransposition(-2),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
+    view.transposeTo(-2);
+    expect(view.scoreController.transposition.chromaticSemitones, -2);
+    expect(view.settings.transposition, -2);
 
-    expect(controller.transposition.chromaticSemitones, -2);
+    view.transposeTo(40);
+    expect(view.settings.transposition, ScoreViewSettings.maxTransposition);
   });
 
-  testWidgets('says how far it was pinched, and not what the page set', (
-    tester,
-  ) async {
-    // A pinch — or ctrl and the scroll wheel — zooms the engraving itself. A
-    // page that saves how big the score is read has to hear about that, and
-    // only that: the size it set itself is already its own.
-    final pinches = <double>[];
-    Widget sheet(double space) => MaterialApp(
-      home: Scaffold(
-        body: ScoreSheet(
-          musicXml: _read('BeetAnGeSample.musicxml'),
-          space: space,
-          onPinched: pinches.add,
-        ),
+  test('writes out what is on screen, and it can be read back', () {
+    final parts = readParts(parseMusicXml(_read('BeetAnGeSample.musicxml')));
+    final view = _controllerFor(
+      'BeetAnGeSample.musicxml',
+      settings: ScoreViewSettings(
+        transposition: 3,
+        hiddenParts: [parts.first.id],
+        zoom: 1,
       ),
     );
-    await tester.pumpWidget(sheet(7.5));
-    await tester.pump();
 
-    await tester.pumpWidget(sheet(10));
+    final written = parseMusicXml(view.visibleMusicXml);
+
+    expect(readParts(written).length, parts.length - 1);
+    expect(view.scoreController.score.parts, hasLength(parts.length));
+  });
+
+  testWidgets('a pinch is the size that is kept', (tester) async {
+    final view = _controllerFor('BeetAnGeSample.musicxml');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ScoreSheet(controller: view.scoreController)),
+      ),
+    );
     await tester.pump();
-    expect(pinches, isEmpty, reason: 'a size the page set is not a pinch');
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     tester.binding.handlePointerEvent(
@@ -393,6 +395,6 @@ void _smoke() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
     await tester.pump();
 
-    expect(pinches, [closeTo(1.1, 0.0001)]);
+    expect(view.settings.zoom, closeTo(1.1, 0.0001));
   });
 }

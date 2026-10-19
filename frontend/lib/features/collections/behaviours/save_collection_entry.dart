@@ -13,7 +13,6 @@ class const SaveCollectionEntryParams({
   required final String collectionId,
   final String? id,
   final String? scoreId,
-  final bool onPaper = false,
   final String? description,
   final int? transposition,
 });
@@ -43,12 +42,13 @@ class SaveCollectionEntry({
     final known = entries
         .where((candidate) => candidate.id == entryId)
         .firstOrNull;
-    final score = input.onPaper
-        ? null
-        : scoreIdOf(input.scoreId) ?? known?.scoreId;
+    final score =
+        scoreIdOf(input.scoreId) ??
+        known?.scoreId ??
+        (throw const PieceWithoutAScoreException());
     final written = input.description ?? known?.description ?? '';
 
-    if (score != null && score != known?.scoreId) {
+    if (score != known?.scoreId) {
       final alreadyIn = entries
           .where(
             (candidate) =>
@@ -61,10 +61,6 @@ class SaveCollectionEntry({
           entryId: alreadyIn.id,
         );
       }
-    }
-
-    if (score == null && written.trim().isEmpty) {
-      throw const UnnamedPieceException();
     }
 
     await api.putEntry(collectionId, entryId, {

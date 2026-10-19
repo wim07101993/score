@@ -61,8 +61,8 @@ class const WayThrough({
     );
   }
 
-  /// The way through a collection, by title — one that has yet to be scanned
-  /// included, as in a set. Null when the piece is no longer in it.
+  /// The way through a collection, by title. Null when the piece is no longer
+  /// in it.
   static WayThrough? ofCollection(
     CollectionContext context, {
     required String? Function(String scoreId) titleOf,
@@ -77,15 +77,12 @@ class const WayThrough({
       final at = index + step;
       if (at < 0 || at >= entries.length) return null;
       final candidate = entries[at];
-      final scoreId = candidate.scoreId;
-      return scoreId == null
-          ? paperRoute(collectionId: collection.id, entryId: candidate.id)
-          : scoreRoute(
-              scoreId,
-              collectionId: collection.id,
-              entryId: candidate.id,
-              performing: performing,
-            );
+      return scoreRoute(
+        candidate.scoreId,
+        collectionId: collection.id,
+        entryId: candidate.id,
+        performing: performing,
+      );
     }
 
     return WayThrough(

@@ -58,13 +58,8 @@ type Collection struct {
 type Entry struct {
 	Id string `json:"id"`
 
-	// ScoreId is the piece, and nil for one that is in the collection but not
-	// in here — a page of a book that has yet to be scanned.
-	//
-	// A score is in a collection at most once. The pieces that have none are
-	// outside that rule: they are told apart by what is written next to them,
-	// and two lines of a book nobody has scanned are two pieces.
-	ScoreId *string `json:"score_id"`
+	// ScoreId is the piece. A score is in a collection at most once.
+	ScoreId string `json:"score_id"`
 
 	Description string `json:"description"`
 
@@ -111,15 +106,11 @@ type WriteCollection struct {
 // Which entry it is, is not here either: it is named by whoever writes it, in
 // the path. There is no position: a collection has no order to put one in.
 type WriteEntry struct {
-	// ScoreId is the piece, and nil for one that is in the collection but not
-	// in here. A score that is already in the collection under another entry is
-	// refused: a collection holds a piece once.
-	ScoreId *string `json:"score_id"`
+	// ScoreId is the piece. A score that is already in the collection under
+	// another entry is refused: a collection holds a piece once.
+	ScoreId string `json:"score_id"`
 
-	// Description is whatever is worth remembering about this one, and the only
-	// name a piece with no score has — so for one of those it cannot be blank.
-	// A collection has nowhere for a piece to come, so an unnamed one cannot be
-	// found, sorted, or told from the next unnamed one.
+	// Description is whatever is worth remembering about this one.
 	Description   string `json:"description"`
 	Transposition int    `json:"transposition"`
 }

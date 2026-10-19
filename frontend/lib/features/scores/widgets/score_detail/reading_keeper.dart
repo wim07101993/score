@@ -1,27 +1,47 @@
 import 'dart:async';
 
+import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/widgets/score_detail/models/entry_reading.dart';
 import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
+import 'package:songbird_music_notation/songbird_music_notation.dart';
 
 class ReadingKeeper({
   required final ScoreReader reader,
   required final EntryReading? Function() reading,
-  required final Future<bool> Function({
-    required int transposition,
-    required List<String> hiddenParts,
-    required double zoom,
-  })
-  save,
+  required final Future<bool> Function(ScoreViewSettings reading) save,
   required final void Function() onLetGo,
   required final void Function(String message, {bool briefly}) say,
 }) {
   Timer? _keeping;
   int _saving = 0;
+  ScoreController? _watching;
 
   bool get isPending => _keeping != null || _saving > 0;
 
-  void keepReading() {
-    if (reading() == null) return;
+  void start() {
+    reader.addListener(_watch);
+    _watch();
+  }
+
+  void dispose() {
+    keepWhatIsWaiting();
+    reader.removeListener(_watch);
+    _watching?.removeListener(_touched);
+    _watching = null;
+  }
+
+  void _watch() {
+    final controller = reader.view?.scoreController;
+    if (identical(controller, _watching)) return;
+    _watching?.removeListener(_touched);
+    _watching = controller?..addListener(_touched);
+  }
+
+  void _touched() {
+    if (_viewMatchesEntry) {
+      cancel();
+      return;
+    }
     _keeping?.cancel();
     _keeping = Timer(const Duration(milliseconds: 400), keepWhatIsWaiting);
   }
@@ -47,20 +67,11 @@ class ReadingKeeper({
     final reading = this.reading();
     final view = reader.view;
     if (reading == null || view == null) return true;
-
-    final hidden = reading.hiddenParts;
-    return _offsetOf(reading, view.transposition) == reading.saved &&
-        hidden.length == view.hiddenPartIds.length &&
-        hidden.every(view.isHidden) &&
-        reader.drawnAt(reading.zoom);
+    return reading.isOnScreen(
+      view.settings,
+      partIds: view.parts.map((part) => part.id).toList(growable: false),
+    );
   }
-
-  int _offsetOf(EntryReading reading, int onScreen) => readingOffset(
-    band: reading.band,
-    saved: reading.saved,
-    savedReadAt: reading.readAt,
-    onScreen: onScreen,
-  );
 
   /// Writes the way this player is looking at the score into the set or the
   /// collection, so that it opens that way the next time they play it.
@@ -78,11 +89,7 @@ class ReadingKeeper({
 
     _saving++;
     try {
-      final stillThisEntry = await save(
-        transposition: _offsetOf(reading, view.transposition),
-        hiddenParts: [...view.hiddenPartIds],
-        zoom: reader.zoom,
-      );
+      final stillThisEntry = await save(reading.toSave(view.settings));
       if (!stillThisEntry) {
         onLetGo();
         return;

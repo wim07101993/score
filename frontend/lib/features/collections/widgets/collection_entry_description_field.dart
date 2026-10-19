@@ -1,20 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// What is written next to one piece of the collection.
-///
-/// For a piece with no score this is not a note about it, it is its name, so
-/// it says so — and it cannot be emptied: a book has nowhere for a piece to
-/// come, so an unnamed one could not be found or told from the next unnamed
-/// one. Emptying it puts the name back rather than refusing out loud; nobody
-/// meant to leave a piece of a book with nothing to call it, they meant to type
-/// over it.
 class const CollectionEntryDescriptionField({
   super.key,
   required final String initialValue,
 
-  /// Whether this is all the piece is called, which it is when it has no
-  /// score to take a title from.
-  required final bool isTheOnlyName,
   required final bool enabled,
   required final ValueChanged<String> onSubmitted,
 }) extends StatefulWidget {
@@ -76,7 +66,7 @@ class _CollectionEntryDescriptionFieldState
     // emptied out, which [_submit] would only have put back.
     _focus.removeListener(_submitWhenLeft);
     final value = _controller.text;
-    if (value != _taken && !(widget.isTheOnlyName && value.trim().isEmpty)) {
+    if (value != _taken) {
       _taken = value;
       widget.onSubmitted(value);
     }
@@ -86,14 +76,6 @@ class _CollectionEntryDescriptionFieldState
   }
 
   void _submit(String value) {
-    if (widget.isTheOnlyName && value.trim().isEmpty) {
-      _controller.text = _taken;
-      _controller.selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: _controller.text.length,
-      );
-      return;
-    }
     // Pressing enter on — or leaving — text nobody changed is not a write: it
     // would only send back what this field last read, over whatever came in
     // since.
@@ -110,11 +92,9 @@ class _CollectionEntryDescriptionFieldState
       controller: _controller,
       focusNode: _focus,
       enabled: widget.enabled,
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         isDense: true,
-        hintText: widget.isTheOnlyName
-            ? 'what this piece is called'
-            : 'page 214, in the red folder, the arrangement we do',
+        hintText: 'page 214, in the red folder, the arrangement we do',
       ),
       // On submitted rather than on changed: every one of these is a write of
       // that piece, and a write per keystroke is a write per keystroke.

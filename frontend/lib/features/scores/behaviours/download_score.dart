@@ -4,23 +4,15 @@ import 'dart:convert';
 import 'package:behaviour/behaviour.dart';
 import 'package:score/features/files/file_saver.dart';
 import 'package:score/features/scores/models/score.dart';
-import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/scores/storage/score_documents.dart';
-import 'package:score/features/scores/storage/scores_database.dart';
-import 'package:songbird_musicxml/songbird_musicxml.dart';
-import 'package:songbird_score/songbird_score.dart' as mxml;
-import 'package:songbird_score/songbird_score.dart' hide Score;
 
 class const DownloadScoreParams({
-  required final mxml.Score scoreData,
-  required final Score score,
-  required final ScoreViewSettings view,
+  required final String musicXml,
+  required final String scoreId,
+  required final String title,
 }) {}
 
 class DownloadScore({
   required super.monitor,
-  required final ScoresDatabase db,
-  required final ScoreDocuments docs,
 }) extends Behaviour<DownloadScoreParams, void> {
   @override
   String get description => 'downloading score';
@@ -30,29 +22,14 @@ class DownloadScore({
     DownloadScoreParams input,
     BehaviourTrack? track,
   ) async {
-    final parts = input.scoreData.parts
-        .where((part) => input.view.partVisibilities[part.id] != false)
-        .toList(growable: false);
-
-    final modifiedScore = input.scoreData.withParts(parts);
-    ScoreEditor(modifiedScore).execute(
-      TransposeCommand(
-        interval: Interval.chromaticFromKey(
-          input.view.transposition,
-          modifiedScore.parts.firstOrNull
-                  ?.contextAtMeasure(0)
-                  .keyFor(allStaves) ??
-              KeySignature.cMajor,
-        ),
-      ),
-    );
-
+    final title = input.title.trim();
+    final name = title.isEmpty
+        ? input.scoreId
+        : title.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_');
     await saveFile(
-      bytes: utf8.encode(const MusicXmlWriter().write(modifiedScore)),
+      bytes: utf8.encode(input.musicXml),
       mimeType: Score.mediaType,
-      filename: input.score.title.isNotEmpty
-          ? input.score.title.replaceAll(RegExp(r'[\\/:*?"<>|\x00-\x1f]'), '_')
-          : input.score.id,
+      filename: '$name.musicxml',
     );
   }
 }

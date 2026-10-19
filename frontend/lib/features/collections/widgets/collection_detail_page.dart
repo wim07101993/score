@@ -29,11 +29,9 @@ import 'package:score/features/scores/widgets/score_list/filter/score_search_fie
 import 'package:score/features/scores/widgets/score_list/score_library.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/router.dart';
-import 'package:score/widgets/add_paper_entry_button.dart';
 import 'package:score/widgets/confirm_delete_button.dart';
 import 'package:score/widgets/error_snack_bar.dart';
 import 'package:score/widgets/keep_button.dart';
-import 'package:score/widgets/paper_entry_field.dart';
 import 'package:score/widgets/save_button.dart';
 import 'package:score/widgets/semitones.dart';
 import 'package:score/widgets/shared_with_field.dart';
@@ -73,8 +71,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   final _description = TextEditingController();
   final _sharedWith = TextEditingController();
   final _filter = TextEditingController();
-  final _paperEntry = TextEditingController();
-  final _paperEntryFocus = FocusNode();
 
   /// Where each piece is drawn, so that one that is asked for again can be
   /// scrolled to.
@@ -122,8 +118,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     _filter
       ..removeListener(_onFilterChanged)
       ..dispose();
-    _paperEntry.dispose();
-    _paperEntryFocus.dispose();
     super.dispose();
   }
 
@@ -257,18 +251,14 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   /// Opens one piece of the collection the way a score opens from the list of
   /// scores — its details, with the score beside them — read the way the
-  /// collection says. A piece that has not been scanned has no details, and
-  /// opens as the piece it is.
+  /// collection says.
   void _open(CollectionEntry entry) {
-    final scoreId = entry.scoreId;
     context.router.push(
-      scoreId == null
-          ? paperRoute(collectionId: _collectionId, entryId: entry.id)
-          : ScoreRoute(
-              scoreId: scoreId,
-              collectionId: _collectionId,
-              entryId: entry.id,
-            ),
+      ScoreRoute(
+        scoreId: entry.scoreId,
+        collectionId: _collectionId,
+        entryId: entry.id,
+      ),
     );
   }
 
@@ -306,7 +296,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   Future<void> _writeEntry({
     String? id,
     String? scoreId,
-    bool onPaper = false,
     String? description,
     int? transposition,
   }) async {
@@ -316,7 +305,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           collectionId: _collectionId,
           id: id,
           scoreId: scoreId,
-          onPaper: onPaper,
           description: description,
           transposition: transposition,
         ),
@@ -359,23 +347,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     _pointing = Timer(const Duration(milliseconds: 1500), () {
       if (mounted) setState(() => _pointedAt = null);
     });
-  }
-
-  /// Puts a piece into the collection that this app has no score of.
-  ///
-  /// The cursor stays in the box afterwards, since filling a book in is typing
-  /// one line after another.
-  Future<void> _addPaperEntry() async {
-    final description = _paperEntry.text.trim();
-    if (description.isEmpty) {
-      _paperEntryFocus.requestFocus();
-      return;
-    }
-
-    _paperEntry.clear();
-    setState(() {});
-    await _writeEntry(onPaper: true, description: description);
-    if (mounted) _paperEntryFocus.requestFocus();
   }
 
   void _say(String message) {
@@ -444,10 +415,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               collectionId: _collectionId,
               owner: owner,
               pointedAt: _pointedAt == entry.id,
-              score: switch (entry.scoreId) {
-                final scoreId? => _scores.getScore(scoreId),
-                null => null,
-              },
+              score: _scores.getScore(entry.scoreId),
               onDescription: (text) =>
                   _writeEntry(id: entry.id, description: text),
               onGroupTransposition: (semitones) =>
@@ -514,34 +482,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                 },
             ],
           ),
-        const SizedBox(height: 16),
-        // Half of what is in a book is on paper until somebody gets round to
-        // scanning it, and a collection that could only name what has been
-        // uploaded is not the collection.
-        const Text(
-          'Or a piece that is not in here — one that has yet to be scanned.'
-          ' What you write is what it is called, and it is the only name it'
-          ' has until somebody scans it.',
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: PaperEntryField(
-                controller: _paperEntry,
-                focusNode: _paperEntryFocus,
-                onChanged: (_) => setState(() {}),
-                onSubmitted: (_) => _addPaperEntry(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            AddPaperEntryButton(
-              onPressed: _paperEntry.text.trim().isEmpty
-                  ? null
-                  : _addPaperEntry,
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -699,10 +639,7 @@ class const _CollectionOverview({
     final scores = <Score>[];
     final unlisted = <CollectionEntry>[];
     for (final entry in entries) {
-      final score = switch (entry.scoreId) {
-        final scoreId? => scoreOf(scoreId),
-        null => null,
-      };
+      final score = scoreOf(entry.scoreId);
       if (score == null) {
         unlisted.add(entry);
       } else {
@@ -780,20 +717,15 @@ class const _OverviewRow({
     final note = entry.description.trim();
     final group = entry.transposition;
 
-    // A piece with no score is called by what is written next to it, so that
-    // is its title rather than a line under one.
-    final title = switch ((entry.scoreId, score)) {
-      (_, final score?) => Text(score.title),
-      (null, _) when note.isNotEmpty => Text(note),
-      (null, _) => Text('Not scanned yet', style: muted),
-      (final scoreId?, _) => Tooltip(
-        message: scoreId,
+    final title = switch (score) {
+      final score? => Text(score.title),
+      null => Tooltip(
+        message: entry.scoreId,
         child: Text('Not on this device yet', style: muted),
       ),
     };
     final details = [
-      if (entry.scoreId == null && note.isNotEmpty) 'not scanned yet',
-      if (entry.scoreId != null && note.isNotEmpty) note,
+      if (note.isNotEmpty) note,
       if (group != 0) 'group ${group > 0 ? '+' : ''}$group',
     ].join(' · ');
 
@@ -883,8 +815,8 @@ class const _EntryCard({
       color: theme.colorScheme.outline,
       fontStyle: FontStyle.italic,
     );
-    return switch ((entry.scoreId, score)) {
-      (_, final score?) => Column(
+    return switch (score) {
+      final score? => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(score.title, style: theme.textTheme.titleSmall),
@@ -897,17 +829,8 @@ class const _EntryCard({
             ),
         ],
       ),
-      // A piece that has yet to be scanned. It has no score to take a title
-      // from, so it is called by what is written next to it.
-      (null, _) => Tooltip(
-        message: 'Not scanned yet; there is no score here to open.',
-        child: Text(
-          entry.nameWith((_) => null),
-          style: theme.textTheme.titleSmall?.merge(muted),
-        ),
-      ),
-      (final scoreId?, _) => Tooltip(
-        message: scoreId,
+      null => Tooltip(
+        message: entry.scoreId,
         child: Text('Not on this device yet', style: muted),
       ),
     };
@@ -930,23 +853,16 @@ class const _EntryCard({
             Row(
               children: [
                 Expanded(child: _name(theme)),
+                // Straight to the music. Opening a piece of a collection is
+                // opening it to play it, not to read who wrote it.
                 OpenCollectionEntryButton(
-                  onPressed: switch (entry.scoreId) {
-                    // Straight to the music. Opening a piece of a collection
-                    // is opening it to play it, not to read who wrote it.
-                    final scoreId? => () => context.router.push(
-                      ScoreRoute(
-                        scoreId: scoreId,
-                        collectionId: collectionId,
-                        entryId: entry.id,
-                      ),
+                  onPressed: () => context.router.push(
+                    ScoreRoute(
+                      scoreId: entry.scoreId,
+                      collectionId: collectionId,
+                      entryId: entry.id,
                     ),
-                    // A piece with no score opens all the same, to say which
-                    // piece it is, with the way on to the next.
-                    null => () => context.router.push(
-                      paperRoute(collectionId: collectionId, entryId: entry.id),
-                    ),
-                  },
+                  ),
                 ),
                 if (owner) RemoveCollectionEntryButton(onPressed: onRemove),
               ],
@@ -954,7 +870,6 @@ class const _EntryCard({
             const SizedBox(height: 8),
             CollectionEntryDescriptionField(
               initialValue: entry.description,
-              isTheOnlyName: entry.isOnPaper,
               enabled: owner,
               onSubmitted: onDescription,
             ),
