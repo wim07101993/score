@@ -9,7 +9,7 @@ class const UploadScoreFab({
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
-      onPressed: () => context.router.push(ScoreRoute(scoreId: 'new')),
+      onPressed: () => context.router.push(ScoreDetailRoute(scoreId: 'new')),
       icon: const Icon(Icons.upload_file),
       label: const Text('Upload'),
     );

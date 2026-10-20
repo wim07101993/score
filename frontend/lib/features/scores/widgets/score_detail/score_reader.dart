@@ -14,13 +14,10 @@ import 'package:score/features/scores/widgets/score_detail/score_view_controller
 
 class ScoreReader({
   required final String? scoreId,
-  final bool performing = false,
   final ScoreViewSettings? Function()? settings,
 }) extends ChangeNotifier {
   final _auth = GetIt.I<AuthNotifier>();
   final _scores = GetIt.I<ScoresNotifier>();
-
-  late final isPerforming = ValueNotifier(performing);
 
   ScoreViewController? _view;
   bool _loading = true;
@@ -44,7 +41,6 @@ class ScoreReader({
     _disposed = true;
     _scores.removeListener(_takeScoreChanges);
     _view?.dispose();
-    isPerforming.dispose();
     super.dispose();
   }
 
@@ -74,7 +70,7 @@ class ScoreReader({
     _show(musicXml);
   }
 
-  Future<void> load({Future<void> Function()? readEntry}) async {
+  Future<void> load() async {
     if (_auth.value?.isScoreViewer != true) {
       _loading = false;
       _notify();
@@ -82,14 +78,12 @@ class ScoreReader({
     }
     final scoreId = this.scoreId;
     if (scoreId == null) {
-      await readEntry?.call();
       _loading = false;
       _notify();
       return;
     }
 
     try {
-      await readEntry?.call();
       final musicXml = (await GetIt.I<GetMusicXml>()(scoreId)).orThrow();
       if (_disposed) return;
 

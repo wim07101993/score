@@ -1,8 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/features/scores/widgets/score_detail/way/next_score_button.dart';
-import 'package:score/features/scores/widgets/score_detail/way/previous_score_button.dart';
-import 'package:score/features/scores/widgets/score_detail/way/way_through.dart';
+import 'package:score/features/sets/widgets/set_score_detail/next_score_button.dart';
+import 'package:score/features/sets/widgets/set_score_detail/previous_score_button.dart';
+import 'package:score/features/sets/widgets/set_score_detail/way_through.dart';
 
 /// The way through the set in the middle of the stand's bar, the way it was in
 /// a bar of its own: the song before, which song this is, and the song after.
@@ -33,7 +33,7 @@ class const StandTitle({
             borderRadius: BorderRadius.circular(8),
             onTap: () => context.router.push(way.route),
             child: Tooltip(
-              message: way.isSet ? 'Open the set' : 'Open the collection',
+              message: 'Open the set',
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Column(

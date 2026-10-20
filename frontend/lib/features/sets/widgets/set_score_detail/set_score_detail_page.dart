@@ -8,30 +8,29 @@ import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_details_body.dart';
-import 'package:score/features/scores/widgets/score_detail/models/entry_reading.dart';
-import 'package:score/features/scores/widgets/score_detail/models/set_context.dart';
 import 'package:score/features/scores/widgets/score_detail/reading_keeper.dart';
 import 'package:score/features/scores/widgets/score_detail/say.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_sheet.dart';
 import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
 import 'package:score/features/scores/widgets/score_detail/scores_are_for_viewers.dart';
-import 'package:score/features/scores/widgets/score_detail/set/paper_entry_body.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/immersive_stand.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/stand_actions.dart';
-import 'package:score/features/scores/widgets/score_detail/stand/stand_title.dart';
-import 'package:score/features/scores/widgets/score_detail/way/way_bar.dart';
-import 'package:score/features/scores/widgets/score_detail/way/way_through.dart';
-import 'package:score/features/sets/behaviours/get_set.dart';
 import 'package:score/features/sets/behaviours/save_set_entry_view.dart';
+import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/notifiers/sets_notifier.dart';
-import 'package:score/router.dart';
+import 'package:score/features/sets/widgets/set_score_detail/paper_entry_body.dart';
+import 'package:score/features/sets/widgets/set_score_detail/set_context.dart';
+import 'package:score/features/sets/widgets/set_score_detail/set_entry_reading.dart';
+import 'package:score/features/sets/widgets/set_score_detail/set_way_through.dart';
+import 'package:score/features/sets/widgets/set_score_detail/stand_title.dart';
+import 'package:score/features/sets/widgets/set_score_detail/way_bar.dart';
+import 'package:score/features/sets/widgets/set_score_detail/way_through.dart';
 
 class const SetScoreDetailPage({
   super.key,
-  required final String scoreId,
-  required final String setId,
+  required final ScoreSet? set,
   required final String entryId,
-  final bool performing = false,
+  final bool isPerforming = false,
 }) extends StatefulWidget {
   @override
   State<SetScoreDetailPage> createState() => _SetScoreDetailPageState();
@@ -42,32 +41,42 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   final _sets = GetIt.I<SetsNotifier>();
   final _scores = GetIt.I<ScoresNotifier>();
 
+  late bool _performing = widget.isPerforming;
+
   late final _reader = ScoreReader(
-    scoreId: _entryScoreId,
-    performing: widget.performing,
+    scoreId: _scoreId,
     settings: () => _reading?.onScreen,
   );
   late final _keeper = ReadingKeeper(
     reader: _reader,
-    reading: () => _reading,
+    isKept: (onScreen, partIds) =>
+        _reading?.isOnScreen(onScreen, partIds: partIds) ?? true,
     save: _saveReading,
     onLetGo: _letGoOfTheEntry,
     say: _say,
   );
   late final AppLifecycleListener _lifecycle;
 
-  SetContext? _set;
+  late SetContext? _set = switch (widget.set) {
+    final set? => switch (set.entries.indexWhere(
+      (entry) => entry.id == widget.entryId,
+    )) {
+      < 0 => null,
+      final index => SetContext(set: set, index: index),
+    },
+    null => null,
+  };
+  late final String? _scoreId = _set?.entry.scoreId;
 
-  bool get _isPaper => widget.scoreId == Score.paperId;
-  String? get _entryScoreId => _isPaper ? null : widget.scoreId;
+  bool get _isPaper => _scoreId == null;
 
-  Score? get _score => switch (_entryScoreId) {
+  Score? get _score => switch (_scoreId) {
     final scoreId? => _scores.getScore(scoreId),
     null => null,
   };
 
-  EntryReading? get _reading => switch (_set) {
-    final set? => EntryReading.ofSong(entry: set.entry),
+  SetEntryReading? get _reading => switch (_set) {
+    final set? => SetEntryReading(entry: set.entry),
     null => null,
   };
 
@@ -83,9 +92,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
       onHide: _keeper.keepWhatIsWaiting,
       onPause: _keeper.keepWhatIsWaiting,
     );
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _reader.load(readEntry: _readEntry),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reader.load());
   }
 
   @override
@@ -95,24 +102,6 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
     _sets.removeListener(_takeSetChanges);
     _reader.dispose();
     super.dispose();
-  }
-
-  Future<void> _readEntry() async {
-    // A link into a set can be followed on a device that has not synced since
-    // it was shared: see [GetSet].
-    final set = (await GetIt.I<GetSet>()(widget.setId)).valueOrNull;
-    if (set == null) return;
-
-    final index = set.entries.indexWhere((entry) => entry.id == widget.entryId);
-    if (index < 0) return;
-
-    // The entry has to be an entry of this score. An entry can be written to
-    // play a different score than it used to, and a link made before that would
-    // otherwise hand this score the key and the hidden parts of a song it is
-    // not. The score is what the page is of, so the set is what gives way.
-    if (set.entries[index].scoreId != _entryScoreId) return;
-
-    if (mounted) setState(() => _set = SetContext(set: set, index: index));
   }
 
   void _takeSetChanges() {
@@ -130,40 +119,29 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
       return;
     }
     final entry = now.entries[index];
-    // The same check as when the page was opened: an entry written to play a
-    // different score while this one is open is not this score's any more,
-    // and neither are its key and its parts.
-    if (entry.scoreId != _entryScoreId) {
-      _letGoOfTheEntry(scannedAs: entry.scoreId);
+    // An entry written to play a different score while this one is open is
+    // not this score's any more, and neither are its key and its parts: the
+    // entry's page puts that score up in this one's place.
+    if (entry.scoreId != _scoreId) {
+      _letGoOfTheEntry();
       return;
     }
     setState(() => _set = SetContext(set: now, index: index));
     if (!_keeper.isPending) {
-      _reader.view?.apply(EntryReading.ofSong(entry: entry).onScreen);
+      _reader.view?.apply(SetEntryReading(entry: entry).onScreen);
     }
   }
 
-  void _letGoOfTheEntry({String? scannedAs}) {
-    final set = _set;
-    if (_isPaper && scannedAs != null && set != null) {
-      context.router.replace(
-        scoreRoute(
-          scannedAs,
-          setId: set.set.id,
-          entryId: set.entry.id,
-          performing: _reader.isPerforming.value,
-        ),
-      );
-      return;
-    }
+  void _letGoOfTheEntry() {
     _keeper.cancel();
     setState(() => _set = null);
     _reader.view?.apply(const ScoreViewSettings.defaultView());
   }
 
-  Future<bool> _saveReading(ScoreViewSettings reading) async {
+  Future<bool> _saveReading(ScoreViewSettings onScreen) async {
     final context = _set;
     if (context == null) return true;
+    final reading = SetEntryReading(entry: context.entry).toSave(onScreen);
 
     final saved = (await GetIt.I<SaveSetEntryView>()(
       SaveSetEntryViewParams(
@@ -185,7 +163,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
     // wrote it to play another score while this was on its way has already
     // said this page is not that entry's any more.
     if (_set == null ||
-        (moved >= 0 && saved.entries[moved].scoreId != _entryScoreId)) {
+        (moved >= 0 && saved.entries[moved].scoreId != _scoreId)) {
       return false;
     }
     setState(() {
@@ -205,8 +183,10 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
     context.router.replace(route);
   }
 
+  void _perform() => setState(() => _performing = true);
+
   void _stopPerforming(bool didPop, Object? _) {
-    if (!didPop) _reader.isPerforming.value = false;
+    if (!didPop) setState(() => _performing = false);
   }
 
   String get _title {
@@ -216,7 +196,7 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
   }
 
   WayThrough? _wayThrough(bool performing) => switch (_set) {
-    final set? => WayThrough.ofSet(context: set, performing: performing),
+    final set? => setWayThrough(context: set, performing: performing),
     null => null,
   };
 
@@ -228,14 +208,13 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
         _user,
         _scores,
         _reader,
-        _reader.isPerforming,
       ]),
       builder: (context, _) {
         final user = _user.value;
         final mayView = user != null && user.isScoreViewer;
-        final performing = _reader.isPerforming.value;
+        final performing = _performing;
         return PopScope(
-          canPop: !performing || widget.performing,
+          canPop: !performing || widget.isPerforming,
           onPopInvokedWithResult: _stopPerforming,
           child: Scaffold(
             appBar: mayView && performing
@@ -293,9 +272,10 @@ class _SetScoreDetailPageState extends State<SetScoreDetailPage> {
         if (way != null) WayBar(way: way, go: _go),
         Expanded(
           child: _isPaper
-              ? _paper(onPerform: () => _reader.isPerforming.value = true)
+              ? _paper(onPerform: _perform)
               : ScoreDetailsBody(
                   reader: _reader,
+                  onPerform: _perform,
                   score: _score,
                   user: user,
                   keptAsYourReading: _set != null,

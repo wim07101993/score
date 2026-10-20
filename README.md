@@ -267,10 +267,13 @@ out of a gig or out of a book. What a view belongs to is the entry, so a score
 that is in a set and in a collection is two entries and two views: the band's
 arrangement of it and the book's are two different things to read.
 
-The score page opens either. `/scores/<id>/perform?set=…&entry=…` and
-`/scores/<id>/perform?collection=…&entry=…` are the same page, and the way through steps
-along whichever list it came out of — the running order for a gig, the titles
-for a book.
+Each has its own score page, at the entry rather than the score:
+`/sets/<id>/<entryId>` and `/collections/<id>/<entryId>`. A set can play the
+same score twice and can have a song played from paper, and an entry of either
+can be written to play another score; the page follows the entry. A set's page
+also steps along the running order of the gig. Either is put on the stand with
+`?isPerforming=true`, as a score on its own is at
+`/scores/<id>?isPerforming=true`.
 
 ### Three resources, not one
 

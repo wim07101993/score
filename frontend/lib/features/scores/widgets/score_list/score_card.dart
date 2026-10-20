@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:score/features/collections/widgets/add_score_to_collection_button.dart';
 import 'package:score/features/scores/instruments.dart';
 import 'package:score/features/scores/models/score.dart';
-import 'package:score/features/scores/widgets/score_list/add_score_to_collection_button.dart';
-import 'package:score/features/scores/widgets/score_list/add_score_to_set_button.dart';
+import 'package:score/features/sets/widgets/add_score_to_set_button.dart';
 
 class const ScoreCard({
   super.key,

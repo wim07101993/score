@@ -79,7 +79,9 @@ class _ScoresPageState extends State<ScoresPage> {
                     builder: (context, _) => ScoreLibrary(
                       scores: _scores.scores,
                       onScoreTapped: (score) {
-                        context.router.push(ScoreRoute(scoreId: score.id));
+                        context.router.push(
+                          ScoreDetailRoute(scoreId: score.id),
+                        );
                       },
                     ),
                   ),

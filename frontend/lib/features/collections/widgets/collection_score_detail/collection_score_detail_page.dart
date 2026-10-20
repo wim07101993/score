@@ -1,17 +1,16 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:score/behaviours/exception_or.dart';
 import 'package:score/features/auth/notifiers/auth_notifier.dart';
-import 'package:score/features/collections/behaviours/get_collection.dart';
 import 'package:score/features/collections/behaviours/save_collection_entry_view.dart';
+import 'package:score/features/collections/models/collection.dart';
 import 'package:score/features/collections/notifiers/collections_notifier.dart';
+import 'package:score/features/collections/widgets/collection_score_detail/collection_context.dart';
+import 'package:score/features/collections/widgets/collection_score_detail/collection_entry_reading.dart';
 import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/score_view_settings.dart';
 import 'package:score/features/scores/notifiers/scores_notifier.dart';
 import 'package:score/features/scores/widgets/score_detail/details/score_details_body.dart';
-import 'package:score/features/scores/widgets/score_detail/models/collection_context.dart';
-import 'package:score/features/scores/widgets/score_detail/models/entry_reading.dart';
 import 'package:score/features/scores/widgets/score_detail/reading_keeper.dart';
 import 'package:score/features/scores/widgets/score_detail/say.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_sheet.dart';
@@ -19,15 +18,12 @@ import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
 import 'package:score/features/scores/widgets/score_detail/scores_are_for_viewers.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/immersive_stand.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/stand_actions.dart';
-import 'package:score/features/scores/widgets/score_detail/stand/stand_title.dart';
-import 'package:score/features/scores/widgets/score_detail/way/way_through.dart';
 
 class const CollectionScoreDetailPage({
   super.key,
-  required final String scoreId,
-  required final String collectionId,
+  required final Collection? collection,
   required final String entryId,
-  final bool performing = false,
+  final bool isPerforming = false,
 }) extends StatefulWidget {
   @override
   State<CollectionScoreDetailPage> createState() =>
@@ -39,24 +35,32 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
   final _collections = GetIt.I<CollectionsNotifier>();
   final _scores = GetIt.I<ScoresNotifier>();
 
+  late bool _performing = widget.isPerforming;
+
   late final _reader = ScoreReader(
-    scoreId: widget.scoreId,
-    performing: widget.performing,
+    scoreId: _scoreId,
     settings: () => _reading?.onScreen,
   );
   late final _keeper = ReadingKeeper(
     reader: _reader,
-    reading: () => _reading,
+    isKept: (onScreen, partIds) =>
+        _reading?.isOnScreen(onScreen, partIds: partIds) ?? true,
     save: _saveReading,
     onLetGo: _letGoOfTheEntry,
     say: _say,
   );
   late final AppLifecycleListener _lifecycle;
 
-  CollectionContext? _collection;
+  late CollectionContext? _collection = switch (widget.collection) {
+    final collection?
+        when collection.entries.any((entry) => entry.id == widget.entryId) =>
+      CollectionContext(collection: collection, entryId: widget.entryId),
+    _ => null,
+  };
+  late final String? _scoreId = _collection?.entry?.scoreId;
 
-  EntryReading? get _reading => switch (_collection?.entry) {
-    final entry? => EntryReading.ofPiece(entry: entry),
+  CollectionEntryReading? get _reading => switch (_collection?.entry) {
+    final entry? => CollectionEntryReading(entry: entry),
     null => null,
   };
 
@@ -72,9 +76,7 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
       onHide: _keeper.keepWhatIsWaiting,
       onPause: _keeper.keepWhatIsWaiting,
     );
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _reader.load(readEntry: _readEntry),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reader.load());
   }
 
   @override
@@ -84,28 +86,6 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     _collections.removeListener(_takeCollectionChanges);
     _reader.dispose();
     super.dispose();
-  }
-
-  Future<void> _readEntry() async {
-    final collection = (await GetIt.I<GetCollection>()(
-      widget.collectionId,
-    )).valueOrNull;
-    if (collection == null) return;
-
-    final entry = collection.entries
-        .where((candidate) => candidate.id == widget.entryId)
-        .firstOrNull;
-    // The entry has to be an entry of this score, for the same reason as in a
-    // set: the score is what the page is of, so the collection gives way.
-    if (entry == null || entry.scoreId != widget.scoreId) return;
-
-    if (!mounted) return;
-    setState(() {
-      _collection = CollectionContext(
-        collection: collection,
-        entryId: widget.entryId,
-      );
-    });
   }
 
   void _takeCollectionChanges() {
@@ -121,13 +101,13 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
       _letGoOfTheEntry();
       return;
     }
-    if (piece != null && piece.scoreId != widget.scoreId) {
+    if (piece != null && piece.scoreId != _scoreId) {
       _letGoOfTheEntry();
       return;
     }
     setState(() => _collection = now);
     if (piece != null && !_keeper.isPending) {
-      _reader.view?.apply(EntryReading.ofPiece(entry: piece).onScreen);
+      _reader.view?.apply(CollectionEntryReading(entry: piece).onScreen);
     }
   }
 
@@ -137,10 +117,11 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     _reader.view?.apply(const ScoreViewSettings.defaultView());
   }
 
-  Future<bool> _saveReading(ScoreViewSettings reading) async {
+  Future<bool> _saveReading(ScoreViewSettings onScreen) async {
     final context = _collection;
     final entry = context?.entry;
     if (context == null || entry == null) return true;
+    final reading = CollectionEntryReading(entry: entry).toSave(onScreen);
 
     final saved = (await GetIt.I<SaveCollectionEntryView>()(
       SaveCollectionEntryViewParams(
@@ -158,8 +139,7 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     // Nor is the entry taken back once it has been let go of: a sync that
     // wrote it to play another score while this was on its way has already
     // said this page is not that entry's any more.
-    if (_collection == null ||
-        (piece != null && piece.scoreId != widget.scoreId)) {
+    if (_collection == null || (piece != null && piece.scoreId != _scoreId)) {
       return false;
     }
     setState(() {
@@ -170,41 +150,21 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     return true;
   }
 
-  /// The way through the collection this is played from.
-  ///
-  /// The collection is read as it is now rather than as it was when the page
-  /// opened: the titles the way through it is sorted by arrive with the
-  /// scores, after the page has opened, and a sync can bring in pieces
-  /// somebody else put into the book. Which is why whatever draws this
-  /// listens to both.
-  WayThrough? _wayThrough() {
-    final collection = _collection;
-    if (collection == null) return null;
-    return WayThrough.ofCollection(
-      collection.refreshedFrom(
-        _collections.getCollection(collection.collection.id),
-      ),
-      titleOf: (scoreId) => _scores.getScore(scoreId)?.title,
-      performing: true,
-    );
-  }
-
   void _say(String message, {bool briefly = false}) {
     if (!mounted) return;
     say(context, message, briefly: briefly);
   }
 
-  /// Opens the one before or after this one, in place of this one.
-  void _go(PageRouteInfo route) {
-    _keeper.keepWhatIsWaiting();
-    context.router.replace(route);
-  }
+  void _perform() => setState(() => _performing = true);
 
   void _stopPerforming(bool didPop, Object? _) {
-    if (!didPop) _reader.isPerforming.value = false;
+    if (!didPop) setState(() => _performing = false);
   }
 
-  Score? get _score => _scores.getScore(widget.scoreId);
+  Score? get _score => switch (_scoreId) {
+    final scoreId? => _scores.getScore(scoreId),
+    null => null,
+  };
 
   String get _title => _score?.title ?? 'Score';
 
@@ -216,30 +176,36 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
         _user,
         _scores,
         _reader,
-        _reader.isPerforming,
-        _collections,
       ]),
       builder: (context, _) {
         final user = _user.value;
         final mayView = user != null && user.isScoreViewer;
-        final performing = _reader.isPerforming.value;
+        final performing = _performing;
         return PopScope(
-          canPop: !performing || widget.performing,
+          canPop: !performing || widget.isPerforming,
           onPopInvokedWithResult: _stopPerforming,
           child: Scaffold(
-            // A collection is a book and not a running order, so its details
-            // have no way through it: the piece is looked up, not played after
-            // the last. On the stand the pieces either side are still a tap
-            // away.
             appBar: mayView && performing
-                ? _standAppBar(_wayThrough())
+                ? _standAppBar()
                 : AppBar(title: Text(_title)),
             body: !mayView
                 ? const ScoresAreForViewers()
+                : _scoreId == null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        'This piece is no longer in there.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  )
                 : performing
                 ? ImmersiveStand(child: ScoreDetailSheet(reader: _reader))
                 : ScoreDetailsBody(
                     reader: _reader,
+                    onPerform: _perform,
                     score: _score,
                     user: user,
                     keptAsYourReading: _collection != null,
@@ -250,15 +216,11 @@ class _CollectionScoreDetailPageState extends State<CollectionScoreDetailPage> {
     );
   }
 
-  AppBar _standAppBar(WayThrough? way) {
+  AppBar _standAppBar() {
     return AppBar(
-      toolbarHeight: way == null ? 48 : 56,
+      toolbarHeight: 48,
       titleSpacing: 0,
-      // Back stays where back is, and the size and the key on the other side.
-      centerTitle: way != null,
-      title: way == null
-          ? Text(_title, overflow: TextOverflow.ellipsis)
-          : StandTitle(title: _title, way: way, onGo: _go),
+      title: Text(_title, overflow: TextOverflow.ellipsis),
       actions: [
         StandActions(
           controller: _reader.view,

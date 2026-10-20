@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:score/features/scores/models/score_view_settings.dart';
-import 'package:score/features/scores/widgets/score_detail/models/entry_reading.dart';
 import 'package:score/features/scores/widgets/score_detail/score_reader.dart';
 import 'package:songbird_music_notation/songbird_music_notation.dart';
 
 class ReadingKeeper({
   required final ScoreReader reader,
-  required final EntryReading? Function() reading,
-  required final Future<bool> Function(ScoreViewSettings reading) save,
+  required final bool Function(ScoreViewSettings onScreen, List<String> partIds)
+  isKept,
+  required final Future<bool> Function(ScoreViewSettings onScreen) save,
   required final void Function() onLetGo,
   required final void Function(String message, {bool briefly}) say,
 }) {
@@ -64,12 +64,11 @@ class ReadingKeeper({
   /// collection says it is played and this player reads it — the size it is
   /// drawn at included. While it is, there is nothing to save.
   bool get _viewMatchesEntry {
-    final reading = this.reading();
     final view = reader.view;
-    if (reading == null || view == null) return true;
-    return reading.isOnScreen(
+    if (view == null) return true;
+    return isKept(
       view.settings,
-      partIds: view.parts.map((part) => part.id).toList(growable: false),
+      view.parts.map((part) => part.id).toList(growable: false),
     );
   }
 
@@ -83,13 +82,12 @@ class ReadingKeeper({
   /// is on screen less the key the band plays it in. How big it is drawn goes
   /// with it, since that is theirs too.
   Future<void> _save() async {
-    final reading = this.reading();
     final view = reader.view;
-    if (reading == null || view == null) return;
+    if (view == null) return;
 
     _saving++;
     try {
-      final stillThisEntry = await save(reading.toSave(view.settings));
+      final stillThisEntry = await save(view.settings);
       if (!stillThisEntry) {
         onLetGo();
         return;

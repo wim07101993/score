@@ -54,7 +54,9 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(_app(AppRouter(), ScoreRoute(scoreId: 'new')));
+    await tester.pumpWidget(
+      _app(AppRouter(), ScoreDetailRoute(scoreId: 'new')),
+    );
     await tester.pump();
 
     expect(find.byType(UploadScoreButton), findsOneWidget);
@@ -79,7 +81,9 @@ void main() {
       );
     });
     final router = AppRouter();
-    await tester.pumpWidget(_app(router, ScoreRoute(scoreId: 'beethoven')));
+    await tester.pumpWidget(
+      _app(router, ScoreDetailRoute(scoreId: 'beethoven')),
+    );
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 10));
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
@@ -134,7 +138,10 @@ void main() {
       );
       router = AppRouter();
       await tester.pumpWidget(
-        _app(router, paperRoute(setId: setId, entryId: entryId)),
+        _app(
+          router,
+          SetEntryRoute(setId: setId, entryId: entryId, isPerforming: true),
+        ),
       );
       // The router puts the page up a frame later, and the page reads what it
       // is of after that.
@@ -160,7 +167,7 @@ void main() {
       expect(find.text('This song is no longer in there.'), findsOneWidget);
     });
 
-    testWidgets('scanned while it is open is opened as its score, in the set', (
+    testWidgets('scanned while it is open is put up as its score, in place', (
       tester,
     ) async {
       await openPaperEntry(tester);
@@ -183,13 +190,13 @@ void main() {
       });
       await tester.pump();
 
+      expect(find.text('This one is played from paper.'), findsNothing);
       expect(
         router.currentUrl,
         router.pathOf(
-          PerformScoreRoute(scoreId: 'scanned', setId: setId, entryId: entryId),
+          SetEntryRoute(setId: setId, entryId: entryId, isPerforming: true),
         ),
       );
-      // In its place, rather than on top of it.
       expect(router.stack, hasLength(1));
       await tester.pump(const Duration(minutes: 1));
     });

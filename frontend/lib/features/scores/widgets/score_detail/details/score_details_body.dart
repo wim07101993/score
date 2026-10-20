@@ -10,6 +10,7 @@ class const ScoreDetailsBody({
   required final ScoreReader reader,
   required final Score? score,
   required final UserInfo user,
+  required final VoidCallback onPerform,
   final bool keptAsYourReading = false,
 }) extends StatelessWidget {
   static const double minAboutWidth = 280;
@@ -31,9 +32,7 @@ class const ScoreDetailsBody({
       controller: controller,
       user: user,
       keptAsYourReading: keptAsYourReading,
-      onPerform: reader.isShowing
-          ? () => reader.isPerforming.value = true
-          : null,
+      onPerform: reader.isShowing ? onPerform : null,
       onUploaded: (_) => reader.reload(),
     );
     return LayoutBuilder(

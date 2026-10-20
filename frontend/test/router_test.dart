@@ -1,6 +1,5 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:score/features/scores/models/score.dart';
 import 'package:score/router.dart';
 
 /// Addresses, and what is behind them.
@@ -29,13 +28,19 @@ Matcher _route(
 
 void main() {
   group('reading an address', () {
-    test('a score inside a set carries both, and which entry', () {
+    test('a song of a set carries the set, and which of its songs', () {
       expect(
-        _at('/scores/abc?set=def&entry=ghi'),
+        _at('/sets/def/ghi'),
+        _route(SetEntryRoute.name, path: {'setId': 'def', 'entryId': 'ghi'}),
+      );
+    });
+
+    test('a piece of a collection carries the collection, and which piece', () {
+      expect(
+        _at('/collections/def/ghi'),
         _route(
-          ScoreRoute.name,
-          path: {'scoreId': 'abc'},
-          query: {'set': 'def', 'entry': 'ghi'},
+          CollectionEntryRoute.name,
+          path: {'collectionId': 'def', 'entryId': 'ghi'},
         ),
       );
     });
@@ -49,7 +54,7 @@ void main() {
     test('an address that cannot be read at all is the list of scores', () {
       // Escapes that are not UTF-8, and one with nothing after the scheme.
       expect(_at('/scores/%E9t%E9'), _route(ScoresRoute.name));
-      expect(_at('/scores/abc?set=%FF'), _route(ScoresRoute.name));
+      expect(_at('/sets/abc?isPerforming=%FF'), _route(ScoresRoute.name));
       expect(_router.stackAt('//a:b/'), [_route(ScoresRoute.name)]);
     });
 
@@ -58,110 +63,104 @@ void main() {
       expect(_at('/collections/'), _route(CollectionsRoute.name));
     });
 
-    test('a song with no score, opened from a set, is that song on paper', () {
-      expect(
-        _at('/scores/paper/perform?set=def&entry=ghi'),
-        _route(
-          PerformScoreRoute.name,
-          path: {'scoreId': Score.paperId},
-          query: {'set': 'def', 'entry': 'ghi'},
-        ),
-      );
-      expect(_pathsAt('/scores/paper/perform?set=def&entry=ghi'), [
-        '/',
-        '/sets',
-        '/sets/def',
-        '/scores/paper/perform?set=def&entry=ghi',
-      ]);
-    });
-
     test('a score is played from its own address', () {
       expect(
-        _at('/scores/abc/perform?set=def&entry=ghi'),
+        _at('/scores/abc?isPerforming=true'),
         _route(
-          PerformScoreRoute.name,
+          ScoreDetailRoute.name,
           path: {'scoreId': 'abc'},
-          query: {'set': 'def', 'entry': 'ghi'},
+          query: {'isPerforming': 'true'},
         ),
       );
       expect(
         _at('/scores/abc'),
-        _route(ScoreRoute.name, path: {'scoreId': 'abc'}),
+        _route(ScoreDetailRoute.name, path: {'scoreId': 'abc'}),
       );
-    });
-
-    test('a score played on its own is left for its details', () {
-      expect(_pathsAt('/scores/abc/perform'), [
-        '/',
-        '/scores/abc',
-        '/scores/abc/perform',
-      ]);
     });
 
     test('an address read and written again is the address it was', () {
       const addresses = [
-        '/',
+        '/scores',
+        '/scores/abc',
+        '/scores/abc?isPerforming=true',
         '/sets',
+        '/sets/abc',
+        '/sets/abc/def',
+        '/sets/abc/def?isPerforming=true',
         '/collections',
         '/collections/abc',
-        '/scores/abc?collection=def&entry=ghi',
-        '/scores/paper/perform?set=def&entry=ghi',
+        '/collections/abc/def',
+        '/collections/abc/def?isPerforming=true',
         '/profile',
         '/settings',
         '/settings/logs',
-        '/sets/abc',
-        '/scores/abc',
-        '/scores/abc?set=def&entry=ghi',
       ];
 
       for (final address in addresses) {
         expect(_router.pathOf(_at(address)), address);
       }
     });
+
+    test('a page that is not played says nothing about playing', () {
+      expect(
+        _router.pathOf(SetEntryRoute(setId: 'abc', entryId: 'def')),
+        '/sets/abc/def',
+      );
+    });
   });
 
   group('what a link opens onto', () {
     test('a score has the list of scores behind it, once', () {
-      expect(_pathsAt('/scores/abc'), ['/', '/scores/abc']);
+      expect(_pathsAt('/scores/abc'), ['/scores', '/scores/abc']);
     });
 
-    test('a set has the list of sets behind it', () {
-      expect(_pathsAt('/sets/def'), ['/', '/sets', '/sets/def']);
-    });
-
-    test('a score played from a set is left through that set', () {
-      expect(_pathsAt('/scores/abc?set=def&entry=ghi'), [
-        '/',
-        '/sets',
-        '/sets/def',
-        '/scores/abc?set=def&entry=ghi',
+    test('a score played on its own has only the list of scores behind it', () {
+      expect(_pathsAt('/scores/abc?isPerforming=true'), [
+        '/scores',
+        '/scores/abc?isPerforming=true',
       ]);
     });
 
-    test('a score played from a collection is left through it', () {
-      expect(_pathsAt('/scores/abc?collection=def&entry=ghi'), [
-        '/',
+    test('a set has the list of sets behind it', () {
+      expect(_pathsAt('/sets/def'), ['/scores', '/sets', '/sets/def']);
+    });
+
+    test('a song of a set is left through that set', () {
+      expect(_pathsAt('/sets/def/ghi?isPerforming=true'), [
+        '/scores',
+        '/sets',
+        '/sets/def',
+        '/sets/def/ghi?isPerforming=true',
+      ]);
+    });
+
+    test('a piece of a collection is left through it', () {
+      expect(_pathsAt('/collections/def/ghi'), [
+        '/scores',
         '/collections',
         '/collections/def',
-        '/scores/abc?collection=def&entry=ghi',
+        '/collections/def/ghi',
       ]);
     });
 
     test('the list of scores is not put behind itself', () {
-      expect(_pathsAt('/'), ['/']);
-      expect(_pathsAt('/nowhere'), ['/']);
+      expect(_pathsAt('/'), ['/scores']);
+      expect(_pathsAt('/nowhere'), ['/scores']);
     });
 
     test('every address leads somewhere, and ends where it was pointed', () {
       const addresses = [
-        '/',
+        '/scores',
+        '/scores/abc',
+        '/scores/abc?isPerforming=true',
         '/sets',
         '/sets/abc',
-        '/scores/abc',
-        '/scores/abc?set=def&entry=ghi',
+        '/sets/abc/def',
+        '/sets/abc/def?isPerforming=true',
         '/collections',
         '/collections/abc',
-        '/scores/abc?collection=def&entry=ghi',
+        '/collections/abc/def',
+        '/collections/abc/def?isPerforming=true',
         '/profile',
         '/settings',
       ];

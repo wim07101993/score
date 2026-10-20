@@ -227,15 +227,8 @@ class _SetDetailPageState extends State<SetDetailPage> {
 
   /// Plays the set from its first song.
   void _playFrom(SetEntry entry) {
-    final scoreId = entry.scoreId;
     context.router.push(
-      scoreId == null
-          ? paperRoute(setId: _setId, entryId: entry.id)
-          : PerformScoreRoute(
-              scoreId: scoreId,
-              setId: _setId,
-              entryId: entry.id,
-            ),
+      SetEntryRoute(setId: _setId, entryId: entry.id, isPerforming: true),
     );
   }
 
@@ -780,21 +773,16 @@ class const _EntryCard({
                     ),
                   },
                 ),
+                // A song with no score opens all the same, as the song it is
+                // in the running order, with the way on to the next.
                 OpenScoreButton(
-                  onPressed: switch (entry.scoreId) {
-                    final scoreId? => () => context.router.push(
-                      PerformScoreRoute(
-                        scoreId: scoreId,
-                        setId: setId,
-                        entryId: entry.id,
-                      ),
+                  onPressed: () => context.router.push(
+                    SetEntryRoute(
+                      setId: setId,
+                      entryId: entry.id,
+                      isPerforming: true,
                     ),
-                    // A song with no score opens all the same, as the song it
-                    // is in the running order, with the way on to the next.
-                    null => () => context.router.push(
-                      paperRoute(setId: setId, entryId: entry.id),
-                    ),
-                  },
+                  ),
                 ),
                 if (owner) ...[
                   MoveEntryUpButton(

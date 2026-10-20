@@ -37,7 +37,7 @@ void main() {
       // Every complaint this screen makes is a test failure here, which is the
       // point: the error being fixed was reported rather than thrown, so it cost
       // nothing but noise and could sit there for as long as nobody minded it.
-      openedAt(tester, '/scores/abc?set=def&entry=ghi');
+      openedAt(tester, '/sets/def/ghi?isPerforming=true');
 
       await tester.pumpWidget(_starting());
 
@@ -55,7 +55,7 @@ void main() {
   });
 
   testWidgets('one screen, however deep the address', (tester) async {
-    openedAt(tester, '/scores/abc?set=def&entry=ghi');
+    openedAt(tester, '/sets/def/ghi?isPerforming=true');
 
     await tester.pumpWidget(_starting());
 

@@ -1,13 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:score/features/scores/widgets/score_detail/way/next_score_button.dart';
-import 'package:score/features/scores/widgets/score_detail/way/open_collection_button.dart';
-import 'package:score/features/scores/widgets/score_detail/way/open_set_button.dart';
-import 'package:score/features/scores/widgets/score_detail/way/previous_score_button.dart';
-import 'package:score/features/scores/widgets/score_detail/way/way_through.dart';
+import 'package:score/features/sets/widgets/set_score_detail/next_score_button.dart';
+import 'package:score/features/sets/widgets/set_score_detail/open_set_button.dart';
+import 'package:score/features/sets/widgets/set_score_detail/previous_score_button.dart';
+import 'package:score/features/sets/widgets/set_score_detail/way_through.dart';
 
-/// The way through the set or the collection, as a bar of its own under the
-/// details of a score.
+/// The way through the set, as a bar of its own under the details of a score.
 class const WayBar({
   super.key,
   required final WayThrough way,
@@ -34,9 +32,7 @@ class const WayBar({
             // Flexible, so that a long title gives way rather than pushing the
             // way to the next one off the edge of a phone.
             Flexible(
-              child: way.isSet
-                  ? OpenSetButton(title: way.title, onPressed: open)
-                  : OpenCollectionButton(title: way.title, onPressed: open),
+              child: OpenSetButton(title: way.title, onPressed: open),
             ),
             Text(
               '${way.position} of ${way.count}',

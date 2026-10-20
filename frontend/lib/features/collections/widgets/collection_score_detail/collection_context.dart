@@ -3,12 +3,6 @@ import 'package:score/features/collections/models/collection_entry.dart';
 
 /// Which collection this score is being played from, and which of its pieces
 /// it is.
-///
-/// Where it comes in the collection is not kept: a collection has no order, so
-/// the way through it is by title, and the titles are in the scores — which
-/// can arrive after the page has opened. So it is worked out each time the bar
-/// is drawn, and "3 of 21" means the third one down the page somebody was just
-/// looking at.
 class const CollectionContext({
   required final Collection collection,
   required final String entryId,

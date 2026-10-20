@@ -15,10 +15,11 @@ import 'package:score/features/scores/widgets/score_detail/stand/immersive_stand
 import 'package:score/features/scores/widgets/score_detail/stand/stand_actions.dart';
 import 'package:score/router.dart';
 
+@RoutePage()
 class const ScoreDetailPage({
   super.key,
-  required final String? scoreId,
-  final bool performing = false,
+  @PathParam('scoreId') required final String scoreId,
+  @QueryParam('isPerforming') final bool? isPerforming,
 }) extends StatefulWidget {
   @override
   State<ScoreDetailPage> createState() => _ScoreDetailPageState();
@@ -28,14 +29,17 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   final _user = GetIt.I<AuthNotifier>();
   final _scores = GetIt.I<ScoresNotifier>();
 
+  late bool _performing = widget.isPerforming ?? false;
+
   late final _reader = ScoreReader(
-    scoreId: widget.scoreId,
-    performing: widget.performing,
+    scoreId: _scoreId,
   );
 
-  bool get _isNew => widget.scoreId == null;
+  bool get _isNew => widget.scoreId == 'new';
 
-  Score? get _score => switch (widget.scoreId) {
+  String? get _scoreId => _isNew ? null : widget.scoreId;
+
+  Score? get _score => switch (_scoreId) {
     final scoreId? => _scores.getScore(scoreId),
     null => null,
   };
@@ -56,11 +60,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
   }
 
   void _openUploaded(String scoreId) {
-    context.router.replace(ScoreRoute(scoreId: scoreId));
+    context.router.replace(ScoreDetailRoute(scoreId: scoreId));
   }
 
+  void _perform() => setState(() => _performing = true);
+
   void _stopPerforming(bool didPop, Object? _) {
-    if (!didPop) _reader.isPerforming.value = false;
+    if (!didPop) setState(() => _performing = false);
   }
 
   String get _title {
@@ -76,14 +82,13 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
         _user,
         _scores,
         _reader,
-        _reader.isPerforming,
       ]),
       builder: (context, _) {
         final user = _user.value;
         final mayView = user != null && user.isScoreViewer;
-        final performing = _reader.isPerforming.value && !_isNew;
+        final performing = _performing && !_isNew;
         return PopScope(
-          canPop: !performing || widget.performing,
+          canPop: !performing,
           onPopInvokedWithResult: _stopPerforming,
           child: Scaffold(
             appBar: mayView && performing
@@ -120,6 +125,11 @@ class _ScoreDetailPageState extends State<ScoreDetailPage> {
     if (performing) {
       return ImmersiveStand(child: ScoreDetailSheet(reader: _reader));
     }
-    return ScoreDetailsBody(reader: _reader, score: _score, user: user);
+    return ScoreDetailsBody(
+      reader: _reader,
+      score: _score,
+      user: user,
+      onPerform: _perform,
+    );
   }
 }

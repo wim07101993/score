@@ -67,6 +67,91 @@ class CollectionDetailRouteArgs {
 }
 
 /// generated route for
+/// [CollectionEntryPage]
+class CollectionEntryRoute extends PageRouteInfo<CollectionEntryRouteArgs> {
+  CollectionEntryRoute({
+    Key? key,
+    required String collectionId,
+    required String entryId,
+    bool? isPerforming,
+    List<PageRouteInfo>? children,
+  }) : super(
+         CollectionEntryRoute.name,
+         args: CollectionEntryRouteArgs(
+           key: key,
+           collectionId: collectionId,
+           entryId: entryId,
+           isPerforming: isPerforming,
+         ),
+         rawPathParams: {'collectionId': collectionId, 'entryId': entryId},
+         rawQueryParams: {'isPerforming': isPerforming},
+         initialChildren: children,
+       );
+
+  static const String name = 'CollectionEntryRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<CollectionEntryRouteArgs>(
+        orElse: () => CollectionEntryRouteArgs(
+          collectionId: pathParams.getString('collectionId'),
+          entryId: pathParams.getString('entryId'),
+          isPerforming: queryParams.optBool('isPerforming'),
+        ),
+      );
+      return CollectionEntryPage(
+        key: args.key,
+        collectionId: args.collectionId,
+        entryId: args.entryId,
+        isPerforming: args.isPerforming,
+      );
+    },
+  );
+}
+
+class CollectionEntryRouteArgs {
+  const CollectionEntryRouteArgs({
+    this.key,
+    required this.collectionId,
+    required this.entryId,
+    this.isPerforming,
+  });
+
+  final Key? key;
+
+  final String collectionId;
+
+  final String entryId;
+
+  final bool? isPerforming;
+
+  @override
+  String toString() {
+    return 'CollectionEntryRouteArgs{key: $key, collectionId: $collectionId, entryId: $entryId, isPerforming: $isPerforming}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CollectionEntryRouteArgs) return false;
+    return key == other.key &&
+        collectionId == other.collectionId &&
+        entryId == other.entryId &&
+        isPerforming == other.isPerforming;
+  }
+
+  @override
+  int get hashCode =>
+      key.hashCode ^
+      collectionId.hashCode ^
+      entryId.hashCode ^
+      isPerforming.hashCode;
+}
+
+/// generated route for
 /// [CollectionsPage]
 class CollectionsRoute extends PageRouteInfo<void> {
   const CollectionsRoute({List<PageRouteInfo>? children})
@@ -99,104 +184,6 @@ class LogsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [PerformScorePage]
-class PerformScoreRoute extends PageRouteInfo<PerformScoreRouteArgs> {
-  PerformScoreRoute({
-    Key? key,
-    required String scoreId,
-    String? setId,
-    String? collectionId,
-    String? entryId,
-    List<PageRouteInfo>? children,
-  }) : super(
-         PerformScoreRoute.name,
-         args: PerformScoreRouteArgs(
-           key: key,
-           scoreId: scoreId,
-           setId: setId,
-           collectionId: collectionId,
-           entryId: entryId,
-         ),
-         rawPathParams: {'scoreId': scoreId},
-         rawQueryParams: {
-           'set': setId,
-           'collection': collectionId,
-           'entry': entryId,
-         },
-         initialChildren: children,
-       );
-
-  static const String name = 'PerformScoreRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      final pathParams = data.inheritedPathParams;
-      final queryParams = data.queryParams;
-      final args = data.argsAs<PerformScoreRouteArgs>(
-        orElse: () => PerformScoreRouteArgs(
-          scoreId: pathParams.getString('scoreId'),
-          setId: queryParams.optString('set'),
-          collectionId: queryParams.optString('collection'),
-          entryId: queryParams.optString('entry'),
-        ),
-      );
-      return PerformScorePage(
-        key: args.key,
-        scoreId: args.scoreId,
-        setId: args.setId,
-        collectionId: args.collectionId,
-        entryId: args.entryId,
-      );
-    },
-  );
-}
-
-class PerformScoreRouteArgs {
-  const PerformScoreRouteArgs({
-    this.key,
-    required this.scoreId,
-    this.setId,
-    this.collectionId,
-    this.entryId,
-  });
-
-  final Key? key;
-
-  final String scoreId;
-
-  final String? setId;
-
-  final String? collectionId;
-
-  final String? entryId;
-
-  @override
-  String toString() {
-    return 'PerformScoreRouteArgs{key: $key, scoreId: $scoreId, setId: $setId, collectionId: $collectionId, entryId: $entryId}';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! PerformScoreRouteArgs) return false;
-    return key == other.key &&
-        scoreId == other.scoreId &&
-        setId == other.setId &&
-        collectionId == other.collectionId &&
-        entryId == other.entryId;
-  }
-
-  @override
-  int get hashCode =>
-      key.hashCode ^
-      scoreId.hashCode ^
-      setId.hashCode ^
-      collectionId.hashCode ^
-      entryId.hashCode;
-}
-
-/// generated route for
 /// [ProfilePage]
 class ProfileRoute extends PageRouteInfo<void> {
   const ProfileRoute({List<PageRouteInfo>? children})
@@ -213,101 +200,76 @@ class ProfileRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [ScorePage]
-class ScoreRoute extends PageRouteInfo<ScoreRouteArgs> {
-  ScoreRoute({
+/// [ScoreDetailPage]
+class ScoreDetailRoute extends PageRouteInfo<ScoreDetailRouteArgs> {
+  ScoreDetailRoute({
     Key? key,
     required String scoreId,
-    String? setId,
-    String? collectionId,
-    String? entryId,
+    bool? isPerforming,
     List<PageRouteInfo>? children,
   }) : super(
-         ScoreRoute.name,
-         args: ScoreRouteArgs(
+         ScoreDetailRoute.name,
+         args: ScoreDetailRouteArgs(
            key: key,
            scoreId: scoreId,
-           setId: setId,
-           collectionId: collectionId,
-           entryId: entryId,
+           isPerforming: isPerforming,
          ),
          rawPathParams: {'scoreId': scoreId},
-         rawQueryParams: {
-           'set': setId,
-           'collection': collectionId,
-           'entry': entryId,
-         },
+         rawQueryParams: {'isPerforming': isPerforming},
          initialChildren: children,
        );
 
-  static const String name = 'ScoreRoute';
+  static const String name = 'ScoreDetailRoute';
 
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final queryParams = data.queryParams;
-      final args = data.argsAs<ScoreRouteArgs>(
-        orElse: () => ScoreRouteArgs(
+      final args = data.argsAs<ScoreDetailRouteArgs>(
+        orElse: () => ScoreDetailRouteArgs(
           scoreId: pathParams.getString('scoreId'),
-          setId: queryParams.optString('set'),
-          collectionId: queryParams.optString('collection'),
-          entryId: queryParams.optString('entry'),
+          isPerforming: queryParams.optBool('isPerforming'),
         ),
       );
-      return ScorePage(
+      return ScoreDetailPage(
         key: args.key,
         scoreId: args.scoreId,
-        setId: args.setId,
-        collectionId: args.collectionId,
-        entryId: args.entryId,
+        isPerforming: args.isPerforming,
       );
     },
   );
 }
 
-class ScoreRouteArgs {
-  const ScoreRouteArgs({
+class ScoreDetailRouteArgs {
+  const ScoreDetailRouteArgs({
     this.key,
     required this.scoreId,
-    this.setId,
-    this.collectionId,
-    this.entryId,
+    this.isPerforming,
   });
 
   final Key? key;
 
   final String scoreId;
 
-  final String? setId;
-
-  final String? collectionId;
-
-  final String? entryId;
+  final bool? isPerforming;
 
   @override
   String toString() {
-    return 'ScoreRouteArgs{key: $key, scoreId: $scoreId, setId: $setId, collectionId: $collectionId, entryId: $entryId}';
+    return 'ScoreDetailRouteArgs{key: $key, scoreId: $scoreId, isPerforming: $isPerforming}';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    if (other is! ScoreRouteArgs) return false;
+    if (other is! ScoreDetailRouteArgs) return false;
     return key == other.key &&
         scoreId == other.scoreId &&
-        setId == other.setId &&
-        collectionId == other.collectionId &&
-        entryId == other.entryId;
+        isPerforming == other.isPerforming;
   }
 
   @override
-  int get hashCode =>
-      key.hashCode ^
-      scoreId.hashCode ^
-      setId.hashCode ^
-      collectionId.hashCode ^
-      entryId.hashCode;
+  int get hashCode => key.hashCode ^ scoreId.hashCode ^ isPerforming.hashCode;
 }
 
 /// generated route for
@@ -375,6 +337,88 @@ class SetDetailRouteArgs {
 
   @override
   int get hashCode => key.hashCode ^ setId.hashCode;
+}
+
+/// generated route for
+/// [SetEntryPage]
+class SetEntryRoute extends PageRouteInfo<SetEntryRouteArgs> {
+  SetEntryRoute({
+    Key? key,
+    required String setId,
+    required String entryId,
+    bool? isPerforming,
+    List<PageRouteInfo>? children,
+  }) : super(
+         SetEntryRoute.name,
+         args: SetEntryRouteArgs(
+           key: key,
+           setId: setId,
+           entryId: entryId,
+           isPerforming: isPerforming,
+         ),
+         rawPathParams: {'setId': setId, 'entryId': entryId},
+         rawQueryParams: {'isPerforming': isPerforming},
+         initialChildren: children,
+       );
+
+  static const String name = 'SetEntryRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<SetEntryRouteArgs>(
+        orElse: () => SetEntryRouteArgs(
+          setId: pathParams.getString('setId'),
+          entryId: pathParams.getString('entryId'),
+          isPerforming: queryParams.optBool('isPerforming'),
+        ),
+      );
+      return SetEntryPage(
+        key: args.key,
+        setId: args.setId,
+        entryId: args.entryId,
+        isPerforming: args.isPerforming,
+      );
+    },
+  );
+}
+
+class SetEntryRouteArgs {
+  const SetEntryRouteArgs({
+    this.key,
+    required this.setId,
+    required this.entryId,
+    this.isPerforming,
+  });
+
+  final Key? key;
+
+  final String setId;
+
+  final String entryId;
+
+  final bool? isPerforming;
+
+  @override
+  String toString() {
+    return 'SetEntryRouteArgs{key: $key, setId: $setId, entryId: $entryId, isPerforming: $isPerforming}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SetEntryRouteArgs) return false;
+    return key == other.key &&
+        setId == other.setId &&
+        entryId == other.entryId &&
+        isPerforming == other.isPerforming;
+  }
+
+  @override
+  int get hashCode =>
+      key.hashCode ^ setId.hashCode ^ entryId.hashCode ^ isPerforming.hashCode;
 }
 
 /// generated route for

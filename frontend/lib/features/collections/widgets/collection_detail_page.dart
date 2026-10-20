@@ -254,8 +254,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   /// collection says.
   void _open(CollectionEntry entry) {
     context.router.push(
-      ScoreRoute(
-        scoreId: entry.scoreId,
+      CollectionEntryRoute(
         collectionId: _collectionId,
         entryId: entry.id,
       ),
@@ -857,8 +856,7 @@ class const _EntryCard({
                 // opening it to play it, not to read who wrote it.
                 OpenCollectionEntryButton(
                   onPressed: () => context.router.push(
-                    ScoreRoute(
-                      scoreId: entry.scoreId,
+                    CollectionEntryRoute(
                       collectionId: collectionId,
                       entryId: entry.id,
                     ),

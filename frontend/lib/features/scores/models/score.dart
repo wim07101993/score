@@ -43,8 +43,6 @@ class const Score({
   static const String lastChangedAtFieldKey = 'last_changed_at';
   static const String idFieldKey = 'id';
 
-  static const String paperId = 'paper';
-
   static const String mediaType = 'application/vnd.recordare.musicxml';
 
   static final DateTime defaultLastChangedAt = beginningOfTime;
