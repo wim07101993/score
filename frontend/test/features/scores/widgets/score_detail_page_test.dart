@@ -8,7 +8,6 @@ import 'package:score/features/scores/models/score.dart';
 import 'package:score/features/scores/models/work.dart';
 import 'package:score/features/scores/storage/score_documents.dart';
 import 'package:score/features/scores/storage/scores_database.dart';
-import 'package:score/features/scores/widgets/score_detail/details/upload_score_button.dart';
 import 'package:score/features/scores/widgets/score_detail/stand/zoom_in_button.dart';
 import 'package:score/features/sets/models.dart';
 import 'package:score/features/sets/storage/sets_database.dart';
@@ -41,27 +40,6 @@ ScoreSet _set({
 
 void main() {
   tearDown(() => GetIt.I.popScope());
-
-  testWidgets('an editor who may not read scores can still upload one', (
-    tester,
-  ) async {
-    await tester.runAsync(
-      () => GetIt.I.registerForTesting(
-        user: const {
-          'sub': 'librarian',
-          'roles': {'score_editor': <String, dynamic>{}},
-        },
-      ),
-    );
-
-    await tester.pumpWidget(
-      _app(AppRouter(), ScoreDetailRoute(scoreId: 'new')),
-    );
-    await tester.pump();
-
-    expect(find.byType(UploadScoreButton), findsOneWidget);
-    expect(find.text('Scores are for score viewers.'), findsNothing);
-  });
 
   testWidgets('is played on the stand with how it is read here, and back', (
     tester,

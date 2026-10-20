@@ -63,6 +63,10 @@ void main() {
       expect(_at('/collections/'), _route(CollectionsRoute.name));
     });
 
+    test('a new score is not a score called new', () {
+      expect(_at('/scores/new'), _route(NewScoreRoute.name));
+    });
+
     test('a score is played from its own address', () {
       expect(
         _at('/scores/abc?isPerforming=true'),
@@ -81,6 +85,7 @@ void main() {
     test('an address read and written again is the address it was', () {
       const addresses = [
         '/scores',
+        '/scores/new',
         '/scores/abc',
         '/scores/abc?isPerforming=true',
         '/sets',

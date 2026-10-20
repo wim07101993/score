@@ -184,6 +184,22 @@ class LogsRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [NewScorePage]
+class NewScoreRoute extends PageRouteInfo<void> {
+  const NewScoreRoute({List<PageRouteInfo>? children})
+    : super(NewScoreRoute.name, initialChildren: children);
+
+  static const String name = 'NewScoreRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const NewScorePage();
+    },
+  );
+}
+
+/// generated route for
 /// [ProfilePage]
 class ProfileRoute extends PageRouteInfo<void> {
   const ProfileRoute({List<PageRouteInfo>? children})

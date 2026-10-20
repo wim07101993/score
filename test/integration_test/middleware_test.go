@@ -64,16 +64,22 @@ func TestAnUploadToAMalformedIdIsARequestProblem(t *testing.T) {
 	client := helpers.Ensure(t, h.RawClient, "RawClient")
 	idp := helpers.Ensure(t, h.IdentityProvider, "idp")
 
-	res := client.Do(t, helpers.Request{
-		Method: http.MethodPut,
-		Path:   "/scores/not-a-score-id",
-		Token:  idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor),
-		Body:   helpers.MusicXmlWithWorkAndMovement,
-	})
+	for _, id := range []string{"not-a-score-id", "new"} {
+		t.Run(id, func(t *testing.T) {
+			t.Parallel()
 
-	assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
-		"an upload to an id that is not an id should be refused over the id: %s", res.Text())
-	assert.Equal(t, "invalid_request", string(res.DecodeProblem(t).ErrorCode))
+			res := client.Do(t, helpers.Request{
+				Method: http.MethodPut,
+				Path:   "/scores/" + id,
+				Token:  idp.IssueToken(t, auth.RoleScoreViewer, auth.RoleScoreEditor),
+				Body:   helpers.MusicXmlWithWorkAndMovement,
+			})
+
+			assert.Equalf(t, http.StatusBadRequest, res.StatusCode,
+				"an upload to an id that is not an id should be refused over the id: %s", res.Text())
+			assert.Equal(t, "invalid_request", string(res.DecodeProblem(t).ErrorCode))
+		})
+	}
 }
 
 func TestUploadingRejectsUnsupportedContentTypes(t *testing.T) {

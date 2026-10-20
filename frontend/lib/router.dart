@@ -14,6 +14,7 @@ import 'package:score/features/collections/widgets/collection_detail_page.dart';
 import 'package:score/features/collections/widgets/collection_score_detail/collection_entry_page.dart';
 import 'package:score/features/collections/widgets/collections_page.dart';
 import 'package:score/features/observability/widgets/logs_page.dart';
+import 'package:score/features/scores/widgets/new_score/new_score_page.dart';
 import 'package:score/features/scores/widgets/score_detail/score_detail_page.dart';
 import 'package:score/features/scores/widgets/score_list/scores_page.dart';
 import 'package:score/features/sets/widgets/set_detail_page.dart';
@@ -29,6 +30,7 @@ class AppRouter extends RootStackRouter {
   List<AutoRoute> get routes => [
     RedirectRoute(path: '/', redirectTo: '/scores'),
     AutoRoute(page: ScoresRoute.page, path: '/scores', initial: true),
+    AutoRoute(page: NewScoreRoute.page, path: '/scores/new'),
     _detail(ScoreDetailRoute.page, '/scores/:scoreId'),
     AutoRoute(page: SetsRoute.page, path: '/sets'),
     _detail(SetDetailRoute.page, '/sets/:setId'),
